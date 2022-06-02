@@ -1,6 +1,6 @@
 # KKuTu-Web
 
-[horyu1234](https://github.com/horyu1234)의 [KKuTu-Web](https://github.com/KKuTu-Web) 프로젝트를 기반으로 하는 [JJoriping](https://github.com/JJoriping)의 [KKuTu](https://github.com/JJoriping/KKuTu) 게임 서버와 호환이 가능한 끄투 웹 서버입니다.
+[horyu1234](https://github.com/horyu1234)의 [KKuTu-Web](https://github.com/KKuTu-Web) 프로젝트를 기반으로 하는, [JJoriping](https://github.com/JJoriping)의 [KKuTu](https://github.com/JJoriping/KKuTu) 게임 서버와 호환 가능한 끄투 웹 서버입니다.
 
 ---
 

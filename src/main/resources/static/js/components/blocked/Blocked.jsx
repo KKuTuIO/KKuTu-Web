@@ -74,7 +74,7 @@ const DetailValue = styled.td`
 
 const Footer = styled.p`
   text-align: center;
-  font-size: 12px;
+  font-size: 10.5px;
   margin-top: 30px;
 `
 
@@ -131,7 +131,7 @@ const Blocked = ({blockInfo}) => {
                     </tbody>
                 </DetailTable>
 
-                <Footer>본 이용제한에 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다.</Footer>
+                <Footer>본 조치에 대한 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다.</Footer>
                 <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io'}>고객센터로 이동하기</LogoutBtn>
 
                 <Footer style={{marginTop: '10px', fontSize: '16px'}}>문의 시 사용자 식별을 위하여 <span style={{
@@ -139,7 +139,7 @@ const Blocked = ({blockInfo}) => {
                     color: '#A5D6A7',
                     fontWeight: 'bold',
                     userSelect: 'all'
-                }}>{getInquireId()}</span> 문구와 자세한 내용을 포함해주시기 바랍니다.</Footer>
+                }}>{getInquireId()}</span> 문구를 포함해주시고,<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
             </Background>
         </>
     )

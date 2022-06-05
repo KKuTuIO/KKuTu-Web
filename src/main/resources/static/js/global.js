@@ -79,6 +79,7 @@ var L;
         var $c;
         var explSize;
         var gn = $("#gn-content").html() || "";
+        $("#gn-content").load("https://static.kkutu.io/global_notice.html");
 
         global.profile = $("#profile").html();
         if (global.profile) global.profile = JSON.parse(global.profile);
@@ -94,11 +95,10 @@ var L;
             $gn.show();
             $('#Middle').addClass('has-notice');
         }
-        $gn.on('click', function(e) {
+        $("#click-to-hide").on('click', function(e){
             $gn.hide();
             $('#Middle').removeClass('has-notice');
         });
-
         $(window).on('resize', function (e) {
             size = [$(window).width(), $(window).height()];
 
@@ -166,33 +166,7 @@ var L;
         var $ac = $("#ac-" + cid);
 
         if ($o.val() != prev) {
-            if (prev = $o.val()) {
-                $.get("http://jjo.kr/search?q=" + encodeURI(prev), function (res) {
-                    var i, c = 0;
-
-                    $ac.empty();
-                    global['wl-' + cid] = res.list.slice(0, 10);
-                    global['wi-' + cid] = -1;
-                    for (i in res.list) {
-                        if (c++ >= 10) break;
-                        $ac.append($("<div>")
-                            .attr('id', "aci-" + res.list[i]._id)
-                            .addClass("autocomp-item ellipse")
-                            .html(res.list[i].profile.name)
-                            .on('click', function (e) {
-                                location.href = "http://jjo.kr/users/" + $(e.currentTarget).attr('id').slice(4);
-                            })
-                        );
-                    }
-                    if (c) {
-                        $ac.show();
-                        $o.css('border-bottom-left-radius', 0);
-                    } else {
-                        $ac.hide();
-                        $o.css('border-bottom-left-radius', "");
-                    }
-                });
-            } else {
+            if (prev = $o.val()) {} else {
                 $ac.hide();
                 $o.css('border-bottom-left-radius', "");
             }

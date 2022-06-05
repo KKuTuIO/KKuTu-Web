@@ -75,12 +75,18 @@ var L;
         const LANG = {
             'ko_KR': "한국어"
         };
-        var $gn = $("#global-notice").show();
+        var $gn = $("#global-notice").hide();
         var $c;
         var explSize;
         var gn = $("#gn-content").html() || "";
 
-        $("#gn-content").load("https://static.kkutu.io/global_notice.html");
+        $("#gn-content").load("https://static.kkutu.io/global_notice.html", function() {
+            $("#click-to-hide").on('click', function(e){
+                $gn.hide();
+                $('#Middle').removeClass('has-notice');
+            });
+            $gn.show();
+        });
 
         global.profile = $("#profile").html();
         if (global.profile) global.profile = JSON.parse(global.profile);
@@ -94,10 +100,6 @@ var L;
         }
         $('#Middle').addClass('has-notice');
 
-        $("#click-to-hide").on('click', function(e){
-            $gn.hide();
-            $('#Middle').removeClass('has-notice');
-        });
         $(window).on('resize', function (e) {
             size = [$(window).width(), $(window).height()];
 

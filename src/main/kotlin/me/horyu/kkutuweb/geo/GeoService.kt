@@ -31,11 +31,12 @@ import java.net.URL
 @Service
 class GeoService(
     @Value("\${geo.api-key}") private val apiKey: String,
+    @Value("\${geo.api-domain}") private val apiDomain: String,
     @Autowired private val objectMapper: ObjectMapper
 ) {
     @Cacheable(value = ["ipGeoInfoCache"], key = "#ip")
     fun getGeoCountry(ip: String): String? {
-        val response = requestHttp("https://geo.horyu.me/lookup?key=${apiKey}&ip=${ip}")
+        val response = requestHttp("${apiDomain}/lookup?key=${apiKey}&ip=${ip}")
         val jsonNode = objectMapper.readTree(response)
 
         val geoLocation = jsonNode["geoLocation"]

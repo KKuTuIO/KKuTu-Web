@@ -75,7 +75,7 @@ var L;
         const LANG = {
             'ko_KR': "한국어"
         };
-        var $gn = $("#global-notice").hide();
+        var $gn = $("#global-notice").show();
         var $c;
         var explSize;
         var gn = $("#gn-content").html() || "";
@@ -92,10 +92,8 @@ var L;
         } else {
             $.cookie('test', "");
         }
-
-        $gn.show();
         $('#Middle').addClass('has-notice');
-        
+
         $("#click-to-hide").on('click', function(e){
             $gn.hide();
             $('#Middle').removeClass('has-notice');

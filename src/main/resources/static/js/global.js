@@ -79,6 +79,7 @@ var L;
         var $c;
         var explSize;
         var gn = $("#gn-content").html() || "";
+
         $("#gn-content").load("https://static.kkutu.io/global_notice.html");
 
         global.profile = $("#profile").html();
@@ -91,10 +92,10 @@ var L;
         } else {
             $.cookie('test', "");
         }
-        if (gn.length > 1) {
-            $gn.show();
-            $('#Middle').addClass('has-notice');
-        }
+
+        $gn.show();
+        $('#Middle').addClass('has-notice');
+        
         $("#click-to-hide").on('click', function(e){
             $gn.hide();
             $('#Middle').removeClass('has-notice');

@@ -18,26 +18,15 @@
 
 @font-face {
     font-family: 'NBGothic';
-    src: url('https://cdn.jsdelivr.net/font-nanumlight/1.0/NanumBarunGothicWebLight.eot');
-    src: url('https://cdn.jsdelivr.net/font-nanumlight/1.0/NanumBarunGothicWebLight.eot?#iefix') format('embedded-opentype'),
-    url('//cdn.jsdelivr.net/font-nanumlight/1.0/NanumBarunGothicWebLight.woff') format('woff'),
-    url('//cdn.jsdelivr.net/font-nanumlight/1.0/NanumBarunGothicWebLight.ttf') format('truetype');
+    src: url('https://cdn.jsdelivr.net/gh/horyu1234/KKuTu-Web@kkutuio/src/main/resources/static/font/NanumBarunGothicLight.woff') format('woff');
 }
-
-/* @font-face {
-    font-family: 'NanumSquare';
-    src: url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/NanumSquareR.eot);
-    src: url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/NanumSquareR.eot?#iefix) format('embedded-opentype'),
-    url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/NanumSquareR.woff) format('woff'),
-    url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/NanumSquareR.ttf) format('truetype');
-} */
 
 body {
     color: #EEEEEE;
     padding: 0px;
     margin: 0px;
     min-width: 480px;
-    font-family: NBGothic, NanumSquare, "돋움", "Dotum", "Apple SD Gothic Neo", "AppleGothic", sans-serif;
+    font-family: NBGothic, 돋움;
 }
 
 a {

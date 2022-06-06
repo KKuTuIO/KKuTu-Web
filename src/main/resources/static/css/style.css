@@ -26,7 +26,7 @@ body {
     padding: 0px;
     margin: 0px;
     min-width: 480px;
-    font-family: NBGothic, 돋움;
+    font-family: NBGothic, NanumSquare, "돋움", "Dotum", "Apple SD Gothic Neo", "AppleGothic", sans-serif;
 }
 
 a {

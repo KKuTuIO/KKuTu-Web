@@ -132,7 +132,7 @@ const Blocked = ({blockInfo}) => {
                 </DetailTable>
 
                 <Footer>본 조치에 대한 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다.</Footer>
-                <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io'}>고객센터로 이동하기</LogoutBtn>
+                <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1'}>고객센터로 이동하기</LogoutBtn>
 
                 <Footer style={{marginTop: '10px', fontSize: '16px'}}>문의 시 사용자 식별을 위하여 <span style={{
                     display: 'inline-block',

@@ -25,8 +25,8 @@ plugins {
     kotlin("plugin.spring") version "1.6.10"
 }
 
-group = "me.horyu"
-version = "1.1.2c"
+group = "me.kkutuio"
+version = "1.1.2d"
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 

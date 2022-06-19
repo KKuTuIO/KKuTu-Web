@@ -29,7 +29,7 @@ import {
 } from "./JJoripingStyle";
 
 const JJoriping = ({onGameStart}) => {
-    const IMAGE_CDN_URL = 'https://cdn.jsdelivr.net/gh/horyu1234/KKuTu-Web@kkutuio/src/main/resources/static/img';
+    const IMAGE_CDN_URL = 'https://cdn.jsdelivr.net/gh/KKuTuIO/KKuTu-Web@kkutuio/src/main/resources/static/img';
     return (
         <>
             <JJoripingGlobalStyle/>

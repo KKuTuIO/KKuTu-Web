@@ -284,12 +284,12 @@
                 <div class="result-me-score-text"></div>
                 <div class="expl result-me-expl"></div>
             </div>
-            <th:block layout:fragment="content">
-                <ins class="kakao_ad_area" data-ad-height="50"
-                     data-ad-unit="DAN-TPldT9XX1CsnlOuR"
-                     data-ad-width="320"
-                     style="display:none;"></ins>
-            </th:block>
+            <ins class="kakao_ad_area"
+                 style="display:none;"
+                 data-ad-unit = "DAN-TPldT9XX1CsnlOuR"
+                 data-ad-width = "320"
+                 data-ad-height = "50">
+            </ins>
             <div class="dialog-bar tail-button">
                 <button id="result-ok" th:text="#{kkutu.dialog.result.ok}"></button>
                 <button id="result-save" th:text="#{kkutu.dialog.result.saveReplay}"></button>
@@ -681,10 +681,12 @@
     <th:block
             layout:replace="~{view/kkutu/product::product(id='TLXFQZ',title=#{portal.ad.title},createWithShown=true)}">
         <th:block layout:fragment="content">
-            <ins class="kakao_ad_area" data-ad-height="90"
+            <ins class="kakao_ad_area"
+                 style="display:none;"
                  data-ad-unit="DAN-foUc9eTmMwRJkgLR"
                  data-ad-width="728"
-                 style="display:none;"></ins>
+                 data-ad-height="90">
+            </ins>
         </th:block>
     </th:block>
 

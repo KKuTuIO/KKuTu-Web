@@ -268,7 +268,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='ResultDiag',width=300,height=420,title=#{kkutu.dialog.result.title},nocls=true)}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='ResultDiag',width=300,height=470,title=#{kkutu.dialog.result.title},nocls=true)}">
         <th:block layout:fragment="content">
             <div class="result-board"></div>
             <div class="result-me">
@@ -283,6 +283,14 @@
                 </div>
                 <div class="result-me-score-text"></div>
                 <div class="expl result-me-expl"></div>
+            </div>
+            <div class="result-kakao" style="margin-top: 5px; margin-left: 40px;">
+                <ins class="kakao_ad_area"
+                     style="display:none;"
+                     data-ad-unit = "DAN-ftEmFfVSbwkdD33G"
+                     data-ad-width = "320"
+                     data-ad-height = "50">
+                </ins>
             </div>
             <div class="dialog-bar tail-button">
                 <button id="result-ok" th:text="#{kkutu.dialog.result.ok}"></button>

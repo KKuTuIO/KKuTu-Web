@@ -28,6 +28,7 @@ data class BlockStatus(
     val target: String? = null,
     val id: Int? = null,
     val time: String? = null,
+    val onlyGuestPunish: Boolean? = false,
     val pardonTime: String? = null,
     val duration: String? = null,
     val remain: String? = null,

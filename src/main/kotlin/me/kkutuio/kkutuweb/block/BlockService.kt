@@ -46,18 +46,25 @@ class BlockService(
         val ip = request.getIp()
 
         val blockIp = getBlockIp(ip)
-        if (session.isGuest() && (blockIp != null)) {
+        var blockIpOnlyGuest = false
+
+        if (blockIp != null) {
+            blockIpOnlyGuest = blockIp.onlyGuestPunish == true
+        }
+
+        if (blockIpOnlyGuest && (session.isGuest() && (blockIp != null)) || (!blockIpOnlyGuest && (blockIp != null))) {
             return BlockStatus(
                 blocked = true,
                 blockType = BlockType.IP,
                 target = ip,
                 id = blockIp.id,
                 time = DateFactory.PRETTY_FORMAT.format(blockIp.time.toLocalDateTime()),
+                onlyGuestPunish = blockIpOnlyGuest,
                 pardonTime = if (blockIp.pardonTime == null) null else DateFactory.PRETTY_FORMAT.format(blockIp.pardonTime.toLocalDateTime()),
-                duration = if (blockIp.pardonTime == null) "영구 정지" else TimeUtils.getTimeTextForSeconds(
+                duration = if (blockIp.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
                     getDurationSeconds(blockIp.pardonTime, blockIp.time)
                 ),
-                remain = if (blockIp.pardonTime == null) "영구 정지" else TimeUtils.getTimeTextForSeconds(
+                remain = if (blockIp.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
                     getDurationSeconds(blockIp.pardonTime, LocalDateTime.now().toTimestamp())
                 ),
                 reason = blockIp.reason
@@ -76,11 +83,12 @@ class BlockService(
                     target = userId,
                     id = blockUser.id,
                     time = DateFactory.PRETTY_FORMAT.format(blockUser.time.toLocalDateTime()),
+                    onlyGuestPunish = false,
                     pardonTime = if (blockUser.pardonTime == null) null else DateFactory.PRETTY_FORMAT.format(blockUser.pardonTime.toLocalDateTime()),
-                    duration = if (blockUser.pardonTime == null) "영구 정지" else TimeUtils.getTimeTextForSeconds(
+                    duration = if (blockUser.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
                         getDurationSeconds(blockUser.pardonTime, blockUser.time)
                     ),
-                    remain = if (blockUser.pardonTime == null) "영구 정지" else TimeUtils.getTimeTextForSeconds(
+                    remain = if (blockUser.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
                         getDurationSeconds(blockUser.pardonTime, LocalDateTime.now().toTimestamp())
                     ),
                     reason = blockUser.reason
@@ -111,7 +119,6 @@ class BlockService(
     private fun getBlockIp(ip: String): BlockIp? {
         val blockIp = blockIpDAO.get(ip) ?: return null
         if (blockIp.pardonTime == null) return blockIp
-
         if (blockIp.pardonTime.before(LocalDateTime.now().toTimestamp())) {
             blockIpDAO.remove(blockIp.id)
             blockLogDAO.insert(BlockLog.fromAddOf(blockIp, LogType.AUTO_REMOVE))

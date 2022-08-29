@@ -98,7 +98,7 @@ const Blocked = ({blockInfo}) => {
         const splitIp = ip.split('.')
         return `${splitIp[0]}.${splitIp[1]}.*.*`;
     }
-    if(blockInfo.blockType === 'IP') {
+    if(blockInfo.blockType === 'IP' && blockInfo.onlyGuestPunish) {
         return (
             <>
                 <Backdrop/>

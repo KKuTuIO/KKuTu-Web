@@ -27,5 +27,6 @@ data class BlockIp(
     val pardonTime: Timestamp? = null,
     val reason: String,
     val punishFrom: PunishFrom,
+    val onlyGuestPunish: Boolean? = false,
     val admin: String
 )

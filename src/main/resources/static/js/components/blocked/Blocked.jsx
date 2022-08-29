@@ -98,7 +98,52 @@ const Blocked = ({blockInfo}) => {
         const splitIp = ip.split('.')
         return `${splitIp[0]}.${splitIp[1]}.*.*`;
     }
+    if(blockInfo.blockType === 'IP') {
+        return (
+            <>
+                <Backdrop/>
+                <Background>
+                    <a href='/login'>로그인 <sub>(로그인 후 게임 이용 가능)</sub></a>
+                    <Title>손님 계정 이용 제한됨</Title>
+                    <Detail>운영정책 위반으로 손님 상태에서의 이용이 제한되었습니다. <strong>(로그인 후 이용은 가능합니다)</strong></Detail>
+                    <DetailTable>
+                        <tbody>
+                        <tr style={{fontSize: '13px'}}>
+                            <DetailKey>IP 주소</DetailKey>
+                            <DetailValue>{hideIp(blockInfo.target)}</DetailValue>
+                        </tr>
+                        <tr style={{fontSize: '13px'}}>
+                            <DetailKey>해제 일시</DetailKey>
+                            <DetailValue>{blockInfo.pardonTime}</DetailValue>
+                        </tr>
+                        <tr style={{fontSize: '13px'}}>
+                            <DetailKey>제한 기간</DetailKey>
+                            <DetailValue>{blockInfo.duration}</DetailValue>
+                        </tr>
+                        <tr style={{fontSize: '14px', color: '#FF9800'}}>
+                            <DetailKey>제한 사유</DetailKey>
+                            <DetailValue>{blockInfo.reason}</DetailValue>
+                        </tr>
+                        <tr style={{fontSize: '14px', color: '#FF9800'}}>
+                            <DetailKey>해제까지 남은 시간</DetailKey>
+                            <DetailValue>{blockInfo.remain}</DetailValue>
+                        </tr>
+                        </tbody>
+                    </DetailTable>
 
+                    <Footer>본 조치에 대한 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다.</Footer>
+                    <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1'}>고객센터로 이동하기</LogoutBtn>
+
+                    <Footer style={{marginTop: '10px', fontSize: '16px'}}>문의 시 사용자 식별을 위하여 <span style={{
+                        display: 'inline-block',
+                        color: '#A5D6A7',
+                        fontWeight: 'bold',
+                        userSelect: 'all'
+                    }}>{getInquireId()}</span> 문구를 포함해주시고,<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
+                </Background>
+            </>
+        )
+    }
     return (
         <>
             <Backdrop/>
@@ -117,7 +162,7 @@ const Blocked = ({blockInfo}) => {
                         <DetailValue>{blockInfo.pardonTime}</DetailValue>
                     </tr>
                     <tr style={{fontSize: '13px'}}>
-                        <DetailKey>정지 기간</DetailKey>
+                        <DetailKey>제한 기간</DetailKey>
                         <DetailValue>{blockInfo.duration}</DetailValue>
                     </tr>
                     <tr style={{fontSize: '14px', color: '#FF9800'}}>

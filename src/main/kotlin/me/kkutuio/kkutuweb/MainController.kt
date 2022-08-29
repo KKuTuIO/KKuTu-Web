@@ -79,10 +79,9 @@ class MainController(
             if (isGuest) {
                 val blacklistType = ipCheckService.getBlacklistType(ip)
                 if (blacklistType != null) {
-                    session.setAttribute("loginReason", "3G/LTE/5G 이용자는 로그인 후 게임 이용이 가능합니다.")
+                    session.setAttribute("loginReason", "모바일 네트워크 이용자(3G,4G,LTE,5G)는 로그인 후 게임 이용이 가능합니다.")
                     return "redirect:/login"
                 }
-
                 try {
                     val geoCountry = geoService.getGeoCountry(ip)
                     if (geoCountry != null && geoCountry != "KR") {

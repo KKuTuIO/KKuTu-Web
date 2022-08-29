@@ -46,7 +46,7 @@ class BlockService(
         val ip = request.getIp()
 
         val blockIp = getBlockIp(ip)
-        if (blockIp != null) {
+        if (session.isGuest() && (blockIp != null)) {
             return BlockStatus(
                 blocked = true,
                 blockType = BlockType.IP,

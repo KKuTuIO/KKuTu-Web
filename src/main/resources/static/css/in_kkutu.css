@@ -1295,6 +1295,10 @@ td.ranking-name {
     content: ")";
 }
 
+.word-injeong {
+    color: #FFC88A !important;
+}
+
 .word-theme {
     color: #8ACFFF;
 }

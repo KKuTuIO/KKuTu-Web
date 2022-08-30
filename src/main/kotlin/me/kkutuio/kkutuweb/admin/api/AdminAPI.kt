@@ -96,7 +96,7 @@ class AdminAPI(
     }
 }
 
-class PostApiBody {
-    public val apiKey: String,
-    public val value: String;
-}
+data class PostApiBody (
+    val apiKey: String,
+    val value: String
+)

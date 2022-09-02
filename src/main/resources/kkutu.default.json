@@ -420,6 +420,23 @@
       "ai": false,
       "big": true,
       "ewq": false
+    },
+    "EAP": {
+      "lang": "en",
+      "rule": "Classic",
+      "opts": [
+        "ext",
+        "mis",
+        "beg",
+        "nog",
+        "rms",
+        "rnk"
+      ],
+      "time": 1,
+      "ai": true,
+      "big": false,
+      "_back": true,
+      "ewq": true
     }
   },
   "game-options": {

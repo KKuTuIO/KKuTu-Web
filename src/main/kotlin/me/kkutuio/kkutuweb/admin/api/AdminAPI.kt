@@ -81,18 +81,22 @@ class AdminAPI(
         logger.info("$id 계정의 랭킹 데이터를 제거했습니다.")
     }
 
-    @GetMapping("/yell/{value}")
+    @PostMapping("/yell")
     fun yell(
-        @PathVariable value: String,
-        @RequestParam apiKey: String,
+        @RequestBody postApiBody: PostApiBody,
         request: HttpServletRequest
     ) {
-        if (kKuTuSetting.getApiKey() != apiKey) {
+        if (kKuTuSetting.getApiKey() != postApiBody.apiKey) {
             logger.warn("[${request.getIp()}] API 키가 불일치하여 yell 요청을 무시합니다.")
             return
         }
 
-        gameClientManager.yell(value)
-        logger.info("공지가 전송되었습니다. 내용 : $value")
+        gameClientManager.yell(postApiBody.value)
+        logger.info("공지가 전송되었습니다. 내용 : ${postApiBody.value}")
     }
 }
+
+data class PostApiBody (
+    val apiKey: String,
+    val value: String
+)

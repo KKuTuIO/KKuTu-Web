@@ -113,6 +113,38 @@
     color: #F15F9A;
 }
 
+.x-rainbow {
+    animation-name: rainbow;
+    animation-duration: 10s;
+    animation-iteration-count: infinite;
+    animation-timing-function: cubic-bezier;
+    -webkit-animation-timing-function: cubic-bezier;
+}
+
+@keyframes rainbow{
+    from {
+        color: red;
+    }
+    16% {
+        color: orange;
+    }
+    33% {
+        color: yellow
+    }
+    50% {
+        color: greenyellow;
+    }
+    66% {
+        color: blue;
+    }
+    83% {
+        color: blueviolet;
+    }
+    to {
+        color: red;
+    }
+}
+
 .x-mod .users-name::before{ content: "[운영팀]"; color: #039BE5; text-shadow: 0 0 2px #29B6F6; }
 .chat-item>.x-mod::before{ content: "[운영팀]"; color: #039BE5; text-shadow: 0 0 2px #29B6F6; }
 .room-user-title>.x-mod::before{ content: "[운영팀]"; color: #039BE5; text-shadow: 0 0 2px #29B6F6; }

@@ -154,7 +154,7 @@
           "RAG",
           "LVL",
           "LOL",
-          "MRN",
+          "TQS",
           "MMM",
           "MAP",
           "MOB",
@@ -175,14 +175,14 @@
           "HDC",
           "HOS",
           "BDM",
-          "KIO"
+          "KIO",
+          "CON"
         ],
         "en": [
           "LOL"
         ]
       },
       "ijp-except": [
-        "OIJ"
       ]
     }
   },
@@ -272,6 +272,7 @@
         "beg",
         "nog",
         "nol",
+        "no2",
         "rnk"
       ],
       "time": 1,
@@ -420,6 +421,23 @@
       "ai": false,
       "big": true,
       "ewq": false
+    },
+    "EAP": {
+      "lang": "en",
+      "rule": "Classic",
+      "opts": [
+        "ext",
+        "mis",
+        "beg",
+        "nog",
+        "rms",
+        "rnk"
+      ],
+      "time": 1,
+      "ai": true,
+      "big": false,
+      "_back": true,
+      "ewq": true
     }
   },
   "game-options": {

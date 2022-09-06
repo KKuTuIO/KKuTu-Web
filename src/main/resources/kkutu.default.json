@@ -273,7 +273,8 @@
         "nog",
         "nol",
         "no2",
-        "rnk"
+        "rnk",
+        "asy"
       ],
       "time": 1,
       "ai": true,
@@ -286,7 +287,8 @@
       "opts": [
         "beg",
         "nog",
-        "rnk"
+        "rnk",
+        "asy"
       ],
       "time": 2,
       "ai": false,
@@ -487,6 +489,9 @@
     },
     "rnk": {
       "name": "RankMode"
+    },
+    "asy": {
+      "name": "AntiSynonym"
     }
   }
 }

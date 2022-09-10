@@ -516,3 +516,65 @@ code {
     color: #2EFFDF;
     text-shadow: 0px 0px 5px #1072AA;
 }
+
+.MeBox {
+    width: calc(100% - 10px);
+    height: 120px;
+    cursor: pointer;
+}
+.MeBox div {
+    float: left;
+}
+
+.my-image {
+    width: 80px;
+    height: 80px;
+}
+.my-stat {
+    padding: 5px 0px 5px 5px;
+    width: 100px;
+}
+.my-stat-level {
+    margin: 1px;
+    width: 18px;
+    height: 18px;
+}
+.my-stat-name {
+    padding-top: 3px;
+    padding-left: 4px;
+    width: 76px;
+    height: 17px;
+    font-weight: bold;
+}
+.my-stat-record {
+    margin-top: 5px;
+    width: 100px;
+}
+.my-stat-ping {
+    margin-top: 5px;
+    width: 100px;
+}
+.my-level {
+    margin: 13px 0px;
+    width: 190px;
+    font-size: 15px;
+    text-align: center;
+}
+.my-gauge {
+    border-radius: 10px;
+    margin: 3px 0px;
+    width: 190px;
+    height: 30px;
+    overflow: hidden;
+    background-color: #20568E;
+}
+.my-gauge .graph-bar {
+    background-image: url('https://cdn.jsdelivr.net/npm/kkutudotnet@latest/img/kkutu/scorebar.png');
+}
+.my-gauge-text {
+    margin-top: -25px;
+    width: 190px;
+    color: #f0f0f0;
+    text-align: center;
+    text-shadow: 0px 1px 1px #141414;
+}

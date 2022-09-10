@@ -626,6 +626,31 @@ td.ranking-name {
     background-color: #99F;
 }
 
+.channel-5 {
+    background-color: #f0f8ff;
+}
+.channel-6 {
+    background-color: #c1c3ff;
+}
+.channel-7 {
+    background-color: #7fffd4;
+}
+.channel-8 {
+    background-color: #ffc0cb;
+}
+.channel-9 {
+    background-color: #ffdab9;
+}
+.channel-10 {
+    background-color: #00ff7f;
+}
+.channel-11 {
+    background-color: #ffd700;
+}
+.channel-12 {
+    background-color: #9370db;
+}
+
 .rooms-gaming {
     background-color: #FFBBBB;
 }

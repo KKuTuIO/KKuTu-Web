@@ -533,8 +533,8 @@ td.ranking-name {
 
 .rooms-channel {
     position: relative;
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
     border-radius: 5px;
     margin-right: -10px;
 }
@@ -1554,7 +1554,7 @@ td.ranking-name {
 
 .my-level {
     margin: 13px 0px;
-    width: 190px;
+    width: 150px;
     font-size: 15px;
     text-align: center;
 }
@@ -1562,7 +1562,7 @@ td.ranking-name {
 .my-gauge {
     border-radius: 10px;
     margin: 3px 0px;
-    width: 190px;
+    width: 150px;
     height: 30px;
     overflow: hidden;
     background-color: #20568E;
@@ -1574,7 +1574,7 @@ td.ranking-name {
 
 .my-gauge-text {
     margin-top: -25px;
-    width: 190px;
+    width: 150px;
     color: #EEEEEE;
     text-align: center;
     text-shadow: 0px 1px 1px #141414;

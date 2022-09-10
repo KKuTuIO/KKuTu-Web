@@ -480,11 +480,11 @@
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
-                <input id="dress-nickname" maxlength="18" style="width: 435px;"
+                <input id="dress-nickname" maxlength="18"
                        th:placeholder="#{kkutu.dialog.dress.nickname.placeHolder}" type="textfield"></div>
             <div class="dialog-bar">
                 <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.exordial.name}"></h4>
-                <input id="dress-exordial" maxlength="100" style="width: 435px;"
+                <input id="dress-exordial" maxlength="100"
                        th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}" type="textfield">
             </div>
             <div class="dialog-bar" style="padding: 5px; width: 340px;">
@@ -508,7 +508,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=500,height=410,title=#{kkutu.dialog.charFactory.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=500,height=315,title=#{kkutu.dialog.charFactory.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar" style="width: 300px;">
                 <div id="cf-tray"></div>
@@ -650,6 +650,8 @@
             <input class="chat-input" id="MessageInput" maxlength="180" autocomplete="off">
             <button id="ChatBtn" th:text="#{kkutu.product.chat.sendBtn}"></button>
         </div>
+    </div>
+    <div class="MeBox Product">
     </div>
     <th:block layout:replace="~{view/kkutu/product::product(id='Me',title=#{kkutu.product.me.title})}">
         <th:block layout:fragment="content">

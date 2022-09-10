@@ -476,7 +476,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=600,height=305,title=#{kkutu.dialog.dress.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=350,height=305,title=#{kkutu.dialog.dress.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
@@ -487,11 +487,7 @@
                 <input id="dress-exordial" maxlength="100" style="width: 435px;"
                        th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}" type="textfield">
             </div>
-            <div class="dialog-bar" style="width: 150px;">
-                <div class="moremi" id="dress-view" style="float: left; width: 150px; height: 150px;"></div>
-                <h4 style="width: 100%; font-weight: bold;" th:text="#{kkutu.dialog.dress.myMoremi}"></h4>
-            </div>
-            <div class="dialog-bar" style="padding: 5px; width: 440px;">
+            <div class="dialog-bar" style="padding: 5px; width: 340px;">
                 <div style="border-bottom: 1px solid #CCCCCC; height: 20px;">
                     <th:block th:each="moremiCategory : ${moremiCategories}">
                         <div class="category-filter dress-type" th:id="${'dress-type-' + moremiCategory}"
@@ -571,9 +567,22 @@
             <div th:text="#{kkutu.product.roomList.loading}"></div>
         </th:block>
     </th:block>
+    <th:block layout:replace="~{view/kkutu/product::product(id='UserList',title=#{kkutu.product.userList.title})}">
+        <th:block layout:fragment="content">
+            <div th:text="#{kkutu.product.userList.loading}"></div>
+        </th:block>
+    </th:block>
     <th:block layout:replace="~{view/kkutu/product::product(id='Shop',title=#{kkutu.product.shop.title})}">
         <th:block layout:fragment="content">
-            <div th:text="#{kkutu.product.shop.loading}"></div>
+            <div class="shop-categories">
+                <th:block th:each="moremiCategory : ${moremiCategories}">
+                    <div class="category-filter shop-type" th:id="${'shop-type-' + moremiCategory}"
+                         th:value="${#strings.listJoin(moremiGroups.get(moremiCategory), ',')}"
+                         th:text="#{'item.category.' + ${moremiCategory}}">
+                    </div>
+                </th:block>
+            </div>
+            <div id="shop-shelf" style="width: 100%; height: 260px; overflow-y: scroll;"></div>
         </th:block>
     </th:block>
     <th:block layout:replace="~{view/kkutu/product::product(id='Room',title=#{kkutu.product.room.title})}">
@@ -642,6 +651,31 @@
             <button id="ChatBtn" th:text="#{kkutu.product.chat.sendBtn}"></button>
         </div>
     </div>
+    <th:block layout:replace="~{view/kkutu/product::product(id='Me',title=#{kkutu.product.me.title})}">
+        <th:block layout:fragment="content">
+            <div class="moremi my-image"></div>
+            <div class="my-stat">
+                <div class="jt-image my-stat-level"></div>
+                <div class="my-stat-name ellipse"></div>
+                <div class="my-stat-record"></div>
+                <div class="my-stat-ping"></div>
+                <div>
+                    <div class="graph my-okg">
+                        <div class="graph-bar" style="width: NaN%;"></div>
+                    </div>
+                    <div class="bar-text my-okg-text"></div>
+                    <div class="expl" style="width: initial;">
+                        <div style="color: #CCCCCC;" th:utext="#{kkutu.product.me.okgExpl}"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="my-level"></div>
+            <div class="graph my-gauge">
+                <div class="graph-bar" style="width: NaN%;"></div>
+            </div>
+            <div class="bar-text my-gauge-text"></div>
+        </th:block>
+    </th:block>
     <ins class="kakao_ad_area"
          style = "display:none;"
          data-ad-unit = "DAN-EYG7HMjQqivIXFNa"

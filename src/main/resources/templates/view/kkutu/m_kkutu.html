@@ -557,7 +557,8 @@
     </th:block>
 
     <th:block
-            layout:replace="~{view/kkutu/product::product(id='UserList',title=#{kkutu.product.userList.title})}">
+            layout:replace="~{view/kkutu/product::product(id='UserList',title=#{kkutu.product.userList.title})}"
+            style="display: none;">
         <th:block layout:fragment="content">
             <div th:text="#{kkutu.product.userList.loading}"></div>
         </th:block>

@@ -652,8 +652,16 @@ td.ranking-name {
 }
 
 .ShopBox {
-    width: 790px;
-    height: 360px;
+    width: calc(100% - 10px);
+    height: 375px;
+}
+
+.shop-type {
+    width: 30px !important;
+}
+
+.goods {
+    width: auto !important;
 }
 
 .ShopBox div {
@@ -661,7 +669,7 @@ td.ranking-name {
 }
 
 .ShopBox .product-body {
-    height: 330px;
+    height: 350px;
 }
 
 .RoomBox {

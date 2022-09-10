@@ -569,7 +569,7 @@ code {
     background-color: #20568E;
 }
 .my-gauge .graph-bar {
-    background-image: url('https://cdn.jsdelivr.net/npm/kkutudotnet@latest/img/kkutu/scorebar.png');
+    background-image: url('https://cdn.jsdelivr.net/gh/KKuTuIO/KKuTu-Web@kkutuio/src/main/resources/static/img/kkutu/scorebar.png');
 }
 .my-gauge-text {
     margin-top: -25px;

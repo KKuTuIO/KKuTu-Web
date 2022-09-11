@@ -56,7 +56,7 @@
 </head>
 <body style="min-width: 200px;">
 
-<div id="Top" th:unless="${#strings.startsWith(viewName, 'view/login')}">
+<div id="Top" th:if="${#strings.startsWith(viewName, 'view/portal')}">
     <div th:include="m_menu" th:remove="tag"></div>
     <div id="global-notice">
         <div id="gn-content"></div>

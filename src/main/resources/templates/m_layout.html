@@ -56,9 +56,9 @@
 </head>
 <body style="min-width: 200px;">
 
-<div id="Top" th:if="${#strings.startsWith(viewName, 'view/portal')}">
+<div id="Top">
     <div th:include="m_menu" th:remove="tag"></div>
-    <div id="global-notice">
+    <div id="global-notice" th:if="${#strings.startsWith(viewName, 'view/portal')}">
         <div id="gn-content"></div>
     </div>
 </div>

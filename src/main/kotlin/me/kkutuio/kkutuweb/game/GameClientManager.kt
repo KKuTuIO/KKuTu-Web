@@ -69,4 +69,10 @@ class GameClientManager(
             gameClient.send("{\"type\":\"yell\",\"value\":$value}")
         }
     }
+
+    fun notice(value: String) {
+        for (gameClient in gameClientList) {
+            gameClient.send("{\"type\":\"notice\",\"value\":$value}")
+        }
+    }
 }

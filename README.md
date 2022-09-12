@@ -56,7 +56,7 @@ horyu1234의 KKuTu-Web을 기반으로 하는 KKuTuIO의 KKuTu-Web을 기반으�
 ```
 
 #### [라이선스]
-* `src/main/resources` 경로에 존재하는 파일 중 [JJoriping/KKuTu](https://github.com/JJoriping/KKuTu)에 포함되어있는 파일은 [GNU 일반 공중 사용 라이선스](https://github.com/JJoriping/KKuTu/blob/master/LICENSE) 라이선스를 따릅니다.
+* `src/main/resources` 경로에 존재하는 파일 중 [JJoriping/KKuTu](https://github.com/JJoriping/KKuTu)에 포함되어있는 파일은 [GNU 일반 공중 사용 라이선스](https://github.com/JJoriping/KKuTu/blob/master/LICENSE)를 따릅니다.
 * `src/main/kotlin`, `src/test` 경로의 모든 소스 코드 및 리소스는 [GNU 아페로 일반 공중 사용 라이선스](https://github.com/KKuTuIO/KKuTu-Web/blob/kkutuio/LICENSE)를 따릅니다.
   * 일부 소스 코드 및 리소스는 다른 원작자를 가질 수도 있습니다. 자세한 내용은 본 레포지토리의 기여 내역을 확인해주시기 바랍니다.
 * 끄투리오운영은 끄투리오에서 특화된 서비스 운영을 위해 새롭게 추가된 일부 리소스 및 모든 이미지 및 소리에 대한 모든 권리를 가집니다.

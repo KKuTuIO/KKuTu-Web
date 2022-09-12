@@ -118,7 +118,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=300,height=230,title=#{kkutu.dialog.quick.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=320,height=380,title=#{kkutu.dialog.quick.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.quick.gameMode}"></h4>
@@ -128,7 +128,7 @@
                 </select>
             </div>
 
-            <div class="dialog-bar" style="height: 59px;">
+            <div class="dialog-bar" style="height: 140px;">
                 <h4 style="height: 100%;" th:text="#{kkutu.dialog.quick.gameRule}"></h4>
                 <th:block th:each="entry : ${gameOptionMap}">
                     <th:block layout:replace="~{view/kkutu/option::gameOption(key=${entry.key},prefix='quick')}"/>
@@ -136,6 +136,14 @@
             </div>
             <div class="dialog-bar"><h4 id="quick-status" style="width: 100%; height: 20px;"></h4></div>
             <div class="dialog-bar"><h4 id="quick-queue" style="width: 100%; height: 20px;"></h4></div>
+            <div class="quick-kakao" style="margin-top: 10px; margin-left: 40px;">
+                <ins class="kakao_ad_area"
+                     style="display:none;"
+                     data-ad-unit = "DAN-RLZCqSs9HpnNdH98"
+                     data-ad-width = "320"
+                     data-ad-height = "50">
+                </ins>
+            </div>
             <div class="dialog-bar tail-button">
                 <button id="quick-ok" th:text="#{kkutu.dialog.quick.ok}"></button>
             </div>
@@ -476,7 +484,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=350,height=305,title=#{kkutu.dialog.dress.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=350,height=315,title=#{kkutu.dialog.dress.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
@@ -488,7 +496,7 @@
                        th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}" type="textfield">
             </div>
             <div class="dialog-bar" style="padding: 5px; width: 340px;">
-                <div style="border-bottom: 1px solid #CCCCCC; height: 20px;">
+                <div style="border-bottom: 1px solid #CCCCCC; height: 40px;">
                     <th:block th:each="moremiCategory : ${moremiCategories}">
                         <div class="category-filter dress-type" th:id="${'dress-type-' + moremiCategory}"
                              th:text="#{'item.category.' + ${moremiCategory}}"
@@ -508,7 +516,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=500,height=315,title=#{kkutu.dialog.charFactory.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=350,height=400,title=#{kkutu.dialog.charFactory.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar" style="width: 300px;">
                 <div id="cf-tray"></div>

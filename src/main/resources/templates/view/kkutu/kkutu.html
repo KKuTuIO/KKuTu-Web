@@ -118,7 +118,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=300,height=320,title=#{kkutu.dialog.quick.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=320,height=380,title=#{kkutu.dialog.quick.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.quick.gameMode}"></h4>
@@ -136,6 +136,14 @@
             </div>
             <div class="dialog-bar"><h4 style="width: 100%; height: 20px;" id="quick-status"></h4></div>
             <div class="dialog-bar"><h4 style="width: 100%; height: 20px;" id="quick-queue"></h4></div>
+            <div class="quick-kakao" style="margin-top: 10px; margin-left: 40px;">
+                <ins class="kakao_ad_area"
+                     style="display:none;"
+                     data-ad-unit = "DAN-RLZCqSs9HpnNdH98"
+                     data-ad-width = "320"
+                     data-ad-height = "50">
+                </ins>
+            </div>
             <div class="dialog-bar tail-button">
                 <button id="quick-ok" th:text="#{kkutu.dialog.quick.ok}"></button>
             </div>
@@ -269,7 +277,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='ResultDiag',width=400,height=470,title=#{kkutu.dialog.result.title},nocls=true)}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='ResultDiag',width=400,height=475,title=#{kkutu.dialog.result.title},nocls=true)}">
         <th:block layout:fragment="content">
             <div class="result-board"></div>
             <div class="result-me">
@@ -285,7 +293,7 @@
                 <div class="result-me-score-text"></div>
                 <div class="expl result-me-expl"></div>
             </div>
-            <div class="result-kakao" style="margin-top: 5px; margin-left: 40px;">
+            <div class="result-kakao" style="margin-top: 10px; margin-left: 40px;">
                 <ins class="kakao_ad_area"
                      style="display:none;"
                      data-ad-unit = "DAN-TPldT9XX1CsnlOuR"

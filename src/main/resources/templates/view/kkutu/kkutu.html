@@ -644,7 +644,7 @@
             </div>
             <div class="game-body"></div>
             <div class="game-input">
-                <input id="game-input" autocomplete="off" th:placeholder="#{kkutu.product.game.yourTurn}" readonly>
+                <input id="game-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" th:placeholder="#{kkutu.product.game.yourTurn}" readonly>
             </div>
         </th:block>
     </th:block>
@@ -683,9 +683,9 @@
         </div>
         <div class="product-body">
             <div id="Chat"></div>
-            <input class="chat-input" id="Talk" maxlength="180" autocomplete="off"
+            <input class="chat-input" id="Talk" maxlength="180" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                    style="display:none;visibility:hidden;">
-            <input class="chat-input" id="MessageInput" maxlength="180" autocomplete="off">
+            <input class="chat-input" id="MessageInput" maxlength="180" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button id="ChatBtn" th:text="#{kkutu.product.chat.sendBtn}"></button>
         </div>
     </div>

@@ -440,7 +440,7 @@
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='MessageDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
-        <div class="msg-style" id="message-content"></div>
+        <div class="msg-style" id="message-content" height="80px"></div>
         <div class="dialog-bar tail-button">
             <button id="message-no" th:text="#{kkutu.dialog.message.no}"></button>
             <button id="message-ok" th:text="#{kkutu.dialog.message.ok}"></button>
@@ -448,7 +448,7 @@
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='PromptDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
-        <div class="msg-style" id="prompt-content"></div>
+        <div class="msg-style" id="prompt-content" height="60px"></div>
         <input id="prompt-input" type="text" placeholder="입력..." width="288px">
         <div class="dialog-bar tail-button">
             <button id="prompt-no" th:text="#{kkutu.dialog.message.no}"></button>
@@ -457,7 +457,7 @@
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='WhichHandDiag',width=300,height=115,title=#{kkutu.dialog.message.title})}">
-        <div class="msg-style" id="hand-content" th:text="#{kkutu.js.dressWhichHand}"></div>
+        <div class="msg-style" id="hand-content" th:text="#{kkutu.js.dressWhichHand}" height="50px"></div>
         <div class="dialog-bar tail-button">
             <button id="hand-no" th:text="#{kkutu.dialog.message.no}"></button>
             <button id="hand-left" th:text="#{kkutu.dialog.message.left}"></button>

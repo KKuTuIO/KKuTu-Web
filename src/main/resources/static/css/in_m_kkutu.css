@@ -337,6 +337,28 @@ td.ranking-name {
     float: left;
 }
 
+#MessageDiag {
+    z-index: 6;
+}
+
+#MessageOverlay {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    left: 0;
+    background: #000000;
+    opacity: 0.3;
+    width: 100%;
+    height: 150%;
+}
+
+.msg-style {
+    display: table-cell;
+    padding: 0px 10px;
+    text-align: center;
+    word-break: keep-all;
+    vertical-align: middle;
+}
 .profile-moremi {
     margin-right: 3px;
     width: 80px;

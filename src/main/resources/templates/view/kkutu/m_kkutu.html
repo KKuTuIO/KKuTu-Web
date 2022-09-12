@@ -413,15 +413,56 @@
                 <option th:text="#{kkutu.dialog.report.category.0}" disabled></option>
                 <option th:text="#{kkutu.dialog.report.category.00}" value="00" reqLength></option>
             </select>
-            <b>신고 사유를 구체적으로 입력해 주십시오.</b>
+            <b th:text="#{kkutu.dialog.report.tail}"></b>
             <textarea id="rst"
                       maxlength="250"
                       placeholder="신고 사유를 250자 이내로 자세히 입력해주세요. 자세하게 입력하실수록 빠른 처리가 가능해집니다."
                       style="width:calc(100% - 12px);height:115px;margin-top:5px;"></textarea>
             <div class="dialog-bar tail-button">
-                <button id="report-ok">신고 접수</button>
+                <button id="report-ok" th:text="#{kkutu.dialog.report.ok}"></button>
             </div>
         </th:block>
+    </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='PolicyDiag',width=500,height=400,title=#{kkutu.dialog.policy.title})}">
+        <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.operation}"></h4>
+        <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
+            <iframe id="operation-policy" width="100%" height="120px"></iframe>
+        </div>
+        <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.privacy}"></h4>
+        <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
+            <iframe id="privacy-policy" width="100%" height="120px"></iframe>
+        </div>
+        <div class="dialog-bar">
+            <p style="font-size: 11px; margin: 0;" th:text="#{kkutu.dialog.policy.tail}"></p>
+        </div>
+        <button id="policy-ok" th:text="#{kkutu.dialog.policy.ok}"></button>
+    </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='MessageDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
+        <div class="msg-style" id="message-content"></div>
+        <div class="dialog-bar tail-button">
+            <button id="message-no" th:text="#{kkutu.dialog.message.no}"></button>
+            <button id="message-ok" th:text="#{kkutu.dialog.message.ok}"></button>
+        </div>
+    </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='PromptDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
+        <div class="msg-style" id="prompt-content"></div>
+        <input id="prompt-input" type="text" placeholder="입력..." width="288px">
+        <div class="dialog-bar tail-button">
+            <button id="prompt-no" th:text="#{kkutu.dialog.message.no}"></button>
+            <button id="prompt-ok" th:text="#{kkutu.dialog.message.ok}"></button>
+        </div>
+    </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='WhichHandDiag',width=300,height=115,title=#{kkutu.dialog.message.title})}">
+        <div class="msg-style" id="hand-content" th:text="#{kkutu.js.dressWhichHand}"></div>
+        <div class="dialog-bar tail-button">
+            <button id="hand-no" th:text="#{kkutu.dialog.message.no}"></button>
+            <button id="hand-left" th:text="#{kkutu.dialog.message.left}"></button>
+            <button id="hand-right" th:text="#{kkutu.dialog.message.right}"></button>
+        </div>
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='KickVoteDiag',width=300,height=160,title=#{kkutu.dialog.kickVote.title})}">
@@ -509,7 +550,7 @@
             <div class="dialog-bar tail-button">
                 <button id="dress-ok" th:text="#{kkutu.dialog.dress.ok}"></button>
                 <button id="dress-cf" th:text="#{kkutu.dialog.dress.charFactory}"></button>
-                <button th:attr="onclick=${'alert(&quot;' + paybackHelp + '&quot;)'}"
+                <button th:attr="onclick=${'ioAlert(&quot;' + paybackHelp + '&quot;)'}"
                         th:text="#{kkutu.dialog.dress.payback}"
                         th:with="paybackHelp=#{kkutu.dialog.dress.paybackHelp}"></button>
             </div>

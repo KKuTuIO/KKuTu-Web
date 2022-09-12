@@ -350,6 +350,7 @@ td.ranking-name {
     opacity: 0.3;
     width: 100%;
     height: 150%;
+    display: none;
 }
 
 .msg-style {

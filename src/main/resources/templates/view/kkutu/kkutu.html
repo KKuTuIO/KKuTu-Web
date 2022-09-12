@@ -425,44 +425,52 @@
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='PolicyDiag',width=350,height=415,title=#{kkutu.dialog.policy.title})}">
-        <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.operation}"></h4>
-        <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
-            <iframe id="operation-policy" width="100%" height="120px"></iframe>
-        </div>
-        <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.privacy}"></h4>
-        <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
-            <iframe id="privacy-policy" width="100%" height="120px"></iframe>
-        </div>
-        <div class="dialog-bar">
-            <p style="font-size: 11px; margin: 0;" th:text="#{kkutu.dialog.policy.tail}"></p>
-        </div>
-        <button id="policy-ok" th:text="#{kkutu.dialog.policy.ok}"></button>
+        <th:block layout:fragment="content">
+            <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.operation}"></h4>
+            <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
+                <iframe id="operation-policy" width="100%" height="120px"></iframe>
+            </div>
+            <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.privacy}"></h4>
+            <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
+                <iframe id="privacy-policy" width="100%" height="120px"></iframe>
+            </div>
+            <div class="dialog-bar">
+                <p style="font-size: 11px; margin: 0;" th:text="#{kkutu.dialog.policy.tail}"></p>
+            </div>
+            <button id="policy-ok" th:text="#{kkutu.dialog.policy.ok}"></button>
+        </th:block>
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='MessageDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
-        <div class="msg-style" id="message-content"></div>
-        <div class="dialog-bar tail-button">
-            <button id="message-no" th:text="#{kkutu.dialog.message.no}"></button>
-            <button id="message-ok" th:text="#{kkutu.dialog.message.ok}"></button>
-        </div>
+        <th:block layout:fragment="content">
+            <div class="msg-style" id="message-content"></div>
+            <div class="dialog-bar tail-button">
+                <button id="message-no" th:text="#{kkutu.dialog.message.no}"></button>
+                <button id="message-ok" th:text="#{kkutu.dialog.message.ok}"></button>
+            </div>
+        </th:block>
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='PromptDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
-        <div class="msg-style" id="prompt-content"></div>
-        <input id="prompt-input" type="text" placeholder="입력..." width="288px">
-        <div class="dialog-bar tail-button">
-            <button id="prompt-no" th:text="#{kkutu.dialog.message.no}"></button>
-            <button id="prompt-ok" th:text="#{kkutu.dialog.message.ok}"></button>
-        </div>
+        <th:block layout:fragment="content">
+            <div class="msg-style" id="prompt-content"></div>
+            <input id="prompt-input" type="text" placeholder="입력..." width="288px">
+            <div class="dialog-bar tail-button">
+                <button id="prompt-no" th:text="#{kkutu.dialog.message.no}"></button>
+                <button id="prompt-ok" th:text="#{kkutu.dialog.message.ok}"></button>
+            </div>
+        </th:block>
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='WhichHandDiag',width=300,height=115,title=#{kkutu.dialog.message.title})}">
-        <div class="msg-style" id="hand-content" th:text="#{kkutu.js.dressWhichHand}"></div>
-        <div class="dialog-bar tail-button">
-            <button id="hand-no" th:text="#{kkutu.dialog.message.no}"></button>
-            <button id="hand-left" th:text="#{kkutu.dialog.message.left}"></button>
-            <button id="hand-right" th:text="#{kkutu.dialog.message.right}"></button>
-        </div>
+        <th:block layout:fragment="content">
+            <div class="msg-style" id="hand-content" th:text="#{kkutu.js.dressWhichHand}"></div>
+            <div class="dialog-bar tail-button">
+                <button id="hand-no" th:text="#{kkutu.dialog.message.no}"></button>
+                <button id="hand-left" th:text="#{kkutu.dialog.message.left}"></button>
+                <button id="hand-right" th:text="#{kkutu.dialog.message.right}"></button>
+            </div>
+        </th:block>
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='KickVoteDiag',width=300,height=160,title=#{kkutu.dialog.kickVote.title})}">
@@ -615,7 +623,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='BulletinDiag',width=550,height=400,title=#{kkutu.dialog.help.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='BulletinDiag',width=550,height=400,title=#{kkutu.dialog.bulletin.title})}">
         <th:block layout:fragment="content">
             <iframe id="bulletin-board" width="550" height="375"></iframe>
         </th:block>

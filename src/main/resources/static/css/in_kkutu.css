@@ -421,6 +421,7 @@ td.ranking-name {
 .msg-style {
     display: table-cell;
     padding: 0 12px;
+    width: 288px;
     text-align: center;
     word-break: keep-all;
     vertical-align: middle;

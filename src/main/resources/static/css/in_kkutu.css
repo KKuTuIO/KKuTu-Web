@@ -2128,3 +2128,8 @@ td.ranking-name {
         opacity: 0.1;
     }
 }
+
+#policy-ok {
+    padding: 5px 20px;
+    margin-left: calc(50% - 32px);
+}

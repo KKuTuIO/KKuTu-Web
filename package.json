@@ -7,9 +7,9 @@
   },
   "license": "AGPL-3.0-only",
   "author": {
-    "name": "horyu1234",
-    "email": "admin@horyu.me",
-    "url": "https://activity.horyu.me"
+    "name": "KKuTuIO",
+    "email": "admin@kkutu.io",
+    "url": "https://kkutu.io"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",

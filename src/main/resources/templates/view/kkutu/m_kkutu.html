@@ -518,7 +518,7 @@
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='ReplayDiag',width=300,height=300,title=#{kkutu.dialog.replay.title})}">
         <th:block layout:fragment="content">
-            <input accept=".kkt,.kkio" id="replay-file" style="width: 288px;" type="file">
+            <input accept=".kkio" id="replay-file" style="width: 288px;" type="file">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.replay.recordDate}"></h4>
                 <h4 class="dialog-bar-value" id="replay-date">-</h4>

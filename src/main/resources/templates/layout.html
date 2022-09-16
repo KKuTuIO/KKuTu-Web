@@ -21,7 +21,7 @@
 <head>
     <!-- @formatter:off -->
     <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    <script nonce="csp-gtm">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
@@ -43,7 +43,7 @@
             crossorigin="anonymous"
     ></script>
 
-    <script type="text/javascript" th:inline="javascript">
+    <script type="text/javascript" th:inline="javascript" nonce="csp-kkutu-a">
         var loginProfile = /*[[${profile}]]*/'';
 
         if (window.hasOwnProperty('Sentry')) {
@@ -87,16 +87,16 @@
     <meta property="og:title" th:content="#{og.title}">
     <meta property="og:description" th:content="#{og.description}">
 
-    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/style.css?rv=${runnerVersion}}"/>
     <link rel="stylesheet" href="https://cdn.kkutu.io/css/font-awesome-4.7.0/css/font-awesome.min.css"/>
-    <link rel="stylesheet" th:href="@{/css/expl.css}"/>
+    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/expl.css?rv=${runnerVersion}}"/>
 
-    <script th:inline="javascript">
+    <script th:inline="javascript" nonce="csp-kkutu-b">
         var Messages = /*[[${messages}]]*/{};
         var GoodDetails = /*[[${goodDetails}]]*/{};
     </script>
     <script type="text/javascript" src="https://cdn.kkutu.io/js/jquery.min.js?version=1.12.4"></script>
-    <script type="text/javascript" th:src="@{/js/global.js}"></script>
+    <script type="text/javascript" th:src="@{https://cdn.kkutu.io/js/global.js?rv=${runnerVersion}}"></script>
 
     <script type="text/javascript"
             src="https://cdn.kkutu.io/js/clipboard.min.js?version=2.0.11"></script>

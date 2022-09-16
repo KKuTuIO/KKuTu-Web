@@ -27,7 +27,9 @@ import org.springframework.boot.ApplicationArguments
 import org.springframework.stereotype.Component
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.*
 import javax.annotation.PostConstruct
+import kotlin.collections.HashMap
 
 @Component
 class KKuTuSetting(
@@ -35,6 +37,7 @@ class KKuTuSetting(
     @Autowired private val objectMapper: ObjectMapper
 ) {
     private val logger = LoggerFactory.getLogger(KKuTuSetting::class.java)
+    private val runnerUID = UUID.randomUUID().toString();
     private lateinit var settingNode: JsonNode
 
     @PostConstruct
@@ -81,6 +84,8 @@ class KKuTuSetting(
             it["privileges"].toList().map { privilege -> AdminSetting.Privilege.valueOf(privilege.textValue()) }
         )
     }
+
+    fun runnerVersion() = runnerUID
 
     fun getApiKey() = settingNode["api-key"].textValue()!!
 

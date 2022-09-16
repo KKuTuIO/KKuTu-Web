@@ -17,8 +17,8 @@
   -->
 
 <div th:remove="tag" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:th="http://www.thymeleaf.org">
-    <link rel="stylesheet" th:href="@{/css/in_game_kkutu_shop.css}"/>
-    <link rel="stylesheet" th:href="@{/css/in_m_kkutu.css}"/>
+    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/in_game_kkutu_shop.css?rv=${runnerVersion}}"/>
+    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/in_m_kkutu.css?rv=${runnerVersion}}"/>
 
     <span id="PUBLIC">true</span>
     <!-- span#PORT= locals.PORT-->
@@ -30,7 +30,7 @@
 
     <div id="Intro">
         <img id="intro" src="https://cdn.kkutu.io/img/kkutu/m_intro.png" alt="로딩 이미지">
-        <img class="game-grade-badge" th:src="@{/img/game_grade_all.png}" src="" alt="전체이용가"/>
+        <img class="game-grade-badge" th:src="@{https://cdn.kkutu.io/img/game_grade_all.png}" src="" alt="전체이용가"/>
         <!-- img#intro-start(src='https://cdn.kkutu.io/img/kkutu/intro_start.gif')-->
         <div id="version" th:text="${version + ' (모바일)'}"></div>
         <div id="intro-text" th:text="#{kkutu.loading}"></div>
@@ -739,6 +739,6 @@
     <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
 
     <script src="https://www.google.com/recaptcha/api.js" type="text/javascript"></script>
-    <script src="/js/kawaiii.min.js" type="text/javascript"></script>
-    <script src="https://static.kkutu.io/js/in_game_kkutu.min.js" type="text/javascript"></script>
+    <script th:src="@{https://cdn.kkutu.io/js/kawaiii.min.js?rv=${runnerVersion}}" type="text/javascript"></script>
+    <script th:src="@{https://cdn.kkutu.io/js/in_game_kkutu.min.js?rv=${runnerVersion}}" type="text/javascript"></script>
 </div>

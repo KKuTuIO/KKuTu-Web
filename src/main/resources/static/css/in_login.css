@@ -88,9 +88,9 @@ button {
 }
 
 .lbtn.lbtn-daldalso .logo {
-    background: url(../logo/daldalso.png);
+    background: url(https://cdn.kkutu.io/logo/daldalso.png);
 }
 
 .lbtn.lbtn-daldalso.lbtn-fallback-svg .logo {
-    background: url(../logo/daldalso.png);
+    background: url(https://cdn.kkutu.io/logo/daldalso.png);
 }

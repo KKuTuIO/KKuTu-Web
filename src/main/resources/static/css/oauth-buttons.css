@@ -79,11 +79,11 @@
 
 /* logo */
 .lbtn.lbtn-discord .logo {
-    background: url(../logo/discord.svg);
+    background: url(https://cdn.kkutu.io/logo/discord.svg);
 }
 
 .lbtn.lbtn-discord.lbtn-fallback-svg .logo {
-    background: url(../logo/discord.png);
+    background: url(https://cdn.kkutu.io/logo/discord.png);
 }
 
 /* theme */
@@ -101,11 +101,11 @@
 
 /* logo */
 .lbtn.lbtn-facebook .logo {
-    background: url(../logo/facebook.svg);
+    background: url(https://cdn.kkutu.io/logo/facebook.svg);
 }
 
 .lbtn.lbtn-facebook.lbtn-fallback-svg .logo {
-    background: url(../logo/facebook.png);
+    background: url(https://cdn.kkutu.io/logo/facebook.png);
 }
 
 /* theme */
@@ -123,11 +123,11 @@
 
 /* logo */
 .lbtn.lbtn-github .logo {
-    background: url(../logo/github.svg);
+    background: url(https://cdn.kkutu.io/logo/github.svg);
 }
 
 .lbtn.lbtn-github.lbtn-fallback-svg .logo {
-    background: url(../logo/github.png);
+    background: url(https://cdn.kkutu.io/logo/github.png);
 }
 
 /* theme */
@@ -145,11 +145,11 @@
 
 /* logo */
 .lbtn.lbtn-google .logo {
-    background: url(../logo/google.svg);
+    background: url(https://cdn.kkutu.io/logo/google.svg);
 }
 
 .lbtn.lbtn-google.lbtn-fallback-svg .logo {
-    background: url(../logo/google.png);
+    background: url(https://cdn.kkutu.io/logo/google.png);
 }
 
 /* theme */
@@ -167,11 +167,11 @@
 
 /* logo */
 .lbtn.lbtn-instagram .logo {
-    background: url(../logo/instagram.svg);
+    background: url(https://cdn.kkutu.io/logo/instagram.svg);
 }
 
 .lbtn.lbtn-instagram.lbtn-fallback-svg .logo {
-    background: url(../logo/instagram.png);
+    background: url(https://cdn.kkutu.io/logo/instagram.png);
 }
 
 /* theme */
@@ -189,11 +189,11 @@
 
 /* logo */
 .lbtn.lbtn-kakao .logo {
-    background: url(../logo/kakao.svg);
+    background: url(https://cdn.kkutu.io/logo/kakao.svg);
 }
 
 .lbtn.lbtn-kakao.lbtn-fallback-svg .logo {
-    background: url(../logo/kakao.png);
+    background: url(https://cdn.kkutu.io/logo/kakao.png);
 }
 
 /* filter cancel */
@@ -216,11 +216,11 @@
 
 /* logo */
 .lbtn.lbtn-linkedin .logo {
-    background: url(../logo/linkedin.svg);
+    background: url(https://cdn.kkutu.io/logo/linkedin.svg);
 }
 
 .lbtn.lbtn-linkedin.lbtn-fallback-svg .logo {
-    background: url(../logo/linkedin.png);
+    background: url(https://cdn.kkutu.io/logo/linkedin.png);
 }
 
 /* theme */
@@ -243,11 +243,11 @@
 
 /* logo */
 .lbtn.lbtn-naver .logo {
-    background: url(../logo/naver.svg);
+    background: url(https://cdn.kkutu.io/logo/naver.svg);
 }
 
 .lbtn.lbtn-naver.lbtn-fallback-svg .logo {
-    background: url(../logo/naver.png);
+    background: url(https://cdn.kkutu.io/logo/naver.png);
 }
 
 /* theme */
@@ -265,11 +265,11 @@
 
 /* logo */
 .lbtn.lbtn-pinterest .logo {
-    background: url(../logo/pinterest.svg);
+    background: url(https://cdn.kkutu.io/logo/pinterest.svg);
 }
 
 .lbtn.lbtn-pinterest.lbtn-fallback-svg .logo {
-    background: url(../logo/pinterest.png);
+    background: url(https://cdn.kkutu.io/logo/pinterest.png);
 }
 
 /* theme */
@@ -287,11 +287,11 @@
 
 /* logo */
 .lbtn.lbtn-slack .logo {
-    background: url(../logo/slack.svg);
+    background: url(https://cdn.kkutu.io/logo/slack.svg);
 }
 
 .lbtn.lbtn-slack.lbtn-fallback-svg .logo {
-    background: url(../logo/slack.png);
+    background: url(https://cdn.kkutu.io/logo/slack.png);
 }
 
 /* theme */
@@ -309,11 +309,11 @@
 
 /* logo */
 .lbtn.lbtn-steam .logo {
-    background: url(../logo/steam.svg);
+    background: url(https://cdn.kkutu.io/logo/steam.svg);
 }
 
 .lbtn.lbtn-steam.lbtn-fallback-svg .logo {
-    background: url(../logo/steam.png);
+    background: url(https://cdn.kkutu.io/logo/steam.png);
 }
 
 /* theme */
@@ -331,11 +331,11 @@
 
 /* logo */
 .lbtn.lbtn-telegram .logo {
-    background: url(../logo/telegram.svg);
+    background: url(https://cdn.kkutu.io/logo/telegram.svg);
 }
 
 .lbtn.lbtn-telegram.lbtn-fallback-svg .logo {
-    background: url(../logo/telegram.png);
+    background: url(https://cdn.kkutu.io/logo/telegram.png);
 }
 
 .lbtn.lbtn-telegram:not(.white) .logo {
@@ -357,11 +357,11 @@
 
 /* logo */
 .lbtn.lbtn-twitch .logo {
-    background: url(../logo/twitch.svg);
+    background: url(https://cdn.kkutu.io/logo/twitch.svg);
 }
 
 .lbtn.lbtn-twitch.lbtn-fallback-svg .logo {
-    background: url(../logo/twitch.png);
+    background: url(https://cdn.kkutu.io/logo/twitch.png);
 }
 
 /* theme */
@@ -379,11 +379,11 @@
 
 /* logo */
 .lbtn.lbtn-twitter .logo {
-    background: url(../logo/twitter.svg);
+    background: url(https://cdn.kkutu.io/logo/twitter.svg);
 }
 
 .lbtn.lbtn-twitter.lbtn-fallback-svg .logo {
-    background: url(../logo/twitter.png);
+    background: url(https://cdn.kkutu.io/logo/twitter.png);
 }
 
 /* theme */
@@ -401,9 +401,9 @@
 
 /* logo */
 .lbtn.lbtn-wordpress .logo {
-    background: url(../logo/wordpress.svg);
+    background: url(https://cdn.kkutu.io/logo/wordpress.svg);
 }
 
 .lbtn.lbtn-wordpress.lbtn-fallback-svg .logo {
-    background: url(../logo/wordpress.png);
+    background: url(https://cdn.kkutu.io/logo/wordpress.png);
 }

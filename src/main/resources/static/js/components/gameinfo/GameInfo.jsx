@@ -18,7 +18,6 @@
 
 import React from "react";
 import './gameInfo.css'
-import GameGradeAllImg from '../../../img/game_grade_all.png';
 
 const GameInfo = () => {
     const gradeDetailUrl = 'https://www.grac.or.kr/Statistics/Popup/Pop_StatisticsDetails.aspx?371e798f34f8dfd4a541d1f1f3960c41a6c813a6a053e8e5ec12581d53453bb0';
@@ -31,7 +30,7 @@ const GameInfo = () => {
     return (
         <>
             <div style={{display: 'flex'}}>
-                <img src={GameGradeAllImg} alt="전체이용가" width="53" height="71"/>
+                <img src="https://cdn.kkutu.io/img/game_grade_all.png" alt="전체이용가" width="53" height="71"/>
                 <table className="game-info-table" onClick={handleClick}>
                     <tbody>
                     <tr>

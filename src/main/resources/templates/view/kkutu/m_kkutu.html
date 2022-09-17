@@ -17,8 +17,8 @@
   -->
 
 <div th:remove="tag" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" xmlns:th="http://www.thymeleaf.org">
-    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/in_game_kkutu_shop.css?rv=${runnerVersion}}"/>
-    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/in_m_kkutu.css?rv=${runnerVersion}}"/>
+    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/in_game_kkutu_shop.css?rv=' + ${runnerVersion}}"/>
+    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/in_m_kkutu.css?rv=' + ${runnerVersion}}"/>
 
     <span id="PUBLIC">true</span>
     <!-- span#PORT= locals.PORT-->
@@ -739,6 +739,6 @@
     <script type="text/javascript" src="//t1.daumcdn.net/kas/static/ba.min.js" async></script>
 
     <script src="https://www.google.com/recaptcha/api.js" type="text/javascript"></script>
-    <script th:src="@{https://cdn.kkutu.io/js/kawaiii.min.js?rv=${runnerVersion}}" type="text/javascript"></script>
-    <script th:src="@{https://cdn.kkutu.io/js/in_game_kkutu.min.js?rv=${runnerVersion}}" type="text/javascript"></script>
+    <script th:src="@{'https://cdn.kkutu.io/js/kawaiii.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
+    <script th:src="@{'https://cdn.kkutu.io/js/in_game_kkutu.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
 </div>

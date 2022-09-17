@@ -72,6 +72,9 @@ class MainController(
             return "redirect:/setup"
         }
 
+        val runnerVersion = kKuTuSetting.runnerVersion()
+        model.addAttribute("runnerVersion", runnerVersion)
+
         if (server == null) {
             model.addAttribute("viewName", request.getView(View.REACT))
         } else {
@@ -111,13 +114,11 @@ class MainController(
             val gameServer = gameServers[if (gameServers.size <= server) 0 else server.toInt()]
             val webSocketUrl =
                 (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
-            val runnerVersion = kKuTuSetting.runnerVersion()
             val nickname: String = sessionProfile?.title ?: (messages["kkutu.dialog.room.room-title.guest"]
                 ?: error("kkutu.dialog.room.room-title.guest 언어 설정을 찾을 수 없습니다."))
 
             model.addAttribute("version", kKuTuSetting.getVersion())
             model.addAttribute("websocketUrl", webSocketUrl + "/" + aeS256.encrypt(randomSid))
-            model.addAttribute("runnerVersion", runnerVersion)
             model.addAttribute("nickname", nickname)
             model.addAttribute("moremiParts", kKuTuSetting.getMoremiParts().joinToString(","))
             model.addAttribute("moremiCategories", kKuTuSetting.getMoremiCategories())

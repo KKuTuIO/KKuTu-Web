@@ -37,7 +37,7 @@
     </div>
     <th:block th:replace="view/kkutu/menu"/>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,height=290,title=#{kkutu.dialog.setting.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,height=345,title=#{kkutu.dialog.setting.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.bgm-volume}"></h4>
@@ -74,6 +74,27 @@
                 <h4></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='only-unlock',text=#{kkutu.dialog.setting.etc.only-unlock},style='width: 200px')}"/>
+            </div>
+            <div class="dialog-bar">
+                <h4 th:text="#{kkutu.dialog.setting.lobby-bgm.title}"></h4>
+                <select id="select-lobby-bgm">
+                    <option th:text="#{kkutu.dialog.setting.lobby-bgm.info}" disabled>배경 음악을 선택하세요.</option>
+                    <option th:value="LobbyBGM">오리지널 끄투</option>
+                    <option th:value="LobbyBGM_2017">끄투리오 2017</option>
+                    <option th:value="LobbyBGM_NEW">새로운 시작</option>
+                    <option th:value="LobbyBGM_2020_Summer" selected>끄투리오 2020 여름</option>
+                    <option th:value="LobbyBGM_2020_Winter">끄투리오 2020 겨울</option>
+                    <!-- <option th:value="LobbyBGMSeolBGM">끄투 명절</option> -->
+                    <!-- <option th:value="LobbyBGM_KKuTuIO_Seol">끄투리오 명절</option> -->
+                </select>
+            </div>
+            <div class="dialog-bar">
+                <h4 th:text="#{kkutu.dialog.setting.bgm.title}"></h4>
+                <select id="select-bgm">
+                    <option th:text="#{kkutu.dialog.setting.bgm.info}" disabled>효과음을 선택하세요.</option>
+                    <option th:value="kkutu" selected>오리지널 끄투</option>
+                    <option th:value="new_start">새로운 시작</option>
+                </select>
             </div>
             <div class="dialog-bar tail-button">
                 <button id="setting-ok" th:text="#{kkutu.dialog.setting.save}"></button>

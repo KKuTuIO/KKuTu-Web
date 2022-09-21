@@ -22,6 +22,7 @@ import './gameInfo.css'
 const GameInfo = () => {
     const gradeDetailUrl = 'https://www.grac.or.kr/Statistics/Popup/Pop_StatisticsDetails.aspx?371e798f34f8dfd4a541d1f1f3960c41a6c813a6a053e8e5ec12581d53453bb0';
     const windowFeatures = 'width=800,height=587,fullscreen=no,resizeable=no,menubar=no,toolbar=no,location=no,directories=no,status=no';
+    const images = ['https://cdn.kkutu.io/img/game_grade_all.png'];
 
     const handleClick = () => {
         window.open(gradeDetailUrl, 'GameDetail', windowFeatures);
@@ -30,7 +31,7 @@ const GameInfo = () => {
     return (
         <>
             <div style={{display: 'flex'}}>
-                <img src="https://cdn.kkutu.io/img/game_grade_all.png" alt="전체이용가" width="53" height="71"/>
+                <img src="{images[0]}" alt="전체이용가" width="53" height="71"/>
                 <table className="game-info-table" onClick={handleClick}>
                     <tbody>
                     <tr>

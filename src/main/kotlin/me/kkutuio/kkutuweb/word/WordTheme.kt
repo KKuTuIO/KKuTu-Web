@@ -59,6 +59,7 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_HOS("HOS", "히어로즈 오브 더 스톰"),
     THEME_BDM("BDM", "Bang Dream!"),
     THEME_KIO("KIO", "끄투리오"),
+    THEME_CON("CON", "콘솔 게임"),
     THEME_E03("E03", "★"),
     THEME_E05("E05", "동물"),
     THEME_E08("E08", "인체"),

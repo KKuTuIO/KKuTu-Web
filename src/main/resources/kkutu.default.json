@@ -177,10 +177,13 @@
           "HOS",
           "BDM",
           "KIO",
-          "CON"
+          "CON",
+          "HRT",
+          "BRD"
         ],
         "en": [
-          "LOL"
+          "LOL",
+          "BRD"
         ]
       },
       "ijp-except": [

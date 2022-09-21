@@ -69,6 +69,7 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_E18("E18", "사람"),
     THEME_E20("E20", "식물"),
     THEME_E43("E43", "날씨"),
+    THEME_E53("E53", "화학"),
     THEME_0("0", "주제없음"),
     THEME_10("10", "가톨릭"),
     THEME_20("20", "건설"),

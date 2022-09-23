@@ -90,7 +90,7 @@ class AdminAPI(
             logger.warn("[${request.getIp()}] API 키가 불일치하여 yell 요청을 무시합니다.")
             return
         }
-        val value = postApiBody.value.replace('\"', '\\\"')
+        val value = postApiBody.value.replace('\"', '\u005C\u0022')
         gameClientManager.yell(value)
         logger.info("공지가 전송되었습니다. 내용 : ${postApiBody.value}")
     }

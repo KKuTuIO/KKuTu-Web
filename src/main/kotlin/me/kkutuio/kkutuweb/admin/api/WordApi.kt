@@ -77,7 +77,7 @@ class WordApi(
         )
 
         val wordListRes = adminWordService.getWordListRes(lang, page, pageSize, sortData, searchFilters)
-        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 목록을 요청했습니다. 언어: $lang / 검색어: $word / 테마: $theme / c총 개수: ${wordListRes.totalElements}")
+        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 목록을 요청했습니다. 언어: $lang / 검색어: $word / 테마: $theme / 총 개수: ${wordListRes.totalElements}")
 
         return wordListRes
     }

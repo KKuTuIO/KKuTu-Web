@@ -51,6 +51,7 @@ class WordApi(
         @RequestParam(required = true, name = "size") pageSize: Int,
         @RequestParam(required = true, name = "sort") sortData: String,
         @RequestParam(required = false, defaultValue = "") word: String,
+        @RequestParam(required = false, defaultValue = "") theme: String,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<WordVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -71,11 +72,12 @@ class WordApi(
         }
 
         val searchFilters = mapOf(
-            "_id" to word
+            "_id" to word,
+            "theme" to theme
         )
 
         val wordListRes = adminWordService.getWordListRes(lang, page, pageSize, sortData, searchFilters)
-        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 목록을 요청했습니다. 언어: $lang / 검색어: $word / 총 개수: ${wordListRes.totalElements}")
+        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 목록을 요청했습니다. 언어: $lang / 검색어: $word / 테마: $theme / c총 개수: ${wordListRes.totalElements}")
 
         return wordListRes
     }

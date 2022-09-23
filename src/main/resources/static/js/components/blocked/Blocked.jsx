@@ -43,7 +43,7 @@ const Background = styled.div`
   left: 0;
   right: 0;
   width: 350px;
-  height: 500px;
+  height: 475px;
   padding: 15px;
 `
 
@@ -75,7 +75,7 @@ const DetailValue = styled.td`
 const Footer = styled.p`
   text-align: center;
   font-size: 10.5px;
-  margin-top: 30px;
+  margin-top: 20px;
 `
 
 export const LogoutBtn = styled.button`
@@ -141,7 +141,7 @@ const Blocked = ({blockInfo}) => {
                         color: '#A5D6A7',
                         fontWeight: 'bold',
                         userSelect: 'all'
-                    }}>{getInquireId()}</span> 문구를 포함해주시고,<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
+                    }}>{getInquireId()}</span> 문구와 함께<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
                 </Background>
             </>
         )
@@ -188,7 +188,7 @@ const Blocked = ({blockInfo}) => {
                     color: '#A5D6A7',
                     fontWeight: 'bold',
                     userSelect: 'all'
-                }}>{getInquireId()}</span> 문구를 포함해주시고,<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
+                }}>{getInquireId()}</span> 문구와 함께<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
             </Background>
         </>
     )

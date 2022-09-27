@@ -55,6 +55,7 @@ class SuspicionLogApi(
         @RequestParam(required = false, name = "user_id", defaultValue = "") userId: String,
         @RequestParam(required = false, name = "user_ip", defaultValue = "") userIp: String,
         @RequestParam(required = false, name = "extra_info", defaultValue = "") extraInfo: String,
+        @RequestParam(required = false, name = "reference", defaultValue = "") reference: String,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<ConnectionLogVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -80,7 +81,8 @@ class SuspicionLogApi(
             "doubt" to doubt,
             "user_id" to userId,
             "user_ip" to userIp,
-            "extra_info" to extraInfo
+            "extra_info" to extraInfo,
+            "reference" to reference
         )
 
         val connectionLogRes = connectionLogService.getConnectionLogRes(page, pageSize, sortData, searchFilters)

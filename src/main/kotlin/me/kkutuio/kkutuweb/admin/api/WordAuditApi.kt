@@ -50,18 +50,18 @@ class WordAuditApi(
     ): ListResponse<WordAuditLog> {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
-            logger.warn("인증되지 않은 사용자로 부터 단어 관리 로그 조회 요청이 차단되었습니다.")
+            logger.warn("인증되지 않은 사용자로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
-            logger.warn("관리자가 아닌 사용자(${sessionProfile.id})로 부터 단어 관리 로그 조회 요청이 차단되었습니다.")
+            logger.warn("관리자가 아닌 사용자(${sessionProfile.id})로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
         val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
-            logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로 부터 단어 관리 로그 조회 요청이 차단되었습니다.")
+            logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 

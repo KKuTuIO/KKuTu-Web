@@ -131,8 +131,6 @@
 <div id="Middle" th:include="${viewName}"></div>
 
 <div id="Bottom" th:unless="${#strings.startsWith(viewName, 'view/login')}">
-    <div class="bottom-legal" th:utext="#{legal.license}"></div>
-    <div class="bottom-legal" th:utext="#{legal.dictionary}"></div>
     <div class="bottom-legal" th:utext="#{legal.copyright}"></div>
     <div style="float: left; width: 100%; margin: 10px 0;"></div>
 </div>

@@ -411,28 +411,23 @@
             <b th:text="#{kkutu.dialog.report.category}"></b>
             <select id="rsl" style="width:100%;margin-top:5px;margin-bottom:5px;">
                 <option th:text="#{kkutu.dialog.report.category}" disabled selected></option>
-                <option th:text="#{kkutu.dialog.report.category.1}" disabled></option>
+                <option th:text="#{kkutu.dialog.report.category.01}" value="01"></option>
+                <option th:text="#{kkutu.dialog.report.category.02}" value="02"></option>
+                <option th:text="#{kkutu.dialog.report.category.03}" value="03"></option>
+                <option th:text="#{kkutu.dialog.report.category.04}" value="04"></option>
+                <option th:text="#{kkutu.dialog.report.category.05}" value="05"></option>
+                <option th:text="#{kkutu.dialog.report.category.06}" value="06"></option>
+                <option th:text="#{kkutu.dialog.report.category.07}" value="07"></option>
+                <option th:text="#{kkutu.dialog.report.category.08}" value="08"></option>
+                <option th:text="#{kkutu.dialog.report.category.09}" value="09"></option>
                 <option th:text="#{kkutu.dialog.report.category.10}" value="10"></option>
                 <option th:text="#{kkutu.dialog.report.category.11}" value="11"></option>
                 <option th:text="#{kkutu.dialog.report.category.12}" value="12"></option>
                 <option th:text="#{kkutu.dialog.report.category.13}" value="13"></option>
                 <option th:text="#{kkutu.dialog.report.category.14}" value="14"></option>
                 <option th:text="#{kkutu.dialog.report.category.15}" value="15"></option>
-                <option th:text="#{kkutu.dialog.report.category.2}" disabled></option>
-                <option th:text="#{kkutu.dialog.report.category.20}" value="20"></option>
-                <option th:text="#{kkutu.dialog.report.category.21}" value="21"></option>
-                <option th:text="#{kkutu.dialog.report.category.22}" value="22"></option>
-                <option th:text="#{kkutu.dialog.report.category.23}" value="23"></option>
-                <option th:text="#{kkutu.dialog.report.category.3}" disabled></option>
-                <option th:text="#{kkutu.dialog.report.category.30}" value="30" reqLength></option>
-                <option th:text="#{kkutu.dialog.report.category.31}" value="31"></option>
-                <option th:text="#{kkutu.dialog.report.category.32}" value="32"></option>
-                <option th:text="#{kkutu.dialog.report.category.33}" value="33"></option>
-                <option th:text="#{kkutu.dialog.report.category.4}" disabled></option>
-                <option th:text="#{kkutu.dialog.report.category.40}" value="40" reqLength></option>
-                <option th:text="#{kkutu.dialog.report.category.41}" value="41"></option>
-                <option th:text="#{kkutu.dialog.report.category.42}" value="42"></option>
-                <option th:text="#{kkutu.dialog.report.category.0}" disabled></option>
+                <option th:text="#{kkutu.dialog.report.category.16}" value="16"></option>
+                <option th:text="#{kkutu.dialog.report.category.17}" value="17"></option>
                 <option th:text="#{kkutu.dialog.report.category.00}" value="00" reqLength></option>
             </select>
             <b th:text="#{kkutu.dialog.report.tail}"></b>
@@ -590,8 +585,8 @@
             <div class="dialog-bar tail-button">
                 <button id="dress-ok" th:text="#{kkutu.dialog.dress.ok}"></button>
                 <button id="dress-cf" th:text="#{kkutu.dialog.dress.charFactory}"></button>
-                <button th:with="paybackHelp=#{kkutu.dialog.dress.paybackHelp}"
-                        th:attr="onclick=${'ioAlert(&quot;' + paybackHelp + '&quot;)'}"
+                <button id="dress-sell"
+                        th:with="paybackHelp=#{kkutu.dialog.dress.paybackHelp}"
                         th:text="#{kkutu.dialog.dress.payback}"></button>
             </div>
         </th:block>

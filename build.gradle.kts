@@ -26,7 +26,7 @@ plugins {
 }
 
 group = "me.kkutuio"
-version = "1.1.7"
+version = "1.1.7a"
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 

@@ -89,7 +89,7 @@ class UserService(
         var part = good.group
         if (part.substring(0, 3) == "BDG") part = "BDG"
         else if (part == "Mhand") {
-            if (user.box.get(id).intValue() <= 0) return "{\"error\":439}"
+            if (user.box.get(id)["value"].intValue() <= 0) return "{\"error\":439}"
             part = if (isLeft) "Mlhand" else "Mrhand"
         }
 

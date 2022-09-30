@@ -88,7 +88,10 @@ class UserService(
 
         var part = good.group
         if (part.substring(0, 3) == "BDG") part = "BDG"
-        else if (part == "Mhand") part = if (isLeft) "Mlhand" else "Mrhand"
+        else if (part == "Mhand") {
+            if (user.box.get(id).intValue() <= 0) return "{\"error\":439}"
+            part = if (isLeft) "Mlhand" else "Mrhand"
+        }
 
         val equip: JsonNode = user.equip
         if (equip.has(part)) {

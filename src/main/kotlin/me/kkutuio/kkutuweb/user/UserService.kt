@@ -89,7 +89,9 @@ class UserService(
         var part = good.group
         if (part.substring(0, 3) == "BDG") part = "BDG"
         else if (part == "Mhand") {
-            if (user.box.get(id)["value"].intValue() <= 0) return "{\"error\":439}"
+            val equipingGood = user.box.get(id)
+            if (equipingGood["value"].intValue() == 0 && equipingGood.intValue() <= 0) return "{\"error\":439}"
+            else if (equipingGood["value"].intValue() <= 0) return "{\"error\":439}"
             part = if (isLeft) "Mlhand" else "Mrhand"
         }
 
@@ -97,11 +99,13 @@ class UserService(
         if (equip.has(part)) {
             val equipingGood = user.box.get(id)
             if (equipingGood != null && (equipingGood.has("expire") && equipingGood["expire"].intValue() > 0)) {
+                var expire = equipingGood["expire"].intValue()
+                if (expire == 2147483647) expire = 0
                 shopService.obtainGood(
                     user.box,
                     equip.get(part).textValue(),
                     1,
-                    equipingGood["expire"].intValue(),
+                    expire,
                     true
                 )
             } else {

@@ -120,7 +120,7 @@ class LoginService(
     fun getOAuthServiceFromSession(session: HttpSession): OAuthService {
         val oAuthUser = session.getOAuthUser()
         val authType = oAuthUser.authVendor.name.toLowerCase()
-        val vendorType = AuthVendor.fromName(authType)
+        val vendorType = AuthVendor.fromName(authType)!!
         return getOAuthService(vendorType)
     }
 

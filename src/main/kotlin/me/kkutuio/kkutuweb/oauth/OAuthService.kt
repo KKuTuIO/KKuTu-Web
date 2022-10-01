@@ -22,7 +22,7 @@ import com.github.scribejava.core.oauth.OAuth20Service
 
 abstract class OAuthService(private val authorizationUrlParams: Map<String, String> = emptyMap()) {
     protected lateinit var oAuth20Service: OAuth20Service
-    protected lateinit var allowRegister: Boolean;
+    protected var allowRegister: Boolean = true;
 
     abstract fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean)
     abstract fun login(code: String): OAuthUser

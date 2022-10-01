@@ -54,7 +54,7 @@ class SetupController(
         }
 
         
-        if (!getOAuthServiceFromSession(session).allowRegister) {
+        if (!loginService.getOAuthServiceFromSession(session).allowRegister) {
             try {
                 session.invalidate()
             } catch (e: Exception) {

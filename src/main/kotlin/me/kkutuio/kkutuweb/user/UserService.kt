@@ -20,6 +20,7 @@ package me.kkutuio.kkutuweb.user
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.sun.org.apache.xpath.internal.operations.Bool
 import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
@@ -87,17 +88,18 @@ class UserService(
         if (!AVAIL_EQUIP.contains(good.group)) return "{\"error\":400}"
 
         var part = good.group
+        var isUnequip: Boolean
         if (part.substring(0, 3) == "BDG") part = "BDG"
         else if (part == "Mhand") {
             part = if (isLeft) "Mlhand" else "Mrhand"
             val equipingGood = user.box.get(id)
-            val isUnequip = user.equip.get(part).toString() == id
+            isUnequip = user.equip.get(part).toString() == id
             if (isUnequip) {
                 // 장착 해제
             }
             else if (equipingGood["value"].intValue() == 0 && equipingGood.intValue() <= 0) return "{\"error\":439}"
             else if (equipingGood["value"].intValue() <= 0) return "{\"error\":439}"
-        }
+        } else isUnequip = user.equip.get(part).toString() == id
 
         val equip: JsonNode = user.equip
         if (equip.has(part)) {
@@ -119,7 +121,8 @@ class UserService(
         }
 
         val equipObjectNode = equip as ObjectNode
-        if (equip.has(part) && equip.get(part).textValue() == good.id) {
+        // if (equip.has(part) && equip.get(part).textValue() == good.id) {
+        if (isUnequip) {
             equipObjectNode.remove(part)
         } else {
             if (!user.box.has(good.id)) return "{\"error\":430}"

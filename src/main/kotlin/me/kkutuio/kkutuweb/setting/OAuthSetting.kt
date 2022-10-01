@@ -67,7 +67,8 @@ class OAuthSetting(
                 order = settingNode[oAuthVendorName]["order"].shortValue(),
                 clientId = settingNode[oAuthVendorName]["client-id"].textValue(),
                 clientSecret = settingNode[oAuthVendorName]["client-secret"].textValue(),
-                callbackUrl = settingNode[oAuthVendorName]["callback-url"].textValue()
+                callbackUrl = settingNode[oAuthVendorName]["callback-url"].textValue(),
+                allowRegister = settingNode[oAuthVendorName]["allow-register"].booleanValue(),
             )
         }
 

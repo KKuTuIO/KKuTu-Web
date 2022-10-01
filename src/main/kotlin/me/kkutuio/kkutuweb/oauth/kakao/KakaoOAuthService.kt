@@ -34,7 +34,8 @@ class KakaoOAuthService(
 ) : OAuthService() {
     private val protectedResourceUrl = "https://kapi.kakao.com/v2/user/me"
 
-    override fun init(apiKey: String, apiSecret: String, callbackUrl: String) {
+    override fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean) {
+        allowRegister = _allowRegister
         oAuth20Service = ServiceBuilder(apiKey)
             .callback(callbackUrl)
             .userAgent("KKuTu-Web (https://github.com/horyu1234/KKuTu-Web)")

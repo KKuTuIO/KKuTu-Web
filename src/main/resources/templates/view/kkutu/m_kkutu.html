@@ -583,21 +583,21 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=350,height=400,title=#{kkutu.dialog.charFactory.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=350,height=465,title=#{kkutu.dialog.charFactory.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar" style="width: 350px;">
                 <div id="cf-tray"></div>
                 <div id="cf-dict"></div>
             </div>
-            <div class="dialog-bar" style="width: 350px;"><h4
+            <div class="dialog-bar" style="width: 350px;"><!--<h4
                     style="border-bottom: 1px solid #CCCCCC; width: 100%; height: 24px;"
-                    th:text="#{kkutu.dialog.charFactory.cfReward}"></h4>
+                    th:text="#{kkutu.dialog.charFactory.cfReward}"></h4>-->
                 <div id="cf-reward"></div>
             </div>
             <div class="dialog-bar" style="width: 350px;">
                 <div id="cf-cost"></div>
             </div>
-            <div class="dialog-bar">
+            <div class="dialog-bar" id="cf-goods-list">
                 <div class="goods-box" id="cf-goods"></div>
             </div>
             <div class="dialog-bar tail-button">

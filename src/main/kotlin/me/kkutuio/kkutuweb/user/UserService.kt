@@ -90,24 +90,18 @@ class UserService(
         if (part.substring(0, 3) == "BDG") part = "BDG"
         else if (part == "Mhand") {
             part = if (isLeft) "Mlhand" else "Mrhand"
+            val equipingGood = user.box.get(id)
+            val isUnequip = user.equip.get(part).toString() == id
             try {
-                val equipingGood = user.box.get(id)
-                val isUnequip = user.equip.get(part).toString() == id
                 if (isUnequip) {
                     // 장착 해제
+                } else {
+                    val equipingGoodChecker = equipingGood["value"].intValue() == 0 && equipingGood.intValue() <= 0
+                    if (equipingGoodChecker) return "{\"error\":439}"
+                    else if (equipingGood["value"].intValue() <= 0) return "{\"error\":439}"
                 }
-                try {
-                    if (equipingGood["value"].intValue() == 0 && equipingGood.intValue() <= 0) return "{\"error\":998}"
-                } catch(e: NullPointerException) {
-                    logger.warn("손 아이템 장착 오류1: $e")
-                }
-                try {
-                    if (equipingGood["value"].intValue() <= 0) return "{\"error\":999}"
-                } catch(e: NullPointerException) {
-                    logger.warn("손 아이템 장착 오류2: $e")
-                }
-            } catch (e: Exception) {
-                logger.warn("손 아이템 장착 오류: $e")
+            } catch(e: Exception) {
+                logger.warn("[장착] Exception: $e equipingGood: $equipingGood isUnequip: $isUnequip intVal: " + equipingGood.intValue() + " intValJSON: " + equipingGood["value"].intValue())
             }
         }
 

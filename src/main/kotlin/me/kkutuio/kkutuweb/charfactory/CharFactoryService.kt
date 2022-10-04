@@ -157,7 +157,7 @@ class CharFactoryService(
     fun getCfRewards(word: String, level: Int, blend: Boolean): CFResult {
         val wordLength = word.length
 
-        var cost = 20 * level
+        var cost = 10 * level
         var wur = wordLength / 36.0
 
         val rewards = ArrayList<Reward>()
@@ -178,12 +178,12 @@ class CharFactoryService(
             rewards.add(Reward("dictPage", (wordLength * 0.6).roundToInt(), 1.0))
             rewards.add(Reward("boxB4", 1, min(1.0, level / 7.0)))
             if (level >= 5) {
-                rewards.add(Reward("boxB3", 1, min(1.0, level / 15.0)))
+                rewards.add(Reward("boxB3", 1, min(1.0, level / 10.0)))
                 cost += 10 * level
                 wur += level / 20.0
             }
             if (level >= 10) {
-                rewards.add(Reward("boxB2", 1, min(1.0, level / 30.0)))
+                rewards.add(Reward("boxB2", 1, min(1.0, level / 20.0)))
                 cost += 20 * level
                 wur += level / 10.0
             }

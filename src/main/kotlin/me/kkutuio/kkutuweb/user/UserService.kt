@@ -92,7 +92,6 @@ class UserService(
             part = if (isLeft) "Mlhand" else "Mrhand"
             val equipingGood = user.box.get(id)
             val isUnequip = user.equip.get(part).toString() == id
-            try {
                 if (isUnequip) {
                     // 장착 해제
                 } else {
@@ -100,9 +99,7 @@ class UserService(
                     if (equipingGoodChecker) return "{\"error\":439}"
                     else if (equipingGood["value"].intValue() <= 0) return "{\"error\":439}"
                 }
-            } catch(e: Exception) {
-                logger.warn("[장착] Exception: $e equipingGood: $equipingGood isUnequip: $isUnequip intVal: " + equipingGood.intValue() + " intValJSON: " + equipingGood["value"].intValue())
-            }
+            logger.warn("[장착] equipingGood: $equipingGood isUnequip: $isUnequip intVal: " + equipingGood.intValue() + " intValJSON: " + equipingGood["value"].intValue())
         }
 
         val equip: JsonNode = user.equip

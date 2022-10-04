@@ -94,15 +94,15 @@ class UserService(
             if (isUnequip) {
                 // 장착 해제
             } else {
+                val isJSONObject = equipingGood.has("value")
                 try {
-                    val isJSONObject = equipingGood.get("value") != null
                     if (!isJSONObject) {
                         if (equipingGood.intValue() <= 0) return "{\"error\":439}"
                     } else {
-                        if (equipingGood.get("value").intValue() <= 0) return "{\"error\":439}"
+                        if (equipingGood["value"].intValue() <= 0) return "{\"error\":439}"
                     }
                 } catch(e: Exception) {
-                    logger.warn("손 아이템 장착 오류: $e")
+                    logger.warn("손 아이템 장착 오류: $e ISJSONObject: $isJSONObject part: $part")
                 }
             }
         }

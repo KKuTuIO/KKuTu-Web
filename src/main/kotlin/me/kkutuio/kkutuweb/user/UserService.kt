@@ -90,8 +90,8 @@ class UserService(
         else if (part == "Mhand") {
             part = if (isLeft) "Mlhand" else "Mrhand"
             val equipingGood = user.box.get(id)
-            val isUnequip = user.equip.get(part).toString() == id
-            if (isUnequip) {
+
+            if (user.equip.has(part) && user.equip.get(part).toString() == id) {
                 // 장착 해제
             } else {
                 val isJSONObject = equipingGood.has("value")

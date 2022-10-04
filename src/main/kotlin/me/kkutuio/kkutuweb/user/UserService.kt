@@ -96,8 +96,16 @@ class UserService(
                 if (isUnequip) {
                     // 장착 해제
                 }
-                else if (equipingGood["value"].intValue() == 0 && equipingGood.intValue() <= 0) return "{\"error\":998}"
-                else if (equipingGood["value"].intValue() <= 0) return "{\"error\":999}"
+                try {
+                    if (equipingGood["value"].intValue() == 0 && equipingGood.intValue() <= 0) return "{\"error\":998}"
+                } catch(e: NullPointerException) {
+                    logger.warn("손 아이템 장착 오류1: $e")
+                }
+                try {
+                    if (equipingGood["value"].intValue() <= 0) return "{\"error\":999}"
+                } catch(e: NullPointerException) {
+                    logger.warn("손 아이템 장착 오류2: $e")
+                }
             } catch (e: Exception) {
                 logger.warn("손 아이템 장착 오류: $e")
             }

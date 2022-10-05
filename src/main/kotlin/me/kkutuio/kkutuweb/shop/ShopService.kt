@@ -119,28 +119,27 @@ class ShopService(
 
     fun obtainGood(box: JsonNode, goodId: String, value: Int, term: Int?, addValue: Boolean = false) {
         val boxObjectNode = box as ObjectNode
+        val goodJson = if (boxObjectNode.has(goodId)) boxObjectNode.get(goodId) as ObjectNode
+            else objectMapper.createObjectNode()
 
         if (term == null || term == 0) {
-            boxObjectNode.put(
-                goodId,
-                (if (boxObjectNode.has(goodId)) boxObjectNode.get(goodId).intValue() else 0) + value
+            goodJson.put(
+                "value",
+                (if (goodJson.has("value")) goodJson.get("value").intValue() else 0) + value
             )
         } else {
-            if (boxObjectNode.has(goodId)) {
-                val goodJson = boxObjectNode.get(goodId) as ObjectNode
-
+            if (goodJson.has("expire")) {
                 if (addValue) goodJson.put("value", goodJson["value"].intValue() + value)
                 else goodJson.put("expire", goodJson["expire"].intValue() + term)
+            } else if (goodJson.has("value")) {
+                // 처리 없음
             } else {
                 val currentTime = System.currentTimeMillis()
-
-                val newGoodJson = objectMapper.createObjectNode()
-                newGoodJson.put("value", value)
-                newGoodJson.put("expire", (currentTime * 0.001 + term).roundToInt())
-
-                boxObjectNode.set(goodId, newGoodJson)
+                goodJson.put("value", value)
+                goodJson.put("expire", (currentTime * 0.001 + term).roundToInt())
             }
         }
+        boxObjectNode.set<ObjectNode>(goodId, goodJson)
     }
 
     fun consumeGood(box: JsonNode, goodId: String, value: Int, force: Boolean = false) {

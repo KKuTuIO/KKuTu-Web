@@ -42,7 +42,7 @@ class CharFactoryService(
     @Autowired private val shopService: ShopService
 ) {
     fun previewCharFactory(word: String, l: Int, b: String): CFResult {
-        return getCfRewards(word, l, b == "1")
+        return if (l == -1) getCfEventRewarts(word) else getCfRewards(word, l, b == "1")
     }
 
     fun charFactory(tray: List<String>, session: HttpSession): String {
@@ -58,15 +58,25 @@ class CharFactoryService(
         var level = 0
         val charCountMap = HashMap<String, Int>()
 
+        val event = tray[0][3] == 'E'
+        var expire = null
+
         for (charItem in tray) {
             val char = charItem[4].toString()
+            val charType = charItem[3]
+            if (event == (charType != 'E')) return "{\"error\":412}"
             wordString += char
-            level += 68 - charItem[3].toInt()
+            level += 68 - charType.toInt()
             charCountMap[charItem] = if (charCountMap.containsKey(charItem)) charCountMap[charItem]!! + 1 else 1
             if (!user.box.has(charItem) || user.box.get(charItem)
-                    .intValue() < charCountMap[charItem]!!
+                    ['value'].intValue() < charCountMap[charItem]!!
             ) return "{\"error\":434}"
+            // 아직까지는 만료 일자가 다른 경우는 없다. 모두 같은 값 혹은 만료 없음
+            if (expire == null && user.box.get(charItem)['expire'].intValue())
+                expire = user.box.get(charItem)['expire'].intValue()
         }
+
+        if (event) level = -1;
 
         val tableName = when (findLanguage(wordString)) {
             "ko" -> "kkutu_ko"
@@ -84,7 +94,7 @@ class CharFactoryService(
             } else return "{\"error\":404}"
         }
 
-        val cfRewards = getCfRewards(wordString, level, blend)
+        val cfRewards = if (event) getCfEventRewarts(wordString) else getCfRewards(wordString, level, blend)
         if (user.money < cfRewards.cost) return "{\"error\":407}"
 
         for (entry in charCountMap.entries) {
@@ -93,13 +103,20 @@ class CharFactoryService(
 
         val gained = ArrayList<Reward>()
         for (reward in cfRewards.data) {
-            if (Random.nextDouble(0.0, 1.0) >= reward.rate) continue
+            var count = 0
+            if (reward.rate > 1) {
+                count += floor(reward.rate)
+                reward.rate %= 1
+            }
+            if (Random.nextDouble(0.0, 1.0) < reward.rate) count += 1
+            if (count == 0) continue
             if (reward.key[4].toString() == "?") {
                 reward.key =
                     reward.key.substring(0, 4) + if (blend) blendWord(wordString) else wordString.random().toString()
             }
+            val itemExpire = if (reward.allowExpire) expire else null
 
-            shopService.obtainGood(user.box, reward.key, reward.value, null)
+            shopService.obtainGood(user.box, reward.key, count, itemExpire)
             gained.add(reward)
         }
 
@@ -164,41 +181,55 @@ class CharFactoryService(
         if (blend) {
             when {
                 wur >= 0.5 -> {
-                    rewards.add(Reward("\$WPA?", 1, 1.0))
+                    rewards.add(Reward("\$WPA?", 1.0))
                 }
                 wur >= 0.35 -> {
-                    rewards.add(Reward("\$WPB?", 1, 1.0))
+                    rewards.add(Reward("\$WPB?", 1.0))
                 }
                 wur >= 0.05 -> {
-                    rewards.add(Reward("\$WPC?", 1, 1.0))
+                    rewards.add(Reward("\$WPC?", 1.0))
                 }
             }
             cost = (cost * 0.2).roundToInt()
         } else {
-            rewards.add(Reward("dictPage", (wordLength * 0.6).roundToInt(), 1.0))
-            rewards.add(Reward("boxB4", 1, min(1.0, level / 7.0)))
+            rewards.add(Reward("dictPage", (wordLength * 0.6)))
+            rewards.add(Reward("boxB4", min(1.0, level / 7.0)))
             if (level >= 5) {
-                rewards.add(Reward("boxB3", 1, min(1.0, level / 10.0)))
+                rewards.add(Reward("boxB3", min(1.0, level / 10.0)))
                 cost += 10 * level
                 wur += level / 20.0
             }
             if (level >= 10) {
-                rewards.add(Reward("boxB2", 1, min(1.0, level / 20.0)))
+                rewards.add(Reward("boxB2", min(1.0, level / 20.0)))
                 cost += 20 * level
                 wur += level / 10.0
             }
             if (wur >= 0.05) {
-                if (wur > 1) rewards.add(Reward("\$WPC?", floor(wur).toInt(), 1.0))
-                rewards.add(Reward("\$WPC?", 1, wur % 1))
+                rewards.add(Reward("\$WPC?", wur))
             }
             if (wur >= 0.35) {
-                if (wur > 2) rewards.add(Reward("\$WPB?", floor(wur / 2).toInt(), 1.0))
-                rewards.add(Reward("\$WPB?", 1, (wur / 2.0) % 1))
+                rewards.add(Reward("\$WPB?", (wur / 2.0)))
             }
             if (wur >= 0.5) {
-                rewards.add(Reward("\$WPA?", 1, wur / 3.0))
+                rewards.add(Reward("\$WPA?", (wur / 3.0)))
             }
         }
+
+        return CFResult(cost, rewards)
+    }
+
+    fun getCfEventRewarts(word: String): CFResult {
+        val wordLength = word.length
+
+        var cost = 10 * wordLength
+        var wur = wordLength / 36.0
+
+        val rewards = ArrayList<Reward>()
+        rewards.add(Reward("dictPage", wordLength * 1.0))
+        rewards.add(Reward("boxE1", round(wordLength * 333.3) / 1000), true)
+        rewards.add(Reward("boxE2", wordLength * 0.25), true)
+        rewards.add(Reward("boxE3", wordLength * 0.125), true)
+        rewards.add(Reward("\$WPE?", wordLength * 0.25), true)
 
         return CFResult(cost, rewards)
     }

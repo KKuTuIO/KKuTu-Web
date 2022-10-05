@@ -59,7 +59,7 @@ class CharFactoryService(
         val charCountMap = HashMap<String, Int>()
 
         val event = tray[0][3] == 'E'
-        var expire = null
+        var expire: Int? = null
 
         for (charItem in tray) {
             val char = charItem[4].toString()
@@ -72,7 +72,7 @@ class CharFactoryService(
                 .get("value").intValue() < charCountMap[charItem]!!
             ) return "{\"error\":434}"
             // 아직까지는 만료 일자가 다른 경우는 없다. 모두 같은 값 혹은 만료 없음
-            if (expire == null && user.box.get(charItem).get("expire").intValue())
+            if (expire == null && user.box.get(charItem).get("expire").intValue() != 0)
                 expire = user.box.get(charItem).get("expire").intValue()
         }
 

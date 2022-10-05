@@ -69,11 +69,11 @@ class CharFactoryService(
             level += 68 - charType.toInt()
             charCountMap[charItem] = if (charCountMap.containsKey(charItem)) charCountMap[charItem]!! + 1 else 1
             if (!user.box.has(charItem) || user.box.get(charItem)
-                    ['value'].intValue() < charCountMap[charItem]!!
+                .get("value").intValue() < charCountMap[charItem]!!
             ) return "{\"error\":434}"
             // 아직까지는 만료 일자가 다른 경우는 없다. 모두 같은 값 혹은 만료 없음
-            if (expire == null && user.box.get(charItem)['expire'].intValue())
-                expire = user.box.get(charItem)['expire'].intValue()
+            if (expire == null && user.box.get(charItem).get("expire").intValue())
+                expire = user.box.get(charItem).get("expire").intValue()
         }
 
         if (event) level = -1;
@@ -105,7 +105,7 @@ class CharFactoryService(
         for (reward in cfRewards.data) {
             var count = 0
             if (reward.rate > 1) {
-                count += floor(reward.rate)
+                count += reward.rate.toInt()
                 reward.rate %= 1
             }
             if (Random.nextDouble(0.0, 1.0) < reward.rate) count += 1
@@ -226,7 +226,7 @@ class CharFactoryService(
 
         val rewards = ArrayList<Reward>()
         rewards.add(Reward("dictPage", wordLength * 1.0))
-        rewards.add(Reward("boxE1", round(wordLength * 333.3) / 1000, true))
+        rewards.add(Reward("boxE1", (wordLength * 333.3).roundToInt() / 1000.0, true))
         rewards.add(Reward("boxE2", wordLength * 0.25, true))
         rewards.add(Reward("boxE3", wordLength * 0.125, true))
         rewards.add(Reward("\$WPE?", wordLength * 0.25, true))

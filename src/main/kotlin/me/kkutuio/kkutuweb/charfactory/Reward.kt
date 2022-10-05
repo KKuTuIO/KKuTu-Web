@@ -20,6 +20,6 @@ package me.kkutuio.kkutuweb.charfactory
 
 data class Reward(
     var key: String,
-    val rate: Double,
+    var rate: Double,
     val allowExpire: Boolean = false
 )

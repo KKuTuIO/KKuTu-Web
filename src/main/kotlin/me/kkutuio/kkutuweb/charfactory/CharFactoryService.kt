@@ -226,10 +226,10 @@ class CharFactoryService(
 
         val rewards = ArrayList<Reward>()
         rewards.add(Reward("dictPage", wordLength * 1.0))
-        rewards.add(Reward("boxE1", round(wordLength * 333.3) / 1000), true)
-        rewards.add(Reward("boxE2", wordLength * 0.25), true)
-        rewards.add(Reward("boxE3", wordLength * 0.125), true)
-        rewards.add(Reward("\$WPE?", wordLength * 0.25), true)
+        rewards.add(Reward("boxE1", round(wordLength * 333.3) / 1000, true))
+        rewards.add(Reward("boxE2", wordLength * 0.25, true))
+        rewards.add(Reward("boxE3", wordLength * 0.125, true))
+        rewards.add(Reward("\$WPE?", wordLength * 0.25, true))
 
         return CFResult(cost, rewards)
     }

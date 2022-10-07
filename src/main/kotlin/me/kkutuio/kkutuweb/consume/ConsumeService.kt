@@ -51,7 +51,7 @@ class ConsumeService(
         val isDyn = id.startsWith("$")
         shopDao.getGood(if (isDyn) id.substring(0, 4) else id) ?: return "{\"error\":430}"
 
-        shopService.consumeGood(user.box, id, 1)
+        shopService.consumeGood(user.box, id, 1, true)
         val useItemResult = useItem(user, id) ?: return "{\"error\":400}"
 
         val userKKuTuJsonObj = PGobject()

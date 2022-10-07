@@ -152,9 +152,8 @@ class ShopService(
             goodJson.put("value", afterConsumeValue)
 
             if (afterConsumeValue <= 0) {
-                if (force || !goodJson.has("expire") && goodJson["expire"].intValue() == 0) boxObjectNode.remove(
-                    goodId
-                )
+                if (force)
+                    boxObjectNode.remove(goodId)
             }
         } else if (goodJson is IntNode) {
             val afterConsumeCount = goodJson.intValue() - value

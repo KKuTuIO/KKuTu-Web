@@ -72,7 +72,7 @@ class CharFactoryService(
                 .get("value").intValue() < charCountMap[charItem]!!
             ) return "{\"error\":434}"
             // 아직까지는 만료 일자가 다른 경우는 없다. 모두 같은 값 혹은 만료 없음
-            if (expire == null && user.box.get(charItem).get("expire").intValue() != 0)
+            if (expire == null && user.box.has(charItem) && user.box.get(charItem).has("expire"))
                 expire = user.box.get(charItem).get("expire").intValue()
         }
 
@@ -98,7 +98,7 @@ class CharFactoryService(
         if (user.money < cfRewards.cost) return "{\"error\":407}"
 
         for (entry in charCountMap.entries) {
-            shopService.consumeGood(user.box, entry.key, entry.value)
+            shopService.consumeGood(user.box, entry.key, entry.value, true)
         }
 
         val gained = ArrayList<Reward>()

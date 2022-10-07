@@ -22,5 +22,6 @@ data class OAuthVendorSetting(
     val order: Short,
     val clientId: String,
     val clientSecret: String,
-    val callbackUrl: String
+    val callbackUrl: String,
+    val allowRegister: Boolean
 )

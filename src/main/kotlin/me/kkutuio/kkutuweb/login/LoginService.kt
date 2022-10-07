@@ -60,7 +60,7 @@ class LoginService(
             val vendorType = entry.key
             val setting = entry.value
 
-            getOAuthService(vendorType).init(setting.clientId, setting.clientSecret, setting.callbackUrl)
+            getOAuthService(vendorType).init(setting.clientId, setting.clientSecret, setting.callbackUrl, setting.allowRegister)
         }
     }
 
@@ -115,6 +115,13 @@ class LoginService(
             title = title,
             image = oAuthUser.profileImage ?: ""
         )
+    }
+
+    fun getOAuthServiceFromSession(session: HttpSession): OAuthService {
+        val oAuthUser = session.getOAuthUser()
+        val authType = oAuthUser.authVendor.name.toLowerCase()
+        val vendorType = AuthVendor.fromName(authType)!!
+        return getOAuthService(vendorType)
     }
 
     private fun getOAuthService(authVendor: AuthVendor): OAuthService {

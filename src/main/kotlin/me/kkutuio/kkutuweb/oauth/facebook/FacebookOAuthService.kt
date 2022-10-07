@@ -36,7 +36,8 @@ class FacebookOAuthService(
 ) : OAuthService() {
     private val protectedResourceUrl = "https://graph.facebook.com/v8.0/me?fields=id,name,gender,age_range"
 
-    override fun init(apiKey: String, apiSecret: String, callbackUrl: String) {
+    override fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean) {
+        allowRegister = _allowRegister
         oAuth20Service = ServiceBuilder(apiKey)
             .apiSecret(apiSecret)
             .callback(callbackUrl)

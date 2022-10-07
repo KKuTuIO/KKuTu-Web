@@ -36,7 +36,8 @@ class NaverOAuthService(
 ) : OAuthService() {
     private val protectedResourceUrl = "https://openapi.naver.com/v1/nid/me"
 
-    override fun init(apiKey: String, apiSecret: String, callbackUrl: String) {
+    override fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean) {
+        allowRegister = _allowRegister
         oAuth20Service = ServiceBuilder(apiKey)
             .apiSecret(apiSecret)
             .callback(callbackUrl)

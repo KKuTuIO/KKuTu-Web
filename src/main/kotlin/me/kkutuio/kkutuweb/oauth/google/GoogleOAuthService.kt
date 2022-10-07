@@ -40,7 +40,8 @@ class GoogleOAuthService(
 ) {
     private val protectedResourceUrl = "https://www.googleapis.com/plus/v1/people/me"
 
-    override fun init(apiKey: String, apiSecret: String, callbackUrl: String) {
+    override fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean) {
+        allowRegister = _allowRegister
         oAuth20Service = ServiceBuilder(apiKey)
             .apiSecret(apiSecret)
             .callback(callbackUrl)

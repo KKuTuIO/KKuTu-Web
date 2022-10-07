@@ -53,6 +53,16 @@ class SetupController(
             return "redirect:/"
         }
 
+        
+        if (!loginService.getOAuthServiceFromSession(session).allowRegister) {
+            try {
+                session.invalidate()
+            } catch (e: Exception) {
+            }
+            model.addAttribute("viewName", "view/loginNoRegister")
+            return request.getView(View.LAYOUT)
+        }
+
         model.addAttribute("viewName", request.getView(View.REACT))
 
         logger.info("[${request.getIp()}] 초기 설정 화면에 접속했습니다.")

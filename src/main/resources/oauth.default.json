@@ -4,48 +4,55 @@
     "order": 1,
     "client-id": "",
     "client-secret": "",
-    "callback-url": ""
+    "callback-url": "",
+    "allowRegister": true
   },
   "facebook": {
     "enable": false,
     "order": 2,
     "client-id": "",
     "client-secret": "",
-    "callback-url": ""
+    "callback-url": "",
+    "allowRegister": true
   },
   "google": {
     "enable": false,
     "order": 3,
     "client-id": "",
     "client-secret": "",
-    "callback-url": ""
+    "callback-url": "",
+    "allowRegister": true
   },
   "naver": {
     "enable": false,
     "order": 4,
     "client-id": "",
     "client-secret": "",
-    "callback-url": ""
+    "callback-url": "",
+    "allowRegister": true
   },
   "github": {
     "enable": false,
     "order": 5,
     "client-id": "",
     "client-secret": "",
-    "callback-url": ""
+    "callback-url": "",
+    "allowRegister": true
   },
   "discord": {
     "enable": false,
     "order": 6,
     "client-id": "",
     "client-secret": "",
-    "callback-url": ""
+    "callback-url": "",
+    "allowRegister": true
   },
   "kakao": {
     "enable": false,
     "order": 7,
     "client-id": "",
     "client-secret": "<Empty>",
-    "callback-url": ""
+    "callback-url": "",
+    "allowRegister": true
   }
 }

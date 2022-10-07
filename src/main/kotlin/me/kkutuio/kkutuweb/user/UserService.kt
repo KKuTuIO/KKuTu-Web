@@ -77,6 +77,7 @@ class UserService(
     }
 
     fun equip(id: String, isLeft: Boolean, session: HttpSession): String {
+        return "{\"error\":555}"
         if (session.isGuest()) return "{\"error\":400}"
         val oAuthUser = session.getOAuthUser()
 

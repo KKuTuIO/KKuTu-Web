@@ -92,7 +92,7 @@ class UserService(
             part = if (isLeft) "Mlhand" else "Mrhand"
             val equipingGood = user.box.get(id)
             if(user.equip.has(part)) {
-                val isUnequip = user.equip.get(part).toString() == id
+                val isUnequip = user.equip.has(part) && user.equip.get(part).toString() == id
                 if (isUnequip) {
                     // 장착 해제
                 } else {

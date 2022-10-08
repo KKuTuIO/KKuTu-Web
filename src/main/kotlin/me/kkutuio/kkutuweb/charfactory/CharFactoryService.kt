@@ -116,7 +116,7 @@ class CharFactoryService(
             }
             val itemExpire = if (reward.allowExpire) expire else null
 
-            shopService.obtainGood(user.box, reward.key, count, itemExpire)
+            shopService.obtainGood(user.box, reward.key, count, itemExpire, true)
             gained.add(reward)
         }
 

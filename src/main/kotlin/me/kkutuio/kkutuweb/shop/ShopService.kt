@@ -136,7 +136,8 @@ class ShopService(
             } else {
                 val currentTime = System.currentTimeMillis()
                 goodJson.put("value", value)
-                goodJson.put("expire", (currentTime * 0.001 + term).roundToInt())
+                if (addValue) goodJson.put("expire", term)
+                else goodJson.put("expire", (currentTime * 0.001 + term).roundToInt())
             }
         }
         boxObjectNode.set<ObjectNode>(goodId, goodJson)

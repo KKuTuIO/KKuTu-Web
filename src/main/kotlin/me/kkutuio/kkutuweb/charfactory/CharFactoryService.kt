@@ -89,7 +89,7 @@ class CharFactoryService(
 
         var blend = false
         if (words.isEmpty()) {
-            if (wordString.length == 3) {
+            if (wordString.length == 3 && !event) {
                 blend = true
             } else return "{\"error\":404}"
         }

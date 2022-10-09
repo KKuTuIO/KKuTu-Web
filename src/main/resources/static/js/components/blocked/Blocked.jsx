@@ -131,8 +131,7 @@ const Blocked = ({blockInfo}) => {
                         </tbody>
                     </DetailTable>
 
-                    <Footer>본 조치에 대한 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다.
-                            이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우 이용제한 기간이 연장될 수 있습니다.</Footer>
+                    <Footer>본 조치에 대한 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다. 이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우 이용제한 기간이 연장될 수 있습니다.</Footer>
 
                     <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1'}>고객센터로 이동하기</LogoutBtn>
 
@@ -141,7 +140,7 @@ const Blocked = ({blockInfo}) => {
                         color: '#A5D6A7',
                         fontWeight: 'bold',
                         userSelect: 'all'
-                    }}>{getInquireId()}</span> 문구와 함께<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
+                    }}>{getInquireId()}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
                 </Background>
             </>
         )
@@ -178,8 +177,7 @@ const Blocked = ({blockInfo}) => {
                     </tbody>
                 </DetailTable>
 
-                <Footer>본 조치에 대한 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다.
-                    이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우 이용제한 기간이 연장될 수 있습니다.</Footer>
+                <Footer>본 조치에 대한 문의가 있으실 경우 아래 고객센터로 문의해주시기 바랍니다. 이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우 이용제한 기간이 연장될 수 있습니다.</Footer>
 
                 <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1'}>고객센터로 이동하기</LogoutBtn>
 
@@ -188,7 +186,7 @@ const Blocked = ({blockInfo}) => {
                     color: '#A5D6A7',
                     fontWeight: 'bold',
                     userSelect: 'all'
-                }}>{getInquireId()}</span> 문구와 함께<br/>자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
+                }}>{getInquireId()}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
             </Background>
         </>
     )

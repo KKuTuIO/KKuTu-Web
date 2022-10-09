@@ -233,7 +233,7 @@ class CharFactoryService(
             rewards.add(Reward("boxE4", wordLength * 0.375, true))
             if (wordLength > 1) rewards.add(Reward("boxE3", (wordLength - 1) * 0.25, true))
             if (wordLength > 2) rewards.add(Reward("boxE2", (wordLength - 2) * 0.175, true))
-            rewards.add(Reward("\$WPE?", wordLength * 0.25, true))
+            rewards.add(Reward("\$WPE?", wordLength * 0.2, true))
         }
 
         return CFResult(cost, rewards)

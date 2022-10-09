@@ -229,7 +229,7 @@ class CharFactoryService(
         if (blend) {
             rewards.add(Reward("\$WPE?", 1.0, true))
         } else {
-            rewards.add(Reward("dictPage", wordLength * 1.0))
+            rewards.add(Reward("dictPage", (wordLength * 0.8) + 0.2))
             rewards.add(Reward("boxE4", wordLength * 0.375, true))
             if (wordLength > 1) {
                 rewards.add(Reward("boxE3", (wordLength - 1) * 0.25, true))

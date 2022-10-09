@@ -42,7 +42,7 @@ class CharFactoryService(
     @Autowired private val shopService: ShopService
 ) {
     fun previewCharFactory(word: String, l: Int, b: String): CFResult {
-        return if (l == -1) getCfEventRewarts(word) else getCfRewards(word, l, b == "1")
+        return if (l == -1) getCfEventRewarts(word, b == "1") else getCfRewards(word, l, b == "1")
     }
 
     fun charFactory(tray: List<String>, session: HttpSession): String {
@@ -94,7 +94,7 @@ class CharFactoryService(
             } else return "{\"error\":404}"
         }
 
-        val cfRewards = if (event) getCfEventRewarts(wordString) else getCfRewards(wordString, level, blend)
+        val cfRewards = if (event) getCfEventRewarts(wordString, blend) else getCfRewards(wordString, level, blend)
         if (user.money < cfRewards.cost) return "{\"error\":407}"
 
         for (entry in charCountMap.entries) {
@@ -218,18 +218,22 @@ class CharFactoryService(
         return CFResult(cost, rewards)
     }
 
-    fun getCfEventRewarts(word: String): CFResult {
+    fun getCfEventRewarts(word: String, blend: Boolean): CFResult {
         val wordLength = word.length
 
         var cost = 10 * wordLength
         // var wur = wordLength / 36.0
 
         val rewards = ArrayList<Reward>()
-        rewards.add(Reward("dictPage", wordLength * 1.0))
-        rewards.add(Reward("boxE4", wordLength * 0.375, true))
-        if (wordLength > 1) rewards.add(Reward("boxE3", (wordLength - 1) * 0.25, true))
-        if (wordLength > 2) rewards.add(Reward("boxE2", (wordLength - 2) * 0.175, true))
-        rewards.add(Reward("\$WPE?", wordLength * 0.25, true))
+        if (blend) {
+            rewards.add(Reward("\$WPE?", 1.0, true))
+        } else {
+            rewards.add(Reward("dictPage", wordLength * 1.0))
+            rewards.add(Reward("boxE4", wordLength * 0.375, true))
+            if (wordLength > 1) rewards.add(Reward("boxE3", (wordLength - 1) * 0.25, true))
+            if (wordLength > 2) rewards.add(Reward("boxE2", (wordLength - 2) * 0.175, true))
+            rewards.add(Reward("\$WPE?", wordLength * 0.25, true))
+        }
 
         return CFResult(cost, rewards)
     }

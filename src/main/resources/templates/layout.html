@@ -20,13 +20,6 @@
 <html lang="ko">
 <head>
     <!-- @formatter:off -->
-    <!-- Google Tag Manager -->
-    <script nonce="csp-gtm">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PBFPQKD');</script>
-    <!-- End Google Tag Manager -->
     <!-- @formatter:on -->
     <title th:text="#{title}"></title>
     <meta charset="utf-8">
@@ -43,8 +36,25 @@
             crossorigin="anonymous"
     ></script>
 
-    <script type="text/javascript" th:inline="javascript" nonce="csp-kkutu-a">
+    <link rel="canonical" th:href="@{/}">
+    <meta name="description" th:content="#{meta.description}">
+    <meta name="keywords" th:content="#{meta.keywords}">
+
+    <meta property="og:image" th:content="#{og.image}">
+    <meta property="og:url" th:content="@{/}">
+    <meta property="og:title" th:content="#{og.title}">
+    <meta property="og:description" th:content="#{og.description}">
+
+    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/style.css?rv=' + ${runnerVersion}}"/>
+    <link rel="stylesheet" href="https://cdn.kkutu.io/css/font-awesome-4.7.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/expl.css?rv=' + ${runnerVersion}}"/>
+
+    <link rel="icon" type="image/x-icon" href="https://cdn.kkutu.io/favicon.ico">
+
+    <script type="text/javascript" th:inline="javascript" nonce="fmokikozhw4wdnv8">
         var loginProfile = /*[[${profile}]]*/'';
+        var Messages = /*[[${messages}]]*/{};
+        var GoodDetails = /*[[${goodDetails}]]*/{};
 
         if (window.hasOwnProperty('Sentry')) {
             Sentry.init({
@@ -77,25 +87,12 @@
         getObject(window.WebSocket, "send");
         getObject(window.WebSocket, "onmessage");
         getObject(window, "WebSocket");
-    </script>
-    <link rel="canonical" th:href="@{/}">
-    <meta name="description" th:content="#{meta.description}">
-    <meta name="keywords" th:content="#{meta.keywords}">
 
-    <meta property="og:image" th:content="#{og.image}">
-    <meta property="og:url" th:content="@{/}">
-    <meta property="og:title" th:content="#{og.title}">
-    <meta property="og:description" th:content="#{og.description}">
-
-    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/style.css?rv=' + ${runnerVersion}}"/>
-    <link rel="stylesheet" href="https://cdn.kkutu.io/css/font-awesome-4.7.0/css/font-awesome.min.css"/>
-    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/expl.css?rv=' + ${runnerVersion}}"/>
-
-    <link rel="icon" type="image/x-icon" href="https://cdn.kkutu.io/favicon.ico">
-
-    <script th:inline="javascript" nonce="csp-kkutu-b">
-        var Messages = /*[[${messages}]]*/{};
-        var GoodDetails = /*[[${goodDetails}]]*/{};
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-PBFPQKD');
     </script>
     <script type="text/javascript" src="https://cdn.kkutu.io/js/jquery.min.js?version=1.12.4"></script>
     <script type="text/javascript" th:src="@{'https://cdn.kkutu.io/js/global.js?version=1.2.0&rev=1&rv=' + ${runnerVersion}}"></script>

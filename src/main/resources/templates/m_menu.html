@@ -16,9 +16,13 @@
   ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<div class="Menu">
-    <div id="account">
-        <span id="profile" th:text="${profile == 'null' ? '{}' : profile}"></span>
-        <div id="account-info"></div>
+<nav class="m navbar navbar-default navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header"><a class="navbar-brand-sub" href="https://kkutu.io" style="margin-left:10px;"><!--<img src="https://cdn.kkutu.io/img/bi/.png" height="40px"/>-->끄투리오</a></div>
+        <ul class="nav m navbar-nav navbar-right">
+            <div id="account"><span id="profile" th:text="${profile == 'null' ? '{}' : profile}"></span>
+                <div id="account-info"></div>
+            </div>
+        </ul>
     </div>
-</div>
+</nav>

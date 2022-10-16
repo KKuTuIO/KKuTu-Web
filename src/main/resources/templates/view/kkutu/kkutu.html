@@ -143,7 +143,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=320,height=380,title=#{kkutu.dialog.quick.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=320,height=330,title=#{kkutu.dialog.quick.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.quick.gameMode}"></h4>
@@ -161,14 +161,14 @@
             </div>
             <div class="dialog-bar"><h4 style="width: 100%; height: 20px;" id="quick-status"></h4></div>
             <div class="dialog-bar"><h4 style="width: 100%; height: 20px;" id="quick-queue"></h4></div>
-            <div class="quick-kakao" style="margin-top: 10px; margin-left: 40px;">
+            <!--<div class="quick-kakao" style="margin-top: 10px; margin-left: 40px;">
                 <ins class="kakao_ad_area"
                      style="display:none;"
                      data-ad-unit = "DAN-RLZCqSs9HpnNdH98"
                      data-ad-width = "320"
                      data-ad-height = "50">
                 </ins>
-            </div>
+            </div>-->
             <div class="dialog-bar tail-button">
                 <button id="quick-ok" th:text="#{kkutu.dialog.quick.ok}"></button>
             </div>

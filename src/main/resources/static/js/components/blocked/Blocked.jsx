@@ -66,6 +66,7 @@ const DetailTable = styled.table`
 
 const DetailKey = styled.td`
   padding-right: 10px;
+  width: 22.5%;
 `
 
 const DetailValue = styled.td`

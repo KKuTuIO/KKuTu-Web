@@ -70,11 +70,11 @@ class SetupService(
             return ActionResult(false, NickChangeResult.HAS_BAD_WORDS.errorCode)
         }
 
-        if (nick.replace(" ", "").replace(" ", "").toLowerCase().contains(bannedWordRegex)) {
+        if (nick.replace(" ", "").replace(" ", "").lowercase().contains(bannedWordRegex)) {
             return ActionResult(false, NickChangeResult.HAS_BANNED_WORDS.errorCode)
         }
 
-        val similarityNick = similarityRegex.replace(nick, "")
+        val similarityNick = similarityRegex.replace(nick, "").lowercase()
         val similarityNicks = userDao.getSimilarityNicks()
 
         if (similarityNicks.contains(similarityNick)) {

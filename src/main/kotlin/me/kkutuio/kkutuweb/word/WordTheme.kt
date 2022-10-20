@@ -162,7 +162,8 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_510("510", "항공"),
     THEME_520("520", "해양"),
     THEME_530("530", "화학"),
-    THEME_1001("1001", "나라 이름과 수도");
+    THEME_1001("1001", "나라 이름과 수도"),
+    THEME_HBW("HBW", "어인정 한방 단어");
 
     companion object {
         fun findByCode(code: String): WordTheme? {

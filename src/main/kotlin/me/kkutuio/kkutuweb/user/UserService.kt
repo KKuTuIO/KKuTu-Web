@@ -78,6 +78,7 @@ class UserService(
 
     fun equip(id: String, isLeft: Boolean, session: HttpSession): String {
         return "{\"error\":555}"
+        /* 기존 코드, 시스템 개선으로 인해 장착은 게임서버에서 처리합니다.
         if (session.isGuest()) return "{\"error\":400}"
         val oAuthUser = session.getOAuthUser()
 
@@ -150,6 +151,7 @@ class UserService(
             )
         )
         return "{\"result\":200,\"box\":${user.box.toJson()},\"equip\":${user.equip.toJson()}}"
+        */
     }
 
     fun getUserData(id: String): String {

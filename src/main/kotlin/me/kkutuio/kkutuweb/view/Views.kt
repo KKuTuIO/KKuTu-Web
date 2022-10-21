@@ -33,7 +33,7 @@ object Views {
         val desktopAndMobile = viewMap[view] ?: error("${view.name} 를 ViewMap 에서 찾을 수 없습니다.")
 
         val userAgent = this.getHeader(HttpHeaders.USER_AGENT)
-        return if (userAgent != null && userAgent.toLowerCase().contains("mobile")) {
+        return if (userAgent != null && userAgent.lowercase().contains("mobile")) {
             desktopAndMobile.mobile
         } else {
             desktopAndMobile.desktop

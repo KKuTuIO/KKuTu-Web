@@ -105,7 +105,7 @@ class LoginService(
         val userId = oAuthUser.getUserId()
         val user = userDao.getUser(userId)
 
-        val authType = oAuthUser.authVendor.name.toLowerCase()
+        val authType = oAuthUser.authVendor.name.lowercase()
         val title = if (user == null) oAuthUser.name else (user.nickname ?: oAuthUser.name)
 
         return SessionProfile(
@@ -119,7 +119,7 @@ class LoginService(
 
     fun getOAuthServiceFromSession(session: HttpSession): OAuthService {
         val oAuthUser = session.getOAuthUser()
-        val authType = oAuthUser.authVendor.name.toLowerCase()
+        val authType = oAuthUser.authVendor.name.lowercase()
         val vendorType = AuthVendor.fromName(authType)!!
         return getOAuthService(vendorType)
     }

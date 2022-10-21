@@ -28,6 +28,6 @@ class MobileControllerAdvice {
     @ModelAttribute("mobile")
     fun isMobile(request: HttpServletRequest): Boolean {
         val userAgent = request.getHeader(HttpHeaders.USER_AGENT)
-        return userAgent != null && userAgent.toLowerCase().contains("mobile")
+        return userAgent != null && userAgent.lowercase().contains("mobile")
     }
 }

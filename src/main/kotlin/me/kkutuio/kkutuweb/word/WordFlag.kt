@@ -27,17 +27,17 @@ import com.google.common.base.Strings
 
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
 enum class WordFlag(val flag: Int, val flagName: String) {
-    NONE(0b000000, "일반"),
-    LOANWORD(0b000001, "외래어"),
-    INJEONG(0b000010, "어인정"),
-    SPACED(0b000100, "띄어쓰기를 해야 하는 어휘"),
-    SATURI(0b001000, "방언"),
-    OLD(0b010000, "옛말"),
-    MUNHWA(0b100000, "문화어"),
-    KUNG(0b110000, "쿵쿵따 전용 단어");
+    NONE(0b00000000, "일반"),
+    LOANWORD(0b00000001, "외래어"),
+    INJEONG(0b00000010, "어인정"),
+    SPACED(0b00000100, "띄어쓰기를 해야 하는 어휘"),
+    SATURI(0b00001000, "방언"),
+    OLD(0b00010000, "옛말"),
+    MUNHWA(0b00100000, "문화어"),
+    KUNG(0b01000000, "쿵쿵따 전용 단어");
 
     @JsonIgnore
-    val flagString = "0b" + Strings.padStart(Integer.toBinaryString(flag), 6, '0')
+    val flagString = "0b" + Strings.padStart(Integer.toBinaryString(flag), 8, '0')
 
     companion object {
         fun findByFlag(flag: Int): WordFlag? {

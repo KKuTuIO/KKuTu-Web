@@ -240,7 +240,8 @@
         "nog",
         "rms",
         "tct",
-        "rnk"
+        "rnk",
+        "pwr"
       ],
       "time": 1,
       "ai": true,
@@ -496,6 +497,9 @@
     },
     "asy": {
       "name": "AntiSynonym"
+    },
+    "pwr": {
+      "name": "Power"
     }
   }
 }

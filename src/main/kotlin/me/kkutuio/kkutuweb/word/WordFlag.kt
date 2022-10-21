@@ -33,7 +33,8 @@ enum class WordFlag(val flag: Int, val flagName: String) {
     SPACED(0b000100, "띄어쓰기를 해야 하는 어휘"),
     SATURI(0b001000, "방언"),
     OLD(0b010000, "옛말"),
-    MUNHWA(0b100000, "문화어");
+    MUNHWA(0b100000, "문화어"),
+    KUNG(0b110000, "쿵쿵따 전용 단어");
 
     @JsonIgnore
     val flagString = "0b" + Strings.padStart(Integer.toBinaryString(flag), 6, '0')

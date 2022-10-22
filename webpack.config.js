@@ -34,7 +34,7 @@ module.exports = (env, options) => {
         },
         output: {
             path: deployPath,
-            filename: '[name].min.js'
+            filename: '[name].[chunkhash].min.js'
         },
         module: {
             rules: [

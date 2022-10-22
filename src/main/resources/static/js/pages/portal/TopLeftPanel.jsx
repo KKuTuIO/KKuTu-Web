@@ -45,9 +45,6 @@ const TopLeftPanel = ({onGameStart}) => {
             <MobileView>
                 <MenuBar>
                     <MenuBarText color="#7289DA" target="_blank" href="//discord.gg/hzZa2YsfZQ">공식 디스코드</MenuBarText>
-                </MenuBar>
-                <br />
-                <MenuBar>
                     <MenuBarText color="#4EB44E" target="_blank" href="//cafe.naver.com/kkutuio">공식 카페</MenuBarText>
                 </MenuBar>
             </MobileView>

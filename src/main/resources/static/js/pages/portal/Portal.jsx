@@ -25,7 +25,7 @@ import Product from "../../components/Product";
 import KakaoAd from "../../components/KakaoAd";
 import TopLeftPanel from "./TopLeftPanel";
 import TopRightPanel from "./TopRightPanel";
-import {BrowserView} from "react-device-detect";
+import {BrowserView, MobileView} from "react-device-detect";
 import Axios from "axios";
 import Blocked from "../../components/blocked/Blocked";
 
@@ -101,6 +101,12 @@ const Portal = () => {
                 </Product>
                 <Separator height={10}/>
             </BrowserView>
+            <MobileView>
+                <Product id="qwShKF" title={Messages['portal.ad.title']} createWithShown={true}>
+                    <KakaoAd width={300} height={250} unit="DAN-gFLCejiyrNaIrKfL"/>
+                </Product>
+                <Separator height={10}/>
+            </MobileView>
         </>
     );
 }

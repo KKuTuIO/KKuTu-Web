@@ -66,7 +66,7 @@ class CharFactoryService(
             val charType = charItem[3]
             if (event == (charType != 'E')) return "{\"error\":412}"
             wordString += char
-            level += 68 - charType.toInt()
+            level += 68 - charType.code
             charCountMap[charItem] = if (charCountMap.containsKey(charItem)) charCountMap[charItem]!! + 1 else 1
             if (!user.box.has(charItem) || user.box.get(charItem)
                 .get("value").intValue() < charCountMap[charItem]!!
@@ -152,7 +152,7 @@ class CharFactoryService(
             }
             "ko" -> {
                 for (i in word.indices) {
-                    val char = word[i].toInt() - 0xAC00
+                    val char = word[i].code - 0xAC00
 
                     choseongList.add(char / 28 / 21)
                     jungseongList.add((char / 28) % 21)

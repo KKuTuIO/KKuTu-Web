@@ -34,7 +34,7 @@ class LoginAPI(
     fun vendorList(): List<String> {
         return oAuthSetting.getSetting().entries
             .sortedBy { it.value.order }
-            .map { it.key.name.toLowerCase() }
+            .map { it.key.name.lowercase() }
     }
 
     @GetMapping("/reason")

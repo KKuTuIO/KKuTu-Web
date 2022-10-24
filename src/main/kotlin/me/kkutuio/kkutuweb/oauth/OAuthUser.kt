@@ -31,6 +31,6 @@ data class OAuthUser(
 ) {
     @JsonIgnore
     fun getUserId(): String {
-        return "${authVendor.name.toLowerCase()}-${vendorId}"
+        return "${authVendor.name.lowercase()}-${vendorId}"
     }
 }

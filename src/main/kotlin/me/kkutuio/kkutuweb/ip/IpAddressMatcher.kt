@@ -33,7 +33,7 @@ import kotlin.experimental.and
  *
  * Slightly modified by omidzk to have zero dependency to any frameworks other than the JRE.
  */
-class IpAddressMatcher(ipAddress: String) {
+class IpAddressMatcher(ipAddr: String) {
     private var nMaskBits = 0
     private val requiredAddress: InetAddress
     fun matches(address: String): Boolean {
@@ -76,7 +76,7 @@ class IpAddressMatcher(ipAddress: String) {
      * come.
      */
     init {
-        var ipAddress = ipAddress
+        var ipAddress = ipAddr
         if (ipAddress.indexOf('/') > 0) {
             val addressAndMask = ipAddress.split("/".toRegex()).toTypedArray()
             ipAddress = addressAndMask[0]

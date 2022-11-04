@@ -231,6 +231,7 @@
       "opts": [
         "man",
         "saf",
+        "gnt",
         "ext",
         "mis",
         "loa",
@@ -254,6 +255,7 @@
       "opts": [
         "man",
         "saf",
+        "gnt",
         "ext",
         "mis",
         "loa",
@@ -445,6 +447,44 @@
       "big": false,
       "_back": true,
       "ewq": true
+    },
+    "KWS": {
+      "lang": "ko",
+      "rule": "Wordstack",
+      "opts": [
+        "man",
+        "etq",
+        "ext",
+        "mis",
+        "apm",
+        "beg",
+        "nog",
+        "rms",
+        "rnk"
+      ],
+      "time": 1,
+      "ai": true,
+      "big": false,
+      "_back": true,
+      "ewq": true
+    },
+    "EWS": {
+      "lang": "en",
+      "rule": "Wordstack",
+      "opts": [
+        "ext",
+        "mis",
+        "apm",
+        "beg",
+        "nog",
+        "rms",
+        "rnk"
+      ],
+      "time": 1,
+      "ai": true,
+      "big": false,
+      "_back": true,
+      "ewq": true
     }
   },
   "game-options": {
@@ -500,6 +540,18 @@
     },
     "pwr": {
       "name": "Power"
+    },
+    "itm": {
+      "name": "Item"
+    },
+    "etq": {
+      "name": "Etiquette"
+    },
+    "gnt": {
+      "name": "Gentle"
+    },
+    "apm": {
+      "name": "Apmal"
     }
   }
 }

@@ -174,7 +174,7 @@
             </div>
         </th:block>
     </th:block>
-    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='RoomDiag',width=300,height=475)}">
+    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='RoomDiag',width=300,height=495)}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.room.room-title}"></h4>
@@ -233,7 +233,7 @@
                     <option value="120"></option>
                     <option value="150"></option>
                 </select></div>
-            <div class="dialog-bar" style="height: 160px;">
+            <div class="dialog-bar" style="height: 180px;">
                 <h4 style="height: 100%;" th:text="#{kkutu.dialog.room.gameRule}"></h4>
                 <th:block th:each="entry : ${gameOptionMap}">
                     <th:block layout:replace="~{view/kkutu/option::gameOption(key=${entry.key},prefix='room')}"/>
@@ -356,13 +356,13 @@
             <div class="invite-board" style="height: 355px; overflow-y: scroll;"></div>
             <div class="dialog-bar tail-button">
                 <select id="ai-level">
-                    <option disabled th:text="#{kkutu.dialog.practice.level}"></option>
-                    <option value="0" th:text="#{kkutu.dialog.practice.level.0}"></option>
-                    <option value="1" th:text="#{kkutu.dialog.practice.level.1}"></option>
-                    <option value="2" th:text="#{kkutu.dialog.practice.level.2}"></option>
-                    <option value="3" selected th:text="#{kkutu.dialog.practice.level.3}"></option>
-                    <option value="4" th:text="#{kkutu.dialog.practice.level.4}"></option>
-                    <option value="5" th:text="#{kkutu.dialog.practice.level.5}"></option>
+                    <option disabled th:text="#{kkutu.dialog.invite.level}"></option>
+                    <option value="0" th:text="#{kkutu.dialog.invite.level.0}"></option>
+                    <option value="1" th:text="#{kkutu.dialog.invite.level.1}"></option>
+                    <option value="2" th:text="#{kkutu.dialog.invite.level.2}"></option>
+                    <option value="3" selected th:text="#{kkutu.dialog.invite.level.3}"></option>
+                    <option value="4" th:text="#{kkutu.dialog.invite.level.4}"></option>
+                    <option value="5" th:text="#{kkutu.dialog.invite.level.5}"></option>
                 </select>
                 <button id="invite-robot" th:text="#{kkutu.dialog.invite.inviteAI}"></button>
             </div>

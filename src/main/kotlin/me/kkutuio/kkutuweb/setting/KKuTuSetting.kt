@@ -38,7 +38,10 @@ class KKuTuSetting(
 ) {
     private val logger = LoggerFactory.getLogger(KKuTuSetting::class.java)
     private val runnerUID = UUID.randomUUID().toString();
-    private lateinit var settingNode: JsonNode
+    private lateinit var kkutu: JsonNode
+    private lateinit var games: JsonNode
+    private lateinit var moremi: JsonNode
+    private lateinit var themes: JsonNode
 
     @PostConstruct
     fun init() {
@@ -54,16 +57,43 @@ class KKuTuSetting(
                 val jsonText = reader.readText()
                 val jsonNode = objectMapper.readTree(jsonText)
 
-                settingNode = jsonNode
+                kkutu = jsonNode
+            }
+        }
+        Files.newInputStream(Paths.get(settingDir, "games.json")).use {
+            val br = it.bufferedReader()
+            br.use { reader ->
+                val jsonText = reader.readText()
+                val jsonNode = objectMapper.readTree(jsonText)
+
+                games = jsonNode
+            }
+        }
+        Files.newInputStream(Paths.get(settingDir, "moremi.json")).use {
+            val br = it.bufferedReader()
+            br.use { reader ->
+                val jsonText = reader.readText()
+                val jsonNode = objectMapper.readTree(jsonText)
+
+                moremi = jsonNode
+            }
+        }
+        Files.newInputStream(Paths.get(settingDir, "themes.json")).use {
+            val br = it.bufferedReader()
+            br.use { reader ->
+                val jsonText = reader.readText()
+                val jsonNode = objectMapper.readTree(jsonText)
+
+                themes = jsonNode
             }
         }
     }
 
-    fun getVersion() = settingNode["version"].textValue()!!
+    fun getVersion() = kkutu["version"].textValue()!!
 
-    fun getMaxPlayer() = settingNode["max-player"].intValue()
+    fun getMaxPlayer() = kkutu["max-player"].intValue()
 
-    fun getGameServers() = settingNode["game-servers"].toList().map {
+    fun getGameServers() = kkutu["game-servers"].toList().map {
         GameServerSetting(
             it["is-secure"].booleanValue(),
             it["public-host"].textValue(),
@@ -76,7 +106,7 @@ class KKuTuSetting(
 
     fun getAdminIds(): List<String> = getAdmins().map { it.id }
 
-    fun getAdmins(): List<AdminSetting> = settingNode["admins"].toList().map {
+    fun getAdmins(): List<AdminSetting> = kkutu["admins"].toList().map {
         AdminSetting(
             it["id"].textValue(),
             it["name"].textValue(),
@@ -87,47 +117,47 @@ class KKuTuSetting(
 
     fun runnerVersion() = runnerUID
 
-    fun getApiKey() = settingNode["api-key"].textValue()!!
+    fun getApiKey() = kkutu["api-key"].textValue()!!
 
-    fun getCryptoKey() = settingNode["crypto-key"].textValue()!!
+    fun getCryptoKey() = kkutu["crypto-key"].textValue()!!
 
-    fun getKoThemes() = settingNode["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::textValue)
+    fun getKoThemes() = themes["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::textValue)
 
-    fun getKoInjeongThemes() = settingNode["word"]["themes"]["injeong"]["ko"].toList().map(JsonNode::textValue)
+    fun getKoInjeongThemes() = themes["word"]["themes"]["injeong"]["ko"].toList().map(JsonNode::textValue)
 
-    fun getEnThemes() = settingNode["word"]["themes"]["normal"]["en"].toList().map(JsonNode::textValue)
+    fun getEnThemes() = themes["word"]["themes"]["normal"]["en"].toList().map(JsonNode::textValue)
 
-    fun getEnInjeongThemes() = settingNode["word"]["themes"]["injeong"]["en"].toList().map(JsonNode::textValue)
+    fun getEnInjeongThemes() = themes["word"]["themes"]["injeong"]["en"].toList().map(JsonNode::textValue)
 
-    fun getInjeongPickExcepts() = settingNode["word"]["themes"]["ijp-except"].toList().map(JsonNode::textValue)
+    fun getInjeongPickExcepts() = themes["word"]["themes"]["ijp-except"].toList().map(JsonNode::textValue)
 
-    fun getMoremiParts() = settingNode["moremi"]["parts"].toList().map(JsonNode::textValue)
+    fun getMoremiParts() = moremi["moremi"]["parts"].toList().map(JsonNode::textValue)
 
-    fun getMoremiCategories() = settingNode["moremi"]["categories"].toList().map(JsonNode::textValue)
+    fun getMoremiCategories() = moremi["moremi"]["categories"].toList().map(JsonNode::textValue)
 
-    fun getMoremiEquips() = settingNode["moremi"]["equips"].toList().map(JsonNode::textValue)
+    fun getMoremiEquips() = moremi["moremi"]["equips"].toList().map(JsonNode::textValue)
 
     fun getMoremiGroups(): Map<String, List<String>> {
         val resultMap = HashMap<String, List<String>>()
-        for (key in settingNode["moremi"]["groups"].fieldNames()) {
-            resultMap[key] = settingNode["moremi"]["groups"][key].toList().map(JsonNode::textValue)
+        for (key in moremi["moremi"]["groups"].fieldNames()) {
+            resultMap[key] = moremi["moremi"]["groups"][key].toList().map(JsonNode::textValue)
         }
 
         return resultMap
     }
 
-    fun getGameRules() = settingNode["game-rules"].toJson()
+    fun getGameRules() = games["game-rules"].toJson()
 
-    fun getGameOptions() = settingNode["game-options"].toJson()
+    fun getGameOptions() = games["game-options"].toJson()
 
     fun getGameOptionMap(): Map<String, String> {
         val resultMap = HashMap<String, String>()
-        for (key in settingNode["game-options"].fieldNames()) {
-            resultMap[key] = settingNode["game-options"][key]["name"].textValue()
+        for (key in games["game-options"].fieldNames()) {
+            resultMap[key] = games["game-options"][key]["name"].textValue()
         }
 
         return resultMap
     }
 
-    fun getGameModes() = settingNode["game-rules"].fieldNames().asSequence().toList()
+    fun getGameModes() = games["game-rules"].fieldNames().asSequence().toList()
 }

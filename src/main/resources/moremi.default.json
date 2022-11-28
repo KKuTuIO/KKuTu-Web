@@ -1,0 +1,78 @@
+{
+  "moremi": {
+    "parts": [
+      "back",
+      "eye",
+      "mouth",
+      "shoes",
+      "clothes",
+      "head",
+      "lhand",
+      "rhand",
+      "front"
+    ],
+    "categories": [
+      "all",
+      "spec",
+      "skin",
+      "badge",
+      "head",
+      "eye",
+      "mouth",
+      "clothes",
+      "hs",
+      "back"
+    ],
+    "equips": [
+      "NIK",
+      "BDG1",
+      "BDG2",
+      "BDG3",
+      "BDG4",
+      "Mhead",
+      "Meye",
+      "Mmouth",
+      "Mhand",
+      "Mclothes",
+      "Mshoes",
+      "Mback"
+    ],
+    "groups": {
+      "spec": [
+        "PIX",
+        "PIY",
+        "PIZ",
+        "CNS"
+      ],
+      "skin": [
+        "NIK"
+      ],
+      "badge": [
+        "BDG1",
+        "BDG2",
+        "BDG3",
+        "BDG4"
+      ],
+      "head": [
+        "Mhead"
+      ],
+      "eye": [
+        "Meye"
+      ],
+      "mouth": [
+        "Mmouth"
+      ],
+      "clothes": [
+        "Mclothes"
+      ],
+      "hs": [
+        "Mhand",
+        "Mshoes"
+      ],
+      "back": [
+        "Mback",
+        "Mfront"
+      ]
+    }
+  }
+}

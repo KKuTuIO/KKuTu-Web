@@ -17,11 +17,11 @@
   -->
 
 <div class="kkutu-menu">
-    <button class="for-lobby for-master for-normal for-gaming" id="HelpBtn"
+    <button class="for-lobby for-master for-normal for-gaming for-item" id="HelpBtn"
             style="display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.help}"></button>
-    <button class="for-lobby for-master for-normal for-gaming" id="SettingBtn"
+    <button class="for-lobby for-master for-normal for-gaming for-item" id="SettingBtn"
             style="display: none; background-color: #CCCCCC;" th:utext="#{kkutu.menu.setting}"></button>
-    <button class="for-lobby for-master for-normal for-gaming" id="CommunityBtn"
+    <button class="for-lobby for-master for-normal for-gaming for-item" id="CommunityBtn"
             style="display: none; background-color: #DAA9FF;" th:utext="#{kkutu.menu.community}"></button>
     <button class="for-master for-normal" id="SpectateBtn" style="display: none; background-color: #D19DFF;">
         <i class='fa fa-eye'></i>
@@ -38,11 +38,11 @@
     <button class="for-lobby" id="ShopBtn" style="display: none; background-color: #B3E7B7;">
         <i class='fa fa-shopping-bag'></i>
     </button>
-    <button class="for-lobby for-master for-normal for-gaming" id="DictionaryBtn"
+    <button class="for-lobby for-master for-normal for-gaming for-item" id="DictionaryBtn"
             style="display: none; background-color: #73D07A;">
         <i class='fa fa-book'></i>
     </button>
-    <!-- button#WordPlusBtn.for-lobby.for-master.for-normal.for-gaming(style='display: none; background-color: #73D07A;')= L('wordPlus')-->
+    <!-- button#WordPlusBtn.for-lobby.for-master.for-normal.for-gaming.for-item(style='display: none; background-color: #73D07A;')= L('wordPlus')-->
     <button class="for-master" id="InviteBtn" style="display: none; background-color: #9FE669;">
         <i class='fa fa-envelope'></i>
     </button>
@@ -55,7 +55,7 @@
     <button class="for-master" id="StartBtn" style="display: none; background-color: #FFB576;">
         <i class='fa fa-play-circle'></i>
     </button>
-    <button class="for-master for-normal for-gaming" id="ExitBtn" style="display: none; background-color: #FFADAD;">
+    <button class="for-master for-normal for-gaming for-item" id="ExitBtn" style="display: none; background-color: #FFADAD;">
         <i class='fa fa-times'></i>
     </button>
     <button class="for-lobby" id="ReplayBtn" style="display: none; background-color: #D9FF82;">
@@ -70,4 +70,16 @@
     <button class="for-lobby" id="UserListBtn" style="display: none; background-color: #FF9CB7;">
         <i class='fa fa-users'></i>
     </button>
+    <div id="ItemMenu">
+        <button class="tiny-menu for-item" id="PassItemBtn"
+                style="display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.item.pass}"></button>
+        <button class="tiny-menu for-item" id="SkipItemBtn"
+                style="display: none; background-color: #CCCCCC;" th:utext="#{kkutu.menu.item.skip}"></button>
+        <button class="tiny-menu for-item" id="BackItemBtn"
+                style="display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.item.back}"></button>
+        <button class="tiny-menu for-item" id="TossItemBtn"
+                style="display: none; background-color: #CCCCCC;" th:utext="#{kkutu.menu.item.toss}"></button>
+        <button class="tiny-menu for-item" id="OneMoreItemBtn"
+                style=" display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.item.onemore}"></button>
+    </div>
 </div>

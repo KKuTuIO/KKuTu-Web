@@ -17,15 +17,15 @@
   -->
 
 <div class="kkutu-menu">
-    <button class="tiny-menu for-lobby for-master for-normal for-gaming" id="HelpBtn"
+    <button class="tiny-menu for-lobby for-master for-normal for-gaming for-item" id="HelpBtn"
             style="display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.help}"></button>
-    <button class="tiny-menu for-lobby for-master for-normal for-gaming" id="SettingBtn"
+    <button class="tiny-menu for-lobby for-master for-normal for-gaming for-item" id="SettingBtn"
             style="display: none; background-color: #CCCCCC;" th:utext="#{kkutu.menu.setting}"></button>
-    <button class="tiny-menu for-lobby for-master for-normal for-gaming" id="CommunityBtn"
+    <button class="tiny-menu for-lobby for-master for-normal for-gaming for-item" id="CommunityBtn"
             style="display: none; background-color: #DAA9FF;" th:utext="#{kkutu.menu.community}"></button>
-    <button class="tiny-menu for-lobby for-master for-normal for-gaming" id="LeaderboardBtn"
+    <button class="tiny-menu for-lobby for-master for-normal for-gaming for-item" id="LeaderboardBtn"
             style="display: none; background-color: #FFADD3;" th:utext="#{kkutu.menu.leaderboard}"></button>
-    <button class="tiny-menu for-lobby for-master for-normal for-gaming" id="RefreshBtn"
+    <button class="tiny-menu for-lobby for-master for-normal for-gaming for-item" id="RefreshBtn"
             style=" display: none; background-color: #FF7F7F;" th:utext="#{kkutu.menu.refresh}"></button>
     <button class="for-master for-normal" id="SpectateBtn" style="display: none; background-color: #D19DFF;"
             th:utext="#{kkutu.menu.spectate}"></button>
@@ -37,9 +37,9 @@
             th:utext="#{kkutu.menu.quickRoom}"></button>
     <button class="for-lobby" id="ShopBtn" style="display: none; background-color: #B3E7B7;"
             th:utext="#{kkutu.menu.shop}"></button>
-    <button class="for-lobby for-master for-normal for-gaming" id="DictionaryBtn"
+    <button class="for-lobby for-master for-normal for-gaming for-item" id="DictionaryBtn"
             style="display: none; background-color: #73D07A;" th:utext="#{kkutu.menu.dict}"></button>
-    <!-- button#WordPlusBtn.for-lobby.for-master.for-normal.for-gaming(style='display: none; background-color: #73D07A;')= L('wordPlus')-->
+    <!-- button#WordPlusBtn.for-lobby.for-master.for-normal.for-gaming.for-item(style='display: none; background-color: #73D07A;')= L('wordPlus')-->
     <button class="for-master" id="InviteBtn" style="display: none; background-color: #9FE669;"
             th:utext="#{kkutu.menu.invite}"></button>
     <button class="for-master for-normal" id="PracticeBtn" style="display: none; background-color: #FCF5A9;"
@@ -48,10 +48,22 @@
             th:utext="#{kkutu.menu.ready}"></button>
     <button class="for-master" id="StartBtn" style="display: none; background-color: #FFB576;"
             th:utext="#{kkutu.menu.start}"></button>
-    <button class="for-master for-normal for-gaming" id="ExitBtn" style="display: none; background-color: #FFADAD;"
+    <button class="for-master for-normal for-gaming for-item" id="ExitBtn" style="display: none; background-color: #FFADAD;"
             th:utext="#{kkutu.menu.leave}"></button>
     <button class="for-lobby" id="ReplayBtn" style="display: none; background-color: #D9FF82;"
             th:utext="#{kkutu.menu.replay}"></button>
     <button class="for-lobby" id="BulletinBtn" style="display: none; background-color: #FFC67F;"
             th:utext="#{kkutu.menu.bulletin}"></button>
+    <div id="ItemMenu">
+        <button class="tiny-menu for-item" id="PassItemBtn"
+                style="display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.item.pass}"></button>
+        <button class="tiny-menu for-item" id="SkipItemBtn"
+                style="display: none; background-color: #CCCCCC;" th:utext="#{kkutu.menu.item.skip}"></button>
+        <button class="tiny-menu for-item" id="BackItemBtn"
+                style="display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.item.back}"></button>
+        <button class="tiny-menu for-item" id="TossItemBtn"
+                style="display: none; background-color: #CCCCCC;" th:utext="#{kkutu.menu.item.toss}"></button>
+        <button class="tiny-menu for-item" id="OneMoreItemBtn"
+                style=" display: none; background-color: #BBBBBB;" th:utext="#{kkutu.menu.item.onemore}"></button>
+    </div>
 </div>

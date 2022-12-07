@@ -58,7 +58,7 @@ class SetupService(
             return ActionResult(false, RestResult.BAD_REQUEST.name)
         }
 
-        if (nick.length < 2 || nick.length > 18 || nick.isBlank()) {
+        if (nick.length < 2 || nick.length > 16 || nick.isBlank()) {
             return ActionResult(false, NickChangeResult.INVALID_LENGTH.errorCode)
         }
 

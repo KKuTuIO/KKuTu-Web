@@ -42,7 +42,7 @@ class CharFactoryService(
     @Autowired private val shopService: ShopService
 ) {
     fun previewCharFactory(word: String, l: Int, b: String): CFResult {
-        return if (l == -1) getCfEventRewarts(word, b == "1") else getCfRewards(word, l, b == "1")
+        return if (l == -1) getCfEventRewards(word, b == "1") else getCfRewards(word, l, b == "1")
     }
 
     fun charFactory(tray: List<String>, session: HttpSession): String {
@@ -95,7 +95,7 @@ class CharFactoryService(
             } else return "{\"error\":404}"
         }
 
-        val cfRewards = if (event) getCfEventRewarts(wordString, blend) else getCfRewards(wordString, level, blend)
+        val cfRewards = if (event) getCfEventRewards(wordString, blend) else getCfRewards(wordString, level, blend)
         if (user.money < cfRewards.cost) return "{\"error\":407}"
 
         for (entry in charCountMap.entries) {
@@ -193,8 +193,8 @@ class CharFactoryService(
             }
             cost = (cost * 0.2).roundToInt()
         } else {
-            rewards.add(Reward("dictPage", (wordLength * 0.6) + 0.4))
-            rewards.add(Reward("boxB4", min(1.0, level / 7.0)))
+            rewards.add(Reward("dictPage", (wordLength * 0.6) + 0.2))
+            rewards.add(Reward("boxB4", min(1.0, level / 7.0) - 1))
             if (level >= 5) {
                 rewards.add(Reward("boxB3", min(1.0, level / 10.0)))
                 cost += 10 * level
@@ -219,7 +219,7 @@ class CharFactoryService(
         return CFResult(cost, rewards)
     }
 
-    fun getCfEventRewarts(word: String, blend: Boolean): CFResult {
+    fun getCfEventRewards(word: String, blend: Boolean): CFResult {
         val wordLength = word.length
 
         var cost = 10 * wordLength

@@ -193,7 +193,7 @@ class CharFactoryService(
             }
             cost = (cost * 0.2).roundToInt()
         } else {
-            rewards.add(Reward("dictPage", (wordLength * 0.6) + 0.2))
+            rewards.add(Reward("dictPage", (wordLength * 0.6) + 0.4))
             rewards.add(Reward("boxB4", min(1.0, (level / 5.0) - 0.15)))
             if (level >= 5) {
                 rewards.add(Reward("boxB3", min(1.0, level / 10.0)))

@@ -91,12 +91,12 @@ class KKuTuSetting(
 
     fun getVersion() = kkutu["version"].textValue()!!
 
-    fun getMaxPlayer() = kkutu["max-player"].intValue()
+    fun getMaxPlayers() = kkutu["maxPlayers"].intValue()
 
-    fun getGameServers() = kkutu["game-servers"].toList().map {
+    fun getGameServers() = kkutu["gameServers"].toList().map {
         GameServerSetting(
-            it["is-secure"].booleanValue(),
-            it["public-host"].textValue(),
+            it["isSecure"].booleanValue(),
+            it["publicHost"].textValue(),
             it["key"].textValue(),
             it["host"].textValue(),
             it["port"].intValue(),
@@ -117,9 +117,9 @@ class KKuTuSetting(
 
     fun runnerVersion() = runnerUID
 
-    fun getApiKey() = kkutu["api-key"].textValue()!!
+    fun getApiKey() = kkutu["apiKey"].textValue()!!
 
-    fun getCryptoKey() = kkutu["crypto-key"].textValue()!!
+    fun getCryptoKey() = kkutu["cryptoKey"].textValue()!!
 
     fun getKoThemes() = themes["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::textValue)
 
@@ -129,7 +129,7 @@ class KKuTuSetting(
 
     fun getEnInjeongThemes() = themes["word"]["themes"]["injeong"]["en"].toList().map(JsonNode::textValue)
 
-    fun getInjeongPickExcepts() = themes["word"]["themes"]["ijp-except"].toList().map(JsonNode::textValue)
+    fun getInjeongPickExcepts() = themes["word"]["themes"]["ijpExcept"].toList().map(JsonNode::textValue)
 
     fun getMoremiParts() = moremi["moremi"]["parts"].toList().map(JsonNode::textValue)
 
@@ -146,18 +146,18 @@ class KKuTuSetting(
         return resultMap
     }
 
-    fun getGameRules() = games["game-rules"].toJson()
+    fun getGameRules() = games["gameRules"].toJson()
 
-    fun getGameOptions() = games["game-options"].toJson()
+    fun getGameOptions() = games["gameOptions"].toJson()
 
     fun getGameOptionMap(): Map<String, String> {
         val resultMap = HashMap<String, String>()
-        for (key in games["game-options"].fieldNames()) {
-            resultMap[key] = games["game-options"][key]["name"].textValue()
+        for (key in games["gameOptions"].fieldNames()) {
+            resultMap[key] = games["gameOptions"][key]["name"].textValue()
         }
 
         return resultMap
     }
 
-    fun getGameModes() = games["game-rules"].fieldNames().asSequence().toList()
+    fun getGameModes() = games["gameRules"].fieldNames().asSequence().toList()
 }

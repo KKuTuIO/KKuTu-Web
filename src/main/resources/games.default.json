@@ -1,5 +1,5 @@
 {
-  "game-rules": {
+  "gameRules": {
     "EKT": {
       "lang": "en",
       "rule": "Classic",
@@ -303,7 +303,7 @@
       "ewq": true
     }
   },
-  "game-options": {
+  "gameOptions": {
     "man": {
       "name": "Manner"
     },

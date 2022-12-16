@@ -31,6 +31,6 @@ class ServersApi(
 ) {
     @GetMapping("/servers")
     fun getServers(): ServersResponse {
-        return ServersResponse(gameClientManager.getPlayers(), kKuTuSetting.getMaxPlayer())
+        return ServersResponse(gameClientManager.getPlayers(), kKuTuSetting.getMaxPlayers())
     }
 }

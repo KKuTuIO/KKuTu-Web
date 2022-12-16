@@ -1,7 +1,7 @@
 {
   "version": "3.0.0",
-  "max-player": 400,
-  "game-servers": [
+  "maxPlayers": 400,
+  "gameServers": [
     {
       "is-secure": true,
       "public-host": "<Your WebSocket Domain>",
@@ -22,6 +22,6 @@
       ]
     }
   ],
-  "api-key": "<API Key>",
-  "crypto-key": "<32 Length Secret Key>"
+  "apiKey": "<API Key>",
+  "cryptoKey": "<32-Bit Secret Key>"
 }

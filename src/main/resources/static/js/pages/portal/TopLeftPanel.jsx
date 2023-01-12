@@ -34,7 +34,7 @@ const TopLeftPanel = ({onGameStart}) => {
                     <GameInfo/>
                 </div>
                 <MenuBar>
-                    <MenuBarText color="#7289DA" target="_blank" href="//discord.gg/hzZa2YsfZQ">공식 디스코드</MenuBarText>
+                    <MenuBarText color="#7289DA" target="_blank" href="//discord.gg/kkutuio-395143193114705920">공식 디스코드</MenuBarText>
                 </MenuBar>
                 <br />
                 <MenuBar>
@@ -44,7 +44,7 @@ const TopLeftPanel = ({onGameStart}) => {
             <JJoriping onGameStart={onGameStart}/>
             <MobileView>
                 <MenuBar>
-                    <MenuBarText color="#7289DA" target="_blank" href="//discord.gg/hzZa2YsfZQ">공식 디스코드</MenuBarText>
+                    <MenuBarText color="#7289DA" target="_blank" href="//discord.gg/kkutuio-395143193114705920">공식 디스코드</MenuBarText>
                     <MenuBarText color="#4EB44E" target="_blank" href="//cafe.naver.com/kkutuio">공식 카페</MenuBarText>
                 </MenuBar>
             </MobileView>

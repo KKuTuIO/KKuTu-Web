@@ -84,7 +84,7 @@ class SetupService(
         if (userDao.getUser(sessionProfile.id) == null) {
             userDao.newUser(sessionProfile.id, nick, similarityNick)
 
-            logger.info("[${request.getIp()}] 신규 유저의 초기 닉네임을 설정했습니다. - 닉네임: $nick")
+            logger.info("[${request.getIp()}] 신규 사용자의 초기 닉네임을 설정했습니다. - 닉네임: $nick")
         } else {
             userDao.updateUser(
                 sessionProfile.id, mapOf(
@@ -93,7 +93,7 @@ class SetupService(
                 )
             )
 
-            logger.info("[${request.getIp()}] 기존 유저의 초기 닉네임을 설정했습니다. - 닉네임: $nick")
+            logger.info("[${request.getIp()}] 기존 사용자의 초기 닉네임을 설정했습니다. - 닉네임: $nick")
         }
 
         return ActionResult.success()

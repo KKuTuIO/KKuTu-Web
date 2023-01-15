@@ -53,6 +53,8 @@
             j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
         })(window,document,'script','dataLayer','GTM-PBFPQKD');
+
+        $(".linkConfirm").on("click", linkConfirm);
     </script>
     <script src="https://cdn.kkutu.io/js/jquery.min.js?version=1.12.4" type="text/javascript"></script>
     <script th:src="@{'https://cdn.kkutu.io/js/global.js?version=3.0.0&rev=1&rv=' + ${runnerVersion}}" type="text/javascript"></script>

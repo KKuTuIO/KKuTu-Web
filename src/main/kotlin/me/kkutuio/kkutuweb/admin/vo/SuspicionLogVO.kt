@@ -23,8 +23,8 @@ import me.kkutuio.kkutuweb.admin.domain.SuspicionLog
 import me.kkutuio.kkutuweb.factory.DateFactory
 
 data class SuspicionLogVO(
-    val time: String,
     @JsonProperty("case_id") val caseId: Long,
+    val time: String,
     @JsonProperty("action") val action: String,
     @JsonProperty("doubt") val doubt: String,
     @JsonProperty("user_name") val userName: String,

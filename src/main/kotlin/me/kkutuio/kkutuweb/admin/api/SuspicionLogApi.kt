@@ -19,8 +19,8 @@
 package me.kkutuio.kkutuweb.admin.api
 
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
-import me.kkutuio.kkutuweb.admin.service.ConnectionLogService
-import me.kkutuio.kkutuweb.admin.vo.ConnectionLogVO
+import me.kkutuio.kkutuweb.admin.service.SuspicionLogService
+import me.kkutuio.kkutuweb.admin.vo.SuspicionLogVO
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.AdminSetting
@@ -39,12 +39,12 @@ import javax.servlet.http.HttpSession
 class SuspicionLogApi(
     @Autowired private val setting: KKuTuSetting,
     @Autowired private val loginService: LoginService,
-    @Autowired private val connectionLogService: ConnectionLogService
+    @Autowired private val suspicionLogService: SuspicionLogService
 ) {
     private val logger = LoggerFactory.getLogger(SuspicionLogApi::class.java)
 
     @GetMapping
-    fun getConnectionLog(
+    fun getSuspicionLog(
         @RequestParam(required = true, name = "page") page: Int,
         @RequestParam(required = true, name = "size") pageSize: Int,
         @RequestParam(required = true, name = "sort") sortData: String,
@@ -57,7 +57,7 @@ class SuspicionLogApi(
         @RequestParam(required = false, name = "extra_info", defaultValue = "") extraInfo: String,
         @RequestParam(required = false, name = "reference", defaultValue = "") reference: String,
         request: HttpServletRequest, session: HttpSession
-    ): ListResponse<ConnectionLogVO> {
+    ): ListResponse<SuspicionLogVO> {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
             logger.warn("인증되지 않은 사용자로부터 정책 위반 기록 조회 요청이 차단되었습니다.")
@@ -70,7 +70,7 @@ class SuspicionLogApi(
         }
 
         val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
-        if (!adminSetting.privileges.contains(AdminSetting.Privilege.CONNECTION_LOG)) {
+        if (!adminSetting.privileges.contains(AdminSetting.Privilege.SUSPICION_LOG)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 정책 위반 기록 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
@@ -85,9 +85,9 @@ class SuspicionLogApi(
             "reference" to reference
         )
 
-        val connectionLogRes = connectionLogService.getConnectionLogRes(page, pageSize, sortData, searchFilters)
-        logger.info("[${request.getIp()}] ${sessionProfile.id}님이 정책 위반 기록 목록을 요청했습니다. 총 개수: ${connectionLogRes.totalElements}")
+        val suspicionLogRes = suspicionLogService.getSuspicionLogRes(page, pageSize, sortData, searchFilters)
+        logger.info("[${request.getIp()}] ${sessionProfile.id}님이 정책 위반 기록 목록을 요청했습니다. 총 개수: ${suspicionLogRes.totalElements}")
 
-        return connectionLogRes
+        return suspicionLogRes
     }
 }

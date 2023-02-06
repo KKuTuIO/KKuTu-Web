@@ -38,7 +38,7 @@ data class SuspicionLogVO(
             return SuspicionLogVO(
                 caseId = suspicionLog.caseId,
                 time = DateFactory.DATABASE_FORMAT.format(suspicionLog.time.toLocalDateTime()),
-                action = suspicionLog.userId,
+                action = suspicionLog.action,
                 doubt = suspicionLog.doubt,
                 userName = suspicionLog.userName ?: "",
                 userId = suspicionLog.userId,

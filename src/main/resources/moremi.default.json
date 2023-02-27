@@ -42,7 +42,8 @@
         "PIX",
         "PIY",
         "PIZ",
-        "CNS"
+        "CNS",
+        "PCS"
       ],
       "skin": [
         "NIK"

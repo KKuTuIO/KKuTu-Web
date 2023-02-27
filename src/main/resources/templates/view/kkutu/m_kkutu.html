@@ -651,6 +651,26 @@
         </th:block>
     </th:block>
     <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='ExchangeDiag',width=300,height=430,title=#{kkutu.dialog.exchange.title})}">
+        <th:block layout:fragment="content">
+            <div class="dialog-bar">
+                <h4 id="exchange-cost-desc" th:text="#{kkutu.dialog.exchange.cost}" style="width: 100%;"></h4>
+            </div>
+            <div id="exchange-cost" class="dialog-bar" style="height: 180px; overflow-y: scroll"></div>
+            <div class="dialog-bar">
+                <h4 id="exchange-gives-desc" th:text="#{kkutu.dialog.exchange.gives}" style="width: 100%;"></h4>
+            </div>
+            <div id="exchange-gives" class="dialog-bar" style="height: 90px; overflow-y: scroll"></div>
+            <div class="dialog-bar">
+                <h4 id="exchange-message" style="width: 100%;"></h4>
+            </div>
+            <div class="dialog-bar tail-button">
+                <button id="exchange-no" th:text="#{kkutu.dialog.exchange.cancel}"></button>
+                <button id="exchange-ok" th:text="#{kkutu.dialog.exchange.ok}"></button>
+            </div>
+        </th:block>
+    </th:block>
+    <th:block
             layout:replace="~{view/kkutu/product::product(id='UserList',title=#{kkutu.product.userList.title})}"
             style="display: none;">
         <th:block layout:fragment="content">

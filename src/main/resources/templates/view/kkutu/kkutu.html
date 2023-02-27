@@ -702,6 +702,16 @@
                          th:text="#{'item.category.' + ${moremiCategory}}">
                     </div>
                 </th:block>
+                <th:block>
+                    <div class="category-filter shop-type event-category" id="shop-type-exchange"
+                        value="exchange"
+                        th:text="#{'item.category.exchange'}">
+                    </div>
+                    <div class="category-filter shop-type event-category" id="shop-type-convert"
+                        value="convert"
+                        th:text="#{'item.category.convert'}">
+                    </div>
+                </th:block>
             </div>
             <div id="shop-shelf" style="width: 100%; height: 305px; overflow-y: scroll;"></div>
         </th:block>

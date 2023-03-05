@@ -63,7 +63,7 @@ const Setup = () => {
                        hasError={errors.nickname} autoComplete="off" ref={register({
                 required: true,
                 minLength: 2,
-                maxLength: 18,
+                maxLength: 15,
                 pattern: /^[가-힣a-zA-Z0-9][가-힣a-zA-Z0-9 _-]*[가-힣a-zA-Z0-9]$/i
             })}/>
             {errors.nickname && errors.nickname.type === 'required' && (

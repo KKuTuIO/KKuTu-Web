@@ -661,6 +661,48 @@
         </th:block>
     </th:block>
     <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='UpgradeEventDiag',width=350,height=200,title=#{kkutu.dialog.bulletin.title})}">
+        <th:block layout:fragment="content">
+            <b><span class="objective-info"></span>에게 간식을 선물합니다.</b>
+            <select id="isl" style="width:100%;margin-top:5px;margin-bottom:5px;">
+                <option th:text="선물할 간식을 선택하세요." disabled selected></option>
+                <option th:text="헤이즐넛 초콜릿" value="01"></option>
+                <option th:text="알록달록 사탕" value="02"></option>
+                <option th:text="우유맛 사탕" value="03"></option>
+                <option th:text="홍삼맛 사탕" value="04"></option>
+                <option th:text="각양각색 젤리빈" value="05"></option>
+                <option th:text="진한 초콜릿" value="06"></option>
+                <option th:text="감초맛 사탕" value="07"></option>
+                <option th:text="밀크초콜릿" value="08"></option>
+                <option th:text="화이트 초콜릿" value="09"></option>
+                <option th:text="단백질 쉐이크" value="10"></option>
+            </select>
+            <select id="qsl" style="width:100%;margin-top:5px;margin-bottom:5px;">
+                <option th:text="선물할 간식의 등급을 선택하세요." disabled selected></option>
+            </select>
+        </th:block>
+    </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='ExchangeDiag',width=300,height=430,title=#{kkutu.dialog.exchange.title})}">
+        <th:block layout:fragment="content">
+            <div class="dialog-bar">
+                <h4 id="exchange-cost-desc" th:text="#{kkutu.dialog.exchange.cost}" style="width: 100%;"></h4>
+            </div>
+            <div id="exchange-cost" class="dialog-bar" style="height: 180px; overflow-y: scroll"></div>
+            <div class="dialog-bar">
+                <h4 id="exchange-gives-desc" th:text="#{kkutu.dialog.exchange.gives}" style="width: 100%;"></h4>
+            </div>
+            <div id="exchange-gives" class="dialog-bar" style="height: 90px; overflow-y: scroll"></div>
+            <div class="dialog-bar">
+                <h4 id="exchange-message" style="width: 100%;"></h4>
+            </div>
+            <div class="dialog-bar tail-button">
+                <button id="exchange-no" th:text="#{kkutu.dialog.exchange.cancel}"></button>
+                <button id="exchange-ok" th:text="#{kkutu.dialog.exchange.ok}"></button>
+            </div>
+        </th:block>
+    </th:block>
+    <th:block
             layout:replace="~{view/kkutu/product::product(id='UserList',title=#{kkutu.product.userList.title})}">
         <th:block layout:fragment="content">
             <div th:text="#{kkutu.product.userList.loading}"></div>

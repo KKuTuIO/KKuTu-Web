@@ -64,6 +64,7 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_BRD("BRD", "브랜드/회사"),
     THEME_SFX("SFX", "특수촬영물"),
     THEME_NFM("NFM", "소설/시/수필/동화"),
+    THEME_WZW("WZW", "위저딩 월드"),
     THEME_e00("e00", "★"),
     THEME_e01("e01", "★"),
     THEME_e02("e02", "★"),

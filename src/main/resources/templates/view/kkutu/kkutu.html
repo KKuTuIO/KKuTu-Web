@@ -689,9 +689,7 @@
     </th:block>
     <th:block
             layout:replace="~{view/kkutu/product::product(id='EventList',title=#{kkutu.product.eventList.title})}">
-        <th:block layout:fragment="content">
-            <div th:text="#{kkutu.product.eventList.loading}"></div>
-        </th:block>
+        <th:block layout:fragment="content"></th:block>
     </th:block>
     <th:block layout:replace="~{view/kkutu/product::product(id='RoomList',title=#{kkutu.product.roomList.title})}">
         <th:block layout:fragment="content">

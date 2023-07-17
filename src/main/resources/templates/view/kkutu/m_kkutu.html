@@ -678,6 +678,13 @@
             <div th:text="#{kkutu.product.userList.loading}"></div>
         </th:block>
     </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/product::product(id='EventList',title=#{kkutu.product.eventList.title})}"
+            style="display: none;">
+        <th:block layout:fragment="content">
+            <div th:text="#{kkutu.product.eventList.loading}"></div>
+        </th:block>
+    </th:block>
     <th:block layout:replace="~{view/kkutu/product::product(id='RoomList',title=#{kkutu.product.roomList.title})}">
         <th:block layout:fragment="content">
             <div th:text="#{kkutu.product.roomList.loading}"></div>
@@ -685,6 +692,7 @@
     </th:block>
     <th:block layout:replace="~{view/kkutu/product::product(id='Shop',title=#{kkutu.product.shop.title})}">
         <th:block layout:fragment="content">
+            <div class="eventFrame"></div>
             <div class="shop-categories">
                 <th:block th:each="moremiCategory : ${moremiCategories}">
                     <div class="category-filter shop-type" th:id="${'shop-type-' + moremiCategory}"

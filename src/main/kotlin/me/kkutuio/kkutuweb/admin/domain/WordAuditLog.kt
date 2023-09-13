@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.admin.domain
 
-import java.time.LocalDateTime
+import java.sql.Timestamp
 
 data class WordAuditLog(
     val id: Long,

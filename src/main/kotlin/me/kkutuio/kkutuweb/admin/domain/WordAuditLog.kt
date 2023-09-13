@@ -22,7 +22,7 @@ import java.sql.Timestamp
 
 data class WordAuditLog(
     val id: Long,
-    val time: Timestamp,
+    val time: LocalDateTime,
     val type: WordAuditLogType,
     val word: String,
     val oldType: String? = null,

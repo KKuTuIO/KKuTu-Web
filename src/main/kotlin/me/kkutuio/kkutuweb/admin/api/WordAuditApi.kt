@@ -43,7 +43,7 @@ class WordAuditApi(
     @GetMapping("/{lang}")
     fun getWordAuditList(
         @PathVariable lang: String,
-        @RequestParam(required = true, name = "  ") page: Int,
+        @RequestParam(required = true, name = "page") page: Int,
         @RequestParam(required = true, name = "size") pageSize: Int,
         @RequestParam(required = true, name = "sort") sortData: String,
         request: HttpServletRequest, session: HttpSession

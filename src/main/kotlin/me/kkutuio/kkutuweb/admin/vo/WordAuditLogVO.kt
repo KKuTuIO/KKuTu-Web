@@ -25,7 +25,7 @@ import me.kkutuio.kkutuweb.factory.DateFactory
 data class WordAuditLogVO(
     @JsonProperty("id") val id: Long?,
     @JsonProperty("log_time") val time: String,
-    @JsonProperty("log_type") val type: String,
+    @JsonProperty("log_type") val type: WordAuditLog.WordAuditLogType,
     @JsonProperty("word") val word: String,
     @JsonProperty("old_type") val oldType: String,
     @JsonProperty("old_mean") val oldMean: String,
@@ -43,8 +43,8 @@ data class WordAuditLogVO(
         fun convertFrom(wordAuditLog: WordAuditLog): WordAuditLogVO {
             return WordAuditLogVO(
                 id = wordAuditLog.id,
-                time = DateFactory.DATABASE_FORMAT.format(wordAuditLog.time.toLocalDateTime()),
-                type = WordAuditLog.WordAuditLogType.valueOf(wordAuditLog.type),
+                time = DateFactory.DATABASE_FORMAT.format(wordAuditLog.time),
+                type = wordAuditLog.type,
                 word = wordAuditLog.word,
                 oldType = wordAuditLog.oldType ?: "",
                 oldMean = wordAuditLog.oldMean ?: "",
@@ -56,7 +56,7 @@ data class WordAuditLogVO(
                 newTheme = wordAuditLog.newTheme ?: "",
                 updateLogIgnore = wordAuditLog.updateLogIgnore,
                 updateLogIncludeDetail = wordAuditLog.updateLogIncludeDetail,
-                admin = wordAuditLog.admin ?: ""
+                admin = wordAuditLog.admin
             )
         }
     }

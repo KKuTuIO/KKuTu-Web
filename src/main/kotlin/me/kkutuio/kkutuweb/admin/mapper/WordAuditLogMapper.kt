@@ -27,7 +27,7 @@ import java.sql.ResultSet
 class WordAuditLogMapper : RowMapper<WordAuditLog> {
     override fun mapRow(rs: ResultSet, rowNum: Int): WordAuditLog {
         val id = rs.getLong("id")
-        val time = rs.getTimestamp("log_time")
+        val time = rs.getTimestamp("log_time").toLocalDateTime()
         val type = WordAuditLog.WordAuditLogType.valueOf(rs.getString("log_type"))
         val word = rs.getString("word")
         val oldType = rs.getString("old_type")

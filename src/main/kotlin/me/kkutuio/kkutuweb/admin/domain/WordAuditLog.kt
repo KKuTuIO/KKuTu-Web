@@ -21,9 +21,9 @@ package me.kkutuio.kkutuweb.admin.domain
 import java.sql.Timestamp
 
 data class WordAuditLog(
-    val id: Long,
+    val id: Long?= null,
     val time: Timestamp,
-    val type: WordAuditLogType,
+    val type: String,
     val word: String,
     val oldType: String? = null,
     val oldMean: String? = null,

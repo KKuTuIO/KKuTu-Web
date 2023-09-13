@@ -33,7 +33,8 @@ import me.kkutuio.kkutuweb.word.WordDao
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
+
 @Service
 class AdminWordService(
     @Autowired private val wordDao: WordDao,
@@ -121,9 +122,9 @@ class AdminWordService(
         )
         wordAuditLogDAO.insert(
             lang, WordAuditLog(
-                time = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").withZone(ZoneOffset.UTC).format(Instant.now()),
+                time = LocalDateTime.now(),
                 word = wordName,
-                type = "INSERT",
+                type = WordAuditLog.WordAuditLogType.UPDATE,
                 oldType = oldWord.type,
                 oldMean = oldWord.mean,
                 oldFlag = oldWord.flag,
@@ -162,9 +163,9 @@ class AdminWordService(
         wordDao.remove(tableName, wordName)
         wordAuditLogDAO.insert(
             lang, WordAuditLog(
-                time = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").withZone(ZoneOffset.UTC).format(Instant.now()),
+                time = LocalDateTime.now(),
                 word = wordName,
-                type = "DELETE",
+                type = WordAuditLog.WordAuditLogType.DELETE,
                 oldType = oldWord.type,
                 oldMean = oldWord.mean,
                 oldFlag = oldWord.flag,
@@ -207,9 +208,9 @@ class AdminWordService(
         wordDao.insert(tableName, newWord)
         wordAuditLogDAO.insert(
             lang, WordAuditLog(
-                time = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS").withZone(ZoneOffset.UTC).format(Instant.now()),
+                time = LocalDateTime.now(),
                 word = wordName,
-                type = "CREATE",
+                type = WordAuditLog.WordAuditLogType.CREATE,
                 newType = newWord.type,
                 newMean = newWord.mean,
                 newFlag = newWord.flag,

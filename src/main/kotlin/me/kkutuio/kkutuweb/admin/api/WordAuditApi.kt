@@ -52,14 +52,14 @@ class WordAuditApi(
         @RequestParam(required = false, name = "word", defaultValue = "") word: String,
         @RequestParam(required = false, name = "old_type", defaultValue = "") oldType: String,
         @RequestParam(required = false, name = "old_mean", defaultValue = "") oldMean: String,
-        @RequestParam(required = false, name = "old_flag", defaultValue = null) oldFlag: Int,
+        // @RequestParam(required = false, name = "old_flag", defaultValue = "") oldFlag: String,
         @RequestParam(required = false, name = "old_theme", defaultValue = "") oldTheme: String,
         @RequestParam(required = false, name = "new_type", defaultValue = "") newType: String,
         @RequestParam(required = false, name = "new_mean", defaultValue = "") newMean: String,
-        @RequestParam(required = false, name = "new_flag", defaultValue = null) newFlag: Int,
+        // @RequestParam(required = false, name = "new_flag", defaultValue = "") newFlag: String,
         @RequestParam(required = false, name = "new_theme", defaultValue = "") newTheme: String,
-        @RequestParam(required = false, name = "update_log_ignore", defaultValue = false) updateLogIgnore: Boolean,
-        @RequestParam(required = false, name = "update_log_include_detail", defaultValue = false) updateLogIncludeDetail: Boolean,
+        // @RequestParam(required = false, name = "update_log_ignore", defaultValue = "") updateLogIgnore: String,
+        // @RequestParam(required = false, name = "update_log_include_detail", defaultValue = "") updateLogIncludeDetail: String,
         @RequestParam(required = false, name = "admin", defaultValue = "") admin: String,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<WordAuditLogVO> {

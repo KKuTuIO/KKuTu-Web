@@ -44,7 +44,7 @@ data class WordAuditLogVO(
             return WordAuditLogVO(
                 id = wordAuditLog.id,
                 time = DateFactory.DATABASE_FORMAT.format(wordAuditLog.time.toLocalDateTime()),
-                type = wordAuditLog.type,
+                type = WordAuditLog.WordAuditLogType.valueOf(wordAuditLog.type),
                 word = wordAuditLog.word,
                 oldType = wordAuditLog.oldType ?: "",
                 oldMean = wordAuditLog.oldMean ?: "",

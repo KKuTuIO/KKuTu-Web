@@ -21,8 +21,8 @@ package me.kkutuio.kkutuweb.admin.domain
 import java.time.LocalDateTime
 
 data class WordAuditLog(
-    val id: Int? = null,
-    val time: LocalDateTime,
+    val id: Long,
+    val time: Timestamp,
     val type: WordAuditLogType,
     val word: String,
     val oldType: String? = null,

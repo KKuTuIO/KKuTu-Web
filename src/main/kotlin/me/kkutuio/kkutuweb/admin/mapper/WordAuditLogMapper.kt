@@ -28,7 +28,7 @@ class WordAuditLogMapper : RowMapper<WordAuditLog> {
     override fun mapRow(rs: ResultSet, rowNum: Int): WordAuditLog {
         val id = rs.getInt("id")
         val time = rs.getTimestamp("log_time")
-        val logType = WordAuditLog.WordAuditLogType.valueOf(rs.getString("log_type"))
+        val type = WordAuditLog.WordAuditLogType.valueOf(rs.getString("log_type"))
         val word = rs.getString("word")
         val oldType = rs.getString("old_type")
         val oldMean = rs.getString("old_mean")
@@ -45,7 +45,7 @@ class WordAuditLogMapper : RowMapper<WordAuditLog> {
         return WordAuditLog(
                 id,
                 time,
-                logType,
+                type,
                 word,
                 oldType,
                 oldMean,

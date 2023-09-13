@@ -45,7 +45,7 @@ class AdminWordAuditService(
 
         val dataCount = wordAuditLogDAO.getDataCount(lang, emptyMap())
         val pageData = wordAuditLogDAO.getPageData(lang, page, pageSize, sortField, sortType, dbSearchFilters)
-                .map { wordAuditLogVO.convertFrom(it) }
+                .map { WordAuditLogVO.convertFrom(it) }
 
         return ListResponse(dataCount, pageData)
     }

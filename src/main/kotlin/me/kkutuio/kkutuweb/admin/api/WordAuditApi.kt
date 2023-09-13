@@ -48,14 +48,18 @@ class WordAuditApi(
         @RequestParam(required = true, name = "size") pageSize: Int,
         @RequestParam(required = true, name = "sort") sortData: String,
         @RequestParam(required = false, name = "id", defaultValue = "") id: String,
-        @RequestParam(required = false, name = "log_type", defaultValue = "") logType: String,
+        @RequestParam(required = false, name = "log_type", defaultValue = "") type: String,
         @RequestParam(required = false, name = "word", defaultValue = "") word: String,
         @RequestParam(required = false, name = "old_type", defaultValue = "") oldType: String,
         @RequestParam(required = false, name = "old_mean", defaultValue = "") oldMean: String,
+        @RequestParam(required = false, name = "old_flag", defaultValue = "") oldFlag: Int,
         @RequestParam(required = false, name = "old_theme", defaultValue = "") oldTheme: String,
         @RequestParam(required = false, name = "new_type", defaultValue = "") newType: String,
         @RequestParam(required = false, name = "new_mean", defaultValue = "") newMean: String,
+        @RequestParam(required = false, name = "new_flag", defaultValue = "") newFlag: Int,
         @RequestParam(required = false, name = "new_theme", defaultValue = "") newTheme: String,
+        @RequestParam(required = false, name = "update_log_ignore", defaultValue = "") updateLogIgnore: Boolean,
+        @RequestParam(required = false, name = "update_log_include_detail", defaultValue = "") updateLogIncludeDetail: Boolean,
         @RequestParam(required = false, name = "admin", defaultValue = "") admin: String,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<WordAuditLogVO> {
@@ -75,6 +79,17 @@ class WordAuditApi(
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
+        val searchFilters = mapOf(
+                "id" to id,
+                "type" to type,
+                "word" to word,
+                "old_type" to oldType,
+                "new_type" to newType,
+                "old_theme" to oldTheme,
+                "new_theme" to newTheme,
+                "old_mean" to oldMean,
+                "new_mean" to newMean
+        )
 
         val wordListRes = adminWordAuditService.getWordAuditListRes(lang, page, pageSize, sortData, searchFilters)
         logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 관리 로그를 요청했습니다. 언어: $lang / 총 개수: ${wordListRes.totalElements}")

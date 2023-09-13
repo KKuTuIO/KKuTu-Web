@@ -21,6 +21,7 @@ package me.kkutuio.kkutuweb.admin.api
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import me.kkutuio.kkutuweb.admin.service.AdminWordAuditService
+import me.kkutuio.kkutuweb.admin.vo.WordAuditLogVO
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.AdminSetting
@@ -46,8 +47,18 @@ class WordAuditApi(
         @RequestParam(required = true, name = "page") page: Int,
         @RequestParam(required = true, name = "size") pageSize: Int,
         @RequestParam(required = true, name = "sort") sortData: String,
+        @RequestParam(required = false, name = "id", defaultValue = "") id: String,
+        @RequestParam(required = false, name = "log_type", defaultValue = "") logType: String,
+        @RequestParam(required = false, name = "word", defaultValue = "") word: String,
+        @RequestParam(required = false, name = "old_type", defaultValue = "") oldType: String,
+        @RequestParam(required = false, name = "old_mean", defaultValue = "") oldMean: String,
+        @RequestParam(required = false, name = "old_theme", defaultValue = "") oldTheme: String,
+        @RequestParam(required = false, name = "new_type", defaultValue = "") newType: String,
+        @RequestParam(required = false, name = "new_mean", defaultValue = "") newMean: String,
+        @RequestParam(required = false, name = "new_theme", defaultValue = "") newTheme: String,
+        @RequestParam(required = false, name = "admin", defaultValue = "") admin: String,
         request: HttpServletRequest, session: HttpSession
-    ): ListResponse<WordAuditLog> {
+    ): ListResponse<WordAuditLogVO> {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
             logger.warn("인증되지 않은 사용자로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
@@ -65,7 +76,7 @@ class WordAuditApi(
             return ListResponse(0, emptyList())
         }
 
-        val wordListRes = adminWordAuditService.getWordAuditListRes(lang, page, pageSize, sortData)
+        val wordListRes = adminWordAuditService.getWordAuditListRes(lang, page, pageSize, sortData, searchFilters)
         logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 관리 로그를 요청했습니다. 언어: $lang / 총 개수: ${wordListRes.totalElements}")
 
         return wordListRes

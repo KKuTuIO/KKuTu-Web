@@ -26,22 +26,38 @@ import java.sql.ResultSet
 @Component
 class WordAuditLogMapper : RowMapper<WordAuditLog> {
     override fun mapRow(rs: ResultSet, rowNum: Int): WordAuditLog {
+        val id = rs.getInt("id")
+        val time = rs.getTimestamp("log_time")
+        val logType = WordAuditLog.WordAuditLogType.valueOf(rs.getString("log_type"))
+        val word = rs.getString("word")
+        val oldType = rs.getString("old_type")
+        val oldMean = rs.getString("old_mean")
+        val oldFlag = rs.getInt("old_flag")
+        val oldTheme = rs.getString("old_theme")
+        val newType = rs.getString("new_type")
+        val newMean = rs.getString("new_mean")
+        val newFlag = rs.getInt("new_flag")
+        val newTheme = rs.getString("new_theme")
+        val updateLogIgnore = rs.getBoolean("update_log_ignore")
+        val updateLogIncludeDetail = rs.getBoolean("update_log_include_detail")
+        val admin = rs.getString("admin")
+
         return WordAuditLog(
-            rs.getInt("id"),
-            rs.getTimestamp("log_time").toLocalDateTime(),
-            WordAuditLog.WordAuditLogType.valueOf(rs.getString("log_type")),
-            rs.getString("word"),
-            rs.getString("old_type"),
-            rs.getString("old_mean"),
-            rs.getInt("old_flag"),
-            rs.getString("old_theme"),
-            rs.getString("new_type"),
-            rs.getString("new_mean"),
-            rs.getInt("new_flag"),
-            rs.getString("new_theme"),
-            rs.getBoolean("update_log_ignore"),
-            rs.getBoolean("update_log_include_detail"),
-            rs.getString("admin")
+                id,
+                time,
+                logType,
+                word,
+                oldType,
+                oldMean,
+                oldFlag,
+                oldTheme,
+                newType,
+                newMean,
+                newFlag,
+                newTheme,
+                updateLogIgnore,
+                updateLogIncludeDetail,
+                admin
         )
     }
 }

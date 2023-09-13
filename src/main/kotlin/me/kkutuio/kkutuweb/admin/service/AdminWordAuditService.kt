@@ -21,6 +21,7 @@ package me.kkutuio.kkutuweb.admin.service
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.dao.WordAuditLogDAO
+import me.kkutuio.kkutuweb.admin.vo.WordAuditLogVO
 import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -33,14 +34,18 @@ class AdminWordAuditService(
         lang: String,
         page: Int,
         pageSize: Int,
-        sortData: String
-    ): ListResponse<WordAuditLog> {
+        sortData: String,
+        searchFilters: Map<String, String>
+    ): ListResponse<WordAuditLogVO> {
         val split = sortData.split(",")
         val sortField = split[0]
         val sortType = SortType.valueOf(split[1])
 
+        val dbSearchFilters = searchFilters.filterValues { it.isNotEmpty() }
+
         val dataCount = wordAuditLogDAO.getDataCount(lang, emptyMap())
-        val pageData = wordAuditLogDAO.getPageData(lang, page, pageSize, sortField, sortType, emptyMap())
+        val pageData = wordAuditLogDAO.getPageData(lang, page, pageSize, sortField, sortType, dbSearchFilters)
+                .map { wordAuditLogVO.convertFrom(it) }
 
         return ListResponse(dataCount, pageData)
     }

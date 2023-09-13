@@ -23,7 +23,7 @@ import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import me.kkutuio.kkutuweb.factory.DateFactory
 
 data class WordAuditLogVO(
-    @JsonProperty("id") val id: Long,
+    @JsonProperty("id") val id: Long?,
     @JsonProperty("log_time") val time: String,
     @JsonProperty("log_type") val type: String,
     @JsonProperty("word") val word: String,

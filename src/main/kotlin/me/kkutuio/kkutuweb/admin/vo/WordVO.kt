@@ -45,7 +45,7 @@ data class WordVO(
                 logger.warn("요청된 데이터의 일부 품사가 누락되었습니다. 품사 수: ${types.size}, 뜻 개수: ${themes.size}")
             }
             for (i in themes.indices) {
-                val typeCode = if (i <= themes.size) types[i] else "0"
+                val typeCode = if (i < themes.size) types[i] else "0"
                 val themeCode = themes[i]
 
                 val type = WordType.findByCode(typeCode)

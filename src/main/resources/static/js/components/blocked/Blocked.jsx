@@ -43,7 +43,7 @@ const Background = styled.div`
   left: 0;
   right: 0;
   max-width: 350px;
-  max-height: 475px;
+  height: fit-content;
   padding: 15px;
 `
 

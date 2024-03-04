@@ -42,8 +42,8 @@ const Background = styled.div`
   bottom: 0;
   left: 0;
   right: 0;
-  width: 350px;
-  height: 475px;
+  max-width: 350px;
+  max-height: 475px;
   padding: 15px;
 `
 
@@ -156,7 +156,7 @@ const Blocked = ({blockInfo}) => {
                 <DetailTable>
                     <tbody>
                     <tr style={{fontSize: '13px'}}>
-                        <DetailKey>고유 번호</DetailKey>
+                        <DetailKey>식별 번호</DetailKey>
                         <DetailValue>{hideIp(blockInfo.target)}</DetailValue>
                     </tr>
                     <tr style={{fontSize: '13px'}}>

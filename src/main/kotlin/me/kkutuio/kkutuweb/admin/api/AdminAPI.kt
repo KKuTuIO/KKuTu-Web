@@ -18,8 +18,11 @@
 
 package me.kkutuio.kkutuweb.admin.api
 
+import me.kkutuio.kkutuweb.admin.api.response.ActionResponse
+import me.kkutuio.kkutuweb.admin.api.response.RestResult
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.game.GameClientManager
+import me.kkutuio.kkutuweb.user.UserDao
 import me.kkutuio.kkutuweb.ranking.RankDao
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.slf4j.LoggerFactory
@@ -32,9 +35,37 @@ import javax.servlet.http.HttpServletRequest
 class AdminAPI(
     @Autowired private val kKuTuSetting: KKuTuSetting,
     @Autowired private val gameClientManager: GameClientManager,
-    @Autowired private val rankDao: RankDao
+    @Autowired private val rankDao: RankDao,
+    @Autowired private val userDao: UserDao
 ) {
     private val logger = LoggerFactory.getLogger(AdminAPI::class.java)
+
+    @GetMapping("/membership/{action}")
+    fun updateMembership(
+            @PathVariable action: String,
+            @RequestParam apiKey: String,
+            @RequestParam id: String,
+            @RequestParam type: String,
+            @RequestParam liveService: Boolean,
+            request: HttpServletRequest
+    ): ActionResponse {
+        if (kKuTuSetting.getApiKey() != apiKey) {
+            logger.warn("[${request.getIp()}] API 키가 불일치하여 membership/$id 요청을 무시합니다.")
+            return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
+        }
+
+        // TODO: Add Notifications about Subscription Changes
+        val user = userDao.getUser(id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+
+        if(liveService) userDao.updateUser(
+            id, mapOf(
+                "membership" to type
+            )
+        )
+
+        logger.info("$id 계정의 리오패스 구독 상태를 $type 으(로) 변경하였습니다.")
+        ActionResponse.success()
+    }
 
     @GetMapping("/kickByUserId/{id}")
     fun kickByUserId(

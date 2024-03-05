@@ -22,5 +22,6 @@ enum class RestResult(val message: String) {
     SUCCESS("요청하신 작업을 성공했습니다."),
     UNAUTHENTICATED("인증되지 않은 요청입니다."),
     UNAUTHORIZED("권한이 없는 사용자입니다."),
+    INVALID_DATA("유효하지 않은 요청입니다."),
     INTERNAL_ERROR("내부 오류가 발생했습니다.")
 }

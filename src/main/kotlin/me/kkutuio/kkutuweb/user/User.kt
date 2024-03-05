@@ -32,5 +32,7 @@ data class User(
     val black: String?,
     val server: String?,
     val password: String?,
-    val friends: JsonNode
+    val friends: JsonNode,
+    val flags: JsonNode,
+    val membership: String?
 )

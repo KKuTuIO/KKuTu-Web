@@ -41,11 +41,14 @@ class UserMapper(
         val server = rs.getString("server")
         val password = rs.getString("password")
         val friends = rs.getString("friends")
+        val flags = rs.getString("flags")
+        val membership = rs.getString("membership")
 
         val kkutuJson = objectMapper.readTree(kkutu)
         val boxJson = objectMapper.readTree(box ?: "{}")
         val equipJson = objectMapper.readTree(equip ?: "{}")
         val friendsJson = objectMapper.readTree(friends ?: "{}")
+        val flagsJson = objectMapper.readTree(flags ?: "{}")
 
         return User(
             id,
@@ -59,7 +62,9 @@ class UserMapper(
             black,
             server,
             password,
-            friendsJson
+            friendsJson,
+            flagsJson,
+            membership
         )
     }
 }

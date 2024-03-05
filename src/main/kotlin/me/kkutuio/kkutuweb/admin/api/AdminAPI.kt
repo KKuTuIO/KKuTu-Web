@@ -47,7 +47,7 @@ class AdminAPI(
             request: HttpServletRequest
     ): ActionResponse {
         if (kKuTuSetting.getApiKey() != membershipBody.apiKey) {
-            logger.warn("[${request.getIp()}] API 키가 불일치하여 membership/$id 요청을 무시합니다.")
+            logger.warn("[${request.getIp()}] API 키가 불일치하여 membership/${membershipBody.id} 요청을 무시합니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
@@ -60,8 +60,8 @@ class AdminAPI(
             )
         )
 
-        logger.info("$id 계정의 리오패스 구독 상태를 $type 으(로) 변경하였습니다.")
-        ActionResponse.success()
+        logger.info("${membershipBody.id} 계정의 리오패스 구독 상태를 ${membershipBody.type} 으(로) 변경하였습니다.")
+        return ActionResponse.success()
     }
 
     @PostMapping("/kickByUserId/{id}")
@@ -118,8 +118,8 @@ class AdminAPI(
             logger.warn("[${request.getIp()}] API 키가 불일치하여 yell 요청을 무시합니다.")
             return
         }
-        val value = postApiBody.value.replace("\"", "\u005C\u0022")
-        gameClientManager.yell(value)
+        val value = postApiBody.value?.replace("\"", "\u005C\u0022")
+        gameClientManager.yell(value ?: "")
         logger.info("공지가 전송되었습니다. 내용: ${postApiBody.value}")
     }
 }

@@ -36,7 +36,7 @@ class GeoService(
 ) {
     @Cacheable(value = ["ipGeoInfoCache"], key = "#ip")
     fun getGeoCountry(ip: String): String? {
-        val response = requestHttp("${apiDomain}/lookup/${ip}/${apiKey}")
+        val response = requestHttp("${apiDomain}/lookup/${ip}?key=${apiKey}")
         val jsonNode = objectMapper.readTree(response)
 
         val geoLocation = jsonNode["geoLocation"]

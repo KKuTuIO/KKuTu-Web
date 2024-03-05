@@ -40,26 +40,23 @@ class AdminAPI(
 ) {
     private val logger = LoggerFactory.getLogger(AdminAPI::class.java)
 
-    @GetMapping("/membership/{action}")
+    @PostMapping("/membership/{action}")
     fun updateMembership(
             @PathVariable action: String,
-            @RequestParam apiKey: String,
-            @RequestParam id: String,
-            @RequestParam type: String,
-            @RequestParam liveService: Boolean,
+            @RequestBody membershipBody: MembershipBody,
             request: HttpServletRequest
     ): ActionResponse {
-        if (kKuTuSetting.getApiKey() != apiKey) {
+        if (kKuTuSetting.getApiKey() != membershipBody.apiKey) {
             logger.warn("[${request.getIp()}] API 키가 불일치하여 membership/$id 요청을 무시합니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
         // TODO: Add Notifications about Subscription Changes
-        val user = userDao.getUser(id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        val user = userDao.getUser(membershipBody.id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
 
-        if(liveService) userDao.updateUser(
-            id, mapOf(
-                "membership" to type
+        if(membershipBody.liveService) userDao.updateUser(
+                membershipBody.id, mapOf(
+                "membership" to membershipBody.type
             )
         )
 
@@ -67,13 +64,13 @@ class AdminAPI(
         ActionResponse.success()
     }
 
-    @GetMapping("/kickByUserId/{id}")
+    @PostMapping("/kickByUserId/{id}")
     fun kickByUserId(
         @PathVariable id: String,
-        @RequestParam apiKey: String,
+        @RequestBody postApiBody: PostApiBody,
         request: HttpServletRequest
     ) {
-        if (kKuTuSetting.getApiKey() != apiKey) {
+        if (kKuTuSetting.getApiKey() != postApiBody.apiKey) {
             logger.warn("[${request.getIp()}] API 키가 불일치하여 kickByUserId/$id 요청을 무시합니다.")
             return
         }
@@ -82,13 +79,13 @@ class AdminAPI(
         logger.info("$id 계정을 끄투리오에서 추방합니다.")
     }
 
-    @GetMapping("/kickByIp/{ip}")
+    @PostMapping("/kickByIp/{ip}")
     fun kickByIp(
         @PathVariable ip: String,
-        @RequestParam apiKey: String,
+        @RequestBody postApiBody: PostApiBody,
         request: HttpServletRequest
     ) {
-        if (kKuTuSetting.getApiKey() != apiKey) {
+        if (kKuTuSetting.getApiKey() != postApiBody.apiKey) {
             logger.warn("[${request.getIp()}] API 키가 불일치하여 kickByIp/$ip 요청을 무시합니다.")
             return
         }
@@ -97,13 +94,13 @@ class AdminAPI(
         logger.info("$ip 아이피로 접속 중인 계정을 끄투리오에서 추방합니다.")
     }
 
-    @GetMapping("/resetRank/{id}")
+    @PostMapping("/resetRank/{id}")
     fun resetRank(
         @PathVariable id: String,
-        @RequestParam apiKey: String,
+        @RequestBody postApiBody: PostApiBody,
         request: HttpServletRequest
     ) {
-        if (kKuTuSetting.getApiKey() != apiKey) {
+        if (kKuTuSetting.getApiKey() != postApiBody.apiKey) {
             logger.warn("[${request.getIp()}] API 키가 불일치하여 resetRank/$id 요청을 무시합니다.")
             return
         }
@@ -123,11 +120,18 @@ class AdminAPI(
         }
         val value = postApiBody.value.replace("\"", "\u005C\u0022")
         gameClientManager.yell(value)
-        logger.info("공지가 전송되었습니다. 내용 : ${postApiBody.value}")
+        logger.info("공지가 전송되었습니다. 내용: ${postApiBody.value}")
     }
 }
 
 data class PostApiBody (
     val apiKey: String,
-    val value: String
+    val value: String?
+)
+
+data class MembershipBody (
+    val apiKey: String,
+    val id: String,
+    val type: String,
+    val liveService: Boolean
 )

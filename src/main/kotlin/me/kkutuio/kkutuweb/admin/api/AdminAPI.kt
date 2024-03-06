@@ -59,7 +59,7 @@ class AdminAPI(
         val user = userDao.getUser(id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
 
         if(action == "add" || action == "edit") {
-            val userUid = user.flags.get("uid") ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
+            val userUid = user.flags.get("uid")["value"] ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
             if(userUid.toString() != uid) {
                 logger.warn("$id 계정의 보안 코드 ${userUid}와 입력된 보안 코드 ${uid}이(가) 일치하지 않습니다.")
                 return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)

@@ -48,6 +48,7 @@ class GeoService(
         conn.requestMethod = "GET"
         conn.connectTimeout = 2000
         conn.readTimeout = 3000
+        conn.addRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 11; RMX3242 Build/RP1A.200720.011; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/90.0.4430.210 Mobile Safari/537.36 GSA/12.34.17.23.arm64")
 
         BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { br ->
             val readLine = br.readLine()

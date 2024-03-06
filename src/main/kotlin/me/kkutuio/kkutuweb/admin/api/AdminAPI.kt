@@ -43,29 +43,33 @@ class AdminAPI(
     @PostMapping("/membership/{action}")
     fun updateMembership(
             @PathVariable action: String,
-            @RequestBody membershipBody: MembershipBody,
+            @RequestParam apiKey: String,
+            @RequestParam id: String,
+            @RequestParam uid: String,
+            @RequestParam type: String,
+            @RequestParam liveService: Boolean,
             request: HttpServletRequest
     ): ActionResponse {
-        if (kKuTuSetting.getApiKey() != membershipBody.apiKey) {
-            logger.warn("[${request.getIp()}] API 키가 불일치하여 membership/${membershipBody.id} 요청을 무시합니다.")
+        if (kKuTuSetting.getApiKey() != apiKey) {
+            logger.warn("[${request.getIp()}] API 키가 불일치하여 membership/${id} 요청을 무시합니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
         // TODO: Add Notifications about Subscription Changes
-        val user = userDao.getUser(membershipBody.id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        val user = userDao.getUser(id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
 
         if(action == "new") {
-            val uid = user.flags.get("uid") ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
-            if(uid.toString() != membershipBody.uid) return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)
+            val userUid = user.flags.get("uid") ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
+            if(userUid.toString() != uid) return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)
         }
 
-        if(membershipBody.liveService) userDao.updateUser(
-                membershipBody.id, mapOf(
-                "membership" to membershipBody.type
+        if(liveService) userDao.updateUser(
+                id, mapOf(
+                "membership" to type
             )
         )
 
-        logger.info("${membershipBody.id} 계정의 리오패스 구독 상태를 ${membershipBody.type} 으(로) 변경하였습니다.")
+        logger.info("$id 계정의 리오패스 구독 상태를 ${type}으(로) 변경하였습니다.")
         return ActionResponse.success()
     }
 
@@ -132,12 +136,4 @@ class AdminAPI(
 data class PostApiBody (
     val apiKey: String,
     val value: String?
-)
-
-data class MembershipBody (
-    val apiKey: String,
-    val id: String,
-    val uid: String,
-    val type: String,
-    val liveService: Boolean
 )

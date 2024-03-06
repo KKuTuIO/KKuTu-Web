@@ -53,9 +53,12 @@ class AdminAPI(
 
         // TODO: Add Notifications about Subscription Changes
         val user = userDao.getUser(membershipBody.id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
-        val uid = user.flags.get(membershipBody.id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
 
-        if(uid.toString() != membershipBody.uid) return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)
+        if(action == "new") {
+            val uid = user.flags.get("uid") ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
+            if(uid.toString() != membershipBody.uid) return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)
+        }
+
         if(membershipBody.liveService) userDao.updateUser(
                 membershipBody.id, mapOf(
                 "membership" to membershipBody.type

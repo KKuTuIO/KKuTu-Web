@@ -58,13 +58,35 @@ class AdminAPI(
         // TODO: Add Notifications about Subscription Changes
         val user = userDao.getUser(id) ?: return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
 
-        if(action == "new") {
+        if(action == "add" || action == "edit") {
             val userUid = user.flags.get("uid") ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
             if(userUid.toString() != uid) return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)
         }
 
-        if(liveService) userDao.updateUser(
+        else if(action == "suspend") {
+            if(liveService) userDao.updateUser(
                 id, mapOf(
+                    "membership" to "suspended"
+                )
+            )
+            logger.info("$id 계정의 끄투리오 멤버십 $type 구독을 일시정지 상태로 변경하였습니다.")
+            return ActionResponse.success()
+        }
+
+        else if(action == "cancel") {
+            if(liveService) userDao.updateUser(
+                id, mapOf(
+                    "membership" to "cancelled"
+                )
+            )
+            logger.info("$id 계정의 끄투리오 멤버십 $type 구독을 해지 상태로 변경하였습니다.")
+            return ActionResponse.success()
+        }
+
+        // Package Changes(upgrade), Unsuspend(unsuspend)
+
+        if(liveService) userDao.updateUser(
+            id, mapOf(
                 "membership" to type
             )
         )

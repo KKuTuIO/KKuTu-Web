@@ -67,6 +67,7 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_WZW("WZW", "위저딩 월드"),
     THEME_OJU("OJU", "100% Orange Juice"),
     THEME_E2R("E2R", "EZ2ON REBOOT R"),
+    THEME_CKR("CKR", "쿠키런"),
     THEME_e00("e00", "★"),
     THEME_e01("e01", "★"),
     THEME_e02("e02", "★"),

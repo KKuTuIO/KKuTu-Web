@@ -93,6 +93,7 @@ class AdminAPI(
                 return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)
             }
             if(!user.membership.isNullOrEmpty()) return ActionResponse.success(data = user.membership)
+            else return ActionResponse.rest(success = false, restResult = RestResult.NO_MEMBERSHIP)
         }
 
         // Package Changes(upgrade), Unsuspend(unsuspend)

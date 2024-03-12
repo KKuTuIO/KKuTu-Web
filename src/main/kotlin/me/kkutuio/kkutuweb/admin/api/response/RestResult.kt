@@ -24,5 +24,6 @@ enum class RestResult(val message: String) {
     UNAUTHORIZED("권한이 없는 사용자입니다."),
     INVALID_DATA("유효하지 않은 요청입니다."),
     UID_MISMATCH("보안 코드가 일치하지 않습니다."),
+    NO_MEMBERSHIP("멤버십을 구독한 이력이 없는 회원입니다."),
     INTERNAL_ERROR("내부 오류가 발생했습니다.")
 }

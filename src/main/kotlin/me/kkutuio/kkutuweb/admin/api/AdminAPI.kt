@@ -86,6 +86,15 @@ class AdminAPI(
             return ActionResponse.success()
         }
 
+        else if(action == "verify") {
+            val userUid = user.flags.get("uid")["value"]?.toString()?.removeSurrounding("\"") ?: return ActionResponse.rest(success = false, restResult = RestResult.INTERNAL_ERROR)
+            if(userUid != uid) {
+                logger.warn("$id 계정의 보안 코드 ${userUid}와(과) 입력된 보안 코드 ${uid}이(가) 일치하지 않습니다.")
+                return ActionResponse.rest(success = false, restResult = RestResult.UID_MISMATCH)
+            }
+            if(!user.membership.isNullOrEmpty()) return ActionResponse.success(data = user.membership)
+        }
+
         // Package Changes(upgrade), Unsuspend(unsuspend)
 
         if(liveService) userDao.updateUser(

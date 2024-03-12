@@ -21,26 +21,29 @@ package me.kkutuio.kkutuweb.admin.api.response
 data class ActionResponse(
     val success: Boolean,
     val resultCode: String,
-    val resultMessage: String
+    val resultMessage: String,
+    val data: Any? = null
 ) {
     companion object {
-        fun success(): ActionResponse {
-            return rest(true, RestResult.SUCCESS)
+        fun success(data: Any? = null): ActionResponse {
+            return rest(true, RestResult.SUCCESS, data)
         }
 
-        fun rest(success: Boolean, restResult: RestResult): ActionResponse {
+        fun rest(success: Boolean, restResult: RestResult, data: Any? = null): ActionResponse {
             return ActionResponse(
                 success = success,
                 resultCode = restResult.name,
-                resultMessage = restResult.message
+                resultMessage = restResult.message,
+                data = data
             )
         }
 
-        fun word(success: Boolean, wordResult: WordResult): ActionResponse {
+        fun word(success: Boolean, wordResult: WordResult, data: Any? = null): ActionResponse {
             return ActionResponse(
                 success = success,
                 resultCode = wordResult.name,
-                resultMessage = wordResult.message
+                resultMessage = wordResult.message,
+                data = data
             )
         }
     }

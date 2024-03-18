@@ -109,7 +109,13 @@ class WordDao(
     }
 
     private fun whereValues(searchFilters: Map<String, String>): Array<String> {
-        return searchFilters.values.toTypedArray()
+        return searchFilters.values.map {
+            if (it.startsWith("%") || it.endsWith("%")) {
+                it
+            } else {
+                "%$it%"
+            }
+        }.toTypedArray()
     }
 
     private fun countQuery(tableName: String, whereQuery: String): String {

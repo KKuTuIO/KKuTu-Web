@@ -48,6 +48,12 @@ class UserDao(
         return jdbcTemplate.query(sql, SingleColumnRowMapper())
     }
 
+    fun getNicks(): List<String> {
+        val sql = "SELECT \"nickname\" FROM users"
+        return jdbcTemplate.query(sql, SingleColumnRowMapper())
+    }
+
+    // meanableNick only checked on Unique Nicknames
     fun newUser(id: String, nick: String, similarityNick: String) {
         val sql = "INSERT INTO users(_id, nickname, money, kkutu, \"meanableNick\") VALUES(?, ?, ?, ?, ?)"
 

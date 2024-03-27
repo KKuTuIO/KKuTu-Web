@@ -74,7 +74,9 @@ class SetupService(
             return ActionResult(false, NickChangeResult.HAS_BANNED_WORDS.errorCode)
         }
 
-        val similarityNick = similarityRegex.replace(nick, "").lowercase()
+        val nickname = nick + "#" + sessionProfile.id.split("-")[1]?.take(5)
+
+        val similarityNick = similarityRegex.replace(nickname, "").lowercase()
         val similarityNicks = userDao.getSimilarityNicks()
 
         if (similarityNicks.contains(similarityNick)) {
@@ -82,18 +84,18 @@ class SetupService(
         }
 
         if (userDao.getUser(sessionProfile.id) == null) {
-            userDao.newUser(sessionProfile.id, nick, similarityNick)
+            userDao.newUser(sessionProfile.id, nickname, similarityNick)
 
-            logger.info("[${request.getIp()}] 신규 사용자의 초기 닉네임을 설정했습니다. - 닉네임: $nick")
+            logger.info("[${request.getIp()}] 신규 사용자의 초기 별명을 설정했습니다. - 별명: $nickname")
         } else {
             userDao.updateUser(
                 sessionProfile.id, mapOf(
-                    "nickname" to nick,
+                    "nickname" to nickname,
                     "\"meanableNick\"" to similarityNick
                 )
             )
 
-            logger.info("[${request.getIp()}] 기존 사용자의 초기 닉네임을 설정했습니다. - 닉네임: $nick")
+            logger.info("[${request.getIp()}] 기존 사용자의 초기 별명을 설정했습니다. - 별명: $nickname")
         }
 
         return ActionResult.success()

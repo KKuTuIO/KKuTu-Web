@@ -53,11 +53,12 @@ const Setup = () => {
 
     return (
         <>
-            <SetupTitle>끄투리오에서 사용하실 닉네임을 입력해주세요.</SetupTitle>
+            <SetupTitle>끄투리오에서 사용하실 별명을 입력해 주세요.</SetupTitle>
 
-            <HelpTitle>안내</HelpTitle>
-            <HelpText>1. 운영진 사칭/비속어 등의 악성 닉네임 사용 시 강제 변경 및 관련 기능이 제한되실 수 있습니다.</HelpText>
-            <HelpText>2. 닉네임은 7일마다 변경하실 수 있습니다.</HelpText>
+            <HelpTitle>별명 규칙</HelpTitle>
+            <HelpText>1. 별명은 2 ~ 16글자의 영문자, 한글, 숫자, 공백, 특수문자 -, _로 설정하실 수 있습니다.</HelpText>
+            <HelpText>2. 별명은 7일마다 변경하실 수 있으며, 500핑을 사용하여 고정할 수 있습니다.</HelpText>
+            <HelpText>3. 욕설, 비속어 등이 포함된 별명을 사용할 경우 운영정책에 따라 제재될 수 있습니다.</HelpText>
 
             <NickInput placeholder={Messages['kkutu.dialog.dress.nickname.placeHolder']} name="nickname"
                        hasError={errors.nickname} autoComplete="off" ref={register({
@@ -67,7 +68,7 @@ const Setup = () => {
                 pattern: /^[가-힣a-zA-Z0-9][가-힣a-zA-Z0-9 _-]*[가-힣a-zA-Z0-9]$/i
             })}/>
             {errors.nickname && errors.nickname.type === 'required' && (
-                <ErrorFeedback>닉네임을 입력해주세요.</ErrorFeedback>
+                <ErrorFeedback>별명을 입력해 주세요.</ErrorFeedback>
             )}
             {errors.nickname && (errors.nickname.type === 'minLength' || errors.nickname.type === 'maxLength') && (
                 <ErrorFeedback>{Messages['kkutu.js.error.600']}</ErrorFeedback>

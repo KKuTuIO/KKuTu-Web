@@ -570,11 +570,16 @@
             layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=350,height=350,title=#{kkutu.dialog.dress.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
-                <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
-                <input id="dress-nickname" maxlength="18"
-                       th:placeholder="#{kkutu.dialog.dress.nickname.placeHolder}" type="textfield"></div>
+                <h4 style="width: 100px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
+                <input id="dress-nickname" style="width: calc(255px - 80px)" maxlength="18"
+                       th:placeholder="#{kkutu.dialog.dress.nickname.placeHolder}" type="textfield">
+                <div class="dialog-opt" style="width: 80px">
+                    <input id="fixed-nickname" type="checkbox" style="margin-top: 5px; width: auto;">
+                    <label for="fixed-nickname" style="padding-top: 5px; display: block;" th:text="#{kkutu.dialog.dress.nickname.fixed}"></label>
+                </div>
+            </div>
             <div class="dialog-bar">
-                <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.exordial.name}"></h4>
+                <h4 style="width: 100px;" th:text="#{kkutu.dialog.dress.exordial.name}"></h4>
                 <input id="dress-exordial" maxlength="100"
                        th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}" type="textfield">
             </div>
@@ -773,7 +778,7 @@
         </h5>
         <div style="display: flex;float: right;margin-top: -22px">
             <input type="checkbox" id="chat-auto-scroll-cbx" checked="checked" style="margin-top: 1px"/>
-            <label for="chat-auto-scroll-cbx" style="font-size: 12px;margin-right: 5px">채팅 자동 스크롤</label>
+            <label for="chat-auto-scroll-cbx" style="font-size: 12px; margin-right: 5px" th:text="#{kkutu.product.chat.autoScroll}"></label>
         </div>
         <div class="product-body">
             <div id="Chat"></div>

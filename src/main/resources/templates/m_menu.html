@@ -20,7 +20,7 @@
     <div class="container">
         <div class="navbar-header"><a class="navbar-brand-sub" href="https://kkutu.io" style="margin-left:10px;"><img src="https://cdn.kkutu.io/img/bi/bi_white.svg" alt="끄투리오" height="25px"/></a></div>
         <ul class="nav m navbar-nav navbar-right">
-            <div id="account"><span id="profile" th:text="${profile == 'null' ? '{}' : profile.split('#')[0]}"></span>
+            <div id="account"><span id="profile" th:text="${profile == 'null' ? '{}' : profile}"></span>
                 <div id="account-info"></div>
             </div>
         </ul>

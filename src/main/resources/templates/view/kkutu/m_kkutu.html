@@ -395,7 +395,9 @@
     </th:block>
     <th:block layout:replace="~{view/kkutu/dialog::dialog(id='ProfileDiag',width=350,height=390)}">
         <th:block layout:fragment="content">
-            <div class="dialog-bar profile-head"></div>
+            <div class="dialog-bar profile-head">
+                <button id="profile-add-friend"><i class="fa fa-user-plus button fa-fw" aria-hidden="true"></i></button>
+            </div>
             <div class="dialog-bar">
                 <h4 style="width: 83px;" th:text="#{kkutu.dialog.profile.place}"></h4>
                 <h4 class="dialog-bar-value" id="profile-place"></h4>

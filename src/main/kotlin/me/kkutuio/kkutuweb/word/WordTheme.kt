@@ -169,7 +169,8 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_520("520", "해양"),
     THEME_530("530", "화학"),
     THEME_1001("1001", "나라 이름과 수도"),
-    THEME_PKT("KKT", "쿵쿵따 전용 단어"),
+    THEME_KKT("KKT", "쿵쿵따 전용 단어"),
+    THEME_DDW("DDW", "단어 대결 전용 단어"),
     THEME_HBW("HBW", "어인정 한방 방어 단어"),
     THEME_SBW("SBW", "안전 입력 제한 단어");
 

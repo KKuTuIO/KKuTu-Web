@@ -181,8 +181,9 @@
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.room.room-title}"></h4>
                 <input id="room-title" maxlength="20" autocomplete="off"
+                       th:with="nicknameWithoutHash=${nickname.substring(0, nickname.indexOf('#'))}"
                        th:with="pHolder=#{kkutu.dialog.room.room-title.placeholder}"
-                       th:placeholder="${nickname + pHolder}">
+                       th:placeholder="${nicknameWithoutHash + pHolder}">
             </div>
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.room.password}"></h4>

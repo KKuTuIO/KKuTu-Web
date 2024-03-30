@@ -181,8 +181,9 @@
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.room.room-title}"></h4>
                 <input id="room-title" maxlength="20" autocomplete="off"
+                       th:with="nicknameWithoutHash=${nickname.substring(0, nickname.indexOf('#'))}"
                        th:with="pHolder=#{kkutu.dialog.room.room-title.placeholder}"
-                       th:placeholder="${nickname + pHolder}">
+                       th:placeholder="${nicknameWithoutHash + pHolder}">
             </div>
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.room.password}"></h4>
@@ -393,10 +394,13 @@
             </div>
         </th:block>
     </th:block>
-    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='ProfileDiag',width=350,height=390)}">
+    <th:block layout:replace
+                      ="~{view/kkutu/dialog::dialog(id='ProfileDiag',width=350,height=390)}">
         <th:block layout:fragment="content">
             <div class="dialog-bar profile-head">
-                <button id="profile-add-friend"><i class="fa fa-user-plus button fa-fw" aria-hidden="true"></i></button>
+                <button id="profile-add-friend">
+                    <i class="fa fa-user-plus button fa-fw" aria-hidden="true"></i>
+                </button>
             </div>
             <div class="dialog-bar">
                 <h4 style="width: 83px;" th:text="#{kkutu.dialog.profile.place}"></h4>

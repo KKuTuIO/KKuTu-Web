@@ -49,6 +49,7 @@
         "mis",
         "loa",
         "str",
+        "odw",
         "k32",
         "beg",
         "nog",
@@ -75,6 +76,7 @@
         "mis",
         "loa",
         "str",
+        "odw",
         "beg",
         "nog",
         "rms",
@@ -162,6 +164,7 @@
         "mis",
         "loa",
         "str",
+        "odw",
         "beg",
         "nog",
         "rms",
@@ -184,6 +187,7 @@
         "mis",
         "loa",
         "str",
+        "odw",
         "beg",
         "nog",
         "rms",
@@ -384,6 +388,10 @@
     },
     "apm": {
       "name": "Apmal"
+    },
+    "odw": {
+      "name": "OpenDict",
+      "req": "ext"
     }
   }
 }

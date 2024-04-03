@@ -35,7 +35,7 @@ class ShopDao(
     }
 
     fun getGoods(): List<Good> {
-        val sql = "SELECT * FROM kkutu_shop WHERE cost <> -1"
+        val sql = "SELECT * FROM kkutu_shop"
         return jdbcTemplate.query(sql, shopMapper)
     }
 

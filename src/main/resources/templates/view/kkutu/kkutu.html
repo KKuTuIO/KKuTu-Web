@@ -461,15 +461,15 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='PolicyDiag',width=500,height=400,title=#{kkutu.dialog.policy.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='PolicyDiag',width=650,height=455,title=#{kkutu.dialog.policy.title})}">
         <th:block layout:fragment="content">
             <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.operation}"></h4>
             <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
-                <iframe id="operation-policy" width="100%" style="height: 120px;"></iframe>
+                <iframe id="operation-policy" width="100%" style="height: 155px;"></iframe>
             </div>
             <h4 style="font-weight: bold" th:text="#{kkutu.dialog.policy.privacy}"></h4>
             <div style="float: right; width: 100%; background-color: #FFF; border: 1px solid #CCC; margin-bottom: 10px;">
-                <iframe id="privacy-policy" width="100%" style="height: 120px;"></iframe>
+                <iframe id="privacy-policy" width="100%" style="height: 155px;"></iframe>
             </div>
             <div class="dialog-bar">
                 <p style="font-size: 11px; margin: 0;" th:text="#{kkutu.dialog.policy.tail}"></p>

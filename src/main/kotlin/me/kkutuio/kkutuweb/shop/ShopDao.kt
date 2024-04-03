@@ -28,14 +28,14 @@ class ShopDao(
     @Autowired private val shopMapper: GoodMapper
 ) {
     fun getGood(id: String): Good? {
-        val sql = "SELECT * FROM kkutu_shop WHERE _id = ?"
+        val sql = "SELECT * FROM kkutu_shop WHERE _id = ? AND cost <> -1"
 
         val goods = jdbcTemplate.query(sql, shopMapper, id)
         return if (goods.isEmpty()) null else goods.first()
     }
 
     fun getGoods(): List<Good> {
-        val sql = "SELECT * FROM kkutu_shop"
+        val sql = "SELECT * FROM kkutu_shop WHERE cost <> -1"
         return jdbcTemplate.query(sql, shopMapper)
     }
 

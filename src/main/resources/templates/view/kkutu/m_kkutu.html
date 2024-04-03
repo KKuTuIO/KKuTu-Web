@@ -145,7 +145,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=320,height=320,title=#{kkutu.dialog.quick.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=320,height=365,title=#{kkutu.dialog.quick.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.quick.gameMode}"></h4>
@@ -155,7 +155,7 @@
                 </select>
             </div>
 
-            <div class="dialog-bar" style="height: 140px;">
+            <div class="dialog-bar" style="height: 190px;">
                 <h4 style="height: 100%;" th:text="#{kkutu.dialog.quick.gameRule}"></h4>
                 <th:block th:each="entry : ${gameOptionMap}">
                     <th:block layout:replace="~{view/kkutu/option::gameOption(key=${entry.key},prefix='quick')}"/>
@@ -709,6 +709,9 @@
                     <div class="category-filter shop-type" th:id="${'shop-type-' + moremiCategory}"
                          th:value="${#strings.listJoin(moremiGroups.get(moremiCategory), ',')}"
                          th:text="#{'item.category.' + ${moremiCategory}}">
+                    </div>
+                    <div class="shop-tooltip">
+                        <input id="shop-search" type="text" th:placeholder="#{'item.search'}">
                     </div>
                 </th:block>
                 <th:block>

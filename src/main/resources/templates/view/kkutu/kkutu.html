@@ -716,9 +716,6 @@
                          th:value="${#strings.listJoin(moremiGroups.get(moremiCategory), ',')}"
                          th:text="#{'item.category.' + ${moremiCategory}}">
                     </div>
-                    <div class="shop-tooltip">
-                        <input id="shop-search" type="text" th:placeholder="#{'item.search'}">
-                    </div>
                 </th:block>
                 <th:block>
                     <div class="category-filter shop-type event-category" id="shop-type-exchange"
@@ -730,6 +727,9 @@
                         th:text="#{'item.category.convert'}">
                     </div>
                 </th:block>
+                <div class="shop-tooltip">
+                    <input id="shop-search" type="text" th:placeholder="#{'item.search'}">
+                </div>
             </div>
             <a target="_blank" class="category-filter shop-type event-category"
                style="width: 100px !important; float: right; display: block; margin: -3px 0px 5px 0px"

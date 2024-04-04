@@ -573,7 +573,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=350,height=350,title=#{kkutu.dialog.dress.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=350,height=460,title=#{kkutu.dialog.dress.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 style="width: 80px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
@@ -588,6 +588,11 @@
                 <h4 style="width: 80px;" th:text="#{kkutu.dialog.dress.exordial.name}"></h4>
                 <input id="dress-exordial" maxlength="100"
                        th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}" type="textfield">
+            </div>
+            <div class="dialog-bar">
+                <h4 style="width: 80px;" th:text="#{kkutu.dialog.dress.itemSearch.name}"></h4>
+                <input id="dress-search" class="fa" maxlength="100"
+                       th:placeholder="#{kkutu.dialog.dress.itemSearch.placeHolder}" type="textfield">
             </div>
             <div class="dialog-bar" style="padding: 5px; width: 340px;">
                 <div style="border-bottom: 1px solid #CCCCCC; height: 40px;">
@@ -611,7 +616,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=350,height=490,title=#{kkutu.dialog.charFactory.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=350,height=500,title=#{kkutu.dialog.charFactory.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar" style="width: 350px;">
                 <div id="cf-tray"></div>
@@ -629,6 +634,9 @@
                 <div class="goods-box" id="cf-goods"></div>
             </div>
             <div class="dialog-bar tail-button">
+                <div class="char-tooltip">
+                    <input class="fa search-box" id="char-search" type="text" th:placeholder="#{'kkutu.dialog.charFactory.search'}">
+                </div>
                 <button id="cf-compose" th:text="#{kkutu.dialog.charFactory.cfCompose}"></button>
             </div>
         </th:block>

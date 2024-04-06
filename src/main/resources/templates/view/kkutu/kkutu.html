@@ -576,7 +576,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=600,height=350,title=#{kkutu.dialog.dress.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='DressDiag',width=605,height=350,title=#{kkutu.dialog.dress.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
@@ -599,7 +599,7 @@
                     <input class="fa search-box" id="dress-search" type="text" th:placeholder="#{'item.search'}">
                 </div>
             </div>
-            <div class="dialog-bar" style="padding: 5px; width: 440px;">
+            <div class="dialog-bar" style="padding: 5px; width: 475px;">
                 <div style="border-bottom: 1px solid #CCCCCC; height: 20px;">
                     <th:block th:each="moremiCategory : ${moremiCategories}">
                         <div class="category-filter dress-type" th:id="${'dress-type-' + moremiCategory}"
@@ -734,8 +734,36 @@
                     </div>
                 </th:block>
                 <div class="shop-tooltip">
+                    <div class="ShopSort">
+                        <div id="ShopSortBtn" class="category-filter shop-sort">
+                            <i class="fa fa-sort-numeric-asc fa-fw"></i>
+                        </div>
+                        <div class="shop-radio">
+                            <label>
+                                <input type="radio" name="shopSort" value="name">
+                                <div th:text="#{item.sort.name}">이름순</div>
+                            </label>
+                            <label>
+                                <input type="radio" name="shopSort" value="time" checked>
+                                <div th:text="#{item.sort.updatedAt}">최근등록순</div>
+                            </label>
+                            <label>
+                                <input type="radio" name="shopSort" value="costLow">
+                                <div th:text="#{item.sort.costLow}">낮은가격순</div>
+                            </label>
+                            <label>
+                                <input type="radio" name="shopSort" value="costHigh">
+                                <div th:text="#{item.sort.costHigh}">높은가격순</div>
+                            </label>
+                            <label>
+                                <input type="radio" name="shopSort" value="hit">
+                                <div th:text="#{item.sort.hit}">누적판매순</div>
+                            </label>
+                        </div>
+                    </div>
                     <input class="fa search-box" id="shop-search" type="text" th:placeholder="#{'item.search'}">
                 </div>
+            </div>
             </div>
             <a target="_blank" class="category-filter shop-type event-category"
                style="width: 100px !important; float: right; display: block; margin: -3px 0px 5px 0px"

@@ -25,6 +25,7 @@ import me.kkutuio.kkutuweb.shop.Good
 data class ResponseGood(
     @JsonProperty("_id") val id: String,
     val cost: String,
+    val hit: Int,
     val term: Int,
     val group: String,
     val updatedAt: String,
@@ -35,6 +36,7 @@ data class ResponseGood(
             return ResponseGood(
                 good.id,
                 good.cost.toString(),
+                good.hit,
                 good.term,
                 good.group,
                 good.updatedAt.toString(),

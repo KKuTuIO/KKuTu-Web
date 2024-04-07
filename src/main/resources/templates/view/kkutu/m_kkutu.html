@@ -730,7 +730,28 @@
                     </div>
                 </th:block>
                 <div class="shop-tooltip">
-                    <input class="fa" id="shop-search" type="text" th:placeholder="#{'item.search'}">
+                    <div class="ShopSort">
+                        <div id="ShopSortBtn" class="category-filter shop-sort" width="24px">
+                            <i class="fa fa-sort-numeric-asc fa-fw"></i>
+                        </div>
+                        <div class="shop-radio">
+                            <input type="radio" name="shopSort" id="sort-by-name" value="name">
+                            <label for="sort-by-name" th:text="#{item.sort.name}">이름순 &nbsp; &nbsp; </label>
+
+                            <input type="radio" name="shopSort" id="sort-by-updated-at" value="updatedAt" checked>
+                            <label for="sort-by-updated-at" th:text="#{item.sort.updatedAt}">최근등록순</label>
+
+                            <input type="radio" name="shopSort" id="sort-by-cost-low" value="lowCost">
+                            <label for="sort-by-cost-low" th:text="#{item.sort.lowCost}">낮은가격순</label>
+
+                            <input type="radio" name="shopSort" id="sort-by-cost-high" value="highCost">
+                            <label for="sort-by-cost-high" th:text="#{item.sort.highCost}">높은가격순</label>
+
+                            <input type="radio" name="shopSort" id="sort-by-hit" value="hit">
+                            <label for="sort-by-hit" th:text="#{item.sort.hit}">누적판매순</label>
+                        </div>
+                    </div>
+                    <input class="fa search-box" id="shop-search" type="text" th:placeholder="#{'item.search'}">
                 </div>
             </div>
             <a target="_blank" class="category-filter shop-type event-category"

@@ -136,7 +136,7 @@ const Blocked = ({blockInfo}) => {
 
                     <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1'}>고객센터로 이동하기</LogoutBtn>
 
-                    <Footer style={{marginTop: '10px', fontSize: '16px'}}>문의 시 사용자 식별을 위하여 <span style={{
+                    <Footer style={{marginTop: '10px', fontSize: '16px'}}>문의 시 회원 식별을 위하여 <span style={{
                         display: 'inline-block',
                         color: '#A5D6A7',
                         fontWeight: 'bold',
@@ -182,7 +182,7 @@ const Blocked = ({blockInfo}) => {
 
                 <LogoutBtn onClick={() => window.location.href = 'https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1'}>고객센터로 이동하기</LogoutBtn>
 
-                <Footer style={{marginTop: '10px', fontSize: '16px'}}>문의 시 사용자 식별을 위하여 <span style={{
+                <Footer style={{marginTop: '10px', fontSize: '16px'}}>문의 시 회원 식별을 위하여 <span style={{
                     display: 'inline-block',
                     color: '#A5D6A7',
                     fontWeight: 'bold',

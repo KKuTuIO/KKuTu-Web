@@ -56,12 +56,12 @@ class WordApi(
     ): ListResponse<WordVO> {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
-            logger.warn("인증되지 않은 사용자로부터 단어 목록 조회 요청이 차단되었습니다.")
+            logger.warn("인증되지 않은 회원으로부터 단어 목록 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
-            logger.warn("관리자가 아닌 사용자(${sessionProfile.id})로부터 단어 목록 조회 요청이 차단되었습니다.")
+            logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 목록 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
@@ -90,12 +90,12 @@ class WordApi(
     ): ListResponse<WordVO> {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
-            logger.warn("인증되지 않은 사용자로부터 단어 조회 요청이 차단되었습니다.")
+            logger.warn("인증되지 않은 회원으로부터 단어 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
-            logger.warn("관리자가 아닌 사용자(${sessionProfile.id})로부터 단어 조회 요청이 차단되었습니다.")
+            logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
@@ -118,12 +118,12 @@ class WordApi(
     ): ActionResponse {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
-            logger.warn("인증되지 않은 사용자로부터 단어 수정 요청이 차단되었습니다.")
+            logger.warn("인증되지 않은 회원으로부터 단어 수정 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHENTICATED)
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
-            logger.warn("관리자가 아닌 사용자(${sessionProfile.id})로부터 단어 수정 요청이 차단되었습니다.")
+            logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 수정 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
@@ -149,12 +149,12 @@ class WordApi(
     ): ActionResponse {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
-            logger.warn("인증되지 않은 사용자로부터 단어 삭제 요청이 차단되었습니다.")
+            logger.warn("인증되지 않은 회원으로부터 단어 삭제 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHENTICATED)
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
-            logger.warn("관리자가 아닌 사용자(${sessionProfile.id})로부터 단어 삭제 요청이 차단되었습니다.")
+            logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 삭제 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
@@ -184,12 +184,12 @@ class WordApi(
     ): ActionResponse {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
-            logger.warn("인증되지 않은 사용자로부터 단어 추가 요청이 차단되었습니다.")
+            logger.warn("인증되지 않은 회원으로부터 단어 추가 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHENTICATED)
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
-            logger.warn("관리자가 아닌 사용자(${sessionProfile.id})로부터 단어 추가 요청이 차단되었습니다.")
+            logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 추가 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 

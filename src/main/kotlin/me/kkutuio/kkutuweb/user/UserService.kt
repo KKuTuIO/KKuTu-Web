@@ -157,7 +157,7 @@ class UserService(
     fun getUserData(id: String): String {
         val user = userDao.getUser(id) ?: return "{\"error\":405}"
         return "{\"result\":200,\"id\":\"${user.id}\",\"data\":${user.kkutu.toJson()},\"equip\":${user.equip.toJson()},\"exordial\":\"${user.exordial ?: ""}\",\"profile\":{\"authtype\":\"offline\",\"id\":\"${user.id}\",\"title\":\"${user.nickname}\"}}"
-        // NekoP - /user/{id}로 요청하여 사용자의 정보를 받아 올 수 있게 함
+        // NekoP - /user/{id}로 요청하여 회원의 정보를 받아 올 수 있게 함
     }
 
     fun getIdFromNick(nick: String): String {

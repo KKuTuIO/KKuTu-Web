@@ -42,12 +42,12 @@ class ProfileAPI(
     fun getProfile(request: HttpServletRequest, session: HttpSession): AdminSetting? {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
-            logger.warn("[${request.getIp()}] 인증되지 않은 사용자로부터 본인 프로필 정보 조회 요청이 차단되었습니다.")
+            logger.warn("[${request.getIp()}] 인증되지 않은 회원으로부터 본인 프로필 정보 조회 요청이 차단되었습니다.")
             return null
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
-            logger.warn("[${request.getIp()}] 권한이 없는 사용자(${sessionProfile.id})로부터 본인 프로필 정보 조회 요청이 차단되었습니다.")
+            logger.warn("[${request.getIp()}] 권한이 없는 회원(${sessionProfile.id})으로부터 본인 프로필 정보 조회 요청이 차단되었습니다.")
             return null
         }
 

@@ -37,7 +37,7 @@
     </div>
     <th:block th:replace="view/kkutu/m_menu"/>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,height=372,title=#{kkutu.dialog.setting.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,height=300,title=#{kkutu.dialog.setting.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.bgm-volume}"></h4>
@@ -67,6 +67,7 @@
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='enable-vibration',text=#{kkutu.dialog.setting.game.enable-vibration})}"/>
             </div>
+            <!--
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.etc.title}"></h4>
                 <th:block
@@ -78,6 +79,7 @@
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='only-unlock',text=#{kkutu.dialog.setting.etc.only-unlock},style='width: 200px')}"/>
             </div>
+            -->
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.lobby-bgm.title}"></h4>
                 <select id="select-lobby-bgm">

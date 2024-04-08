@@ -709,9 +709,9 @@
                 </div>
             </div>
         </h5>
-        <th:block layout:fragment="content">
-            <div th:text="#{kkutu.product.userList.loading}"></div>
-        </th:block>
+        <div class="product-body">
+            <div th:text="#{kkutu.product.roomList.loading}"></div>
+        </div>
     </div>
     <th:block
             layout:replace="~{view/kkutu/product::product(id='EventList',title=#{kkutu.product.eventList.title})}"
@@ -734,9 +734,9 @@
                 <div id="RoomListRefreshBtn" class="title-btn title-btn-r" th:text="#{kkutu.product.roomList.refresh}"></div>
             </div>
         </h5>
-        <th:block layout:fragment="content">
+        <div class="product-body">
             <div th:text="#{kkutu.product.roomList.loading}"></div>
-        </th:block>
+        </div>
     </div>
     <th:block layout:replace="~{view/kkutu/product::product(id='Shop',title=#{kkutu.product.shop.title})}">
         <th:block layout:fragment="content">

@@ -726,7 +726,10 @@
     <div class="RoomListBox Product" style="display: none;">
         <h5 class="product-title">
             <i class="RoomListTitle" style="font-style: unset"></i>
-            <div class="room-list-sort" style="width: 10%;max-width:60px;text-align: center;position: relative;">
+            <div class="room-list-refresh" style="width: 10%;min-width:50px;float:right;text-align: center;position: relative;">
+                <div id="RoomListRefreshBtn" class="title-btn title-btn-r" th:html="#{kkutu.product.roomList.refresh}"></div>
+            </div>
+            <div class="room-list-sort" style="width: 10%;min-width:50px;float:right;text-align: center;position: relative;">
                 <div id="RoomListSortBtn" class="title-btn title-btn" th:html="#{kkutu.product.roomList.sort.title}"></div>
                 <div class="sort-radio" id="RoomListSortRadio">
                     <input type="checkbox" id="room-list-only-waiting" name="roomListSort">
@@ -734,9 +737,6 @@
                     <input type="checkbox" id="room-list-only-unlock" name="roomListSort">
                     <label for="room-list-only-unlock" th:text="#{kkutu.product.roomList.sort.only-unlock}"></label>
                 </div>
-            </div>
-            <div class="room-list-refresh" style="width: 10%;max-width:60px;text-align: center;position: relative;">
-                <div id="RoomListRefreshBtn" class="title-btn title-btn-r" th:html="#{kkutu.product.roomList.refresh}"></div>
             </div>
         </h5>
         <div class="product-body">

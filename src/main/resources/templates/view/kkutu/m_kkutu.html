@@ -692,23 +692,50 @@
             </div>
         </th:block>
     </th:block>
-    <th:block
-            layout:replace="~{view/kkutu/product::product(id='UserList',title=#{kkutu.product.userList.title})}"
-            style="display: none;">
+    <div class="UserListBox Product" style="display: none;">
+        <h5 class="product-title">
+            <i class="UserListTitle" style="font-style: unset"></i>
+            <div class="user-list-sort" style="width: 32%;max-width:90px;text-align: center;position: relative;">
+                <div id="UserListSortBtn" class="title-btn title-btn-r" th:text="#{kkutu.product.userList.sort.title}"></div>
+                <div class="sort-radio" id="UserListSortRadio">
+                    <input type="radio" id="user-list-name" name="userListSort" value="name">
+                    <label for="user-list-name" th:text="#{kkutu.product.userList.sort.name}">가나다순 &nbsp;</label>
+                    <input type="radio" id="user-list-level" name="userListSort" value="score">
+                    <label for="user-list-level" th:text="#{kkutu.product.userList.sort.score}">레벨높은순</label>
+                    <input type="radio" id="user-list-entry" name="userListSort" value="entry" checked>
+                    <label for="user-list-entry" th:text="#{kkutu.product.userList.sort.entry}">접속순 &nbsp;</label>
+                </div>
+            </div>
+        </h5>
         <th:block layout:fragment="content">
             <div th:text="#{kkutu.product.userList.loading}"></div>
         </th:block>
-    </th:block>
+    </div>
     <th:block
             layout:replace="~{view/kkutu/product::product(id='EventList',title=#{kkutu.product.eventList.title})}"
             style="display: none;">
         <th:block layout:fragment="content"></th:block>
     </th:block>
-    <th:block layout:replace="~{view/kkutu/product::product(id='RoomList',title=#{kkutu.product.roomList.title})}">
+    <div class="RoomListBox Product" style="display: none;">
+        <h5 class="product-title">
+            <i class="RoomListTitle" style="font-style: unset"></i>
+            <div class="room-list-sort" style="width: 10%;max-width:60px;text-align: center;position: relative;">
+                <div id="RoomListSortBtn" class="title-btn title-btn" th:text="#{kkutu.product.userList.sort.title}"></div>
+                <div class="sort-radio" id="RoomListSortRadio">
+                    <input type="checkbox" id="user-list-only-waiting" name="roomListSort" value="only-waiting">
+                    <label for="user-list-only-waiting" th:text="#{kkutu.product.roomList.sort.only-waiting}"></label>
+                    <input type="checkbox" id="user-list-only-unlock" name="roomListSort" value="only-unlock">
+                    <label for="user-list-only-unlock" th:text="#{kkutu.product.roomList.sort.only-unlock}"></label>
+                </div>
+            </div>
+            <div class="room-list-refresh" style="width: 10%;max-width:60px;text-align: center;position: relative;">
+                <div id="RoomListRefreshBtn" class="title-btn title-btn-r" th:text="#{kkutu.product.roomList.refresh}"></div>
+            </div>
+        </h5>
         <th:block layout:fragment="content">
             <div th:text="#{kkutu.product.roomList.loading}"></div>
         </th:block>
-    </th:block>
+    </div>
     <th:block layout:replace="~{view/kkutu/product::product(id='Shop',title=#{kkutu.product.shop.title})}">
         <th:block layout:fragment="content">
             <div class="eventFrame"></div>
@@ -734,21 +761,21 @@
                         <div id="ShopSortBtn" class="category-filter shop-sort" width="24px">
                             <i class="fa fa-sort-numeric-asc fa-fw"></i>
                         </div>
-                        <div class="shop-radio">
-                            <input type="radio" name="shopSort" id="sort-by-name" value="name">
-                            <label for="sort-by-name" th:text="#{item.sort.name}">이름순 &nbsp; &nbsp; </label>
+                        <div id="shop-radio" class="sort-radio">
+                            <input type="radio" name="shopSort" id="shop-name" value="name">
+                            <label for="shop-name" th:text="#{item.sort.name}">가나다순</label>
 
-                            <input type="radio" name="shopSort" id="sort-by-updated-at" value="updatedAt" checked>
-                            <label for="sort-by-updated-at" th:text="#{item.sort.updatedAt}">최근등록순</label>
+                            <input type="radio" name="shopSort" id="shop-updated-at" value="updatedAt" checked>
+                            <label for="shop-updated-at" th:text="#{item.sort.updatedAt}">최근등록순</label>
 
-                            <input type="radio" name="shopSort" id="sort-by-cost-low" value="lowCost">
-                            <label for="sort-by-cost-low" th:text="#{item.sort.lowCost}">낮은가격순</label>
+                            <input type="radio" name="shopSort" id="shop-cost-low" value="lowCost">
+                            <label for="shop-cost-low" th:text="#{item.sort.lowCost}">낮은가격순</label>
 
-                            <input type="radio" name="shopSort" id="sort-by-cost-high" value="highCost">
-                            <label for="sort-by-cost-high" th:text="#{item.sort.highCost}">높은가격순</label>
+                            <input type="radio" name="shopSort" id="shop-cost-high" value="highCost">
+                            <label for="shop-cost-high" th:text="#{item.sort.highCost}">높은가격순</label>
 
-                            <input type="radio" name="shopSort" id="sort-by-hit" value="hit">
-                            <label for="sort-by-hit" th:text="#{item.sort.hit}">누적판매순</label>
+                            <input type="radio" name="shopSort" id="shop-hit" value="hit">
+                            <label for="shop-hit" th:text="#{item.sort.hit}">누적판매순</label>
                         </div>
                     </div>
                     <input class="fa search-box" id="shop-search" type="text" th:placeholder="#{'item.search'}">

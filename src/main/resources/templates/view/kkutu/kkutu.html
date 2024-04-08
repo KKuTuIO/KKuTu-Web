@@ -704,14 +704,14 @@
         <h5 class="product-title">
             <i class="UserListTitle" style="font-style: unset"></i>
             <div class="user-list-sort" style="width: 32%;max-width:90px;text-align: center;position: relative;">
-                <div id="UserListSortBtn" class="title-btn title-btn-r" innerHTML="#{kkutu.product.userList.sort.title}"></div>
+                <div id="UserListSortBtn" class="title-btn title-btn-r" th:html="#{kkutu.product.userList.sort.title}"></div>
                 <div class="sort-radio" id="UserListSortRadio">
                     <input type="radio" id="user-list-name" name="userListSort" value="name">
-                    <label for="user-list-name" innerHTML="#{kkutu.product.userList.sort.name}">가나다순 &nbsp;</label>
+                    <label for="user-list-name" th:text="#{kkutu.product.userList.sort.name}">가나다순 &nbsp;</label>
                     <input type="radio" id="user-list-level" name="userListSort" value="score">
-                    <label for="user-list-level" innerHTML="#{kkutu.product.userList.sort.score}">레벨높은순</label>
+                    <label for="user-list-level" th:text="#{kkutu.product.userList.sort.score}">레벨높은순</label>
                     <input type="radio" id="user-list-entry" name="userListSort" value="entry" checked>
-                    <label for="user-list-entry" innerHTML="#{kkutu.product.userList.sort.entry}">접속순 &nbsp;</label>
+                    <label for="user-list-entry" th:text="#{kkutu.product.userList.sort.entry}">접속순 &nbsp;</label>
                 </div>
             </div>
         </h5>
@@ -727,15 +727,15 @@
         <h5 class="product-title">
             <i class="RoomListTitle" style="font-style: unset"></i>
             <div class="room-list-refresh" style="width: 10%;min-width:50px;float:right;text-align: center;position: relative;">
-                <div id="RoomListRefreshBtn" class="title-btn title-btn-r" innerHTML="#{kkutu.product.roomList.refresh}"></div>
+                <div id="RoomListRefreshBtn" class="title-btn title-btn-r" th:html="#{kkutu.product.roomList.refresh}"></div>
             </div>
             <div class="room-list-sort" style="width: 10%;min-width:50px;float:right;text-align: center;position: relative;">
-                <div id="RoomListSortBtn" class="title-btn title-btn" innerHTML="#{kkutu.product.roomList.sort.title}"></div>
+                <div id="RoomListSortBtn" class="title-btn title-btn" th:html="#{kkutu.product.roomList.sort.title}"></div>
                 <div class="sort-radio" id="RoomListSortRadio">
                     <input type="checkbox" id="room-list-only-waiting" name="roomListSort">
-                    <label for="room-list-only-waiting" innerHTML="#{kkutu.product.roomList.sort.only-waiting}"></label>
+                    <label for="room-list-only-waiting" th:text="#{kkutu.product.roomList.sort.only-waiting}"></label>
                     <input type="checkbox" id="room-list-only-unlock" name="roomListSort">
-                    <label for="room-list-only-unlock" innerHTML="#{kkutu.product.roomList.sort.only-unlock}"></label>
+                    <label for="room-list-only-unlock" th:text="#{kkutu.product.roomList.sort.only-unlock}"></label>
                 </div>
             </div>
         </h5>

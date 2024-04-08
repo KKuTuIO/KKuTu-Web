@@ -701,11 +701,11 @@
                 <div id="UserListSortBtn" class="title-btn title-btn-r" th:utext="#{kkutu.product.userList.sort.title}"></div>
                 <div class="sort-radio" id="UserListSortRadio">
                     <input type="radio" id="user-list-name" name="userListSort" value="name">
-                    <label for="user-list-name" th:text="#{kkutu.product.userList.sort.name}">가나다순 &nbsp;</label>
+                    <label for="user-list-name" th:utext="#{kkutu.product.userList.sort.name}">가나다순 &nbsp;</label>
                     <input type="radio" id="user-list-level" name="userListSort" value="score">
-                    <label for="user-list-level" th:text="#{kkutu.product.userList.sort.score}">레벨높은순</label>
+                    <label for="user-list-level" th:utext="#{kkutu.product.userList.sort.score}">레벨높은순</label>
                     <input type="radio" id="user-list-entry" name="userListSort" value="entry" checked>
-                    <label for="user-list-entry" th:text="#{kkutu.product.userList.sort.entry}">접속순 &nbsp;</label>
+                    <label for="user-list-entry" th:utext="#{kkutu.product.userList.sort.entry}">접속순 &nbsp;</label>
                 </div>
             </div>
         </h5>
@@ -728,9 +728,9 @@
                 <div id="RoomListSortBtn" class="title-btn title-btn" th:utext="#{kkutu.product.roomList.sort.title}"></div>
                 <div class="sort-radio" id="RoomListSortRadio">
                     <input type="checkbox" id="room-list-only-waiting" name="roomListSort">
-                    <label for="room-list-only-waiting" th:text="#{kkutu.product.roomList.sort.only-waiting}"></label>
+                    <label for="room-list-only-waiting" th:utext="#{kkutu.product.roomList.sort.only-waiting}"></label>
                     <input type="checkbox" id="room-list-only-unlock" name="roomListSort">
-                    <label for="room-list-only-unlock" th:text="#{kkutu.product.roomList.sort.only-unlock}"></label>
+                    <label for="room-list-only-unlock" th:utext="#{kkutu.product.roomList.sort.only-unlock}"></label>
                 </div>
             </div>
         </h5>
@@ -765,19 +765,19 @@
                         </div>
                         <div id="shop-radio" class="sort-radio">
                             <input type="radio" name="shopSort" id="shop-name" value="name">
-                            <label for="shop-name" th:text="#{item.sort.name}">가나다순</label>
+                            <label for="shop-name" th:utext="#{item.sort.name}">가나다순</label>
 
                             <input type="radio" name="shopSort" id="shop-updated-at" value="updatedAt" checked>
-                            <label for="shop-updated-at" th:text="#{item.sort.updatedAt}">최근등록순</label>
+                            <label for="shop-updated-at" th:utext="#{item.sort.updatedAt}">최근등록순</label>
 
                             <input type="radio" name="shopSort" id="shop-cost-low" value="lowCost">
-                            <label for="shop-cost-low" th:text="#{item.sort.lowCost}">낮은가격순</label>
+                            <label for="shop-cost-low" th:utext="#{item.sort.lowCost}">낮은가격순</label>
 
                             <input type="radio" name="shopSort" id="shop-cost-high" value="highCost">
-                            <label for="shop-cost-high" th:text="#{item.sort.highCost}">높은가격순</label>
+                            <label for="shop-cost-high" th:utext="#{item.sort.highCost}">높은가격순</label>
 
                             <input type="radio" name="shopSort" id="shop-hit" value="hit">
-                            <label for="shop-hit" th:text="#{item.sort.hit}">누적판매순</label>
+                            <label for="shop-hit" th:utext="#{item.sort.hit}">누적판매순</label>
                         </div>
                     </div>
                     <input class="fa search-box" id="shop-search" type="text" th:placeholder="#{'item.search'}">

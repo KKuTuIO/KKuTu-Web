@@ -89,7 +89,7 @@ class CharFactoryService(
 
         var blend = false
         if (words.isEmpty()) {
-            if (wordString.length == 3) {
+            if (wordString.length == 2) {
                 // if (event) return "{\"error\":468}"
                 blend = true
             } else return "{\"error\":404}"
@@ -151,6 +151,7 @@ class CharFactoryService(
                 "abcdefghijklmnopqrstuvwxyz".toCharArray().random().toString()
             }
             "ko" -> {
+                /*
                 for (i in word.indices) {
                     val char = word[i].code - 0xAC00
 
@@ -161,6 +162,8 @@ class CharFactoryService(
 
                 (((choseongList.shuffled()[0] * 21) + jungseongList.shuffled()[0]) * 28 + jongseongList.shuffled()[0] + 0xAC00).toChar()
                     .toString()
+                 */
+                "가나다라마바사아자차카타파하거너더러머버서어저처커터퍼허고노도로모보소오조초코토포호구누두루무부수우주추쿠투푸후그느드르므브스으즈츠크트프흐기니디리미비시이지치키티피히".toCharArray().random().toString()
             }
             else -> {
                 "ERROR"

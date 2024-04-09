@@ -142,9 +142,9 @@ class CharFactoryService(
 
     fun blendWord(word: String): String {
         val lang = findLanguage(word)
-        val choseongList = HashSet<Int>()
-        val jungseongList = HashSet<Int>()
-        val jongseongList = HashSet<Int>()
+        // val choseongList = HashSet<Int>()
+        // val jungseongList = HashSet<Int>()
+        // val jongseongList = HashSet<Int>()
 
         return when (lang) {
             "en" -> {

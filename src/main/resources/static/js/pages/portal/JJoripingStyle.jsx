@@ -71,8 +71,8 @@ export const JJoEyeR = styled.img`
 `
 
 export const JJoDisplayBar = styled.div`
-  width: 100%;
-  height: 100%;
+  width: 94%;
+  height: 70%;
   background-color: #DEAF56;
   padding: 20px 5px 5px 5px;
   border-radius: 10px;

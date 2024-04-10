@@ -32,7 +32,7 @@ const JJoriping = ({onGameStart}) => {
     const IMAGE_CDN_URL = 'https://cdn.kkutu.io/img';
     return (
         <>
-            <JJoripingGlobalStyle/>
+            {/* <JJoripingGlobalStyle/> */}
             <JJoripingContainer>
                 {/*<Memorial0416 src={`${IMAGE_CDN_URL}/0416.png`} alt="0416"/>*/}
                 <JJoEyeL src={`${IMAGE_CDN_URL}/jjoeyeL.png`} alt="캐릭터 왼쪽 눈"/>

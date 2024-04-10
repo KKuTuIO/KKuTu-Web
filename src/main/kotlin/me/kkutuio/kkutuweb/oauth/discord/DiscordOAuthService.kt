@@ -57,7 +57,7 @@ class DiscordOAuthService(
         return OAuthUser(
             authVendor = AuthVendor.DISCORD,
             vendorId = jsonResponse["id"].textValue(),
-            name = jsonResponse["username"].textValue() + "#" + jsonResponse["discriminator"].textValue(),
+            name = jsonResponse["username"].textValue(),
             profileImage = "https://cdn.discordapp.com/avatars/${jsonResponse["id"].longValue()}/${jsonResponse["avatar"].textValue()}",
             gender = null,
             minAge = null,

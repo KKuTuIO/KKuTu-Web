@@ -109,6 +109,7 @@
             <div class="dialog-bar tail-button">
                 <button id="setting-ok" th:text="#{kkutu.dialog.setting.save}"></button>
                 <button id="setting-server" th:text="#{kkutu.dialog.setting.change-server}"></button>
+                <button id="setting-load" th:text="#{kkutu.dialog.setting.change-server}"></button>
             </div>
         </th:block>
     </th:block>
@@ -495,9 +496,9 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='PromptDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='PromptDiag',width=300,height=160,title=#{kkutu.dialog.message.title})}">
         <th:block layout:fragment="content">
-            <div class="msg-style" id="prompt-content" style="height: 60px;"></div>
+            <div class="msg-style" id="prompt-content" style="height: 70px;"></div>
             <input id="prompt-input" type="text" placeholder="입력..." style="width: calc(100% - 12px);">
             <div class="dialog-bar tail-button">
                 <button id="prompt-no" th:text="#{kkutu.dialog.message.no}"></button>

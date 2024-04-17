@@ -36,7 +36,7 @@
             crossorigin="anonymous"
     ></script>
 
-    <link rel="canonical" th:href="@{/}">
+    <link rel="canonical" th:href="@{'https://kkutu.io' + ${#httpServletRequest.requestURI}}">
     <meta name="description" th:content="#{meta.description}">
     <meta name="keywords" th:content="#{meta.keywords}">
 

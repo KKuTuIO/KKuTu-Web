@@ -390,8 +390,7 @@
       "name": "Apmal"
     },
     "odw": {
-      "name": "OpenDict",
-      "req": "ext"
+      "name": "OpenDict"
     }
   }
 }

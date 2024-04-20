@@ -116,10 +116,11 @@ class MainController(
                 (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
             val nickname: String = sessionProfile?.title ?: (messages["kkutu.dialog.room.room-title.guest"]
                 ?: error("kkutu.dialog.room.room-title.guest 언어 설정을 찾을 수 없습니다."))
+            val redactedNickname = nickname.split("#").firstOrNull() ?: nickname
 
             model.addAttribute("version", kKuTuSetting.getVersion())
             model.addAttribute("websocketUrl", webSocketUrl + "/" + aeS256.encrypt(randomSid))
-            model.addAttribute("nickname", nickname)
+            model.addAttribute("nickname", redactedNickname)
             model.addAttribute("moremiParts", kKuTuSetting.getMoremiParts().joinToString(","))
             model.addAttribute("moremiCategories", kKuTuSetting.getMoremiCategories())
             model.addAttribute("moremiEquips", kKuTuSetting.getMoremiEquips().joinToString(","))

@@ -48,6 +48,7 @@
     <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/style.css?rv=' + ${runnerVersion}}"/>
     <link rel="stylesheet" href="https://cdn.kkutu.io/css/font-awesome-4.7.0/css/font-awesome.min.css"/>
     <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/expl.css?rv=' + ${runnerVersion}}"/>
+    <link rel="manifest" href="manifest.json">
 
     <link rel="icon" type="image/x-icon" href="https://cdn.kkutu.io/favicon.ico?v=1">
 
@@ -93,6 +94,14 @@
             j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
         })(window,document,'script','dataLayer','GTM-PBFPQKD');
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener("load", function() {
+                navigator.serviceWorker.register('https://cdn.kkutu.io/js/pwa-service-worker.js').then(function() {
+                    console.log('ServiceWorker 등록됨');
+                });
+            });
+        }
     </script>
     <script type="text/javascript" src="https://cdn.kkutu.io/js/jquery.min.js?version=1.12.4"></script>
     <script type="text/javascript" th:src="@{'https://cdn.kkutu.io/js/global.js?version=3.0.0&rev=1&rv=' + ${runnerVersion}}"></script>

@@ -1,43 +1,51 @@
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js');
+var CACHE = "offline-cache";
 
-const routing = workbox.routing;
-const strategies = workbox.strategies;
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
 
-workbox.routing.registerRoute(
-	/.(?:css|js|jsx|json)(?|$)/,
-	new workbox.strategies.StaleWhileRevalidate({
-		"cacheName": "assets",
-		plugins: [
-			new workbox.expiration.Plugin({
-				maxEntries: 1000,
-				maxAgeSeconds: 31536000
-			})
-		]
-	})
-);
+var offlineFallbackPage = "offline.html";
 
-workbox.routing.registerRoute(
-	/.(?:png|jpg|jpeg|gif|woff2)$/,
-	new workbox.strategies.CacheFirst({
-		"cacheName": "images",
-		plugins: [
-			new workbox.expiration.Plugin({
-				maxEntries: 1000,
-				maxAgeSeconds: 31536000
-			})
-		]
-	})
-);
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+self.addEventListener('install', async (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.add(offlineFallbackPage))
+  );
+});
+
+if (workbox.navigationPreload.isSupported()) {
+  workbox.navigationPreload.enable();
+}
 
 workbox.routing.registerRoute(
-	/(\/)$/,
-	new workbox.strategies.StaleWhileRevalidate({
-		"cacheName": "startPage",
-		plugins: [
-			new workbox.expiration.Plugin({
-				maxEntries: 1000,
-				maxAgeSeconds: 31536000
-			})
-		]
-	})
+  new RegExp('/*'),
+  new workbox.strategies.StaleWhileRevalidate({
+    cacheName: CACHE
+  })
 );
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        var preloadResp = await event.preloadResponse;
+
+        if (preloadResp) {
+          return preloadResp;
+        }
+
+        var networkResp = await fetch(event.request);
+        return networkResp;
+      } catch (error) {
+
+        var cache = await caches.open(CACHE);
+        var cachedResp = await cache.match(offlineFallbackPage);
+        return cachedResp;
+      }
+    })());
+  }
+});

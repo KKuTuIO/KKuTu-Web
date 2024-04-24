@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.kkutu.kkutuio",
+        "sha256_cert_fingerprints": ["DA:77:7E:9B:9D:40:13:42:DA:07:11:08:E2:F8:54:1D:C0:DE:3E:6C:0A:9E:5A:01:AD:A4:34:8B:B0:2E:43:68"]
+      }
+    }]

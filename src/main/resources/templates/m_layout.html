@@ -73,7 +73,7 @@
 <body style="min-width: 200px;">
 
 <div id="Top">
-    <div th:include="m_menu" th:remove="tag"></div>
+    <div th:include="m_menu" th:remove="tag" th:unless="${#strings.startsWith(viewName, 'view/login')}"></div>
     <div id="global-notice">
         <div id="gn-content"></div>
     </div>

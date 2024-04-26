@@ -21,7 +21,7 @@ import React from "react";
 const AdsenseAd = ({client, slot, format, responsive}) => {
     return (
         <ins className="adsbygoogle"
-             style="display:block"
+             style={{ display: "block" }}
              data-ad-client={client}
              data-ad-slot={slot}
              data-ad-format={format}

@@ -890,18 +890,13 @@
     <th:block
             layout:replace="~{view/kkutu/product::product(id='TLXFQZ',title=#{portal.ad.title},createWithShown=true)}">
         <th:block layout:fragment="content">
-            <ins class="kakao_ad_area"
-                 style = "display:none;"
-                 data-ad-unit = "DAN-EYG7HMjQqivIXFNa"
-                 data-ad-width = "320"
-                 data-ad-height = "100"
-            ></ins>
-            <ins class="kakao_ad_area"
-                 style = "display:none;"
-                 data-ad-unit = "DAN-ftEmFfVSbwkdD33G"
-                 data-ad-width = "320"
-                 data-ad-height = "50"
-            ></ins>
+            <!-- 끄투리오 - 하단 배너 (모바일) -->
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-7356923884519790"
+                 data-ad-slot="4321901032"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
         </th:block>
     </th:block>
     <div id="MessageOverlay"></div>
@@ -910,5 +905,4 @@
     <script th:src="@{'https://cdn.kkutu.io/js/kawaiii.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{'https://cdn.kkutu.io/js/in_game_kkutu.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{'https://cdn.kkutu.io/js/md5.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
-    <script async src="//t1.daumcdn.net/kas/static/ba.min.js" type="text/javascript"></script>
 </div>

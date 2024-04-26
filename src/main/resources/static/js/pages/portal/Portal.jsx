@@ -22,7 +22,7 @@ import Separator from "../../components/Separator";
 import '../../../css/in_portal.css';
 import {MiddlePanel, UpdateLog} from "./PortalStyle";
 import Product from "../../components/Product";
-import KakaoAd from "../../components/KakaoAd";
+import AdsenseAd from "../../components/AdsenseAd";
 import TopLeftPanel from "./TopLeftPanel";
 import TopRightPanel from "./TopRightPanel";
 import {BrowserView, MobileView} from "react-device-detect";
@@ -97,13 +97,13 @@ const Portal = () => {
 
             <BrowserView>
                 <Product id="qwShKF" title={Messages['portal.ad.title']} createWithShown={true}>
-                    <KakaoAd width={728} height={90} unit="DAN-foUc9eTmMwRJkgLR"/>
+                    <AdsenseAd client="ca-pub-7356923884519790" slot="5297190912" format="auto" responsive="true"/>
                 </Product>
                 <Separator height={10}/>
             </BrowserView>
             <MobileView>
                 <Product id="qwShKF" title={Messages['portal.ad.title']} createWithShown={true}>
-                    <KakaoAd width={300} height={250} unit="DAN-gFLCejiyrNaIrKfL"/>
+                    <AdsenseAd client="ca-pub-7356923884519790" slot="4321901032" format="auto" responsive="true"/>
                 </Product>
                 <Separator height={10}/>
             </MobileView>

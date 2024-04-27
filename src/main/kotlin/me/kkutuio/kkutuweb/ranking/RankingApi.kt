@@ -30,9 +30,9 @@ class RankingApi(
 ) {
     @GetMapping("/ranking")
     fun ranking(
-        @RequestParam(required = false) p: Long?,
+        @RequestParam(required = false) page: Long?,
         @RequestParam(required = false) id: String?
     ): RankResponse {
-        return rankingService.getRanking(p, id)
+        return rankingService.getRanking(page, id)
     }
 }

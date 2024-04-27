@@ -18,9 +18,9 @@
 
 import React from "react";
 
-const Product = ({id, title, createWithShown = false, children}) => {
+const Product = ({id, title, width, createWithShown = false, children}) => {
     return (
-        <div className={`${id}Box Product`} style={{display: createWithShown ? 'block' : 'none'}}>
+        <div className={`${id}Box Product`} style={{display: createWithShown ? 'block' : 'none', width: width ? width : 'unset'}}>
             <h5 className="product-title">{title}</h5>
             <div className="product-body">
                 {children}

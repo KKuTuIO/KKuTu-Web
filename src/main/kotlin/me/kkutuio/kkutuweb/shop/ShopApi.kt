@@ -20,7 +20,10 @@ package me.kkutuio.kkutuweb.shop
 
 import me.kkutuio.kkutuweb.shop.response.ShopResponse
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.http.MediaType
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -31,10 +34,14 @@ import javax.servlet.http.HttpSession
 class ShopApi(
     @Autowired private val shopService: ShopService
 ) {
+    @Cacheable(value = ["shopCache"], key = "'shop'")
     @GetMapping("/shop")
     fun getGoods(): ShopResponse {
         return shopService.getGoods()
     }
+
+    @CacheEvict(value = ["shopCache"], allEntries = true)
+    fun evictShopCache() {}
 
     @PostMapping("/buy/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun buyGood(
@@ -50,5 +57,10 @@ class ShopApi(
         session: HttpSession
     ): String {
         return shopService.paybackGood(id, session)
+    }
+
+    @Scheduled(fixedDelay = 3600000)
+    fun evictCachePeriodically() {
+        evictShopCache()
     }
 }

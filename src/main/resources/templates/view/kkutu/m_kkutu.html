@@ -122,6 +122,41 @@
             </div>
         </th:block>
     </th:block>
+    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='BlockDiag',width=300,height=300,title=#{kkutu.dialog.block.title}))}">
+        <th:block layout:fragment="content">
+            <div class="dialog-bar" style="height: 225px; overflow-y: scroll;">
+                <div id="block-list"></div>
+            </div>
+            <div class="dialog-bar tail-button">
+                <button id="block-add" th:text="#{kkutu.dialog.block.block-add}"></button>
+                <button id="block-export" th:text="#{kkutu.dialog.block.block-export}"></button>
+            </div>
+        </th:block>
+    </th:block>
+    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='AccountOptionsDiag',width=280,height=245)}">
+        <th:block layout:fragment="content">
+            <div class="dialog-bar" style="text-align: center;">
+                <div class="account-options">
+                    <div class="account-options-menu">
+                        <button id="account-copy-settings" th:utext="#{kkutu.dialog.accountOptions.copySettings}"></button>
+                        <div th:text="#{kkutu.dialog.accountOptions.copySettings.expl}"></div>
+                    </div>
+                </div>
+                <div class="account-options">
+                    <div class="account-options-menu">
+                        <button id="account-check-uid" th:utext="#{kkutu.dialog.accountOptions.checkUid}"></button>
+                        <div th:text="#{kkutu.dialog.accountOptions.checkUid.expl}"></div>
+                    </div>
+                </div>
+                <div class="account-options">
+                    <div class="account-options-menu">
+                        <button id="account-check-membership-info" th:utext="#{kkutu.dialog.accountOptions.checkMembershipInfo}"></button>
+                        <div th:text="#{kkutu.dialog.accountOptions.checkMembershipInfo.expl}"></div>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+    </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='LeaderboardDiag',width=300,height=450,title=#{kkutu.dialog.leaderboard.title})}">
         <th:block layout:fragment="content">
@@ -620,7 +655,7 @@
                 <!-- <button id="dress-sell"
                         th:text="#{kkutu.dialog.dress.payback}"
                         th:with="paybackHelp=#{kkutu.dialog.dress.paybackHelp}"></button> -->
-                <button id="dress-uid" th:text="#{kkutu.dialog.dress.uid}"></button>
+                <button id="dress-account-options" th:text="#{kkutu.dialog.dress.accountOptions}"></button>
             </div>
         </th:block>
     </th:block>

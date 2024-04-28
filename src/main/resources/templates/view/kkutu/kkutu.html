@@ -119,10 +119,11 @@
             </div>
             <div class="dialog-bar tail-button">
                 <button id="comm-friend-add" th:text="#{kkutu.dialog.community.friend-add}"></button>
+                <button id="comm-manage-block" th:text="#{kkutu.dialog.community.manage-block}"></button>
             </div>
         </th:block>
     </th:block>
-    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='BlockDiag',width=300,height=300,title=#{kkutu.dialog.block.title}))}">
+    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='BlockDiag',width=300,height=300,title=#{kkutu.dialog.block.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar" style="height: 225px; overflow-y: scroll;">
                 <div id="block-list"></div>

@@ -749,7 +749,7 @@
             </div>
         </th:block>
     </th:block>
-    <div class="UserListBox Product" style="display: none;">
+    <div class="UserListBox Product" style="display: block;">
         <h5 class="product-title">
             <i class="UserListTitle" style="font-style: unset"></i>
             <div class="user-list-sort" style="width: 32%;max-width:90px;text-align: center;position: relative;">
@@ -772,7 +772,7 @@
             layout:replace="~{view/kkutu/product::product(id='EventList',title=#{kkutu.product.eventList.title})}">
         <th:block layout:fragment="content"></th:block>
     </th:block>
-    <div class="RoomListBox Product" style="display: none;">
+    <div class="RoomListBox Product" style="display: block;">
         <h5 class="product-title">
             <i class="RoomListTitle" style="font-style: unset"></i>
             <div class="room-list-refresh" style="width: 10%;min-width:60px;float:right;text-align: center;position: relative;">
@@ -893,7 +893,7 @@
             </div>
         </th:block>
     </th:block>
-    <th:block layout:replace="~{view/kkutu/product::product(id='Me',title=#{kkutu.product.me.title})}">
+    <th:block layout:replace="~{view/kkutu/product::product(id='Me',title=#{kkutu.product.me.title},createWithShown=true)}">
         <th:block layout:fragment="content">
             <div class="moremi my-image"></div>
             <div class="my-stat">

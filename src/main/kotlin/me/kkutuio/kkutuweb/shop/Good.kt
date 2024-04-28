@@ -27,6 +27,6 @@ data class Good(
     val hit: Int,
     val term: Int,
     val group: String,
-    val updatedAt: Timestamp,
+    val updatedAt: Timestamp?,
     val options: JsonNode
 )

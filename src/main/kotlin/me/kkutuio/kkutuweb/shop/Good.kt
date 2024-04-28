@@ -19,6 +19,7 @@
 package me.kkutuio.kkutuweb.shop
 
 import com.fasterxml.jackson.databind.JsonNode
+import java.sql.Timestamp
 
 data class Good(
     val id: String,
@@ -26,6 +27,6 @@ data class Good(
     val hit: Int,
     val term: Int,
     val group: String,
-    val updatedAt: Long,
+    val updatedAt: Timestamp,
     val options: JsonNode
 )

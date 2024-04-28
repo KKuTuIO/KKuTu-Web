@@ -34,7 +34,7 @@ class GoodMapper(
         val hit = rs.getInt("hit")
         val term = rs.getInt("term")
         val group = rs.getString("group")
-        val updatedAt = rs.getLong("updatedAt")
+        val updatedAt = rs.getTimestamp("updatedAt")
         val options = rs.getString("options")
 
         val jsonNode = objectMapper.readTree(options)

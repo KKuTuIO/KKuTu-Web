@@ -100,7 +100,7 @@ class ConsumeService(
             "dictPage" -> {
                 val objectNode = user.kkutu as ObjectNode
 
-                val addExp = (sqrt(4.0 + 3.6 * (objectNode["score"].intValue())) / 2).roundToInt()
+                val addExp = (sqrt(80.0 + 3.0 * (objectNode["score"].intValue())) / 2).roundToInt()
                 objectNode.put("score", objectNode["score"].intValue() + addExp)
 
                 return UseItemResult(exp = addExp)

@@ -24,6 +24,10 @@ import '../../oauth-buttons.min'
 
 import '../../../css/oauth-buttons.min.css';
 import '../../../css/in_login.css';
+import {BrowserView, MobileView} from "react-device-detect";
+import Product from "../../components/Product";
+import AdsenseAd from "../../components/AdsenseAd";
+import Separator from "../../components/Separator";
 
 const Login = () => {
     const [vendors, setVendors] = useState([]);
@@ -63,6 +67,19 @@ const Login = () => {
             }
 
             <div className="login-legal" dangerouslySetInnerHTML={{__html: Messages['login.legal']}}/>
+
+            <BrowserView>
+                <Product id="qwShKF" title={Messages['portal.ad.title']} createWithShown={true} width={"calc(100% - 10px)"}>
+                    <AdsenseAd client="ca-pub-7356923884519790" slot="5297190912" format="auto" responsive="true"/>
+                </Product>
+                <Separator height={10}/>
+            </BrowserView>
+            <MobileView>
+                <Product id="qwShKF" title={Messages['portal.ad.title']} createWithShown={true} width={"calc(100% - 10px)"}>
+                    <AdsenseAd client="ca-pub-7356923884519790" slot="4321901032" format="auto" responsive="true"/>
+                </Product>
+                <Separator height={10}/>
+            </MobileView>
         </>
     );
 }

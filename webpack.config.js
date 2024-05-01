@@ -34,7 +34,7 @@ module.exports = (env, options) => {
         },
         output: {
             path: deployPath,
-            filename: '[name]-v3.7.0.min.js'
+            filename: '[name]-v3.7.0a.min.js'
         },
         module: {
             rules: [

@@ -552,9 +552,9 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='WhichHandDiag',width=300,height=115,title=#{kkutu.dialog.message.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='WhichHandDiag',width=300,height=135,title=#{kkutu.dialog.message.title})}">
         <th:block layout:fragment="content">
-            <div class="msg-style" id="hand-content" th:text="#{kkutu.js.dressWhichHand}" style="height: 50px;"></div>
+            <div class="msg-style" id="hand-content" th:text="#{kkutu.js.dressWhichHand}" style="height: 65px;"></div>
             <div class="dialog-bar tail-button">
                 <button id="hand-no" th:text="#{kkutu.dialog.message.no}"></button>
                 <button id="hand-right" th:text="#{kkutu.dialog.message.right}"></button>

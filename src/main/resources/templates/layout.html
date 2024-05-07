@@ -63,6 +63,7 @@
                 environment: "production", // production
                 release: "kkutu-web-frontend@1.1.1",
                 integrations: [new Sentry.Integrations.BrowserTracing()],
+                ignoreErrors: ["syncClientInfo", "TurnstileError", "decodeAudioData", "importError"],
 
                 // We recommend adjusting this value in production, or using tracesSampler
                 // for finer control

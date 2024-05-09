@@ -23,16 +23,30 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 @RestController
 class RankingApi(
     @Autowired private val rankingService: RankingService
 ) {
+    sealed class RankingResult {
+        data class Success(val data: RankResponse) : RankingResult()
+        data class Error(val message: String) : RankingResult()
+    }
+
     @GetMapping("/ranking")
     fun ranking(
         @RequestParam(required = false) page: Long?,
-        @RequestParam(required = false) id: String?
-    ): RankResponse {
-        return rankingService.getRanking(page, id)
+        @RequestParam(required = false) id: String?,
+        request: HttpServletRequest,
+        response: HttpServletResponse
+    ): RankingResult {
+        if (request.getHeader("referer") == null || !request.getHeader("referer").contains("kkutu.io")) {
+            response.status = HttpServletResponse.SC_FORBIDDEN
+            return RankingResult.Error("{\"error\":400}")
+        }
+        val rankingResponse = rankingService.getRanking(page, id)
+        return RankingResult.Success(rankingResponse)
     }
 }

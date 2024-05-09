@@ -44,7 +44,7 @@ class RankingApi(
     ): RankingResult {
         if (request.getHeader("referer") == null || !request.getHeader("referer").contains("kkutu.io")) {
             response.status = HttpServletResponse.SC_FORBIDDEN
-            return RankingResult.Error(400)
+            return RankingResult.Error(403)
         }
         val rankingResponse = rankingService.getRanking(page, id)
         return RankingResult.Success(rankingResponse)

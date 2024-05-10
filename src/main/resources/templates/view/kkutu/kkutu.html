@@ -201,7 +201,7 @@
                 </select>
             </div>
 
-            <div class="dialog-bar" style="height: 190px;">
+            <div class="dialog-bar" style="height: 195px;">
                 <h4 style="height: 100%;" th:text="#{kkutu.dialog.quick.gameRule}"></h4>
                 <th:block th:each="entry : ${gameOptionMap}">
                     <th:block layout:replace="~{view/kkutu/option::gameOption(key=${entry.key},prefix='quick')}"/>
@@ -282,7 +282,7 @@
                     <option value="120"></option>
                     <option value="150"></option>
                 </select></div>
-            <div class="dialog-bar" style="height: 190px;">
+            <div class="dialog-bar" style="height: 195px;">
                 <h4 style="height: 100%;" th:text="#{kkutu.dialog.room.gameRule}"></h4>
                 <th:block th:each="entry : ${gameOptionMap}">
                     <th:block layout:replace="~{view/kkutu/option::gameOption(key=${entry.key},prefix='room')}"/>
@@ -292,6 +292,13 @@
                     <button id="room-injeong-pick" style="font-size: 11px;"
                             th:text="#{kkutu.dialog.room.pickInjeong}"></button>
                 </div>
+            </div>
+            <div class="dialog-bar" style="margin: 0 0 -5px -5px;height: 20px;">
+                <h4></h4>
+                <h4 class="dialog-bar-value" style="font-size: 11px;text-align: right !important;">
+                    <i class="fa fa-clock-o"></i> <b th:text="#{kkutu.dialog.room.eta}">예상 게임 시간:</b>
+                    <i id="estimated-game-time" style="font-style: normal;"></i>
+                </h4>
             </div>
             <div class="dialog-bar tail-button">
                 <button id="room-ok" th:text="#{kkutu.dialog.room.ok}"></button>
@@ -674,7 +681,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=500,height=465,title=#{kkutu.dialog.charFactory.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='CharFactoryDiag',width=520,height=465,title=#{kkutu.dialog.charFactory.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar" style="width: 300px;">
                 <div id="cf-tray"></div>

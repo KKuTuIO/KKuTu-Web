@@ -40,6 +40,9 @@ class ConsumeService(
     @Autowired private val shopService: ShopService
 ) {
     fun consume(id: String, session: HttpSession): String {
+        return "{\"error\":400}"
+
+        /**
         if (session.isGuest()) return "{\"error\":400}"
         val oAuthUser = session.getOAuthUser()
 
@@ -75,6 +78,7 @@ class ConsumeService(
         } else {
             "{\"result\":200,\"box\":${user.box.toJson()},\"data\":${user.kkutu},\"gain\":[],\"exp\":${useItemResult.exp}}"
         }
+        **/
     }
 
     private fun useItem(user: User, goodId: String): UseItemResult? {

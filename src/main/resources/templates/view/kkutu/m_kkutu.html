@@ -894,7 +894,7 @@
                 <div style="display: none;" class="tools">
                     <div style="width: 100%;">
                         <div style="float: left; width: 35%;">
-                            <span id="themeis" th:text="#{kkutu.js.themeIs}"></span>
+                            <span id="themeis" th:text="${kkutu.js.themeIs}"></span>
                         </div>
                         <div style="float: left; width: 65%;">
                             <span id="themeis-title"></span>
@@ -902,14 +902,14 @@
                     </div>
                     <div style="width: 100%;">
                         <div style="float: left; width: 35%;">
-                            <span id="drawing" th:text="#{kkutu.js.wordIs}"></span>
+                            <span id="drawing" th:text="${kkutu.js.wordIs}"></span>
                         </div>
                         <div style="float: left; width: 65%;">
                             <span id="drawing-title"></span>
                         </div>
                     </div>
                     <div style="width: 100%;">
-                        <label for="drawing-line-width" th:text="#{kkutu.js.drawingLineWidth}"></label>
+                        <label for="drawing-line-width" th:text="${kkutu.js.drawingLineWidth}"></label>
                         <input id="drawing-line-width" type="range" value="1" min="1" max="40" />
                     </div>
                     <div class="palette">
@@ -943,11 +943,11 @@
                     </div>
                     <div style="width: 100%;">
                         <div style="float: left; width: 60%;">
-                            <label for="drawing-color" th:text="#{kkutu.js.drawingColor}"></label>
+                            <label for="drawing-color" th:text="${kkutu.js.drawingColor}"></label>
                             <input id="drawing-color" type="color" value="#000000" />
                         </div>
                         <div style="float: left; width: 40%;">
-                            <button id="drawing-clear" th:text="#{kkutu.js.drawingClear}"></button>
+                            <button id="drawing-clear" th:text="${kkutu.js.drawingClear}"></button>
                         </div>
                     </div>
                 </div>
@@ -959,7 +959,7 @@
             </div>
             <div class="game-body"></div>
             <div class="game-input">
-                <input id="game-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" th:placeholder="#{kkutu.product.game.yourTurn}">
+                <input id="game-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" th:placeholder="${kkutu.product.game.yourTurn}">
             </div>
         </th:block>
     </th:block>

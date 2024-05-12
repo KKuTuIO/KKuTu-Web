@@ -253,6 +253,7 @@
                         <option value="15" th:text="#{'game.mode.KWS.name'}">한국어 워드스택</option>
                         <option value="4" th:text="#{'game.mode.CSQ.name'}">자음퀴즈</option>
                         <option value="9" th:text="#{'game.mode.HUN.name'}">훈민정음</option>
+                        <option value="17" th:text="#{'game.mode.KDG.name'}">한국어 그림퀴즈</option>
                     </optgroup>
                     <optgroup label="영어">
                         <option value="1" th:text="#{'game.mode.ESH.name'}">영어 끝말잇기</option>
@@ -262,6 +263,7 @@
                         <option value="11" th:text="#{'game.mode.EDA.name'}">영어 단어 대결</option>
                         <option value="13" th:text="#{'game.mode.ESS.name'}">영어 솎솎</option>
                         <option value="16" th:text="#{'game.mode.EWS.name'}">영어 워드스택</option>
+                        <option value="18" th:text="#{'game.mode.EDG.name'}">영어 그림퀴즈</option>
                     </optgroup>
                 </select></div>
             <div class="dialog-bar" style="margin-top: -5px; height: 50px;">
@@ -889,6 +891,66 @@
                 </div>
                 <div class="items"></div>
                 <div class="hints" style="display: none;"></div>
+                <div style="display: none;" class="tools">
+                    <div style="width: 100%;">
+                        <div style="float: left; width: 35%;">
+                            <span id="themeis" th:text="#{kkutu.js.themeIs}"></span>
+                        </div>
+                        <div style="float: left; width: 65%;">
+                            <span id="themeis-title"></span>
+                        </div>
+                    </div>
+                    <div style="width: 100%;">
+                        <div style="float: left; width: 35%;">
+                            <span id="drawing" th:text="#{kkutu.js.wordIs}"></span>
+                        </div>
+                        <div style="float: left; width: 65%;">
+                            <span id="drawing-title"></span>
+                        </div>
+                    </div>
+                    <div style="width: 100%;">
+                        <label for="drawing-line-width" th:text="#{kkutu.js.drawingLineWidth}"></label>
+                        <input id="drawing-line-width" type="range" value="1" min="1" max="40" />
+                    </div>
+                    <div class="palette">
+                        <div>
+                            <button class="button-color" id="color-red"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-orange"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-yellow"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-green"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-blue"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-indigo"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-violet"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-black"></button>
+                        </div>
+                        <div>
+                            <button class="button-color" id="color-white"></button>
+                        </div>
+                    </div>
+                    <div style="width: 100%;">
+                        <div style="float: left; width: 60%;">
+                            <label for="drawing-color" th:text="#{kkutu.js.drawingColor}"></label>
+                            <input id="drawing-color" type="color" value="#000000" />
+                        </div>
+                        <div style="float: left; width: 40%;">
+                            <button id="drawing-clear" th:text="#{kkutu.js.drawingClear}"></button>
+                        </div>
+                    </div>
+                </div>
                 <div class="chain"></div>
                 <div class="rounds"></div>
                 <div class="history-holder">
@@ -971,6 +1033,6 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer type="text/javascript"></script>
     <script th:src="@{'https://cdn.kkutu.io/js/kawaiii.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{'https://cdn.kkutu.io/js/in_game_kkutu.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
-    <script th:src="@{'https://cdn.kkutu.io/js/md5.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
+    <script th:src="@{'https://cdn.kkutu.io/js/modules.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script async src="//t1.daumcdn.net/kas/static/ba.min.js" type="text/javascript"></script>
 </div>

@@ -152,12 +152,12 @@ class KKuTuSetting(
 
     fun getGameOptionMap(): Map<String, String> {
         val resultMap = HashMap<String, String>()
-        for (key in games["gameOptions"].fieldNames()) {
-            resultMap[key] = games["gameOptions"][key]["name"].textValue()
+        for (key in games["OPTIONS"].fieldNames()) {
+            resultMap[key] = games["OPTIONS"][key]["name"].textValue()
         }
 
         return resultMap
     }
 
-    fun getGameModes() = games["gameRules"].fieldNames().asSequence().toList()
+    fun getGameModes() = games["RULE"].fieldNames().asSequence().toList()
 }

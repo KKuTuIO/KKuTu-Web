@@ -1,8 +1,9 @@
 {
-  "gameOptions": {
+  "OPTIONS": {
     "man": { "name": "Manner" },
     "saf": { "name": "Safe" },
     "ext": { "name": "Injeong" },
+    "odw": { "name": "OpenDict" },
     "mis": { "name": "Mission" },
     "loa": { "name": "Loanword" },
     "prv": { "name": "Proverb" },
@@ -11,6 +12,7 @@
     "no2": { "name": "No2" },
     "beg": { "name": "OnlyBeginner" },
     "nog": { "name": "NoGuest" },
+    "nob": { "name": "NoObserver" },
     "nol": { "name": "NoLimit" },
     "rms": {
       "name": "RandMission",
@@ -27,14 +29,12 @@
     "etq": { "name": "Etiquette" },
     "gnt": { "name": "Gentle" },
     "apm": { "name": "Apmal" },
-    "odw": { "name": "OpenDict" },
     "ulm": { "name": "Unlimited" },
     "sht": { "name": "Short" },
     "ord": { "name": "Order" },
     "rmh": { "name": "RemoveHint" },
-    "nob": { "name": "NoObserver" }
   },
-  "gameRules": {
+  "RULE": {
     "EKT": {
       "lang": "en",
       "rule": "Classic",

@@ -146,9 +146,9 @@ class KKuTuSetting(
         return resultMap
     }
 
-    fun getGameRules() = games["gameRules"].toJson()
+    fun getGameRules() = games["RULE"].toJson()
 
-    fun getGameOptions() = games["gameOptions"].toJson()
+    fun getGameOptions() = games["OPTIONS"].toJson()
 
     fun getGameOptionMap(): Map<String, String> {
         val resultMap = HashMap<String, String>()

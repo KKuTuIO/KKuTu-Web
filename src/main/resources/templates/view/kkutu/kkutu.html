@@ -929,12 +929,17 @@
                         </div>
                     </div>
                     <div style="width: 100%;">
-                        <div style="float: left; width: 60%;">
+                        <div style="float: left; max-width: 25%;">
                             <label for="drawing-color" th:text="#{'kkutu.js.drawingColor'}"></label>
                             <input id="drawing-color" type="color" value="#000000" />
                         </div>
-                        <div style="float: left; width: 40%;">
-                            <button id="drawing-clear" th:text="#{'kkutu.js.drawingClear'}"></button>
+                        <div style="display: flex; max-width: 60%; margin-top: 14px;">
+                            <button id="drawing-clear"><i class="fa fa-trash fa-fw"></i></button>
+                            <button id="drawing-select"><i class="fa fa-mouse-pointer fa-fw"></i></button>
+                            <button id="drawing-pencil"><i class="fa fa-pencil fa-fw"></i></button>
+                            <button id="drawing-spray"><i class="fa fa-paint-brush fa-fw"></i></button>
+                            <button id="drawing-circle"><i class="fa fa-circle fa-fw"></i></button>
+                            <button id="drawing-eraser"><i class="fa fa-eraser fa-fw"></i></button>
                         </div>
                     </div>
                 </div>

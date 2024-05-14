@@ -2,18 +2,10 @@
   "OPTIONS": {
     "man": { "name": "Manner" },
     "saf": { "name": "Safe" },
+    "gnt": { "name": "Gentle" },
     "ext": { "name": "Injeong" },
     "odw": { "name": "OpenDict" },
     "mis": { "name": "Mission" },
-    "loa": { "name": "Loanword" },
-    "prv": { "name": "Proverb" },
-    "str": { "name": "Strict" },
-    "k32": { "name": "Sami" },
-    "no2": { "name": "No2" },
-    "beg": { "name": "OnlyBeginner" },
-    "nog": { "name": "NoGuest" },
-    "nob": { "name": "NoObserver" },
-    "nol": { "name": "NoLimit" },
     "rms": {
       "name": "RandMission",
       "req": "mis"
@@ -22,17 +14,25 @@
       "name": "Tactical",
       "req": "mis"
     },
-    "rnk": { "name": "RankMode" },
+    "loa": { "name": "Loanword" },
+    "prv": { "name": "Proverb" },
+    "str": { "name": "Strict" },
+    "k32": { "name": "Sami" },
+    "no2": { "name": "No2" },
+    "nol": { "name": "NoLimit" },
     "asy": { "name": "AntiSynonym" },
-    "pwr": { "name": "Power" },
     "itm": { "name": "Item" },
-    "etq": { "name": "Etiquette" },
-    "gnt": { "name": "Gentle" },
+    "pwr": { "name": "Power" },
     "apm": { "name": "Apmal" },
     "ulm": { "name": "Unlimited" },
     "sht": { "name": "Short" },
     "ord": { "name": "Order" },
-    "rmh": { "name": "RemoveHint" }
+    "rmh": { "name": "RemoveHint" },
+    "rnk": { "name": "RankMode" },
+    "etq": { "name": "Etiquette" },
+    "beg": { "name": "OnlyBeginner" },
+    "nog": { "name": "NoGuest" },
+    "nob": { "name": "NoObserver" }
   },
   "RULE": {
     "EKT": {

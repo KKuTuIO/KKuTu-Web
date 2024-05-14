@@ -32,7 +32,7 @@
     "ulm": { "name": "Unlimited" },
     "sht": { "name": "Short" },
     "ord": { "name": "Order" },
-    "rmh": { "name": "RemoveHint" },
+    "rmh": { "name": "RemoveHint" }
   },
   "RULE": {
     "EKT": {

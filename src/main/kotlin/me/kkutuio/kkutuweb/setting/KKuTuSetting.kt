@@ -151,7 +151,7 @@ class KKuTuSetting(
     fun getGameOptions() = games["OPTIONS"].toJson()
 
     fun getGameOptionMap(): Map<String, String> {
-        val resultMap = HashMap<String, String>()
+        val resultMap = LinkedHashMap<String, String>()
         for (key in games["OPTIONS"].fieldNames()) {
             resultMap[key] = games["OPTIONS"][key]["name"].textValue()
         }

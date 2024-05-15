@@ -30,7 +30,7 @@ const GameInfo = () => {
     return (
         <>
             <div style={{display: 'flex'}}>
-                <img src="https://cdn.kkutu.io/img/game_grade_all.png" alt="전체이용가" width="53" height="71"/>
+                <img src="https://cdn.kkutu.io/img/game_grade_all.svg" alt="전체이용가" width="53" height="71"/>
                 <table className="game-info-table" onClick={handleClick}>
                     <tbody>
                     <tr>

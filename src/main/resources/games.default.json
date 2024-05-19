@@ -1,8 +1,17 @@
 {
   "OPTIONS": {
-    "man": { "name": "Manner" },
-    "saf": { "name": "Safe" },
-    "gnt": { "name": "Gentle" },
+    "man": {
+      "name": "Manner",
+      "group": "M"
+    },
+    "saf": {
+      "name": "Safe",
+      "group": "M"
+    },
+    "gnt": {
+      "name": "Gentle",
+      "group": "M"
+    },
     "ext": { "name": "Injeong" },
     "odw": { "name": "OpenDict" },
     "mis": { "name": "Mission" },
@@ -24,21 +33,26 @@
     "itm": { "name": "Item" },
     "pwr": { "name": "Power" },
     "apm": { "name": "Apmal" },
-    "ulm": { "name": "Unlimited" },
-    "sht": { "name": "Short" },
+    "ulm": {
+      "name": "Unlimited",
+      "group": "P"
+    },
+    "sht": {
+      "name": "Short",
+      "group": "P"
+    },
     "ord": { "name": "Order" },
     "rmh": { "name": "RemoveHint" },
     "rnk": { "name": "RankMode" },
     "etq": { "name": "Etiquette" },
     "beg": { "name": "OnlyBeginner" },
-    "nog": { "name": "NoGuest" },
     "nob": { "name": "NoObserver" }
   },
   "RULE": {
     "EKT": {
       "lang": "en",
       "rule": "Classic",
-      "opts": ["man", "saf", "ext", "mis", "beg", "nog", "rms", "tct", "rnk", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "ext", "mis", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -47,7 +61,7 @@
     "ESH": {
       "lang": "en",
       "rule": "Classic",
-      "opts": ["ext", "mis", "beg", "nog", "rms", "rnk", "itm", "etq", "nob"],
+      "opts": ["ext", "mis", "beg", "rms", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -56,7 +70,7 @@
     "KKT": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "k32", "beg", "nog", "rms", "tct", "rnk", "pwr", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "k32", "beg", "rms", "tct", "rnk", "pwr", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -65,7 +79,7 @@
     "KSH": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "nog", "rms", "tct", "rnk", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -74,7 +88,7 @@
     "CSQ": {
       "lang": "ko",
       "rule": "Jaqwi",
-      "opts": ["ijp", "beg", "nog", "nol", "no2", "rnk", "asy", "etq", "nob"],
+      "opts": ["ijp", "beg", "nol", "no2", "rnk", "asy", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -83,7 +97,7 @@
     "KCW": {
       "lang": "ko",
       "rule": "Crossword",
-      "opts": ["beg", "nog", "rnk", "asy", "etq", "nob"],
+      "opts": ["beg", "rnk", "asy", "etq", "nob"],
       "time": 2,
       "ai": false,
       "big": true,
@@ -92,7 +106,7 @@
     "KTY": {
       "lang": "ko",
       "rule": "Typing",
-      "opts": ["prv", "beg", "nog", "rnk", "etq", "nob"],
+      "opts": ["prv", "beg", "rnk", "etq", "nob"],
       "time": 1,
       "ai": false,
       "big": false,
@@ -101,7 +115,7 @@
     "ETY": {
       "lang": "en",
       "rule": "Typing",
-      "opts": ["prv", "beg", "nog", "rnk", "etq", "nob"],
+      "opts": ["prv", "beg", "rnk", "etq", "nob"],
       "time": 1,
       "ai": false,
       "big": false,
@@ -110,7 +124,7 @@
     "KAP": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "nog", "rms", "tct", "rnk", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -119,7 +133,7 @@
     "HUN": {
       "lang": "ko",
       "rule": "Hunmin",
-      "opts": ["ext", "mis", "loa", "str", "odw", "beg", "nog", "rms", "rnk", "etq", "nob"],
+      "opts": ["ext", "mis", "loa", "str", "odw", "beg", "rms", "rnk", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -128,7 +142,7 @@
     "KDA": {
       "lang": "ko",
       "rule": "Daneo",
-      "opts": ["ijp", "mis", "beg", "nog", "rms", "tct", "rnk", "etq", "nob"],
+      "opts": ["ijp", "mis", "beg", "rms", "tct", "rnk", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -137,7 +151,7 @@
     "EDA": {
       "lang": "en",
       "rule": "Daneo",
-      "opts": ["ijp", "mis", "beg", "nog", "rms", "rnk", "etq", "nob"],
+      "opts": ["ijp", "mis", "beg", "rms", "rnk", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -146,7 +160,7 @@
     "KSS": {
       "lang": "ko",
       "rule": "Sock",
-      "opts": ["no2", "beg", "nog", "rnk", "etq", "nob"],
+      "opts": ["no2", "beg", "rnk", "etq", "nob"],
       "time": 1,
       "ai": false,
       "big": true,
@@ -155,7 +169,7 @@
     "ESS": {
       "lang": "en",
       "rule": "Sock",
-      "opts": ["no2", "beg", "nog", "rnk", "etq", "nob"],
+      "opts": ["no2", "beg", "rnk", "etq", "nob"],
       "time": 1,
       "ai": false,
       "big": true,
@@ -164,7 +178,7 @@
     "EAP": {
       "lang": "en",
       "rule": "Classic",
-      "opts": ["ext", "mis", "beg", "nog", "rms", "tct", "rnk", "itm", "etq", "nob"],
+      "opts": ["ext", "mis", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -173,7 +187,7 @@
     "KWS": {
       "lang": "ko",
       "rule": "Wordstack",
-      "opts": ["man", "ext", "mis", "apm", "beg", "nog", "rms", "rnk", "etq", "nob"],
+      "opts": ["man", "ext", "mis", "apm", "beg", "rms", "rnk", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -182,7 +196,7 @@
     "EWS": {
       "lang": "en",
       "rule": "Wordstack",
-      "opts": ["ext", "mis", "apm", "beg", "nog", "rms", "rnk", "etq", "nob"],
+      "opts": ["ext", "mis", "apm", "beg", "rms", "rnk", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -191,7 +205,7 @@
     "KDG": {
       "lang": "ko",
       "rule": "Drawing",
-      "opts": [ "ijp", "sht", "ulm", "ord", "rmh", "nog", "rnk", "etq", "nob" ],
+      "opts": [ "ijp", "sht", "ulm", "ord", "rmh", "rnk", "etq", "nob" ],
       "time": 2,
       "ai": false,
       "big": true,
@@ -200,7 +214,7 @@
     "EDG": {
       "lang": "en",
       "rule": "Drawing",
-      "opts": [ "ijp", "sht", "ulm", "ord", "rmh", "nog", "rnk", "etq", "nob" ],
+      "opts": [ "ijp", "sht", "ulm", "ord", "rmh", "rnk", "etq", "nob" ],
       "time": 2,
       "ai": false,
       "big": true,

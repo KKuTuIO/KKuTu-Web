@@ -103,7 +103,7 @@ class ShopService(
         userBoxJsonObj.type = "json"
         userBoxJsonObj.value = user.box.toJson()
 
-        val afterPaybackMoney = user.money + (0.2 * good.cost).roundToInt()
+        val afterPaybackMoney = user.money + (0.4 * good.cost).roundToInt()
         userDao.updateUser(
             user.id, mapOf(
                 "money" to afterPaybackMoney,

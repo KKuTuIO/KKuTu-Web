@@ -305,7 +305,7 @@
             <div class="dialog-bar" style="margin: 0 0 -5px -5px;height: 20px;">
                 <h4></h4>
                 <h4 class="dialog-bar-value" style="font-size: 11px;text-align: right !important;">
-                    <i class="fa fa-clock-o"></i> <b th:text="#{kkutu.dialog.room.eta}">예상 게임 시간:</b>
+                    <i class="fa-regular fa-clock"></i> <b th:text="#{kkutu.dialog.room.eta}">예상 게임 시간:</b>
                     <i id="estimated-game-time" style="font-style: normal;"></i>
                 </h4>
             </div>
@@ -462,7 +462,7 @@
         <th:block layout:fragment="content">
             <div class="dialog-bar profile-head">
                 <button id="profile-add-friend">
-                    <i class="fa fa-user-plus button fa-fw" aria-hidden="true"></i>
+                    <i class="fa-solid fa-user-plus button fa-fw" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="dialog-bar">
@@ -662,7 +662,7 @@
             </div>
             <div class="dialog-bar">
                 <h4 style="width: 80px;" th:text="#{kkutu.dialog.dress.itemSearch.name}"></h4>
-                <input id="dress-search" class="fa" maxlength="100"
+                <input id="dress-search" maxlength="100"
                        th:placeholder="#{kkutu.dialog.dress.itemSearch.placeHolder}" type="textfield">
             </div>
             <div class="dialog-bar" style="padding: 5px; width: 340px;">
@@ -707,9 +707,9 @@
             </div>
             <div class="dialog-bar tail-button">
                 <div class="char-tooltip">
-                    <input class="fa search-box" id="char-search" type="text" th:placeholder="#{kkutu.dialog.charFactory.search}">
+                    <input class="fa-solid search-box" id="char-search" type="text" th:placeholder="#{kkutu.dialog.charFactory.search}">
                 </div>
-                <button id="cf-reset"><i class="fa fa-trash"></i></button>
+                <button id="cf-reset"><i class="fa-solid fa-trash"></i></button>
                 <button id="cf-compose" th:text="#{kkutu.dialog.charFactory.cfCompose}"></button>
             </div>
         </th:block>
@@ -832,7 +832,7 @@
                 <div class="shop-tooltip">
                     <div class="ShopSort">
                         <div id="ShopSortBtn" class="category-filter sort-btn" width="24px">
-                            <i class="fa fa-sort-numeric-asc fa-fw"></i>
+                            <i class="fa-solid fa-sort-numeric-asc fa-fw"></i>
                         </div>
                         <div id="shop-radio" class="sort-radio">
                             <input type="radio" name="shopSort" id="shop-name" value="name">
@@ -851,7 +851,7 @@
                             <label for="shop-hit" th:utext="#{item.sort.hit}">누적판매순</label>
                         </div>
                     </div>
-                    <input class="fa search-box" id="shop-search" type="text" th:placeholder="#{'item.search'}">
+                    <input class="fa-solid search-box" id="shop-search" type="text" th:placeholder="#{'item.search'}">
                 </div>
             </div>
             <a target="_blank" class="category-filter shop-type event-category"
@@ -954,12 +954,12 @@
                             <input id="drawing-color" type="color" value="#000000" />
                         </div>
                         <div style="display: flex; max-width: 60%; margin-top: 14px;">
-                            <button id="drawing-clear"><i class="fa fa-trash fa-fw"></i></button>
-                            <button id="drawing-select"><i class="fa fa-mouse-pointer fa-fw"></i></button>
-                            <button id="drawing-pencil"><i class="fa fa-pencil fa-fw"></i></button>
-                            <button id="drawing-spray"><i class="fa fa-paint-brush fa-fw"></i></button>
-                            <button id="drawing-circle"><i class="fa fa-circle fa-fw"></i></button>
-                            <button id="drawing-eraser"><i class="fa fa-eraser fa-fw"></i></button>
+                            <button id="drawing-clear"><i class="fa-solid fa-trash fa-fw"></i></button>
+                            <button id="drawing-select"><i class="fa-solid fa-mouse-pointer fa-fw"></i></button>
+                            <button id="drawing-pencil"><i class="fa-solid fa-pencil fa-fw"></i></button>
+                            <button id="drawing-spray"><i class="fa-solid fa-paint-brush fa-fw"></i></button>
+                            <button id="drawing-circle"><i class="fa-solid fa-circle fa-fw"></i></button>
+                            <button id="drawing-eraser"><i class="fa-solid fa-eraser fa-fw"></i></button>
                         </div>
                     </div>
                 </div>

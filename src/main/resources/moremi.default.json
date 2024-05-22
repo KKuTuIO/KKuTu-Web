@@ -9,7 +9,11 @@
       "head",
       "lhand",
       "rhand",
-      "front"
+      "front",
+      "headDeco",
+      "faceDeco",
+      "eyeDeco",
+      "dressDeco"
     ],
     "categories": [
       "all",
@@ -21,7 +25,8 @@
       "mouth",
       "clothes",
       "hs",
-      "back"
+      "back",
+      "deco"
     ],
     "equips": [
       "NIK",
@@ -35,7 +40,11 @@
       "Mhand",
       "Mclothes",
       "Mshoes",
-      "Mback"
+      "Mback",
+      "MheadDeco",
+      "MfaceDeco",
+      "MeyeDeco",
+      "MdressDeco"
     ],
     "groups": {
       "spec": [
@@ -73,6 +82,12 @@
       "back": [
         "Mback",
         "Mfront"
+      ],
+      "deco": [
+        "MheadDeco",
+        "MfaceDeco",
+        "MeyeDeco",
+        "MdressDeco"
       ]
     }
   }

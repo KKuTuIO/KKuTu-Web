@@ -16,18 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.kkutuio.kkutuweb.setting
+package me.kkutuio.kkutuweb.admin.domain
 
-data class AdminSetting(
-    val id: String,
-    val name: String,
-    val team: String,
-    val privileges: List<Privilege>
-) {
-    enum class Privilege {
-        CONNECTION_LOG,
-        SUSPICION_LOG,
-        REPORT_LOG,
-        WORD
-    }
-}
+import java.sql.Timestamp
+
+data class ReportLog(
+    val reportId: Long,
+    val time: Timestamp,
+    val reporterId: String,
+    val reporterNick: String?,
+    val targetId: String,
+    val reason: String,
+    val fileName: String
+)

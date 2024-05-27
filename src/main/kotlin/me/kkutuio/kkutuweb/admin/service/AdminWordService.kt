@@ -193,6 +193,16 @@ class AdminWordService(
         val isDuplicate = wordDao.isDuplicate(tableName, wordName)
         if (isDuplicate) {
             logger.warn("중복된 단어를 추가하려 했습니다. 언어: $lang 단어: $wordName")
+            wordAuditLogDAO.insert(
+                lang, WordAuditLog(
+                    time = LocalDateTime.now(),
+                    word = wordName,
+                    type = WordAuditLog.WordAuditLogType.ERROR_DUPLICATE,
+                    updateLogIgnore = wordEditRequest.updateLogIgnore,
+                    updateLogIncludeDetail = wordEditRequest.updateLogIncludeDetail,
+                    admin = adminId
+                )
+            )
             return ActionResponse.word(success = false, wordResult = WordResult.DUPLICATED)
         }
 

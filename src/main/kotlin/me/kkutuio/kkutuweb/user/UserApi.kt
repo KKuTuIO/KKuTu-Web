@@ -57,6 +57,15 @@ class UserApi(
         return userService.getUserData(id)
     }
 
+    @GetMapping("/user/oauth", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getUserData(
+        session: HttpSession
+    ): String {
+        if(!session.isGuest()) {
+            return session.getOAuthUser()
+        }
+    }
+
     @GetMapping("/idFromNick/{nick}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getIdFromNick(
         @PathVariable nick: String,

@@ -70,13 +70,13 @@ const Login = () => {
 
             <BrowserView>
                 <Product id="qwShKF" title={Messages['portal.ad.title']} createWithShown={true} width={"calc(100% - 10px)"}>
-                    <AdsenseAd client="ca-pub-4370279749446514" slot="5297190912" format="auto" responsive="true"/>
+                    <AdsenseAd client="ca-pub-7356923884519790" slot="5297190912" format="auto" responsive="true"/>
                 </Product>
                 <Separator height={10}/>
             </BrowserView>
             <MobileView>
                 <Product id="qwShKF" title={Messages['portal.ad.title']} createWithShown={true} width={"calc(100% - 10px)"}>
-                    <AdsenseAd client="ca-pub-4370279749446514" slot="4321901032" format="auto" responsive="true"/>
+                    <AdsenseAd client="ca-pub-7356923884519790" slot="4321901032" format="auto" responsive="true"/>
                 </Product>
                 <Separator height={10}/>
             </MobileView>

@@ -459,7 +459,7 @@
         </th:block>
     </th:block>
     <th:block layout:replace
-                      ="~{view/kkutu/dialog::dialog(id='ProfileDiag',width=350,height=400)}">
+                      ="~{view/kkutu/dialog::dialog(id='ProfileDiag',width=350)}">
         <th:block layout:fragment="content">
             <div class="dialog-bar profile-head">
                 <button id="profile-add-friend">
@@ -488,7 +488,6 @@
                 <button id="profile-level" th:text="#{kkutu.dialog.profile.aiSetting}">AI 설정</button>
                 <button id="profile-dress" th:text="#{kkutu.dialog.profile.dress}">프로필 관리</button>
                 <button id="profile-handover" th:text="#{kkutu.dialog.profile.handover}">방장 인계</button>
-                <button id="profile-copy" th:text="#{kkutu.dialog.profile.copyId}">ID 복사</button>
             </div>
         </th:block>
     </th:block>

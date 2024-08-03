@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev-js": "webpack -w",
-    "build": "webpack --mode=production"
+    "build": "webpack --mode=production && cd Frontpage && npm run build"
   },
   "license": "AGPL-3.0-only",
   "author": {

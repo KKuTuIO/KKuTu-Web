@@ -29,15 +29,15 @@
     var patchData = "<p>2021년 10월 20일 업데이트 내용입니다.</p>";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
-    let jsonDataServers = { list: [3], max: 9 };
+    let jsonDataServers = { list: [3, 6, 9], max: 9 };
 
     onMount(async () => {
         // Fetch slide data
         try{
-        const noticeResponse = await fetch('https://static.kkutu.io/global_notice.html');
+        const noticeResponse = await fetch('https://static.kkutu.io/static_notice.html');
         noticeData = await noticeResponse.text();
 
-        const slideResponse = await fetch('https://cdn.kkutu.io/static/slides.json');
+        const slideResponse = await fetch('https://static.kkutu.io/slides.json');
         slideData = await slideResponse.json();
         }
         catch(e){
@@ -109,7 +109,7 @@
             <h2 class="mb-6 font-bold text-2xl">채널 목록</h2>
             {#each jsonDataServers.list as serverUsers, index}
             <a href={`${serverUsers === null ? "/" : "https://kkutu.io?server="+index}`}>
-                <div class="rounded-xl text-gray-900 mb-4">
+                <div class="rounded-xl text-gray-900 mb-8">
                     <div class="flex justify-between">
                         <h3 class="text-xl font-bold text-[#3553A0]">{serverName[index]} 채널</h3>
                         <span class="font-normal text-right text-gray-500">{serverUsers === null ? '점검 중' : `${serverUsers} / ${jsonDataServers.max}`}</span>

@@ -12,7 +12,7 @@
 // <img src={profileImage} class="h-8 w-8 rounded-full" alt="프로필 이미지"/>
 	onMount(async () => {
 		try{
-			const res = await fetch('http://kkutu.io/user/oauth');
+			const res = await fetch('https://kkutu.io/user/oauth');
 			data = await res.text();
 		}
 		catch(e){

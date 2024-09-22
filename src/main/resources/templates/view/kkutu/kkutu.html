@@ -494,7 +494,7 @@
             layout:replace="~{view/kkutu/dialog::dialog(id='ReportDialog',width=350,height=265,title='끄투리오 회원 신고하기')}">
         <th:block layout:fragment="content">
             <b th:text="#{kkutu.dialog.report.category}" style="display:block;"></b>
-            <select id="rsl" style="width:100%;margin-top:5px;margin-bottom:5px;">
+            <select id="rsl" style="box-sizing: border-box;height: 30px;width:100%;margin-top:5px;margin-bottom:5px;">
                 <option th:text="#{kkutu.dialog.report.category}" disabled selected></option>
                 <option th:text="#{kkutu.dialog.report.category.01}" value="01"></option>
                 <option th:text="#{kkutu.dialog.report.category.02}" value="02"></option>

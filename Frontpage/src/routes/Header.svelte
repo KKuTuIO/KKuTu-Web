@@ -21,7 +21,7 @@
 			//data = "OAuthUser(authVendor=DISCORD, vendorId=1134152603652079727, name=d0ul, profileImage=https://cdn.discordapp.com/avatars/0/111b0498647405b9b0f465d17cdb31eb, gender=null, minAge=null, maxAge=null)";
 		}
 		
-        const regex = /OAuthUser\(authVendor=(\w+), vendorId=(\d+), name=(\w+), profileImage=(https:\/\/[^\s,]+), gender=null, minAge=null, maxAge=null\)/;
+        const regex = /OAuthUser\(authVendor=(\w+), vendorId=(\w+), name=(\w+), profileImage=(https:\/\/[^\s,]+), gender=(\w+)(?:, minAge=(\w+))?(?:, maxAge=(\w+))?\)/;
 
         const match = data.match(regex);
 		console.log(match);
@@ -73,7 +73,7 @@
 			{:else}
 			<div class="flex items-center gap-x-2">
 				<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp" alt="프로필 이미지"/>
-				<button class="flex flex-col" on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "http://kkutu.io:3000/logout" : console.log("user cancel")}>
+				<button class="flex flex-col" on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}>
 					<span class="text-sm text-gray-600 dark:text-gray-200">{user}</span>
 					<span class="text-xs text-gray-400 dark:text-gray-300">#{authVendor}</span>
 				</button>

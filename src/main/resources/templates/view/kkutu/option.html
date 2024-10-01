@@ -25,7 +25,7 @@
 
 <div layout:fragment="settingRadioOption(id, name, text, style)">
     <div class="dialog-opt" th:style="${style}">
-        <input th:id="${id}" type="radio" th:name="${name}" style="margin-top: 5px; width: auto;"/>
+        <input th:id="${id}" type="radio" th:name="${name}" th:value="${id}" style="margin-top: 5px; width: auto;"/>
         <label th:for="${id}" th:text="${text}"></label>
     </div>
 </div>

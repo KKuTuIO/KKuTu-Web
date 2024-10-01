@@ -64,7 +64,7 @@
          session: HttpSession
      ): String {
          return if (!session.isGuest()) {
-             session.getOAuthUser().toString()
+             session.getOAuthUser().toString().replace("=s50", "")
          } else {
              "Guest user"
          }

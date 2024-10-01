@@ -57,7 +57,6 @@
                         layout:replace="~{view/kkutu/option::settingRadioOption(id='off',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.off})}"/>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingRadioOption(id='guest',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.guest})}"/>
-                <h4></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingRadioOption(id='friend',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.friend})}"/>
             </div>
@@ -66,18 +65,17 @@
                 <th:block
                         layout:replace="~{view/kkutu/option::settingRadioOption(id='off',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.off})}"/>
                 <th:block
-                        layout:replace="~{view/kkutu/option::settingRadioOption(id='guest',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.heart})}"/>
-                <h4></h4>
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='blind',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.heart})}"/>
                 <th:block
-                        layout:replace="~{view/kkutu/option::settingRadioOption(id='friend',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.on})}"/>
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='on',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.on})}"/>
             </div>
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.deny-request.title}"></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='deny-invite',text=#{kkutu.dialog.setting.deny-request.invite})}"/>
-                <th:block
+                <!--<th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='deny-whisper',text=#{kkutu.dialog.setting.deny-request.whisper})}"/>
-                <h4></h4>
+                <h4></h4>-->
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='deny-friend',text=#{kkutu.dialog.setting.deny-request.friend})}"/>
             </div>
@@ -85,11 +83,11 @@
                 <h4 th:text="#{kkutu.dialog.setting.game.title}"></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='auto-ready',text=#{kkutu.dialog.setting.game.auto-ready})}"/>
+                <!--<th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='allow-badword',text=#{kkutu.dialog.setting.game.allow-badword})}"/>-->
                 <th:block
-                        layout:replace="~{view/kkutu/option::settingOption(id='allow-badword',text=#{kkutu.dialog.setting.game.allow-badword})}"/>
+                layout:replace="~{view/kkutu/option::settingOption(id='enable-vibration',text=#{kkutu.dialog.setting.game.enable-vibration})}"/>
                 <h4></h4>
-                <th:block
-                        layout:replace="~{view/kkutu/option::settingOption(id='enable-vibration',text=#{kkutu.dialog.setting.game.enable-vibration})}"/>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='enable-spectator-tag',text=#{kkutu.dialog.setting.game.enable-spectator-tag})}"/>
             </div>
@@ -113,10 +111,10 @@
                     <option th:value="LobbyBGM">오리지널 끄투 (2014)</option>
                     <option th:value="LobbyBGM_NEW">새로운 시작 (2020)</option>
                     <option th:value="LobbyBGM_2023_Summer">끄투리오 여름 (2023)</option>
-                    <option th:value="LobbyBGM_2024_Fall">끄투리오 가을 (2024)</option>
                     <option th:value="LobbyBGM_2023_Winter">끄투리오 신년맞이 (2023)</option>
                     <option th:value="LobbyBGM_2024_Spring" selected>끄투리오 봄 (2024)</option>
                     <option th:value="LobbyBGM_Plus_S2">끄투리오 Lo-Fi (2024)</option>
+                    <option th:value="LobbyBGM_2024_Fall">끄투리오 가을 (2024)</option>
                     <!-- <option th:value="LobbyBGMSeolBGM">끄투 명절</option> -->
                     <!-- <option th:value="LobbyBGM_KKuTuIO_Seol">끄투리오 명절</option> -->
                 </select>
@@ -745,6 +743,10 @@
             layout:replace="~{view/kkutu/dialog::dialog(id='ChatLogDiag',width=300,height=500,title=#{kkutu.dialog.chatLog.title})}">
         <th:block layout:fragment="content">
             <div id="chat-log-board" style="height: 475px; font-size: 11px; overflow-y: scroll;"></div>
+            <div class="dialog-bar tail-button">
+                <button id="cl-copy"><i class="fa-solid fa-copy"></i></button>
+                <button id="cl-report" th:text="#{kkutu.dialog.chatLog.report}"></button>
+            </div>
         </th:block>
     </th:block>
     <th:block

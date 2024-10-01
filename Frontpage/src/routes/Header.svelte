@@ -5,6 +5,7 @@
 
 	let user = "Guest User";
 	let authVendor = "NEXON";
+	let vendorId = "0";
 	let name = "Moremi";
 	let profileImage = "";
 	let data = "";
@@ -16,24 +17,25 @@
 			data = await res.text();
 		}
 		catch(e){
-			data = "OAuthUser(authVendor=ERROR, vendorId=032234, name=유저데이터에러, profileImage=https://google.com/fsjfs.png, gender=null, minAge=null, maxAge=null)";
+			data="";
+			//data = "OAuthUser(authVendor=DISCORD, vendorId=1134152603652079727, name=d0ul, profileImage=https://cdn.discordapp.com/avatars/0/111b0498647405b9b0f465d17cdb31eb, gender=null, minAge=null, maxAge=null)";
 		}
 		
-        const regex = /OAuthUser\(authVendor=(\w+), vendorId=\d+, name=(\w+), profileImage=(https:\/\/[^\s,]+), gender=null, minAge=null, maxAge=null\)/;
+        const regex = /OAuthUser\(authVendor=(\w+), vendorId=(\d+), name=(\w+), profileImage=(https:\/\/[^\s,]+), gender=null, minAge=null, maxAge=null\)/;
+
         const match = data.match(regex);
+		console.log(match);
 
         if (match) {
             authVendor = match[1];
-            name = match[2];
-            profileImage = match[3];
+			vendorId = match[2];
+            name = match[3];
+            profileImage = match[4];
             user = name;
 
 			if (authVendor === "DISCORD") {
-				profileImage = match[3].replace("/avatars/0/", `/avatars/${vendorId}/`);
+				profileImage = match[4].replace("/avatars/0/", `/avatars/${vendorId}/`);
 				profileImage = profileImage + ".webp";
-			}
-			else{
-				profileImage = match[3];
 			}
 
 			console.log(`User ${name} is logged in with ${authVendor}`);
@@ -57,7 +59,8 @@
 		</div>
 		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">
 			<a href="/" class="link-header"><i class="fa-solid fa-house icons-header"></i>홈</a>
-			<a href="https://kkutu.io/game?server=0" class="link-header"><i class="fa-solid fa-gamepad icons-header"></i>게임하기</a>
+			<a href="https://kkutu.io/?server=0" class="link-header"><i class="fa-solid fa-gamepad icons-header"></i>게임하기</a>
+			<a href="https://cafe.naver.com/kkutuio" class="link-header"><i class="fa-solid fa-coffee icons-header"></i>공식카페</a>
 			<a href="https://wiki.kkutu.io/" class="link-header"><i class="fa-solid fa-book icons-header"></i>리오위키</a>
 			<a href="https://cs.kkutu.io/" class="link-header"><i class="fa-solid fa-circle-question icons-header"></i>고객지원</a>
 		</div>
@@ -69,6 +72,7 @@
 			</a>
 			{:else}
 			<div class="flex items-center gap-x-2">
+				<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp" alt="프로필 이미지"/>
 				<button class="flex flex-col" on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "http://kkutu.io:3000/logout" : console.log("user cancel")}>
 					<span class="text-sm text-gray-600 dark:text-gray-200">{user}</span>
 					<span class="text-xs text-gray-400 dark:text-gray-300">#{authVendor}</span>

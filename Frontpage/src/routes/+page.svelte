@@ -7,7 +7,7 @@
                 {
                     "id": 0,
                     "link": "/",
-                    "color": "#FFFFFF",
+                    "color": "#000",
                     "slides": [
                         {
                             "desktop": "/slide/d.png",
@@ -25,11 +25,64 @@
         }
     ]
     
-    var noticeData = "끄투리오에 오신 것을 환영합니다.";
+    var noticeData = "";
     var patchData = "<p>2021년 10월 20일 업데이트 내용입니다.</p>";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
-    let jsonDataServers = { list: [3, 6, 9], max: 9 };
+    let jsonDataServers = { list: [], max: 9 };
+    let glide;
+
+    function updateSlides() {
+        const slideContainer = document.querySelector('.glide__slides');
+        const glideBullets = document.querySelector('.glide__bullets');
+        slideContainer.innerHTML = ''; // 기존 슬라이드 초기화
+        glideBullets.innerHTML = ''; // 기존 버튼 초기화
+
+        slideData.forEach((slide) => {
+            const slideElement = document.createElement('li');
+            slideElement.className = 'glide__slide pt-14 flex justify-center items-center';
+            slideElement.style.backgroundColor = slide.color;
+
+            const linkElement = document.createElement('a');
+            linkElement.href = slide.link;
+
+            const desktopImage = document.createElement('img');
+            desktopImage.src = slide.slides[0].desktop;
+            desktopImage.className = 'hidden h-72 lg:block object-cover';
+            desktopImage.alt = 'Desktop UI';
+
+            const mobileImage = document.createElement('img');
+            mobileImage.src = slide.slides[0].mobile;
+            mobileImage.className = 'h-54 lg:hidden object-cover';
+            mobileImage.alt = 'Mobile UI';
+
+            linkElement.appendChild(desktopImage);
+            linkElement.appendChild(mobileImage);
+            slideElement.appendChild(linkElement);
+            slideContainer.appendChild(slideElement);
+
+            const bulletElement = document.createElement('button');
+            bulletElement.className = 'glide__bullet';
+            bulletElement.setAttribute('data-glide-dir', `=${slide.id}`);
+            glideBullets.appendChild(bulletElement);
+        });
+
+        if (glide) {
+            glide.destroy();
+        }
+
+        glide = new Glide('.glide', {
+            type: 'carousel',
+            startAt: 0,
+            perView: 1,
+            autoplay: 5000,
+            hoverpause: true,
+            animationDuration: 800,
+            animationTimingFunc: 'ease-in-out'
+        });
+
+        glide.mount();
+    }
 
     onMount(async () => {
         // Fetch slide data
@@ -39,6 +92,7 @@
 
         const slideResponse = await fetch('https://static.kkutu.io/slides.json');
         slideData = await slideResponse.json();
+        updateSlides();
         }
         catch(e){
             console.error(e);
@@ -53,20 +107,6 @@
 
         jsonDataServers = await responseServers.json();
     });
-
-    onMount(() => {
-        const glide = new Glide('.glide', {
-            type: 'carousel',
-            startAt: 0,
-            perView: 1,
-            autoplay: 5000,
-            hoverpause: true,
-            animationDuration: 800,
-            animationTimingFunc: 'ease-in-out'
-        });
-
-        glide.mount();
-    });
 </script>
   
 <svelte:head>
@@ -77,20 +117,9 @@
 <div class="glide">
     <div class="glide__track" data-glide-el="track">
       <ul class="glide__slides">
-        {#each slideData as slide}
-        <li class="glide__slide bg-white pt-14 flex justify-center items-center">
-            <a href={slide.link}>
-            <img src={slide.slides[0].desktop} class="hidden h-72 lg:block object-cover" alt="Desktop UI"/>
-            <img src={slide.slides[0].mobile} class="h-54 lg:hidden object-cover" alt="Mobile UI"/>
-        </a>
-        </li>
-        {/each}
       </ul>
     </div>
     <div class="glide__bullets" data-glide-el="controls[nav]">
-        {#each slideData as slide}
-        <button class="glide__bullet" data-glide-dir={"=" + slide.id}></button>
-        {/each}
     </div>
 </div>
 <div class="max-w-screen-xl mx-auto lg:p-12 p-4">

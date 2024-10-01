@@ -48,6 +48,40 @@
                 <th:block layout:replace="~{view/kkutu/option::settingOptionVolume(id='volume-effect')}"/>
             </div>
             <div class="dialog-bar">
+                <h4 th:text="#{kkutu.dialog.setting.ui-volume}"></h4>
+                <th:block layout:replace="~{view/kkutu/option::settingOptionVolume(id='volume-ui')}"/>
+            </div>
+            <div class="dialog-bar">
+                <h4 th:text="#{kkutu.dialog.setting.deny-whisper.title}"></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='off',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.off})}"/>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='guest',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.guest})}"/>
+                <h4></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='friend',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.friend})}"/>
+            </div>
+            <div class="dialog-bar">
+                <h4 th:text="#{kkutu.dialog.setting.allow-badword.title}"></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='off',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.off})}"/>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='guest',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.heart})}"/>
+                <h4></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='friend',name='allowBadwordType',text=#{kkutu.dialog.setting.allow-badword.on})}"/>
+            </div>
+            <div class="dialog-bar">
+                <h4 th:text="#{kkutu.dialog.setting.deny-request.title}"></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='deny-invite',text=#{kkutu.dialog.setting.deny-request.invite})}"/>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='deny-whisper',text=#{kkutu.dialog.setting.deny-request.whisper})}"/>
+                <h4></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='deny-friend',text=#{kkutu.dialog.setting.deny-request.friend})}"/>
+            </div>
+            <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.deny-request.title}"></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='deny-invite',text=#{kkutu.dialog.setting.deny-request.invite})}"/>

@@ -36,6 +36,10 @@
 			console.log("User is not logged in");
 		}
 	});
+
+	function handleImgError(event) {
+		event.target.src = "https://cdn.kkutu.io/img/defaultProfile.png";
+	}
 </script>
 
 <header class="top-0 fixed w-full z-10">
@@ -64,7 +68,7 @@
 			</a>
 			{:else}
 			<div class="flex items-center gap-x-2">
-				<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp" alt="프로필 이미지"/>
+				<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp" alt="프로필 이미지" onerror="handleImgError(event)"/>
 				<button class="flex flex-col" on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}>
 					<span class="text-sm text-gray-600 dark:text-gray-200">{user}</span>
 					<span class="text-xs text-gray-400 dark:text-gray-300">#{authVendor}</span>

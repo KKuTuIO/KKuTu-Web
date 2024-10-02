@@ -37,7 +37,7 @@
     </div>
     <th:block th:replace="view/kkutu/menu"/>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,height=300,title=#{kkutu.dialog.setting.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,height=410,title=#{kkutu.dialog.setting.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.bgm-volume}"></h4>
@@ -59,6 +59,8 @@
                         layout:replace="~{view/kkutu/option::settingRadioOption(id='guest',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.guest})}"/>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingRadioOption(id='friend',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.friend})}"/>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingRadioOption(id='near',name='denyWhisperType',text=#{kkutu.dialog.setting.deny-whisper.near})}"/>
             </div>
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.allow-badword.title}"></h4>
@@ -742,7 +744,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='ChatLogDiag',width=350,height=500,title=#{kkutu.dialog.chatLog.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='ChatLogDiag',width=350,height=540,title=#{kkutu.dialog.chatLog.title})}">
         <th:block layout:fragment="content">
             <div id="chat-log-board" style="height: 475px; font-size: 11px; overflow-y: scroll;"></div>
             <div class="dialog-bar tail-button">

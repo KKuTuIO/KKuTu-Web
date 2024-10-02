@@ -10,37 +10,29 @@
 	let profileImage = "";
 	let data = "";
 
-// <img src={profileImage} class="h-8 w-8 rounded-full" alt="프로필 이미지"/>
 	onMount(async () => {
-		try{
+		try {
 			const res = await fetch('https://kkutu.io/user/oauth');
-			data = await res.text();
-		}
-		catch(e){
-			data="";
-			//data = "OAuthUser(authVendor=DISCORD, vendorId=1134152603652079727, name=d0ul, profileImage=https://cdn.discordapp.com/avatars/0/111b0498647405b9b0f465d17cdb31eb, gender=null, minAge=null, maxAge=null)";
+			const jsonData = await res.json();
+			data = jsonData;
+		} catch (e) {
+			data = { status: "Guest user" };
 		}
 		
-        const regex = /OAuthUser\(authVendor=(\w+), vendorId=(\w+), name=(\w+), profileImage=(https:\/\/[^\s,]+), gender=(\w+)(?:, minAge=(\w+))?(?:, maxAge=(\w+))?\)/;
-
-        const match = data.match(regex);
-		console.log(match);
-
-        if (match) {
-            authVendor = match[1];
-			vendorId = match[2];
-            name = match[3];
-            profileImage = match[4];
-            user = name;
+		if (data.status !== "Guest user") {
+			authVendor = data.authVendor;
+			vendorId = data.vendorId;
+			name = data.name;
+			profileImage = data.image;
+			user = name;
 
 			if (authVendor === "DISCORD") {
-				profileImage = match[4].replace("/avatars/0/", `/avatars/${vendorId}/`);
+				profileImage = profileImage.replace("/avatars/0/", `/avatars/${vendorId}/`);
 				profileImage = profileImage + ".webp";
 			}
 
 			console.log(`User ${name} is logged in with ${authVendor}`);
-        }
-		else{
+		} else {
 			console.log("User is not logged in");
 		}
 	});

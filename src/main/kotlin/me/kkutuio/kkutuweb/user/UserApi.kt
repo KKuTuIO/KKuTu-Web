@@ -59,16 +59,33 @@
          return userService.getUserData(id)
      }
  
-     @GetMapping("/user/oauth", produces = [MediaType.APPLICATION_JSON_VALUE])
-     fun getUserData(
-         session: HttpSession
-     ): String {
-         return if (!session.isGuest()) {
-             session.getOAuthUser().toString().replace("=s50", "")
-         } else {
-             "Guest user"
-         }
-     }
+    @GetMapping("/user/oauth", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getUserOAuthData(
+        session: HttpSession
+    ): Map<String, Any> {
+        return if (!session.isGuest()) {
+            val userString = session.getOAuthUser().toString()
+            val regex = Regex("""OAuthUser\(authVendor=(\w+), vendorId=(\w+), name=([^,]+), profileImage=([^,]+), gender=([^,]+), minAge=([^,]+), maxAge=([^,]+)\)""")
+            val matchResult = regex.find(userString)
+
+            if (matchResult != null) {
+                val (authVendor, vendorId, name, profileImage, gender, minAge, maxAge) = matchResult.destructured
+                mapOf(
+                    "authVendor" to authVendor,
+                    "vendorId" to vendorId,
+                    "name" to name,
+                    "image" to profileImage.replace("=s50", ""),
+                    "gender" to gender,
+                    "minAge" to minAge,
+                    "maxAge" to maxAge
+                )
+            } else {
+                mapOf("status" to "Parsing error")
+            }
+        } else {
+            mapOf("status" to "Guest user")
+        }
+    }
  
      @GetMapping("/idFromNick/{nick}", produces = [MediaType.APPLICATION_JSON_VALUE])
      fun getIdFromNick(

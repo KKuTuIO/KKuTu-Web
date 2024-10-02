@@ -51,7 +51,7 @@
 		</div>
 		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">
 			<a href="/" class="link-header"><i class="fa-solid fa-house icons-header"></i>홈</a>
-			<a href="https://kkutu.io/?server=0" class="link-header"><i class="fa-solid fa-gamepad icons-header"></i>게임하기</a>
+			<a rel="external" href="https://kkutu.io/?server=0" class="link-header"><i class="fa-solid fa-gamepad icons-header"></i>게임하기</a>
 			<a href="https://cafe.naver.com/kkutuio" class="link-header"><i class="fa-solid fa-coffee icons-header"></i>공식카페</a>
 			<a href="https://wiki.kkutu.io/" class="link-header"><i class="fa-solid fa-book icons-header"></i>리오위키</a>
 			<a href="https://cs.kkutu.io/" class="link-header"><i class="fa-solid fa-circle-question icons-header"></i>고객지원</a>

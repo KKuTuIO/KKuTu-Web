@@ -137,7 +137,7 @@
         <div class="bg-white border border-gray-200 rounded-xl p-4 lg:p-6 flex flex-col">
             <h2 class="mb-6 font-bold text-2xl">채널 목록</h2>
             {#each jsonDataServers.list as serverUsers, index}
-            <a href={`${serverUsers === null ? "/" : "https://kkutu.io?server="+index}`}>
+            <a rel="external" href={`${serverUsers === null ? "/" : "https://kkutu.io/?server="+index}`}>
                 <div class="rounded-xl text-gray-900 mb-8">
                     <div class="flex justify-between">
                         <h3 class="text-xl font-bold text-[#3553A0]">{serverName[index]} 채널</h3>

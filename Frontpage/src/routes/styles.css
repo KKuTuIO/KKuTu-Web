@@ -51,3 +51,7 @@
 .glide__bullet--active {
 	background: #333;
 }
+
+#pfp{
+	background-image: url("https://cdn.kkutu.io/img/defaultProfile.png");
+}

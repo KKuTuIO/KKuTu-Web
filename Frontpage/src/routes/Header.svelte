@@ -36,10 +36,6 @@
 			console.log("User is not logged in");
 		}
 	});
-
-	function handleImgError(event) {
-		event.target.src = "https://cdn.kkutu.io/img/defaultProfile.png";
-	}
 </script>
 
 <header class="top-0 fixed w-full z-10">
@@ -56,9 +52,10 @@
 		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">
 			<a href="/" class="link-header"><i class="fa-solid fa-house icons-header"></i>홈</a>
 			<a rel="external" href="https://kkutu.io/?server=0" class="link-header"><i class="fa-solid fa-gamepad icons-header"></i>게임하기</a>
-			<a href="https://cafe.naver.com/kkutuio" class="link-header"><i class="fa-solid fa-coffee icons-header"></i>공식카페</a>
-			<a href="https://wiki.kkutu.io/" class="link-header"><i class="fa-solid fa-book icons-header"></i>리오위키</a>
-			<a href="https://cs.kkutu.io/" class="link-header"><i class="fa-solid fa-circle-question icons-header"></i>고객지원</a>
+			<a target="_blank" href="https://discord.gg/kkutuio-395143193114705920" class="link-header"><i class="fa-brands fa-discord icons-header"></i>디스코드</a>
+			<a target="_blank" href="https://cafe.naver.com/kkutuio" class="link-header"><i class="fa-solid fa-coffee icons-header"></i>공식카페</a>
+			<a target="_blank" href="https://wiki.kkutu.io/" class="link-header"><i class="fa-solid fa-book icons-header"></i>리오위키</a>
+			<a target="_blank" href="https://cs.kkutu.io/" class="link-header"><i class="fa-solid fa-circle-question icons-header"></i>고객지원</a>
 		</div>
 		<div class="flex flex-1 justify-end">
 			{#if user == "Guest User"}
@@ -68,7 +65,7 @@
 			</a>
 			{:else}
 			<div class="flex items-center gap-x-2">
-				<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp" alt="프로필 이미지" onerror="handleImgError(event)"/>
+				<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp"/>
 				<button class="flex flex-col" on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}>
 					<span class="text-sm text-gray-600 dark:text-gray-200">{user}</span>
 					<span class="text-xs text-gray-400 dark:text-gray-300">#{authVendor}</span>

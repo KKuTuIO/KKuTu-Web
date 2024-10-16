@@ -55,7 +55,7 @@
 			<a target="_blank" href="https://discord.gg/kkutuio-395143193114705920" class="link-header"><i class="fa-brands fa-discord icons-header"></i>디스코드</a>
 			<a target="_blank" href="https://cafe.naver.com/kkutuio" class="link-header"><i class="fa-solid fa-coffee icons-header"></i>공식카페</a>
 			<a target="_blank" href="https://wiki.kkutu.io/" class="link-header"><i class="fa-solid fa-book icons-header"></i>리오위키</a>
-			<a target="_blank" href="https://cs.kkutu.io/" class="link-header"><i class="fa-solid fa-circle-question icons-header"></i>고객지원</a>
+			<a rel="external" href="/ost.html" class="link-header"><i class="fa-solid fa-music icons-header"></i>OST</a>
 		</div>
 		<div class="flex flex-1 justify-end">
 			{#if user == "Guest User"}

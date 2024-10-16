@@ -121,6 +121,14 @@
 
         jsonDataServers = await responseServers.json();
     });
+
+    function reloadList() {
+        fetch('https://kkutu.io/servers')
+            .then(response => response.json())
+            .then(data => {
+                jsonDataServers = data;
+            });
+    }
 </script>
   
 <svelte:head>
@@ -131,10 +139,10 @@
     <div class="glide">
         <!-- Slide Left/right btn -->
         <div class="glide__arrows" data-glide-el="controls">
-            <button class="glide__arrow glide__arrow--left rounded-full bg-white h-8 w-8" data-glide-dir="<">
+            <button class="glide__arrow glide__arrow--left rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
-            <button class="glide__arrow glide__arrow--right rounded-full bg-white h-8 w-8" data-glide-dir=">">
+            <button class="glide__arrow glide__arrow--right rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir=">">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
         </div>
@@ -160,7 +168,9 @@
             <div class="dark:bg-gray-800 dark:text-white bg-white lg:border dark:border-gray-700  border-gray-200 rounded-xl p-4 lg:p-6 flex flex-col">
                 <div class="flex justify-between mb-6 items-center">
                     <h2 class="font-bold text-2xl">서버 목록</h2>
-                    <a href={`/?server=0`} class="bg-gray-200 dark:bg-gray-700 py-2 px-3 rounded-xl transform ease-in duration-100 active:scale-95">빠른 시작</a>
+                    <button 
+                    on:click={() => reloadList()}
+                    class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-700 py-2 px-3 rounded-xl transform ease-in duration-100 active:scale-95">새로고침</button>
                 </div>
                 {#each jsonDataServers.list as serverUsers, index}
                 <a rel="external" href={`${serverUsers === null ? "/" : "https://kkutu.io/?server="+index}`}>

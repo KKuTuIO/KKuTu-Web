@@ -192,8 +192,8 @@
                 {#each filteredData as rank, index}
                     <div class="rounded-xl text-gray-900 mb-4">
                         <div class="flex justify-between">
-                            <h3 class="text-xl font-bold dark:text-blue-300 text-[#3553A0]">{rank.rank + 1}위 {rank.name}</h3>
-                            <span class="font-normal text-right dark:text-gray-300 text-gray-500">{rank.score}점</span>
+                            <h3 class="text-xl dark:text-blue-300 text-[#3553A0]">{rank.rank + 1}위 <span class="font-bold">{rank.name}</span></h3>
+                            <span class="font-normal text-right dark:text-gray-300 text-gray-500">{rank.score.toLocaleString()}점</span>
                         </div>
                     </div>
                 {/each}

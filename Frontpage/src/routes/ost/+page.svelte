@@ -4,8 +4,9 @@
   
   const songs = [
     { title: "오리지널 끄투", url: "https://cdn.kkutu.io/media/LobbyBGM.mp3", artist: "" },
-    { title: "끄투리오 2017", url: "/bgm/LobbyBGM_2017.mp3", artist: "" },
-    { title: "끄투리오 명절", url: "/bgm/LobbyBGM_KKuTuIO_Seol.mp3", artist: "" },
+    { title: "끄투 명절", url: "https://cdn.kkutu.io/media/LobbySeolBGM.mp3", artist: "" },
+    { title: "끄투리오 2017", url: "https://cdn.kkutu.io/media/LobbyBGM_2017.mp3", artist: "" },
+    { title: "끄투리오 명절", url: "https://cdn.kkutu.io/media/LobbyBGM_KKuTuIO_Seol.mp3", artist: "" },
     { title: "새로운 시작", url: "https://cdn.kkutu.io/media/LobbyBGM_NEW.mp3", artist: "Hexacube" },
     { title: "끄투리오 2020 여름", url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Summer.mp3", artist: "Hexacube" },
     { title: "끄투리오 2020 가을", url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Fall.mp3", artist: "Hexacube" },
@@ -35,8 +36,8 @@
   <title>끄투리오 - {title}</title>
 </svelte:head>
 <div class="dark:bg-gray-900">
-  <div class="mt-24 mx-auto max-w-screen-xl px-4 py-8 ">
-    <h1 class="text-3xl font-bold mb-2">OST 아카이브</h1>
+  <div class="pt-24 mx-auto max-w-screen-xl px-4 py-8 ">
+    <h1 class="dark:text-white text-3xl font-bold mb-2">OST 아카이브</h1>
     <p class="text-gray-500 dark:text-gray-300 mb-8"><strong>고음질로 다시 만나는 추억의 OST!</strong>&nbsp;<br class="lg:hidden">끄투리오의 다양한 OST를 감상해보세요.</p>
     <ul>
       {#each songs as song}
@@ -45,7 +46,7 @@
             <h3 class="text-lg font-bold dark:text-white">{song.title}</h3>
             <span class="text-sm text-gray-500 dark:text-gray-300">
               {#if song.url.endsWith('.flac')}
-                <span class="bg-[#FF6347] text-white px-1 rounded-md">FLAC</span>
+                <span class="bg-[#E0582B] text-white px-1 rounded-full">FLAC</span>
               {/if}
               {song.artist}
             </span>

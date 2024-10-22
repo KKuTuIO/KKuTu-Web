@@ -31,6 +31,12 @@ class RankDao(
     @Autowired val redisTemplate: RedisTemplate<String, Any>
 ) {
     fun getPage(pageNum: Long, dataCount: Long): List<Rank> {
+        if (pageNum < 0) {
+            val start = 0 * dataCount
+            val end = 1 * dataCount - 1
+            return getRanks(start, end)
+        }
+
         val start = pageNum * dataCount
         val end = (pageNum + 1) * dataCount - 1
 

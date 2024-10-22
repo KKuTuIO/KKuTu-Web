@@ -60,7 +60,7 @@
 		<div class="flex flex-1 justify-end">
 			{#if user == "Guest User"}
 			<a href="/login"
-			class="bg-[#3553A0] hover:bg-[#213464] text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+			class="bg-[#55aa55] hover:bg-[#51a351] text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 			로그인
 			</a>
 			{:else}

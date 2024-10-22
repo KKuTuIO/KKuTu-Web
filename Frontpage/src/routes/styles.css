@@ -10,11 +10,11 @@
 }
 
 .link-signin{
-	@apply font-semibold leading-6 text-blue-600 hover:text-blue-500 dark:text-blue-300 dark:hover:text-blue-500
+	@apply font-semibold leading-6 text-green-600 hover:text-green-500 dark:text-green-300 dark:hover:text-green-500
 }
 
 .link-header{
-	@apply text-gray-800 hover:text-[#3553A0] dark:text-gray-200 dark:hover:text-[#4581C4] text-xs text-center transform ease-in duration-100 w-16
+	@apply text-gray-800 hover:text-[#55aa55] dark:text-gray-200 dark:hover:text-[#4581C4] text-xs text-center transform ease-in duration-100 w-16
 }
 .icons-header{
 	@apply text-lg block

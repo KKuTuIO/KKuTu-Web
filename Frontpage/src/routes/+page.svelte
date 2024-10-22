@@ -155,7 +155,7 @@
     </div>
     <div class="max-w-screen-xl mx-auto lg:p-12 p-4">
         <!-- Notice area -->
-        <div class="dark:border-blue-700 dark:text-blue-300 dark:bg-blue-950 text-blue-600 bg-blue-100 border-blue-200 border p-4 lg:px-8 rounded-xl">
+        <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8 rounded-xl">
             <i class="fa-solid fa-bell lg:mr-3"></i>
             <strong>공지사항</strong>
             <span class="block lg:inline-block lg:pl-4 lg:ml-4 lg:border-l dark:border-gray-700 border-gray-300">
@@ -176,11 +176,11 @@
                 <a rel="external" href={`${serverUsers === null ? "/" : "https://kkutu.io/?server="+index}`}>
                     <div class="rounded-xl text-gray-900 mb-8">
                         <div class="flex justify-between">
-                            <h3 class="text-xl font-bold dark:text-blue-300 text-[#3553A0]">{serverName[index]} 채널</h3>
+                            <h3 class="text-xl font-bold dark:text-green-300 text-[#55aa55]">{serverName[index]} 채널</h3>
                             <span class="font-normal text-right dark:text-gray-300 text-gray-500">{serverUsers === null ? '점검 중' : `${serverUsers} / ${jsonDataServers.max}`}</span>
                         </div>
                         <div class="dark:bg-gray-900 bg-gray-100 h-2 mt-3">
-                            <div class={`${serverUsers === null ? "bg-transparent" : "dark:bg-blue-300 bg-[#3553A0]"} h-full`} style={`width: ${(serverUsers / jsonDataServers.max) * 100}%`}>
+                            <div class={`${serverUsers === null ? "bg-transparent" : "dark:bg-blue-300 bg-[#55aa55]"} h-full`} style={`width: ${(serverUsers / jsonDataServers.max) * 100}%`}>
                         </div>
                         </div>
                     </div>
@@ -192,8 +192,8 @@
                 {#each filteredData as rank, index}
                     <div class="rounded-xl text-gray-900 mb-4">
                         <div class="flex justify-between">
-                            <h3 class="text-xl dark:text-blue-300 text-[#3553A0]">{rank.rank + 1}위 <span class="font-bold">{rank.name}</span></h3>
-                            <span class="font-normal text-right dark:text-gray-300 text-gray-500">{rank.score.toLocaleString()}점</span>
+                            <h3 class="text-xl dark:text-green-300 text-[#55aa55]">{rank.rank + 1}위 <span class="font-bold">{rank.name}</span></h3>
+                            <span class="font-normal text-right dark:text-gray-300 text-gray-500">{(rank.score).toLocaleString()}점</span>
                         </div>
                     </div>
                 {/each}

@@ -1,6 +1,14 @@
 <script>
     import { onMount } from 'svelte';
     const title = '로그인';
+
+    var loginReason = "";
+
+    onMount(async () => {
+      const response = await fetch('https://kkutu.io/api/login/reason');
+      const data = await response.text();
+      loginReason = data;
+    });
   </script>
   
   <svelte:head>
@@ -11,6 +19,12 @@
       <h2 class="mt-10 text-center text-3xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100">
         로그인
       </h2>
+    </div>
+
+    <div class="mt-4 sm:mx-auto sm:w-full sm:max-w-sm">
+      <p class="text-center text-gray-500 dark:text-gray-300">
+        {loginReason}
+      </p>
     </div>
   
     <div class="mt-4 sm:mx-auto sm:w-full ">

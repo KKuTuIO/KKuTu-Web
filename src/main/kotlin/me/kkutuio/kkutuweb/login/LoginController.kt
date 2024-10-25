@@ -46,8 +46,13 @@ class LoginController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        model.addAttribute("viewName", request.getView(View.REACT))
-        return request.getView(View.LAYOUT)
+        if (request.getParameter("old") != null) {
+            model.addAttribute("viewName", request.getView(View.REACT))
+            return request.getView(View.LAYOUT)
+        }
+        else{
+            return "redirect:/login.html"
+        }
     }
 
     @GetMapping("/fail")

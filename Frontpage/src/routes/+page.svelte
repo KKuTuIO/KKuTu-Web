@@ -32,6 +32,9 @@
             ]
         }
     };
+
+    var blockData = {
+    };
     
     var noticeData = "";
     var patchData = "<p>2021년 10월 20일 업데이트 내용입니다.</p>";
@@ -108,6 +111,9 @@
         const rankResponse = await fetch('https://kkutu.io/ranking?p=0');
         rankData = await rankResponse.json();
         filteredData = rankData.data.data.slice(0, 10);
+
+        const blockResponse = await fetch('https://kkutu.io/api/block');
+        blockData = await blockResponse.json();
         }
         catch(e){
             console.error(e);
@@ -123,12 +129,24 @@
         jsonDataServers = await responseServers.json();
     });
 
-    function reloadList() {
+    function reloadList() { 
         fetch('https://kkutu.io/servers')
             .then(response => response.json())
             .then(data => {
                 jsonDataServers = data;
             });
+    }
+    function getInquireId() {
+        const date = new Date();
+        return `BLK-${blockData.blockType}-${blockData.id}-${date.getMonth() + 1}.${date.getDate()}.${date.getHours()}.${date.getMinutes()}`;
+    }
+
+    function hideIP(target){
+        if (blockData.blockType !== 'IP') return target;
+
+        const ip = blockData.target;
+        const splitIp = ip.split('.');
+        return `${splitIp[0]}.${splitIp[1]}.*.*`;
     }
 </script>
   
@@ -136,6 +154,94 @@
     <title>끄투리오 - {title}</title>
 </svelte:head>
 
+{#if blockData.blocked}
+    <!-- Fullscreen dim -->
+    <div class="z-50 fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div class="bg-gray-800 text-center text-white rounded-xl p-8">
+            {#if blockData.onlyGuestPunish && blockData.blockType == "IP"}
+                <h2 class="text-2xl font-bold">손님 계정 이용 제한됨</h2>
+                <p class="mt-4 text-gray-300">운영정책 위반으로 <strong>손님 상태에서의 게임 이용</strong>이 제한되었습니다.</p>
+
+                <div class="mt-4">
+                    <table class="w-full text-left border-separate border-spacing-y-3">
+                        <tr>
+                            <td class="w-24 font-semibold">IP 주소</td>
+                            <td class="w-72 text-gray-300">{hideIP(blockData.target)}</td>
+                        </tr>
+                        <tr>
+                            <td class="w-24 font-semibold">해제 일시</td>
+                            <td class="w-72 text-gray-300">{blockData.pardonTime}</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold">제한 기간</td>
+                            <td class="text-gray-300">{blockData.duration}</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold">제한 사유</td>
+                            <td class="text-gray-300">{blockData.reason}</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold">남은 시간</td>
+                            <td class="text-gray-300">{blockData.remain}</td>
+                        </tr>
+                    </table>
+
+                    <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
+                        <button class="mt-4 mb-2 font-bold rounded-xl bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
+                    </a>
+                    <br>
+                    <a href="https://kkutu.io/login" rel="external">
+                        <button class="text-gray-300 mb-4">로그인 (게임 이용 가능)</button>
+                    </a>
+                    <p class="text-xs text-gray-400">
+                        {getInquireId()} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                    </p>
+                </div>
+            {:else}
+                <h2 class="text-2xl font-bold">계정 이용 제한됨</h2>
+                <p class="mt-4 text-gray-300">운영정책 위반으로 <strong>게임 이용</strong>이 제한되었습니다.</p>
+
+                <div class="mt-4">
+                    <table class="w-full text-left border-separate border-spacing-y-3">
+                        <tr>
+                            <td class="w-24 font-semibold">식별 번호</td>
+                            <td class="w-72 text-gray-300">{blockData.target}</td>
+                        </tr>
+                        <tr>
+                            <td class="w-24 font-semibold">해제 일시</td>
+                            <td class="w-72 text-gray-300">{blockData.pardonTime}</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold">제한 기간</td>
+                            <td class="text-gray-300">{blockData.duration}</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold">제한 사유</td>
+                            <td class="text-gray-300">{blockData.reason}</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold">남은 시간</td>
+                            <td class="text-gray-300">{blockData.remain}</td>
+                        </tr>
+                    </table>
+
+                    <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
+                        <button class="mt-4 mb-2 font-bold rounded-xl bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
+                    </a>
+                    <br>
+                    <a href="https://kkutu.io/logout" rel="external">
+                        <button class="text-gray-300 mb-4">로그아웃</button>
+                    </a>
+                    <p class="text-xs text-gray-400">
+                        {getInquireId()} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                    </p>
+                </div>
+            {/if}
+        </div>
+    </div>
+{/if}
 <div class="dark:bg-gray-900">
     <div class="glide">
         <!-- Slide Left/right btn -->

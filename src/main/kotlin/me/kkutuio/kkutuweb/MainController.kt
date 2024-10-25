@@ -76,7 +76,12 @@ class MainController(
         model.addAttribute("runnerVersion", runnerVersion)
 
         if (server == null) {
-            model.addAttribute("viewName", request.getView(View.REACT))
+            if (request.getParameter("old") != null) {
+                model.addAttribute("viewName", request.getView(View.REACT))
+            }
+            else{
+                return "redirect:/index.html"
+            }
         } else {
             val ip = request.getIp()
             if (isGuest) {

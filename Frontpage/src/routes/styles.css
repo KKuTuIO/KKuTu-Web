@@ -14,7 +14,13 @@
 }
 
 .link-header{
-	@apply text-gray-800 hover:text-[#55aa55] dark:text-gray-200 dark:hover:text-[#4581C4] text-xs text-center transform ease-in duration-100 w-16
+	@apply text-gray-800 hover:text-[#55aa55] dark:text-gray-200 dark:hover:text-green-300 text-xs text-center transform ease-in duration-100 w-16
+}
+.link-sidebar{
+	@apply font-medium text-sm leading-5 group-hover:text-[#55aa55] dark:group-hover:text-green-300
+}
+.icons-sidebar{
+	@apply text-2xl group-hover:text-[#55aa55] dark:group-hover:text-green-300
 }
 .icons-header{
 	@apply text-lg block

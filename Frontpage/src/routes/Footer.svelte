@@ -52,20 +52,41 @@
       }
     }
 </script>
-<footer class="bg-gray-200 p-2 dark:bg-gray-800 ">
+<footer class="border-t border-gray-200 p-2 dark:border-gray-800 dark:bg-gray-950">
     <div class="max-w-screen-xl mx-auto md:flex md:justify-between py-4">
       <div class="">
-        <div class="text-gray-500 dark:text-gray-400">
-           <strong>&copy; 끄투리오운영, 모든 권리 보유</strong><br><a target="_blank" rel="noopener" href="https://cs.kkutu.io/terms">서비스 이용약관</a> · <a target="_blank" rel="noopener" href="https://cs.kkutu.io/operation">운영정책</a> · <a target="_blank" rel="noopener" href="https://cs.kkutu.io/privacy-policy">개인정보처리방침</a> · <a target="_blank" rel="noopener" href="https://cs.kkutu.io/license">저작권 안내</a> · <a target="_blank" rel="noopener" href="https://support.kkutu.io">고객센터</a>
-           <div class="flex gap-x-2 mt-4">
-            <a href="https://play.google.com/store/apps/details?id=io.kkutu.kkutuio" target="_blank">
-              <img src="/img/GooglePlay.svg" class="h-8" alt="Google Play"/>
-            </a>
-            <a href="https://m.onestore.co.kr/mobilepoc/apps/appsDetail.omp?prodId=0000775728" target="_blank">
-              <img src="/img/onestore.png" class="h-8 border border-gray-400 rounded" alt="One Store"/>
-            </a>
-            <img src="/img/Pwa.svg" class="h-8 cursor-pointer" on:click={installApp} alt="Pwa"/>
+        <div class="text-gray-400 text-xs dark:text-gray-400">
+          <div class="flex gap-x-5 text-gray-600 dark:text-gray-100 leading-6">
+            <a target="_blank" rel="noopener" href="https://cs.kkutu.io/terms">서비스 이용약관</a>
+            <a target="_blank" rel="noopener" href="https://cs.kkutu.io/operation">운영정책</a>
+            <a target="_blank" rel="noopener" href="https://cs.kkutu.io/privacy-policy">개인정보처리방침</a>
+            <a target="_blank" rel="noopener" href="https://cs.kkutu.io/license">저작권 안내</a>
+            <a target="_blank" rel="noopener" href="https://support.kkutu.io">고객센터</a>
           </div>
+          <div class="text-gray-400 text-xs hidden">
+            <div class="flex gap-x-[13px]">
+              <span>회사명 : 회사명입력예정</span>
+              <span>대표이사 : 대표자입력예정</span>
+            </div>
+            <div class="flex gap-x-[13px]">
+              <span>주소 : (00000) 서울특별시 대덕구 중동 392</span>
+              <span>사업자등록번호 : 123-45-67890</span>
+            </div>
+            <div class="flex gap-x-[13px]">
+              <span>이메일 : test@example.com</span>
+              <span>전화 : 010-1234-5678</span>
+            </div>
+          </div>
+          <div class="flex gap-x-2 mt-4">
+           <a href="https://play.google.com/store/apps/details?id=io.kkutu.kkutuio" target="_blank">
+             <img src="/img/GooglePlay.svg" class="h-8" alt="Google Play"/>
+           </a>
+           <a href="https://m.onestore.co.kr/mobilepoc/apps/appsDetail.omp?prodId=0000775728" target="_blank">
+             <img src="/img/onestore.png" class="h-8 border border-gray-400 rounded" alt="One Store"/>
+           </a>
+           <img src="/img/Pwa.svg" class="h-8 cursor-pointer" on:click={installApp} alt="Pwa"/>
+         </div>
+          <div class="text-gray-500 dark:text-gray-100 pt-4">&copy; 끄투리오운영, 모든 권리 보유</div>
         </div>
       </div>
       <div class="">

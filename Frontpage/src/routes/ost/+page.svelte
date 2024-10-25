@@ -37,7 +37,7 @@
 </svelte:head>
 <div class="dark:bg-gray-900">
   <div class="pt-24 mx-auto max-w-screen-xl px-4 py-8 ">
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
       <div>
         <h1 class="dark:text-white text-3xl font-bold mb-2">OST 아카이브</h1>
         <p class="text-gray-500 dark:text-gray-300 mb-8"><strong>여러분의 손으로 꼽은 최고의 OST!</strong> 설문조사의 인기도를 반영했습니다.<br>끄투리오의 다양한 OST를 감상해보세요.</p>

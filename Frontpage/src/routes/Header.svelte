@@ -55,7 +55,6 @@
 			<a target="_blank" href="https://discord.gg/kkutuio-395143193114705920" class="link-header"><i class="fa-brands fa-discord icons-header"></i>디스코드</a>
 			<a target="_blank" href="https://cafe.naver.com/kkutuio" class="link-header"><i class="fa-solid fa-coffee icons-header"></i>공식카페</a>
 			<a target="_blank" href="https://wiki.kkutu.io/" class="link-header"><i class="fa-solid fa-book icons-header"></i>리오위키</a>
-			<a rel="external" href="/ost.html" class="link-header"><i class="fa-solid fa-music icons-header"></i>OST</a>
 		</div>
 		<div class="flex flex-1 justify-end">
 			{#if user == "Guest User"}
@@ -76,3 +75,25 @@
 		</nav>
 	</div>
 </header>
+<div class="hidden lg:block absolute top-48 z-20 h-[calc(100%-584px)] w-32 right-0">
+	<div class="sticky top-16 overflow-x-hidden shadow-md rounded-l-xl">
+	  <div class="bg-white dark:bg-black flex flex-col w-32 border border-gray-200 dark:border-gray-700 rounded-tl-xl rounded-bl-xl border-r-0 divide-y divide-gray-200 dark:divide-gray-700">
+		<a class="text-gray-700 dark:text-gray-300 group active w-32 h-20 flex flex-col gap-y-1.5 items-center justify-center" rel="external" href="/ost.html">
+		<i class="fa-solid fa-music icons-sidebar"></i>
+		  <span class="link-sidebar">OST</span>
+		</a>
+		<a class="text-gray-700 dark:text-gray-300 group active w-32 h-20 flex flex-col gap-y-1.5 items-center justify-center" rel="external" href="https://support.kkutu.io/" target="_blank">
+			<i class="fa-solid fa-circle-question icons-sidebar"></i>
+		  <span class="link-sidebar">고객지원</span>
+		</a>
+		<a class="text-gray-700 dark:text-gray-300 group active w-32 h-20 flex flex-col gap-y-1.5 items-center justify-center" rel="external" href="https://support.kkutu.io/order/main/packages/membership/?group_id=2" target="_blank">
+			<i class="fa-solid fa-circle-up icons-sidebar"></i>
+		  <span class="link-sidebar">멤버십</span>
+		</a>
+		<a class="text-gray-700 dark:text-gray-300 group active w-32 h-20 flex flex-col gap-y-1.5 items-center justify-center" href="#" onclick="window.open('https://kkutu.io/help', '_blank', 'width=550,height=375'); return false;">
+			<i class="fa-solid fa-book-open icons-sidebar"></i>
+			<span class="link-sidebar">게임 가이드</span>
+		</a>		
+	  </div>
+	</div>
+</div>

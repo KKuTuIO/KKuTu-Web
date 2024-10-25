@@ -84,6 +84,7 @@
         glide = new Glide('.glide', {
             type: 'carousel',
             startAt: 0,
+            gap: 0,
             perView: 1,
             autoplay: 5000,
             hoverpause: true,
@@ -138,7 +139,7 @@
 <div class="dark:bg-gray-900">
     <div class="glide">
         <!-- Slide Left/right btn -->
-        <div class="glide__arrows" data-glide-el="controls">
+         <div class="glide__arrows" data-glide-el="controls">
             <button class="glide__arrow glide__arrow--left rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
@@ -146,6 +147,7 @@
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
         </div>
+
         <div class="glide__track" data-glide-el="track">
             <ul class="glide__slides">
             </ul>
@@ -165,12 +167,14 @@
         
         <!-- Gridded area -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-8">
-            <div class="dark:bg-gray-800 dark:text-white bg-white lg:border dark:border-gray-700  border-gray-200 rounded-xl p-4 lg:p-6 flex flex-col">
+            <div class="dark:bg-gray-800 dark:text-white bg-white rounded-xl p-3 lg:p-2 flex flex-col">
                 <div class="flex justify-between mb-6 items-center">
-                    <h2 class="font-bold text-2xl">서버 목록</h2>
+                    <h2 class="font-bold text-2xl">채널 목록</h2>
                     <button 
                     on:click={() => reloadList()}
-                    class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-700 py-2 px-3 rounded-xl transform ease-in duration-100 active:scale-95">새로고침</button>
+                    class="text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-2 px-3 rounded-full transform ease-in duration-100 active:scale-95">
+                    <i class="fa-solid fa-arrow-rotate-right"></i>
+                </button>
                 </div>
                 {#each jsonDataServers.list as serverUsers, index}
                 <a rel="external" href={`${serverUsers === null ? "/" : "https://kkutu.io/?server="+index}`}>
@@ -180,20 +184,20 @@
                             <span class="font-normal text-right dark:text-gray-300 text-gray-500">{serverUsers === null ? '점검 중' : `${serverUsers} / ${jsonDataServers.max}`}</span>
                         </div>
                         <div class="dark:bg-gray-900 bg-gray-100 h-2 mt-3">
-                            <div class={`${serverUsers === null ? "bg-transparent" : "dark:bg-blue-300 bg-[#55aa55]"} h-full`} style={`width: ${(serverUsers / jsonDataServers.max) * 100}%`}>
+                            <div class={`${serverUsers === null ? "bg-transparent" : "dark:bg-green-300 bg-[#55aa55]"} h-full`} style={`width: ${(serverUsers / jsonDataServers.max) * 100}%`}>
                         </div>
                         </div>
                     </div>
                 </a>
                 {/each}
             </div>
-            <div class="dark:bg-gray-800 dark:text-white bg-white lg:border dark:border-gray-700  border-gray-200 rounded-xl p-4 lg:p-6 flex flex-col ">
+            <div class="dark:bg-gray-800 dark:text-white bg-white rounded-xl p-3 lg:p-2 flex flex-col ">
                 <h2 class="mb-6 font-bold text-2xl">랭킹</h2>
                 {#each filteredData as rank, index}
                     <div class="rounded-xl text-gray-900 mb-4">
                         <div class="flex justify-between">
                             <h3 class="text-xl dark:text-green-300 text-[#55aa55]">{rank.rank + 1}위 <span class="font-bold">{rank.name}</span></h3>
-                            <span class="font-normal text-right dark:text-gray-300 text-gray-500">{(rank.score).toLocaleString()}점</span>
+                            <span class="font-normal text-right dark:text-gray-300 text-gray-500">{Number(rank.score).toLocaleString()}점</span>
                         </div>
                     </div>
                 {/each}

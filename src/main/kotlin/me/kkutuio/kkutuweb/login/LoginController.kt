@@ -46,13 +46,7 @@ class LoginController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        if (request.getParameter("old") != null) {
-            model.addAttribute("viewName", request.getView(View.REACT))
-            return request.getView(View.LAYOUT)
-        }
-        else{
             return "redirect:/login.html"
-        }
     }
 
     @GetMapping("/fail")
@@ -60,8 +54,7 @@ class LoginController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        model.addAttribute("viewName", "view/loginFailed")
-        return request.getView(View.LAYOUT)
+        return "redirect:/loginFail.html"
     }
 
     @GetMapping("/logout")
@@ -90,8 +83,8 @@ class LoginController(
         @RequestParam("state", required = false, defaultValue = "") state: String,
         request: HttpServletRequest
     ): String {
-        if (code.isEmpty() || state.isEmpty()) return "redirect:/login/fail"
-        val vendorType = AuthVendor.fromName(vendorName) ?: return "redirect:/login/fail"
+        if (code.isEmpty() || state.isEmpty()) return "redirect:/loginFail.html"
+        val vendorType = AuthVendor.fromName(vendorName) ?: return "redirect:/loginFail.html"
 
         val loginSuccess = loginService.login(request, vendorType, code, state)
         if (loginSuccess) {
@@ -103,7 +96,7 @@ class LoginController(
             logger.info("[${request.getIp()}] ${request.session.id} 세션에서 ${vendorType.name} 로그인에 실패했습니다.")
         }
 
-        return if (!loginSuccess) "redirect:/login/fail"
+        return if (!loginSuccess) "redirect:/loginFail.html"
         else "redirect:/"
     }
 }

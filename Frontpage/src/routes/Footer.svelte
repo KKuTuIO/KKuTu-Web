@@ -56,7 +56,7 @@
     <div class="max-w-screen-xl mx-auto md:flex md:justify-between py-4">
       <div class="">
         <div class="text-gray-400 text-xs dark:text-gray-400">
-          <div class="flex gap-x-5 text-gray-600 dark:text-gray-100 leading-6">
+          <div class="flex gap-x-2 lg:gap-x-5 text-gray-600 dark:text-gray-100 leading-6">
             <a target="_blank" rel="noopener" href="https://cs.kkutu.io/terms">서비스 이용약관</a>
             <a target="_blank" rel="noopener" href="https://cs.kkutu.io/operation">운영정책</a>
             <a target="_blank" rel="noopener" href="https://cs.kkutu.io/privacy-policy">개인정보처리방침</a>

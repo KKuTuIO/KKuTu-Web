@@ -254,6 +254,8 @@
             </div>-->
             <div class="dialog-bar tail-button">
                 <button id="quick-ok" th:text="#{kkutu.dialog.quick.ok}"></button>
+                <button id="quick-roomtitle" th:text="#{kkutu.dialog.quick.byTitle}"></button>
+                <button id="quick-roomnum" th:text="#{kkutu.dialog.quick.byNumber}"></button>
             </div>
         </th:block>
     </th:block>
@@ -518,27 +520,43 @@
             layout:replace="~{view/kkutu/dialog::dialog(id='ReportDialog',width=350,height=265,title='끄투리오 회원 신고하기')}">
         <th:block layout:fragment="content">
             <b th:text="#{kkutu.dialog.report.category}" style="display:block;"></b>
-            <select id="rsl" style="box-sizing: border-box;height: 30px;width:100%;margin-top:5px;margin-bottom:5px;">
+            <select id="rsl" style="width:100%; margin-top: 5px; margin-bottom: 5px;">
                 <option th:text="#{kkutu.dialog.report.category}" disabled selected></option>
-                <option th:text="#{kkutu.dialog.report.category.01}" value="01"></option>
-                <option th:text="#{kkutu.dialog.report.category.02}" value="02"></option>
-                <option th:text="#{kkutu.dialog.report.category.03}" value="03"></option>
-                <option th:text="#{kkutu.dialog.report.category.04}" value="04"></option>
-                <option th:text="#{kkutu.dialog.report.category.05}" value="05"></option>
-                <option th:text="#{kkutu.dialog.report.category.06}" value="06"></option>
-                <option th:text="#{kkutu.dialog.report.category.07}" value="07"></option>
-                <option th:text="#{kkutu.dialog.report.category.08}" value="08"></option>
-                <option th:text="#{kkutu.dialog.report.category.09}" value="09"></option>
-                <option th:text="#{kkutu.dialog.report.category.10}" value="10"></option>
-                <option th:text="#{kkutu.dialog.report.category.11}" value="11"></option>
-                <option th:text="#{kkutu.dialog.report.category.12}" value="12"></option>
-                <option th:text="#{kkutu.dialog.report.category.13}" value="13"></option>
-                <option th:text="#{kkutu.dialog.report.category.14}" value="14"></option>
-                <option th:text="#{kkutu.dialog.report.category.15}" value="15"></option>
-                <option th:text="#{kkutu.dialog.report.category.16}" value="16"></option>
-                <option th:text="#{kkutu.dialog.report.category.17}" value="17"></option>
-                <option th:text="#{kkutu.dialog.report.category.00}" value="00" reqLength></option>
+            
+                <optgroup th:label="#{kkutu.dialog.report.section.01}">
+                    <option th:text="#{kkutu.dialog.report.category.01}" value="01"></option>
+                    <option th:text="#{kkutu.dialog.report.category.02}" value="02"></option>
+                    <option th:text="#{kkutu.dialog.report.category.03}" value="03"></option>
+                </optgroup>
+            
+                <optgroup th:label="#{kkutu.dialog.report.section.02}">
+                    <option th:text="#{kkutu.dialog.report.category.04}" value="04"></option>
+                    <option th:text="#{kkutu.dialog.report.category.05}" value="05"></option>
+                </optgroup>
+            
+                <optgroup th:label="#{kkutu.dialog.report.section.03}">
+                    <option th:text="#{kkutu.dialog.report.category.06}" value="06"></option>
+                    <option th:text="#{kkutu.dialog.report.category.07}" value="07"></option>
+                    <option th:text="#{kkutu.dialog.report.category.08}" value="08"></option>
+                    <option th:text="#{kkutu.dialog.report.category.09}" value="09"></option>
+                    <option th:text="#{kkutu.dialog.report.category.10}" value="10"></option>
+                    <option th:text="#{kkutu.dialog.report.category.15}" value="15"></option>
+                </optgroup>
+            
+                <optgroup th:label="#{kkutu.dialog.report.section.04}">
+                    <option th:text="#{kkutu.dialog.report.category.11}" value="11"></option>
+                    <option th:text="#{kkutu.dialog.report.category.12}" value="12"></option>
+                </optgroup>
+            
+                <optgroup th:label="#{kkutu.dialog.report.section.05}">
+                    <option th:text="#{kkutu.dialog.report.category.13}" value="13"></option>
+                    <option th:text="#{kkutu.dialog.report.category.14}" value="14"></option>
+                    <option th:text="#{kkutu.dialog.report.category.16}" value="16"></option>
+                    <option th:text="#{kkutu.dialog.report.category.17}" value="17"></option>
+                    <option th:text="#{kkutu.dialog.report.category.00}" value="00"></option>
+                </optgroup>
             </select>
+            
             <b th:text="#{kkutu.dialog.report.tail}" style="display:block;"></b>
             <textarea id="rst"
                       style="width:calc(100% - 12px);height:115px;margin-top:5px;"

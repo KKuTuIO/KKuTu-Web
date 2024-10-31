@@ -9,8 +9,11 @@
 	let name = "Moremi";
 	let profileImage = "";
 	let data = "";
+	var noticeData = "";
+	let noticeVisible = true;
 
 	onMount(async () => {
+		noticeVisible = localStorage.getItem('noticeVisible') !== 'false';
 		try {
 			const res = await fetch('https://kkutu.io/user/oauth');
 			const jsonData = await res.json();
@@ -35,10 +38,25 @@
 		} else {
 			console.log("User is not logged in");
 		}
+		
+		
+        const noticeResponse = await fetch('https://static.kkutu.io/static_notice.html');
+        noticeData = await noticeResponse.text();
 	});
+
+	function closeNotice() {
+		noticeVisible = false;
+		localStorage.setItem('noticeVisible', 'false');
+	}
 </script>
 
 <header class="top-0 fixed w-full z-10">
+	{#if noticeVisible}
+	<div class="text-center py-2 text-white bg-black">
+		{@html noticeData}
+		<button class="text-white" on:click={() => closeNotice()}>×</button>
+	</div>
+	{/if}
 	<div class="bg-white dark:bg-gray-800 shadow lg:py-2 py-3">
 		<nav class="max-w-screen-xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
 		<div class="flex lg:flex-1">

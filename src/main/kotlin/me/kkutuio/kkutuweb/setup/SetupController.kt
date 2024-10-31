@@ -59,13 +59,12 @@ class SetupController(
                 session.invalidate()
             } catch (e: Exception) {
             }
-            model.addAttribute("viewName", "view/loginNoRegister")
-            return request.getView(View.LAYOUT)
+            return "redirect:/regFail.html"
         }
 
         model.addAttribute("viewName", request.getView(View.REACT))
 
         logger.info("[${request.getIp()}] 초기 설정 화면에 접속했습니다.")
-        return request.getView(View.LAYOUT)
+            return "redirect:/setup.html"
     }
 }

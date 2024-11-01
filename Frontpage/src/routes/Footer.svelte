@@ -73,7 +73,7 @@
               <span>주소 : 서울특별시 양천구 목동동로 411, 2004호 (목동, 부영그린타운3차)</span>
               <span>통신판매업신고번호 : 제2024-서울양천-1207호</span>
             </div>
-            <div class="flex flex-col lg:flex-row gap-x-[5px] items-center">
+            <div class="flex flex-col lg:flex-row gap-x-[5px] lg:items-center">
               <span>사업자등록번호 : 473-86-03330</span>
               <a href="http://www.ftc.go.kr/bizCommPop.do?wrkr_no=4738603330" target="_blank">
                 <button class="bg-gray-200 dark:bg-gray-800 rounded-md px-2 py-1 text-xs">사업자정보조회</button>

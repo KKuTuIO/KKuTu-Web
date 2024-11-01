@@ -14,16 +14,16 @@
 }
 
 .link-header{
-	@apply text-gray-800 hover:text-[#55aa55] dark:text-gray-200 dark:hover:text-green-300 text-xs text-center transform ease-in duration-100 w-16
+	@apply flex-col items-center justify-center text-gray-800 hover:text-[#55aa55] dark:text-gray-200 dark:hover:text-green-300 text-xs text-center transform ease-in duration-100 w-16
 }
 .link-sidebar{
-	@apply font-medium text-sm leading-5 group-hover:text-[#55aa55] dark:group-hover:text-green-300
+	@apply leading-none font-medium text-sm group-hover:text-[#55aa55] dark:group-hover:text-green-300
 }
 .icons-sidebar{
 	@apply text-2xl group-hover:text-[#55aa55] dark:group-hover:text-green-300
 }
 .icons-header{
-	@apply text-lg block
+	@apply text-2xl font-medium block leading-none
 }
 
 .glide {
@@ -36,7 +36,6 @@
 	text-align: center;
 	font-size: 1.5rem;
 	background: #f0f0f0;
-	border: 1px solid #ddd;
 }
 
 .glide__bullets {
@@ -60,4 +59,12 @@
 
 #pfp{
 	background-image: url("https://cdn.kkutu.io/img/defaultProfile.png");
+}
+
+.level{
+	width: 18px;
+	height: 18px;
+	background-image: url(https://cdn.kkutu.io/img/kkutu/lv/newlv.png);
+    background-size: 2560%;
+    transform: scale(1.5);
 }

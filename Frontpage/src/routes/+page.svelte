@@ -331,7 +331,7 @@
         <div class="glide__bullets" data-glide-el="controls[nav]">
         </div>
     </div>
-    <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-12 flex flex-col">
+    <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-8 lg:gap-y-12 flex flex-col">
         <!-- Notice area 
         <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8 rounded-full">
             <i class="fa-solid fa-bell lg:mr-3"></i>
@@ -354,10 +354,10 @@
                 </button>
             </a>
             </div>
-            <div class="min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4">
+            <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4">
                 {#each finalData as cafeNotice, index}
                 <!-- Card -->
-                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.refArticleId}`} class="dark:text-white lg:border flex flex-col" target="_blank">
+                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.refArticleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border flex flex-col" target="_blank">
                     <img src={`https://cdn.kkutu.io/img/front/${cafeNotice.menuId}.png`} class="hidden lg:block h-32 w-full object-cover" alt="Patch note"/>
                     <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
                     <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{tsconv(cafeNotice.writeDateTimestamp)}</p>
@@ -399,7 +399,7 @@
                     <div class="rounded-full text-gray-900 mb-4">
                         <div class="flex justify-between">
                             <div class="text-xl dark:text-green-300 text-[#55aa55] flex gap-x-2 justify-center items-center">
-                                <span class="w-12 text-center">{rank.rank + 1}위</span>
+                                <span class="w-12">{rank.rank + 1}위</span>
                                 <div class="level mr-2" style={getLevelImage(Number(rank.score))}></div><span class="font-bold">{rank.name}</span></div>
                             <span class="font-normal text-right dark:text-gray-300 text-gray-500">{Number(rank.score).toLocaleString()}점</span>
                         </div>

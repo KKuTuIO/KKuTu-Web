@@ -1,6 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import Glide from '@glidejs/glide';
+    import { getLevelImage } from '../lib/getLevelImg.js';
     const title = '글자로 놀자! 끄투 온라인';
 
     var slideData = [
@@ -41,13 +42,9 @@
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
     let jsonDataServers = { list: [], max: 9 };
     let glide;
+    let gl;
     let filteredData = [];
-
-    // Cafe Parsing
-    let cafeNoticeData = [];
-    let cafeUpdateData = [];
-    let cafeMaintenanceData = [];
-    let cafeEventData = [];
+    let slidePage = 0;
 
     let finalData = [];
 
@@ -61,7 +58,7 @@
 
         slideData.forEach((slide) => {
             const slideElement = document.createElement('li');
-            slideElement.className = 'glide__slide pt-14 flex justify-center items-center';
+            slideElement.className = 'glide__slide pt-20 flex justify-center items-center ';
             slideElement.style.backgroundColor = slide.color;
 
             const linkElement = document.createElement('a');
@@ -103,12 +100,29 @@
             animationTimingFunc: 'ease-in-out'
         });
 
-        glide.mount();
+        gl = glide.mount();
+
+        console.log('Slides updated');
+
+        glide.on('run', () => {
+            slidePage = glide.index;
+        });
     }
 
+    function goLeft() {
+        glide.go('<');
+    }
+
+    function goRight() {
+        glide.go('>');
+    }
+    
     onMount(async () => {
         // Fetch slide data
         try{
+        const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
+        finalData = await cafeResponse_events.json();
+
         const slideResponse = await fetch('https://static.kkutu.io/slides.json');
         slideData = await slideResponse.json();
         updateSlides();
@@ -133,23 +147,6 @@
 
         jsonDataServers = await responseServers.json();
         
-        const cafeResponse_events = await fetch('https://cafeproxy.kkutuio.workers.dev?cafeId=30131388&boardId=9&listCnt=1');
-        const cafeData_events = await cafeResponse_events.json();
-        cafeEventData = cafeData_events.message.result.articleList;
-
-        const cafeResponse_notices = await fetch('https://cafeproxy.kkutuio.workers.dev?cafeId=30131388&boardId=8&listCnt=1');
-        const cafeData_notices = await cafeResponse_notices.json();
-        cafeNoticeData = cafeData_notices.message.result.articleList;
-
-        const cafeResponse_updates = await fetch('https://cafeproxy.kkutuio.workers.dev?cafeId=30131388&boardId=11&listCnt=1');
-        const cafeData_updates = await cafeResponse_updates.json();
-        cafeUpdateData = cafeData_updates.message.result.articleList;
-
-        const cafeResponse_maintenances = await fetch('https://cafeproxy.kkutuio.workers.dev?cafeId=30131388&boardId=10&listCnt=1');
-        const cafeData_maintenances = await cafeResponse_maintenances.json();
-        cafeMaintenanceData = cafeData_maintenances.message.result.articleList;
-
-        finalData = [...cafeNoticeData, ...cafeUpdateData, ...cafeMaintenanceData, ...cafeEventData];
 
     });
 
@@ -178,46 +175,6 @@
         return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
     }
 
-    const MAX_LEVEL = 720;
-    let EXP = [];
-    var i = 0;
-
-    function getRequiredScore(lv) {
-        if (lv <= 240) return Math.round(
-            (!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
-                120 + Math.floor(lv / 5) * 60 + Math.floor(lv * lv / 225) * 120 + Math.floor(lv * lv / 2025) * 180
-            )
-        ); else if (lv <= 480) return Math.round(
-            (!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
-                120 + Math.floor(lv / 5) * 100 + Math.floor(lv * lv / 225) * 170 + Math.floor(lv * lv / 2025) * 240
-            )
-        ); else return Math.round(
-            (!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1) * (
-                120 + Math.floor(lv / 5) * 140 + Math.floor(lv * lv / 225) * 220 + Math.floor(lv * lv / 2025) * 300
-            )
-        );
-    }
-
-    EXP.push(getRequiredScore(1));
-        for (i = 2; i < MAX_LEVEL; i++) {
-            EXP.push(EXP[i - 2] + getRequiredScore(i));
-        }
-        EXP[MAX_LEVEL - 1] = Infinity;
-        EXP.push(Infinity);
-    
-    function getLevel(score) {
-        var i, l = EXP.length;
-
-        for (i = 0; i < l; i++) if (score < EXP[i]) break;
-        return i + 1;
-    }
-
-    function getLevelImage(score) {
-        var lv = getLevel(score) - 1;
-        var lX = (lv % 25) * -100;
-        var lY = Math.floor(lv * 0.04) * -100;
-        return `background-position: ${lX}% ${lY}%;`;
-    }
 </script>
   
 <svelte:head>
@@ -315,21 +272,42 @@
 <div class="dark:bg-gray-900">
     <div class="glide">
         <!-- Slide Left/right btn -->
-         <div class="glide__arrows" data-glide-el="controls">
-            <button class="glide__arrow glide__arrow--left rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
+         <div class="glide__arrows hidden" data-glide-el="controls">
+            <button id="slideLeft" class="glide__arrow glide__arrow--left rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
-            <button class="glide__arrow glide__arrow--right rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir=">">
+            <button id="slideRight" class="glide__arrow glide__arrow--right rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir=">">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
         </div>
 
         <div class="glide__track" data-glide-el="track">
-            <ul class="glide__slides">
+            <ul class="glide__slides lg:min-h-[368px] min-h-[320px]">
             </ul>
         </div>
-        <div class="glide__bullets" data-glide-el="controls[nav]">
+        <div class="glide__bullets hidden" data-glide-el="controls[nav]">
         </div>
+        <div class="w-full bg-gray-700">
+            <div class="max-w-screen-xl mx-auto flex justify-between items-center px-4 py-2 lg:px-8">
+                <!-- slide controls -->
+                <div class="flex gap-x-2">
+                    <!-- use material icons -->
+                    <button class="text-white text-2xl flex items-center" on:click={goLeft}>
+                        <span class="material-symbols-outlined">
+                            chevron_left
+                        </span>
+                    </button>
+                    <button class="text-white text-2xl flex items-center" on:click={goRight}>
+                        <span class="material-symbols-outlined">
+                            chevron_right
+                        </span>
+                    </button>
+                </div>
+                <div class="text-white">
+                    <span class="text-green-300">{slidePage + 1}</span> / {slideData.length}
+                </div>
+            </div>
+    </div>
     </div>
     <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-8 lg:gap-y-12 flex flex-col">
         <!-- Notice area 
@@ -357,10 +335,10 @@
             <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4">
                 {#each finalData as cafeNotice, index}
                 <!-- Card -->
-                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.refArticleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border flex flex-col" target="_blank">
+                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border dark:border-gray-700 flex flex-col" target="_blank">
                     <img src={`https://cdn.kkutu.io/img/front/${cafeNotice.menuId}.png`} class="hidden lg:block h-32 w-full object-cover" alt="Patch note"/>
                     <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
-                    <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{tsconv(cafeNotice.writeDateTimestamp)}</p>
+                    <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{tsconv(Number(cafeNotice.writeDateTimestamp))}</p>
                 </a>
                 {/each}
             </div>
@@ -400,7 +378,13 @@
                         <div class="flex justify-between">
                             <div class="text-xl dark:text-green-300 text-[#55aa55] flex gap-x-2 justify-center items-center">
                                 <span class="w-12">{rank.rank + 1}위</span>
-                                <div class="level mr-2" style={getLevelImage(Number(rank.score))}></div><span class="font-bold">{rank.name}</span></div>
+                                <div class="level mr-2" style={getLevelImage(Number(rank.score))}></div><span class="font-bold">
+                                    {#if rank.name.includes('#')}
+                                        {rank.name.split('#')[0]}<small>#{rank.name.split('#')[1]}</small>
+                                    {:else}
+                                        {rank.name}
+                                    {/if}
+                                </span></div>
                             <span class="font-normal text-right dark:text-gray-300 text-gray-500">{Number(rank.score).toLocaleString()}점</span>
                         </div>
                     </div>
@@ -408,7 +392,7 @@
             </div>
         </div>
 
-        <div class="hidden lg:block bg-gray-50 text-gray-500 dark:text-gray-300 dark:bg-gray-950 rounded-full py-1">
+        <div class="hidden lg:block bg-gray-50 text-gray-500 dark:text-gray-300 dark:bg-gray-950 rounded-xl py-1">
             <div class="grid grid-cols-5">
               <a class="flex items-center justify-center gap-x-2 h-16" href="https://cafe.naver.com/kkutuio/273">
                 <span class="material-symbols-outlined icons-header">group</span>

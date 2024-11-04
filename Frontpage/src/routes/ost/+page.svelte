@@ -36,14 +36,14 @@
   <title>끄투리오 - {title}</title>
 </svelte:head>
 <div class="dark:bg-gray-900">
-  <div class="pt-24 mx-auto max-w-screen-xl px-4 py-8 ">
+  <div class="pt-32 mx-auto max-w-screen-xl px-4 py-8 ">
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
       <div>
         <h1 class="dark:text-white text-3xl font-bold mb-2">OST 아카이브</h1>
-        <p class="text-gray-500 dark:text-gray-300 mb-8"><strong>여러분의 손으로 꼽은 최고의 OST!</strong> 설문조사의 인기도를 반영했습니다.<br>끄투리오의 다양한 OST를 감상해보세요.</p>
+        <p class="text-gray-500 dark:text-gray-300 mb-8">끄투리오의 다양한 OST를 감상해보세요.</p>
       </div>
       <div>
-        <button class="bg-[#55aa55] hover:bg-[#51a351] text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95"
+        <button class="bg-[#55aa55] hover:bg-[#51a351] text-white flex rounded-full py-2 px-2 transform ease-in duration-100 active:scale-95"
         on:click={() => {
           if (currentSong) {
             currentSong.pause();
@@ -53,17 +53,17 @@
           }
         }}
         >
-            { currentSong ? "❚❚ 일시 정지" : "🔀 랜덤 재생" }
+        <span class="material-symbols-outlined icons-header">{ currentSong ? "pause" : "play_arrow"}</span>
         </button>
       </div>
     </div>
     <ul class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {#each songs as song}
-        <button class="text-left flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transform ease-in duration-100 active:scale-95"
+        <button class="text-left flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transform ease-in duration-100 active:scale-95"
             on:click={() => playSong(song)}>
           <div class="flex">
             <div>
-              <img src={ song.cover == "null" ? "https://cdn.kkutu.io/img/bgm/default.png" : "https://cdn.kkutu.io/img/bgm/"+song.cover+".png" } alt="OST" class="w-12 h-12 rounded-full bg-gray-500 mr-4" />
+              <img src={ song.cover == "null" ? "https://cdn.kkutu.io/img/bgm/default.png" : "https://cdn.kkutu.io/img/bgm/"+song.cover+".png" } alt="OST" class="w-12 h-12 rounded-lg bg-gray-500 mr-4" />
             </div>
             <div>
               <h3 class="text-lg font-bold dark:text-white">{song.title}</h3>

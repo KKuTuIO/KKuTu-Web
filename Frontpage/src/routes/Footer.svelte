@@ -95,7 +95,7 @@
            <img src="/img/Pwa.svg" class="h-8 cursor-pointer" on:click={installApp} alt="Pwa"/>
          </div>
             <a href="https://www.grac.or.kr/Statistics/Popup/Pop_StatisticsDetails.aspx?371e798f34f8dfd4a541d1f1f3960c41a6c813a6a053e8e5ec12581d53453bb0" target="_blank">
-                <img src="/img/grac.svg" class="h-12 mt-4 lg:mt-0" alt="Rating"/>
+                <img src="/img/grac.svg" class="h-12 mt-2 lg:mt-0" alt="Rating"/>
             </a>
         </div>
       </div>

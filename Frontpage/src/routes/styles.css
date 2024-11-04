@@ -29,7 +29,6 @@
 .glide {
 	width: 100%;
 	margin: 0 auto;
-	min-height: 346px;
 }
 
 .glide__slide {
@@ -67,4 +66,11 @@
 	background-image: url(https://cdn.kkutu.io/img/kkutu/lv/newlv.png);
     background-size: 2560%;
     transform: scale(1.5);
+}
+
+.rankBg{
+	background-image: url(https://cdn.kkutu.io/img/kkutu/stage.png);
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
 }

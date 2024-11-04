@@ -51,12 +51,6 @@
 </script>
 
 <header class="top-0 fixed w-full z-10">
-	{#if noticeVisible}
-	<div class="text-center py-2 text-white bg-black">
-		{@html noticeData}
-		<button class="text-white" on:click={() => closeNotice()}>×</button>
-	</div>
-	{/if}
 	<div class="bg-white dark:bg-gray-800 shadow lg:py-2 py-3">
 		<nav class="max-w-screen-xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
 		<div class="flex lg:flex-1">
@@ -72,7 +66,7 @@
 					home
 				</span>
 					홈</a>
-			<a rel="external" href="/rank.html" class="link-header hidden">
+			<a rel="external" href="/rank.html" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					trophy
 				</span>

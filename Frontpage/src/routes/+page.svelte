@@ -322,7 +322,11 @@
         <!-- Patch note area -->
         <div class="dark:text-white rounded-full p-2 flex flex-col">
             <div class="mb-6 justify-between flex items-center">
-                <h2 class="font-semibold text-2xl">새로운 소식</h2>
+                <h2 class="font-semibold text-2xl items-center flex justify-center">
+                    <span class="material-symbols-outlined mr-2">
+                        notifications
+                    </span>
+                    새로운 소식</h2>
                 <a href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=8&search.boardtype=L" target="_blank">
                     <button 
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
@@ -347,7 +351,11 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div class="dark:text-white rounded-full p-2 flex flex-col">
                 <div class="flex justify-between mb-6 items-center">
-                    <h2 class="font-semibold text-2xl">채널 목록</h2>
+                    <h2 class="font-semibold text-2xl items-center flex justify-center">
+                        <span class="material-symbols-outlined mr-2">
+                            list_alt
+                        </span>
+                        채널 목록</h2>
                     <button 
                     on:click={() => reloadList()}
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
@@ -372,7 +380,21 @@
                 {/each}
             </div>
             <div class="dark:text-white rounded-full p-2 flex flex-col ">
-                <h2 class="mb-6 font-semibold text-2xl">랭킹</h2>
+            <div class="flex justify-between mb-6 items-center">
+                <h2 class="font-semibold text-2xl items-center flex justify-center">
+                    <span class="material-symbols-outlined mr-2">
+                        emoji_events
+                    </span>
+                    랭킹</h2>
+                <a href="/rank.html" rel="external">
+                    <button 
+                    class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
+                    <span class="material-symbols-outlined">
+                       add
+                    </span>
+                </button>
+                </a>
+            </div>
                 {#each filteredData as rank, index}
                     <div class="rounded-full text-gray-900 mb-4">
                         <div class="flex justify-between">

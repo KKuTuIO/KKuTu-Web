@@ -39,7 +39,6 @@
 
 .glide__bullets {
 	text-align: center;
-	margin-top: 1rem;
 }
 
 .glide__bullet {
@@ -73,4 +72,10 @@
 	background-size: cover;
 	background-repeat: no-repeat;
 	background-position: center;
+}
+
+.rightHand{
+	/* Mirror horizontal */
+	-webkit-transform: scaleX(-1);
+	transform: scaleX(-1);
 }

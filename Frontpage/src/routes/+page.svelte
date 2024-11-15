@@ -58,7 +58,7 @@
 
         slideData.forEach((slide) => {
             const slideElement = document.createElement('li');
-            slideElement.className = 'glide__slide pt-20 flex justify-center items-center ';
+            slideElement.className = 'glide__slide pt-[56px] flex justify-center items-center ';
             slideElement.style.backgroundColor = slide.color;
 
             const linkElement = document.createElement('a');
@@ -282,7 +282,7 @@
         </div>
 
         <div class="glide__track" data-glide-el="track">
-            <ul class="glide__slides lg:min-h-[368px] min-h-[320px]">
+            <ul class="glide__slides lg:min-h-[344px] min-h-[280px]">
             </ul>
         </div>
         <div class="glide__bullets hidden" data-glide-el="controls[nav]">

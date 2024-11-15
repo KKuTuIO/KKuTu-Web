@@ -41,7 +41,7 @@
         if (result.success) {
           window.location.href = '/?server=0';
         } else {
-          alert('오류가 발생했습니다. 다시 시도해 주세요.'); 
+          alert('금지어가 포함되어 있습니다.'); 
         }
       } catch (error) {
         console.error('Error:', error);
@@ -78,7 +78,7 @@
       </h1>
     </div>
     <!-- Onboarding Progress bar -->
-    <div class="flex items-center justify-center my-6 gap-x-5">
+    <div class="hidden lg:flex items-center justify-center my-6 gap-x-5">
       <div class="flex items-center gap-x-2 font-bold text-gray-500 dark:text-gray-300">
         <div class="flex items-center justify-center w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded-full shadow-md ml-2">
           <span class="text-gray-500 font-bold text-sm">1</span>

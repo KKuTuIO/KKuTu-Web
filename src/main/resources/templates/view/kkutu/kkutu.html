@@ -92,6 +92,8 @@
                 <h4></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='enable-spectator-tag',text=#{kkutu.dialog.setting.game.enable-spectator-tag})}"/>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='enable-fusion',text=#{kkutu.dialog.setting.game.enable-fusion})}"/>
             </div>
             <!--
             <div class="dialog-bar">
@@ -132,7 +134,7 @@
                 </select>
             </div>
             <div class="dialog-bar tail-button">
-                <button id="setting-ok" th:text="#{kkutu.dialog.setting.save}"></button>
+                <button id="setting-ok" class="confirm-btn" th:text="#{kkutu.dialog.setting.save}"></button>
                 <button id="setting-server" th:text="#{kkutu.dialog.setting.change-server}"></button>
                 <button id="setting-load" th:text="#{kkutu.dialog.setting.load}"></button>
             </div>
@@ -253,7 +255,7 @@
                 </ins>
             </div>-->
             <div class="dialog-bar tail-button">
-                <button id="quick-ok" th:text="#{kkutu.dialog.quick.ok}"></button>
+                <button id="quick-ok" class="confirm-btn" th:text="#{kkutu.dialog.quick.ok}"></button>
                 <button id="quick-roomtitle" th:text="#{kkutu.dialog.quick.byTitle}"></button>
                 <button id="quick-roomnum" th:text="#{kkutu.dialog.quick.byNumber}"></button>
             </div>
@@ -340,7 +342,7 @@
                 </h4>
             </div>
             <div class="dialog-bar tail-button">
-                <button id="room-ok" th:text="#{kkutu.dialog.room.ok}"></button>
+                <button id="room-ok" class="confirm-btn" th:text="#{kkutu.dialog.room.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -367,7 +369,7 @@
                 </div>
             </div>
             <div class="dialog-bar tail-button">
-                <button id="injpick-ok" th:text="#{kkutu.dialog.injPick.ok}"></button>
+                <button id="injpick-ok" class="confirm-btn" th:text="#{kkutu.dialog.injPick.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -395,7 +397,7 @@
                 </select>
             </div>
             <div class="dialog-bar tail-button">
-                <button id="practice-ok" th:text="#{kkutu.dialog.practice.ok}"></button>
+                <button id="practice-ok" class="confirm-btn" th:text="#{kkutu.dialog.practice.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -425,7 +427,7 @@
                 </ins>
             </div>
             <div class="dialog-bar tail-button">
-                <button id="result-ok" th:text="#{kkutu.dialog.result.ok}"></button>
+                <button id="result-ok" class="confirm-btn" th:text="#{kkutu.dialog.result.ok}"></button>
                 <button id="result-save" th:text="#{kkutu.dialog.result.saveReplay}"></button>
             </div>
         </th:block>
@@ -563,7 +565,7 @@
                       placeholder="신고 사유를 250자 이내로 자세히 입력해주세요. 자세하게 입력하실수록 빠른 처리가 가능해집니다."
                       maxlength="250"></textarea>
             <div class="dialog-bar tail-button">
-                <button id="report-ok" th:text="#{kkutu.dialog.report.ok}"></button>
+                <button id="report-ok" class="confirm-btn" th:text="#{kkutu.dialog.report.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -585,7 +587,7 @@
             <div class="dialog-bar">
                 <p style="font-size: 11px; margin: 0; letter-spacing: -1px" th:text="#{kkutu.dialog.policy.tail}"></p>
             </div>
-            <button id="policy-ok" th:text="#{kkutu.dialog.policy.ok}"></button>
+            <button id="policy-ok" class="confirm-btn" th:text="#{kkutu.dialog.policy.ok}"></button>
         </th:block>
     </th:block>
     <th:block
@@ -594,7 +596,7 @@
             <div class="msg-style" id="message-content" style="height: 80px;"></div>
             <div class="dialog-bar tail-button">
                 <button id="message-no" th:text="#{kkutu.dialog.message.no}"></button>
-                <button id="message-ok" th:text="#{kkutu.dialog.message.ok}"></button>
+                <button id="message-ok" class="confirm-btn" th:text="#{kkutu.dialog.message.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -605,7 +607,7 @@
             <input id="prompt-input" type="text" placeholder="입력..." style="width: calc(100% - 12px);">
             <div class="dialog-bar tail-button">
                 <button id="prompt-no" th:text="#{kkutu.dialog.message.no}"></button>
-                <button id="prompt-ok" th:text="#{kkutu.dialog.message.ok}"></button>
+                <button id="prompt-ok" class="confirm-btn" th:text="#{kkutu.dialog.message.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -663,7 +665,7 @@
             </div>
             <div class="dialog-bar tail-button">
                 <button id="purchase-no" th:text="#{kkutu.dialog.purchase.cancel}"></button>
-                <button id="purchase-ok" th:text="#{kkutu.dialog.purchase.ok}"></button>
+                <button id="purchase-ok" class="confirm-btn" th:text="#{kkutu.dialog.purchase.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -725,7 +727,7 @@
             </div>
             <div class="dialog-bar tail-button">
                 <span id="dress-membership" th:text="#{kkutu.membership.0}"></span>
-                <button id="dress-ok" th:text="#{kkutu.dialog.dress.ok}"></button>
+                <button id="dress-ok" class="confirm-btn" th:text="#{kkutu.dialog.dress.ok}"></button>
                 <button id="dress-cf" th:text="#{kkutu.dialog.dress.charFactory}"></button>
                 <button id="dress-sell"
                         th:with="paybackHelp=#{kkutu.dialog.dress.paybackHelp}"
@@ -780,7 +782,7 @@
             <div class="jt-image" id="obtain-image" style="margin-left: 110px; width: 80px; height: 80px;"></div>
             <div class="dialog-bar" id="obtain-name" style="text-align: center;"></div>
             <div class="dialog-bar tail-button">
-                <button id="obtain-ok" th:text="#{kkutu.dialog.obtain.ok}"></button>
+                <button id="obtain-ok" class="confirm-btn" th:text="#{kkutu.dialog.obtain.ok}"></button>
             </div>
         </th:block>
     </th:block>
@@ -812,7 +814,7 @@
             </div>
             <div class="dialog-bar tail-button">
                 <button id="exchange-no" th:text="#{kkutu.dialog.exchange.cancel}"></button>
-                <button id="exchange-ok" th:text="#{kkutu.dialog.exchange.ok}"></button>
+                <button id="exchange-ok" class="confirm-btn" th:text="#{kkutu.dialog.exchange.ok}"></button>
             </div>
         </th:block>
     </th:block>

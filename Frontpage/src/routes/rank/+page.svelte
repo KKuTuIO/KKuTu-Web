@@ -4,6 +4,7 @@
   const rankColor = ["yellow-500", "green-500", "blue-500", "purple-500"];
 
   import { getLevelImage } from '../../lib/getLevelImg.js';
+  import { getMoremi } from '../../lib/getMoremi.js';
 
   let currentPage = 0;
   let moremiData = [];
@@ -12,6 +13,12 @@
     "data": {
         "page": 0,
         "data": [
+            {
+                "id": "google-110124117658863556489",
+                "name": "Guest",
+                "rank": "0",
+                "score": "0"
+            }
         ]
     }
 };
@@ -30,31 +37,15 @@
     topRankData.data.data = topRankData.data.data.slice(0, 4);
   });
   
-  async function getMoremi(uid){
-    if (moremiData[uid]) return moremiData[uid];
-    const res = await fetch(`https://kkutu.io/user/${uid}`);
-    var data = await res.json();
-
-    for (var key in data.equip) {
-      if (data.equip[key] === null) {
-        data.equip[key] = "default";
-      }
-      else if (data.equip[key] === "stars") {
-        data.equip[key] = "stars.gif";
-      }
-      else {
-        data.equip[key] = data.equip[key]+".png";
-      }
-    }
-
-    moremiData[uid] = data.equip;
-    return data.equip;
-  }
 
   async function fetchRankData(page) {
     const res = await fetch(`https://kkutu.io/ranking?page=${page}`);
     const data = await res.json();
     rankData = data;
+  }
+
+  async function drawMoremi(uid){
+    return await getMoremi(uid);
   }
   //on currentPage change
   $: {
@@ -74,18 +65,19 @@
   <div class="lg:shadow-md mx-2 lg:mx-auto max-w-screen-xl -mt-16 mb-24 p-2 lg:p-4 bg-gray-100 dark:bg-gray-800 dark:text-white rounded-lg">
     <div class="grid grid-cols-2 lg:grid-cols-4 lg:px-36 lg:gap-x-12 gap-x-8 gap-y-4">
     {#each topRankData.data.data as rank, i}
-      <div class={`border-2 border-${rankColor[rank]} p-2 text-center rounded-lg bg-white dark:bg-gray-700`}>
-        <span class={`font-bold text-${rankColor[rank]}`}>{rank.rank + 1}위</span>
+      <div class={`border-2 border-${rankColor[Number(rank.rank)]} p-2 text-center rounded-lg bg-white dark:bg-gray-700`}>
+        <span class={`font-bold text-${rankColor[Number(rank.rank)]}`}>{rank.rank + 1}위</span>
         <div class="border-b dark:border-gray-600 my-2 mx-2"></div>
         <!-- Moremi Render -->
         <div class="w-[120px] h-[120px] mx-auto mb-4">
-          {#await getMoremi(rank["id"]) then equip}
+          {#await drawMoremi(rank["id"]) then equip}
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body.png`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${equip.Mmouth || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Mouth" />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${equip.Mclothes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Pants" />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${equip.Mshoes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Shoes" />
+            <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" />
           {:catch error}

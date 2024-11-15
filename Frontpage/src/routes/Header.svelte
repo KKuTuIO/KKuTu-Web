@@ -3,14 +3,28 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
+	import { getLevelImage } from '../lib/getLevelImg.js';
+
 	let user = "Guest User";
-	let authVendor = "NEXON";
+	let authVendor = "KKuTu";
 	let vendorId = "0";
 	let name = "Moremi";
 	let profileImage = "";
+
+	let ingameName = "";
+	let score = 0;
+
+
 	let data = "";
+	let flyout = false;
 	var noticeData = "";
 	let noticeVisible = true;
+
+	let defaultProfileImage = 'https://cdn.kkutu.io/img/default_profile.png';
+
+	function handleImageError(event) {
+		event.target.src = defaultProfileImage;
+	}
 
 	onMount(async () => {
 		noticeVisible = localStorage.getItem('noticeVisible') !== 'false';
@@ -35,18 +49,28 @@
 			}
 
 			console.log(`User ${name} is logged in with ${authVendor}`);
+
+			// get user data
+			const userRes = await fetch(`https://kkutu.io/user/${authVendor.toLowerCase()}-${vendorId}`);
+			const userData = await userRes.json();
+
+			ingameName = userData.profile.title;
+			score = userData.data.score;
+
+
 		} else {
 			console.log("User is not logged in");
 		}
 		
-		
-        const noticeResponse = await fetch('https://static.kkutu.io/static_notice.html');
-        noticeData = await noticeResponse.text();
 	});
 
 	function closeNotice() {
 		noticeVisible = false;
 		localStorage.setItem('noticeVisible', 'false');
+	}
+
+	function flyoutMenu() {
+		flyout = !flyout;
 	}
 </script>
 
@@ -102,9 +126,39 @@
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</a>
-				<button on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}>
-					<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp"  />
+				<button on:click={flyoutMenu}>
+					<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp" on:error={handleImageError} />
 				</button>
+				<!-- Flyout Menu -->
+				{#if flyout}
+				<div class="absolute left-11/12 top-14 transform -translate-x-11/12 dark:text-white bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 max-w-screen-xl">
+					<div class="flex items-center gap-x-2">
+						<div class="level" style={getLevelImage(Number(score))}></div>
+						<div>
+							<div class="font-bold">{ingameName}</div>
+							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor}</div>
+						</div>
+					</div>
+					<div class="mt-2">
+						<!--<button
+						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+							<span class="material-symbols-outlined text-md mr-2">
+								account_circle
+							</span>
+							내 전적
+						</button>-->
+						<button
+						on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}
+						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+							<span class="material-symbols-outlined text-md mr-2">
+								logout
+							</span>
+							로그아웃
+						</button>
+					</div>
+				</div>
+			{/if}
+			
 			{/if}
 		</div>
 		</nav>

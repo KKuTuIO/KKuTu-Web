@@ -127,12 +127,12 @@
 				게임 시작
 				</a>
 				<button on:click={flyoutMenu}>
-					<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp" on:error={handleImageError} />
+					<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp"/>
 				</button>
 				<!-- Flyout Menu -->
 				{#if flyout}
 				<div class="absolute left-11/12 top-14 transform -translate-x-11/12 dark:text-white bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 max-w-screen-xl">
-					<div class="flex items-center gap-x-2">
+					<div class="flex items-center gap-x-4 px-2">
 						<div class="level" style={getLevelImage(Number(score))}></div>
 						<div>
 							<div class="font-bold">{ingameName}</div>

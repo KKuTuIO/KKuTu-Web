@@ -273,10 +273,10 @@
     <div class="glide">
         <!-- Slide Left/right btn -->
          <div class="glide__arrows hidden" data-glide-el="controls">
-            <button id="slideLeft" class="glide__arrow glide__arrow--left rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
+            <button id="slideLeft" class="glide__arrow glide__arrow--left  hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
-            <button id="slideRight" class="glide__arrow glide__arrow--right rounded-full hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir=">">
+            <button id="slideRight" class="glide__arrow glide__arrow--right  hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir=">">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
         </div>
@@ -287,24 +287,24 @@
         </div>
         <div class="glide__bullets hidden" data-glide-el="controls[nav]">
         </div>
-        <div class="w-full bg-gray-700">
+        <div class="w-full -mt-12 absolute">
             <div class="max-w-screen-xl mx-auto flex justify-between items-center px-4 py-2 lg:px-8">
                 <!-- slide controls -->
                 <div class="flex gap-x-2">
                     <!-- use material icons -->
-                    <button class="text-white text-2xl flex items-center" on:click={goLeft}>
+                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex items-center" on:click={goLeft}>
                         <span class="material-symbols-outlined">
                             chevron_left
                         </span>
                     </button>
-                    <button class="text-white text-2xl flex items-center" on:click={goRight}>
+                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex items-center" on:click={goRight}>
                         <span class="material-symbols-outlined">
                             chevron_right
                         </span>
                     </button>
                 </div>
-                <div class="text-white">
-                    <span class="text-green-300">{slidePage + 1}</span> / {slideData.length}
+                <div class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 px-4 flex items-center">
+                    <span class="font-bold">{slidePage + 1}</span>&nbsp;/ {slideData.length}
                 </div>
             </div>
     </div>

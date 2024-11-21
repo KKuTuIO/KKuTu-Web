@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 </script>
 
-<header class="border-b w-full z-10">
+<header class="fixed border-b dark:border-gray-700 w-full z-10">
 	<div class="bg-white dark:bg-gray-800 lg:py-2 py-3">
 		<nav class="max-w-screen-3xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
 		<div class="flex lg:flex-1">
@@ -31,12 +31,12 @@
 	</div>
 </header>
 
-<!-- Sidebar -->
+<!-- Sidebar
 <div class="hidden lg:block w-[214px] h-screen fixed z-50 bg-black bg-opacity-70">
-	<div class="h-[195px] flex flex-col items-center justify-center border-b border-white/30 text-white">
+	<div class="h-[195px] flex flex-col items-center justify-center border-b border-white/30 text-white text-center">
 		<div class="w-[180px] rounded-xl mb-2 bg-black aspect-video">
 			<img class="object-cover rounded-xl" src="https://cdn.kkutu.io/img/bgm/ost_1.png" alt="OST" />
 		</div>
-		끄투리오 8주년
+		8주년 카운트다운
 	</div>
-</div>
+</div> -->

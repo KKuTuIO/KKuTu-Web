@@ -74,8 +74,16 @@
 	background-position: center;
 }
 
+
 .rightHand{
-	/* Mirror horizontal */
 	-webkit-transform: scaleX(-1);
 	transform: scaleX(-1);
+}
+
+.eighthTitle{
+	/* BFDBFE - E9D5FF gradient text */
+	background: linear-gradient(90deg, #BFDBFE, #E9D5FF);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	
 }

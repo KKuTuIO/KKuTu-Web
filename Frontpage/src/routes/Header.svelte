@@ -78,11 +78,20 @@
 	<div class="bg-white dark:bg-gray-800 shadow lg:py-2 py-3">
 		<nav class="max-w-screen-xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
 		<div class="flex lg:flex-1">
-		<a href="/" class="md:flex">
-			<span class="sr-only">끄투리오</span>
-			<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
-			<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
-		</a>
+		<!--{#if $page.url.pathname === '/' || $page.url.pathname === '/index.html'}
+			<a href="/event_8th.html" class="md:flex" rel="external">
+				<span class="sr-only">끄투리오 8주년</span>
+				<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_8th.png" alt="끄투리오"/>
+				<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
+			</a>
+		{:else}
+		8주년 랜딩 완료 후 주석 해제
+		{/if}-->
+			<a href="/" class="md:flex">
+				<span class="sr-only">끄투리오</span>
+				<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
+				<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
+			</a>
 		</div>
 		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">
 			<a href="/" class="link-header">

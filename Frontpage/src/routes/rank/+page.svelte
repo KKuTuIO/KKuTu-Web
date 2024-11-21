@@ -35,6 +35,11 @@
     const res = await fetch('https://kkutu.io/ranking?page=0');
     topRankData = await res.json();
     topRankData.data.data = topRankData.data.data.slice(0, 4);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = urlParams.get('page');
+    if(page) currentPage = Number(page) - 1;
+    
   });
   
 
@@ -65,8 +70,11 @@
   <div class="lg:shadow-md mx-2 lg:mx-auto max-w-screen-xl -mt-16 mb-24 p-2 lg:p-4 bg-gray-100 dark:bg-gray-800 dark:text-white rounded-lg">
     <div class="grid grid-cols-2 lg:grid-cols-4 lg:px-36 lg:gap-x-12 gap-x-8 gap-y-4">
     {#each topRankData.data.data as rank, i}
-      <div class={`border-2 border-${rankColor[Number(rank.rank)]} p-2 text-center rounded-lg bg-white dark:bg-gray-700`}>
-        <span class={`font-bold text-${rankColor[Number(rank.rank)]}`}>{rank.rank + 1}위</span>
+      <div class="border-2 p-2 text-center rounded-lg bg-white dark:bg-gray-700"
+        style={`border-color: ${rankColor[Number(rank.rank)]}`}>
+        <span class="font-bold"
+        style={`color: ${rankColor[Number(rank.rank)]}`}>
+        {rank.rank + 1}위</span>
         <div class="border-b dark:border-gray-600 my-2 mx-2"></div>
         <!-- Moremi Render -->
         <div class="w-[120px] h-[120px] mx-auto mb-4">

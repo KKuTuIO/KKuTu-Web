@@ -25,6 +25,8 @@
 		event.target.src = defaultProfileImage;
 	}
 
+	
+	onMount(async () => {
 	const noticeVisible = localStorage.getItem('noticeVisible_241206');
 	const deviceWidth = window.innerWidth;
 
@@ -41,8 +43,6 @@
 			location.href = "/event_8th.html";
 		}
 	}
-	
-	onMount(async () => {
 		try {
 			const res = await fetch('https://kkutu.io/user/oauth');
 			const jsonData = await res.json();

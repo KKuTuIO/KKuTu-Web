@@ -6,6 +6,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 **/src/main/**/static/
+src/main/resources/static/
 !**/src/test/**/build/
 
 ### STS ###

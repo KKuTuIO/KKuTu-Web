@@ -167,7 +167,7 @@ style="background: linear-gradient(179deg, rgba(255,255,255,1) 0%, rgba(255,255,
      <img
      src={`https://cdn.kkutu.io/img/front/relay_week${selectedWeek + 1}.png`}
       alt={`week${selectedWeek + 1}`}
-      class="h-[600px]"
+      class="w-[1000px] min-h-[600px]"
     />
 
     <!-- View full notice -->

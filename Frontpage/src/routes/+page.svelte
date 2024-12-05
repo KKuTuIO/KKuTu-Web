@@ -59,10 +59,14 @@
         slideData.forEach((slide) => {
             const slideElement = document.createElement('li');
             slideElement.className = 'glide__slide pt-[56px] flex justify-center items-center ';
-            slideElement.style.backgroundColor = slide.color;
+            slideElement.style.background = slide.color;
 
             const linkElement = document.createElement('a');
-            linkElement.href = slide.link;
+            if (window.innerWidth < 1000 && slide.m_link) {
+                linkElement.href = slide.m_link;
+            } else{
+                linkElement.href = slide.link;
+            }
 
             const desktopImage = document.createElement('img');
             desktopImage.src = slide.slides[0].desktop;

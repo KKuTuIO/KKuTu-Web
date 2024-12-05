@@ -18,7 +18,7 @@
 	<div class="bg-white dark:bg-gray-800 lg:py-2 py-3">
 		<nav class="max-w-screen-3xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
 		<div class="flex lg:flex-1">
-		<a href="/" class="md:flex">
+		<a href="/?evtHide=1" class="md:flex">
 			<span class="sr-only">끄투리오</span>
 			<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
 			<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>

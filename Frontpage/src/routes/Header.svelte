@@ -28,7 +28,12 @@
 	const noticeVisible = localStorage.getItem('noticeVisible_241206');
 	const deviceWidth = window.innerWidth;
 
-	if (noticeVisible !== 'false' && deviceWidth > 900) {
+	const urlParams = new URLSearchParams(window.location.search);
+	const evtHide = urlParams.get('evtHide');
+
+	if (evtHide === '1') {
+	}
+	else if (noticeVisible !== 'false' && deviceWidth > 900) {
 		location.href = "/event_8th.html";
 	} else {
 		const today = new Date();

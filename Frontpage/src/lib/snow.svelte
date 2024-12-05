@@ -63,7 +63,10 @@
         })
       }
   
-      loop()
+      // init when device width is more than 768px
+      if (window.innerWidth > 768) {
+        loop()
+      }
   
       return () => cancelAnimationFrame(frame)
     })

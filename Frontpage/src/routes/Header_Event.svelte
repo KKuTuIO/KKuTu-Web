@@ -5,12 +5,14 @@
 
 	function hideForever() {
 		localStorage.setItem('noticeVisible_241206', 'false');
+		location.href="/index.html";
 	}
 	function hideToday() {
 		const today = new Date();
 		const tomorrow = new Date(today);
 		tomorrow.setDate(tomorrow.getDate() + 1);
 		localStorage.setItem('noticeVisible', tomorrow.toISOString());
+		location.href="/index.html";
 	}
 </script>
 
@@ -18,7 +20,7 @@
 	<div class="bg-white dark:bg-gray-800 lg:py-2 py-3">
 		<nav class="max-w-screen-3xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
 		<div class="flex lg:flex-1">
-		<a href="/?evtHide=1" class="md:flex">
+		<a href="/index.html?evtHide=1" class="md:flex">
 			<span class="sr-only">끄투리오</span>
 			<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
 			<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
@@ -34,15 +36,15 @@
             </button>
 			<button 
 					on:click={hideToday}
-					class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
+					class="hidden lg:block flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
 					<span class="material-symbols-outlined">
 						close
 					</span>
 					오늘만 보지 않기
 			</button>
-			<div class="border-l pl-2 dark:border-gray-500"></div>
+			<div class="hidden lg:block border-l pl-2 dark:border-gray-500"></div>
 			<a rel="external" href="https://kkutu.io/?server=0"
-				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				class="hidden lg:block bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 			</a>
 		</div>

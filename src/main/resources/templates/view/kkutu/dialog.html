@@ -15,11 +15,12 @@
   ~ You should have received a copy of the GNU Affero General Public License
   ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
-
 <div layout:fragment="dialog(id, width, height, title, nocls)"
-     class="dialog" th:id="${id}" th:style="'width:' + ${width} + 'px;' + (${height} != null ? 'height:' + ${height} + 'px;' : '')">
+     class="dialog" th:id="${id}"
+     th:style="'width:' + (${width} != null ? ${width} : 300) + 'px;' + (${height} != null ? 'height:' + ${height} + 'px;' : '')">
     <div class="dialog-head" th:classappend="${nocls} ? no-close">
-        <div class="dialog-title" th:utext="${title}" th:style="'width:' + (${width} - 20) + 'px'"></div>
+        <div class="dialog-title" th:utext="${title}"
+             th:style="'width:' + ((${width} != null ? ${width} : 300) - 20) + 'px'"></div>
     </div>
     <div class="dialog-body" style="font-size: 13px;">
         <th:block layout:fragment="content"/>

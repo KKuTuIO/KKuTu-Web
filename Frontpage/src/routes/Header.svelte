@@ -18,7 +18,6 @@
 	let data = "";
 	let flyout = false;
 	var noticeData = "";
-	let noticeVisible = true;
 
 	let defaultProfileImage = 'https://cdn.kkutu.io/img/default_profile.png';
 
@@ -26,8 +25,19 @@
 		event.target.src = defaultProfileImage;
 	}
 
+	const noticeVisible = localStorage.getItem('noticeVisible_241206');
+	const deviceWidth = window.innerWidth;
+
+	if (noticeVisible !== 'false' && deviceWidth > 900) {
+		location.href = "/event_8th.html";
+	} else {
+		const today = new Date();
+		if (new Date(noticeVisible) > today && deviceWidth > 900) {
+			location.href = "/event_8th.html";
+		}
+	}
+	
 	onMount(async () => {
-		noticeVisible = localStorage.getItem('noticeVisible') !== 'false';
 		try {
 			const res = await fetch('https://kkutu.io/user/oauth');
 			const jsonData = await res.json();
@@ -63,11 +73,6 @@
 		}
 		
 	});
-
-	function closeNotice() {
-		noticeVisible = false;
-		localStorage.setItem('noticeVisible', 'false');
-	}
 
 	function flyoutMenu() {
 		flyout = !flyout;

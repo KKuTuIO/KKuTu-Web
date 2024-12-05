@@ -2,6 +2,16 @@
 	// @ts-ignore
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+
+	function hideForever() {
+		localStorage.setItem('noticeVisible_241206', 'false');
+	}
+	function hideToday() {
+		const today = new Date();
+		const tomorrow = new Date(today);
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		localStorage.setItem('noticeVisible', tomorrow.toISOString());
+	}
 </script>
 
 <header class="fixed border-b dark:border-gray-700 w-full z-10">
@@ -16,11 +26,20 @@
 		</div>
 		<div class="flex flex-1 justify-end gap-x-2">
 			<button 
+					on:click={hideForever}
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
                         home
                     </span>
             </button>
+			<button 
+					on:click={hideToday}
+					class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
+					<span class="material-symbols-outlined">
+						close
+					</span>
+					오늘만 보지 않기
+			</button>
 			<div class="border-l pl-2 dark:border-gray-500"></div>
 			<a rel="external" href="https://kkutu.io/?server=0"
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">

@@ -336,22 +336,37 @@
         </div>
 
         <div class="glide__track" data-glide-el="track">
-            <ul class="glide__slides lg:min-h-[344px] min-h-[280px]">
+            <ul class="glide__slides lg:min-h-[456px] min-h-[280px]">
             </ul>
         </div>
         <div class="glide__bullets hidden" data-glide-el="controls[nav]">
         </div>
-        <div class="w-full -mt-12 absolute">
+        
+        <div class="-mt-[400px] h-[400px] hidden lg:flex items-center min-w-screen-lg max-w-screen-xl mx-auto justify-end pr-4 z-50">
+            <div class="w-[260px] mx-4">
+                <a href="https://kkutu.io/?server=0" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-8 px-12 transform ease-in duration-100 items-center justify-center">
+                    게임 시작
+                </a>
+                <a href="#serverList" class="text-gray-900 flex items-center justify-center shadow-lg w-full rounded-b-xl p-3.5 hover:bg-gray-100 bg-white backdrop-filter backdrop-blur-lg transform ease-in duration-100">
+                    <h2 class="text-xl font-semibold">다른 채널 보기</h2>
+                    <span class="material-symbols-outlined text-2xl">
+                        chevron_right
+                    </span>
+                </a>
+            </div>
+        </div>
+        <div class="w-full -mt-12 lg:-mt-14 absolute">
+
             <div class="max-w-screen-xl mx-auto flex justify-between items-center px-4 py-2 lg:px-8">
                 <!-- slide controls -->
                 <div class="flex gap-x-2">
                     <!-- use material icons -->
-                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex items-center" on:click={goLeft}>
+                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex justify-center items-center" on:click={goLeft}>
                         <span class="material-symbols-outlined">
                             chevron_left
                         </span>
                     </button>
-                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex items-center" on:click={goRight}>
+                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex justify-center items-center" on:click={goRight}>
                         <span class="material-symbols-outlined">
                             chevron_right
                         </span>
@@ -365,7 +380,7 @@
     </div>
     <!-- PC전용 : 로그인 / 게임시작 영역 -->
     <div class="hidden lg:block bg-gray-800 border-t border-b border-gray-700">
-        <div class="max-w-screen-xl mx-auto grid grid-cols-5 py-4 px-8 min-h-[170px]">
+        <div class="max-w-screen-xl mx-auto grid grid-cols-4 py-4 px-8 min-h-[170px]">
             <!-- Patch Notes-->
              
             <div class="col-span-2 w-full">
@@ -381,11 +396,6 @@
                 {/each}
             </div>
 
-            <!-- Game Start -->
-            <a href="https://kkutu.io/?server=0" class="membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-1 px-3 transform ease-in duration-100 hover:scale-105 active:scale-95 items-center justify-center mx-4 w-full">
-                게임 시작
-                <span class="mt-2 text-base font-normal">감자 채널</span>
-            </a>
 
             <!-- Login -->
              <div class="col-span-2 gap-x-4 w-full">
@@ -478,7 +488,7 @@
         </div>
         <!-- Gridded area -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="dark:text-white rounded-full p-2 flex flex-col">
+            <div class="dark:text-white rounded-full p-2 flex flex-col" id="serverList">
                 <div class="flex justify-between mb-6 items-center">
                     <h2 class="font-semibold text-2xl items-center flex justify-center">
                         <span class="material-symbols-outlined mr-2">

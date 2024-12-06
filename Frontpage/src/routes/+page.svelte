@@ -2,6 +2,18 @@
     import { onMount } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../lib/getLevelImg.js';
+    import { getMoremi } from '../lib/getMoremi.js';
+
+	let user = "Guest User";
+	let authVendor = "KKuTu";
+	let vendorId = "0";
+	let name = "Moremi";
+	let profileImage = "";
+
+	let ingameName = "";
+	let score = 0;
+	let data = "";
+
     const title = '글자로 놀자! 끄투 온라인';
 
     var slideData = [
@@ -70,7 +82,7 @@
 
             const desktopImage = document.createElement('img');
             desktopImage.src = slide.slides[0].desktop;
-            desktopImage.className = 'hidden h-72 lg:block object-cover';
+            desktopImage.className = 'hidden h-[400px] lg:block object-cover';
             desktopImage.alt = 'Desktop UI';
 
             const mobileImage = document.createElement('img');
@@ -122,6 +134,41 @@
     }
     
     onMount(async () => {
+        
+		try {
+			const res = await fetch('https://kkutu.io/user/oauth');
+			const jsonData = await res.json();
+			data = jsonData;
+		} catch (e) {
+			data = { status: "Guest user" };
+		}
+		
+		if (data.status !== "Guest user") {
+			authVendor = data.authVendor;
+			vendorId = data.vendorId;
+			name = data.name;
+			profileImage = data.image;
+			user = name;
+
+			if (authVendor === "DISCORD") {
+				profileImage = profileImage.replace("/avatars/0/", `/avatars/${vendorId}/`);
+				profileImage = profileImage + ".webp";
+			}
+
+			console.log(`User ${name} is logged in with ${authVendor}`);
+
+			// get user data
+			const userRes = await fetch(`https://kkutu.io/user/${authVendor.toLowerCase()}-${vendorId}`);
+			const userData = await userRes.json();
+
+			ingameName = userData.profile.title;
+			score = userData.data.score;
+
+
+		} else {
+			console.log("User is not logged in");
+		}
+		
         // Fetch slide data
         try{
         const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
@@ -179,6 +226,9 @@
         return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
     }
 
+    async function drawMoremi(uid){
+    return await getMoremi(uid);
+  }
 </script>
   
 <svelte:head>
@@ -313,6 +363,81 @@
             </div>
     </div>
     </div>
+    <!-- PC전용 : 로그인 / 게임시작 영역 -->
+    <div class="hidden lg:block bg-gray-800 border-t border-b border-gray-700">
+        <div class="max-w-screen-xl mx-auto grid grid-cols-5 py-4 px-8 min-h-[170px]">
+            <!-- Patch Notes-->
+             
+            <div class="col-span-2 w-full">
+                {#each finalData.slice(4, 5) as cafeNotice}
+                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="flex items-center justify-start gap-x-4 w-full h-full">
+                    <img src={`https://cdn.kkutu.io/img/front/notice/${cafeNotice.bannerName}.png`} class="h-32 bg-white aspect-video" alt="Patch note"/>
+                    <div class="flex flex-col">
+                        <h3 class="text-2xl font-bold text-white">{cafeNotice.subject}</h3>
+                        <p class="text-gray-300">{cafeNotice.content}</p>
+                        <p class="text-[#55aa55] hover:text-[#51a351] font-bold">자세히 보기</p>
+                    </div>
+                </a>
+                {/each}
+            </div>
+
+            <!-- Game Start -->
+            <a href="https://kkutu.io/?server=0" class="membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-1 px-3 transform ease-in duration-100 hover:scale-105 active:scale-95 items-center justify-center mx-4 w-full">
+                게임 시작
+                <span class="mt-2 text-base font-normal">감자 채널</span>
+            </a>
+
+            <!-- Login -->
+             <div class="col-span-2 gap-x-4 w-full">
+            {#if user == "Guest User"}
+                <!-- Logout status -->
+                <div class="flex flex-col items-center justify-center h-full">
+                <p class="text-white text-lg">로그인하고 플레이 기록을 저장하세요!</p>
+                <a href="/login.html" rel="external">
+                    <button class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex justify-center items-center gap-x-2 text-lg mt-4 w-36 py-2 px-3 transform ease-in duration-100 active:scale-95">
+                        <span class="material-symbols-outlined">
+                            login
+                        </span>
+                        로그인
+                    </button>
+                </a>
+                </div>
+            {:else}
+
+                <!-- Login status -->
+                 <div class="flex justify-end items-center gap-x-4 h-full w-full">
+                    <div class="w-[120px] h-[120px]">
+                      {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body.png`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${equip.Mmouth || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Mouth" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${equip.Mclothes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Pants" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${equip.Mshoes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Shoes" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
+                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" />
+                      {:catch error}
+                        <div></div>
+                      {/await}
+                    </div>
+
+                    <div class="flex flex-col">
+                            <div class="flex items-center gap-x-2">
+                            <div class="level" style={getLevelImage(Number(score))}></div>
+                            <h3 class="text-2xl font-bold text-white truncate w-48">{ingameName}</h3>
+                        </div>
+                        <p class="text-gray-300">{score.toLocaleString()}점</p>
+                        <p class="text-gray-300">{authVendor} 계정</p>
+                    </div>
+
+                 </div>
+            {/if}
+            </div>
+
+        </div>
+    </div>
+
     <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-8 lg:gap-y-12 flex flex-col">
         <!-- Notice area 
         <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8 rounded-full">
@@ -341,12 +466,12 @@
             </a>
             </div>
             <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4">
-                {#each finalData as cafeNotice, index}
+                {#each finalData.slice(0, 4) as cafeNotice}
                 <!-- Card -->
                 <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border dark:border-gray-700 flex flex-col" target="_blank">
                     <img src={`https://cdn.kkutu.io/img/front/${cafeNotice.menuId}.png`} class="hidden lg:block h-32 w-full object-cover" alt="Patch note"/>
                     <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
-                    <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{tsconv(Number(cafeNotice.writeDateTimestamp))}</p>
+                    <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{cafeNotice.content}</p>
                 </a>
                 {/each}
             </div>

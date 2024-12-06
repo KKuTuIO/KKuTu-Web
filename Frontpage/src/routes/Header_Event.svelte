@@ -27,6 +27,7 @@
 		</a>
 		</div>
 		<div class="flex flex-1 justify-end gap-x-2">
+			<!--
 			<button 
 					on:click={hideForever}
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
@@ -36,15 +37,16 @@
             </button>
 			<button 
 					on:click={hideToday}
-					class="hidden lg:block flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
+					class="hidden lg:flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
 					<span class="material-symbols-outlined">
 						close
 					</span>
 					오늘만 보지 않기
 			</button>
 			<div class="hidden lg:block border-l pl-2 dark:border-gray-500"></div>
+		-->
 			<a rel="external" href="https://kkutu.io/?server=0"
-				class="hidden lg:block bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				class="hidden lg:flex bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 			</a>
 		</div>

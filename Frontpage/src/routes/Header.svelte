@@ -33,7 +33,7 @@
 	const urlParams = new URLSearchParams(window.location.search);
 	const evtHide = urlParams.get('evtHide');
 
-	if (evtHide === '1') {
+	/*if (evtHide === '1') {
 	}
 	else if (noticeVisible !== 'false' && deviceWidth > 900) {
 		location.href = "/event_8th.html";
@@ -42,7 +42,7 @@
 		if (new Date(noticeVisible) > today && deviceWidth > 900) {
 			location.href = "/event_8th.html";
 		}
-	}
+	}*/
 		try {
 			const res = await fetch('https://kkutu.io/user/oauth');
 			const jsonData = await res.json();

@@ -35,6 +35,37 @@ class WordDao(
         return jdbcTemplate.query(sql, wordMapper, id)
     }
 
+    fun getWordsFromChar(tableName: String, startChar: String, mission: String?): List<Word> {
+        val baseSql = "SELECT * FROM $tableName WHERE _id LIKE ?"
+        val startCharParam = "$startChar%"
+        val missionCondition = mission?.let { " AND _id LIKE ?" } ?: ""
+        val missionParam = mission?.let { "%$mission%" }
+    
+        // 첫 번째 조건: 단어가 startChar로 시작하고, mission 문자가 포함된 경우 (또는 mission이 없는 경우)
+        val sql = "$baseSql$missionCondition"
+        val words = if (missionParam != null) {
+            jdbcTemplate.query(sql, wordMapper, startCharParam, missionParam)
+        } else {
+            jdbcTemplate.query(sql, wordMapper, startCharParam)
+        }
+    
+        // 전체 단어 검색 결과가 5건 이하인 경우
+        if (words.size <= 5) {
+            return words
+        }
+    
+        // 두 번째 조건: 10글자 이상의 단어로 제한한 후 필터링
+        val longWords = words.filter { it.id.length >= 10 }
+    
+        // 10글자 이상의 단어 검색 결과가 5건 이하인 경우
+        if (longWords.size <= 5) {
+            return words
+        }
+    
+        // 10글자 이상의 단어 검색 결과 반환
+        return longWords
+    }
+
     fun getDataCount(
         tableName: String,
         searchFilters: Map<String, String>

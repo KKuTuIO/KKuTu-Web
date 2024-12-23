@@ -14,6 +14,9 @@
 	let ingameName = "";
 	let score = 0;
 
+	// 타임 릴리즈
+	let showRelayUpdate = false;
+
 
 	let data = "";
 	let flyout = false;
@@ -27,6 +30,13 @@
 
 	
 	onMount(async () => {
+	// 12월 26일 0시 5분 이후부터 타임 릴리즈 기능 활성화
+	const today = new Date();
+	const releaseDate = new Date('2024-12-26T00:05:00');
+	if (today > releaseDate) {
+		showRelayUpdate = true;
+	}
+
 	const noticeVisible = localStorage.getItem('noticeVisible_241206');
 	const deviceWidth = window.innerWidth;
 
@@ -109,6 +119,13 @@
 					home
 				</span>
 					홈</a>
+			{#if showRelayUpdate}
+			<a rel="external" href="/wordsheet.html" class="link-header">
+				<span class="material-symbols-outlined icons-header">
+					search
+				</span>
+				단어장</a>
+			{/if}
 			<a rel="external" href="/rank.html" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					trophy

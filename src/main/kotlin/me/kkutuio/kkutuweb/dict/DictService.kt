@@ -45,4 +45,28 @@ class DictService(
             )
         }\",\"theme\":\"${word.theme}\",\"type\":\"${word.type}\"}"
     }
+
+    fun getWords(startChar: String, lang: String, mission: String?): String {
+        val tableName = when (lang) {
+            "ko" -> "kkutu_ko"
+            "en" -> "kkutu_en"
+            else -> ""
+        }
+
+        if (startChar.isEmpty() || startChar.length > 1) return "{\"error\":400}"
+        if (mission != null && mission.length > 1) return "{\"error\":400}"
+        if (tableName.isEmpty()) return "{\"error\":400}"
+        val words = wordDao.getWordsFromChar(tableName, startChar, mission)
+        if (words.isEmpty()) return "{\"error\":404}"
+
+        val result = words.joinToString(",") {
+            "{\"word\":\"${it.id}\",\"mean\":\"${
+                it.mean.replace(
+                    "\"",
+                    "\\\""
+                )
+            }\",\"theme\":\"${it.theme}\",\"type\":\"${it.type}\"}"
+        }
+        return "[$result]"
+    }
 }

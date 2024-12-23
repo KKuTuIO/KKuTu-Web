@@ -38,7 +38,18 @@
         return res.json();
       })
       .then(data => {
-        wordData = data;
+        if (data.error !== undefined) {
+          if (data.error === "400"){
+            alert('손님 계정으로는 검색이 불가능합니다.\n로그인 후 이용해주세요.');
+          }
+          if (data.error === "404"){
+            wordData = [];
+          }
+        }
+        else{
+          wordData = data;
+        }
+        
         isWaiting = false;
       })
       .catch(error => {
@@ -53,7 +64,7 @@
   <title>끄투리오 - {title}</title>
 </svelte:head>
 
-<div class="min-h-screen dark:bg-gray-900 pb-8">
+<div class="min-h-screen dark:bg-gray-900 pb-8 dark:text-white">
   <div class="flex flex-col items-center pt-28 px-4">
     <!-- Logo Section -->
     <div class="mb-8 flex justify-center items-center">

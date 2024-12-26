@@ -119,13 +119,6 @@
 					home
 				</span>
 					홈</a>
-			{#if showRelayUpdate}
-			<a rel="external" href="/wordsheet.html" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					search
-				</span>
-				단어장</a>
-			{/if}
 			<a rel="external" href="/rank.html" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					trophy
@@ -141,11 +134,11 @@
 					local_cafe
 				</span>
 				공식카페</a>
-			<a target="_blank" href="https://wiki.kkutu.io/" class="link-header">
+			<a rel="external" href="/wordsheet.html" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					collections_bookmark
 				</span>
-			리오위키</a>
+				단어장</a>
 		</div>
 		<div class="flex flex-1 justify-end gap-x-2">
 			{#if user == "Guest User"}

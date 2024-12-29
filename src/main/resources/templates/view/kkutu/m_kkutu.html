@@ -81,6 +81,18 @@
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='deny-friend',text=#{kkutu.dialog.setting.deny-request.friend})}"/>
             </div>
+            <div class="dialog-bar" style="display: none;">
+                <h4 th:text="#{kkutu.dialog.setting.match.title}"></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='hideroom',text=#{kkutu.dialog.setting.match.hideroom})}"/>
+                <th:block
+                layout:replace="~{view/kkutu/option::settingOption(id='hideuser',text=#{kkutu.dialog.setting.match.hideuser})}"/>
+                <h4></h4>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='hidenick',text=#{kkutu.dialog.setting.match.hidenick})}"/>
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='hideobserver',text=#{kkutu.dialog.setting.match.hideobserver})}"/>
+            </div>
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.game.title}"></h4>
                 <th:block

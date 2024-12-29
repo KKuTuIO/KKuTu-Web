@@ -4,6 +4,7 @@
 
   let startChar = '';
   let missionChar = '';
+  let missionCharBuffer = '';
   let isSearchFocused = false;
   let isWaiting = false;
   let wordData = [];
@@ -23,6 +24,7 @@
   function handleSearch(){
     isWaiting = true;
     wordData = [];
+    missionCharBuffer = missionChar;
 
     fetch(`/wordsheet/${langValue}/${startChar}?mission=${missionChar}`)
       .then(res => {
@@ -68,19 +70,19 @@
   <div class="flex flex-col items-center pt-28 px-4">
     <!-- Logo Section -->
     <div class="mb-8 flex justify-center items-center">
-      <h1 class="text-4xl font-bold">단어장</h1>
+      <h1 class="text-4xl font-bold dark:text-white">단어장</h1>
       <span class="text-2xl text-green-600 dark:text-green-400 ml-2">Beta</span>
     </div>
 
     <!-- Search Box -->
     <div class="w-full max-w-2xl pb-8">
       <div class="relative">
-        <div class={`flex items-center w-full rounded-full border 
+        <div class={`flex items-center w-full rounded-full border  dark:text-gray-200 
           ${isSearchFocused ? 'shadow-lg border-gray-300' : 'border-gray-200'} 
           dark:border-gray-700 px-5 py-3 bg-white dark:bg-gray-800`}>
           
           <!-- Search Icon -->
-          <span class="material-symbols-outlined text-gray-400 dark:text-gray-500">
+          <span class="material-symbols-outlined text-gray-400 dark:text-gray-200">
             search
           </span>
 
@@ -96,7 +98,7 @@
               required
               class="font-bold text-center w-8 outline-none bg-transparent dark:text-white"
             />
-            <span class="mr-2">(으)로 시작하는</span>
+            <span class="mr-2 dark:text-gray-200">(으)로 시작하는</span>
             <!--<span class="hidden md:inline-block">(으)로 시작하고,</span>
             <span class="md:hidden">-</span>
             <input
@@ -123,7 +125,7 @@
           </div>
         </div>
       </div>
-      <div class="flex justify-center mt-4">
+      <div class="flex justify-center mt-4 dark:text-gray-200">
         <label class="flex items-center gap-2">
           <input type="radio" name="language" value="ko" checked on:change={() => langValue = 'ko'}>
           <span>한국어</span>
@@ -144,7 +146,7 @@
       </div>
       {/if}
 
-      <p class="text-center text-sm mt-4 text-gray-600">
+      <p class="text-center text-sm mt-4 text-gray-600 dark:text-gray-300">
         최대 1자 입력 가능하며, 미션 단어는 필수가 아닙니다.<br>
         검색 버튼을 눌러야 검색할 수 있습니다.
       </p>
@@ -153,7 +155,7 @@
 
     {#if isWaiting}
     <div class="mt-8">
-      <div class="flex items-center justify-center">
+      <div class="flex items-center justify-center dark:text-gray-200">
         끄투리오의 DB를 검색 중입니다...
       </div>
     </div>
@@ -163,8 +165,8 @@
      {#each wordData as word}
       <div class="w-full max-w-2xl mt-4">
         <div class="bg-white dark:bg-gray-800 dark:text-white p-4 rounded-lg border dark:border-gray-700">
-          <h2 class="text-lg font-bold">{word.word}</h2>
-          <p class="mt-2 text-sm text-gray-600">
+          <h2 class="text-lg font-bold">{word.word.replace(missionCharBuffer, `<span class="text-green-600">${missionCharBuffer}</span>`)}</h2>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
             글자 길이: {word.word.length}자 |
             주제 ID: {word.theme}
           </p>

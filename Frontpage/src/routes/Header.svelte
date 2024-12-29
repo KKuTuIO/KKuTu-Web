@@ -59,6 +59,9 @@
 			data = jsonData;
 		} catch (e) {
 			data = { status: "Guest user" };
+			if (window.location.pathname === "/wordsheet" || window.location.pathname === "/wordsheet.html") {
+				alert("손님 계정으로는 검색이 불가능합니다.\n로그인 후 이용해주세요.");
+			}
 		}
 		
 		if (data.status !== "Guest user") {

@@ -3,30 +3,7 @@
   const title = '8주년 행사';
   import Snow from '../../lib/snow.svelte';
 
-  let selectedWeek = 0;
-  let countdown = [0, 0, 0, 0, 0];
-
-  // Countdown till 2024-12-26 01:00:00 KST
-  onMount(() => {
-    const targetDate = new Date('2024-12-26T01:00:00+09:00').getTime();
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = targetDate - now;
-
-      const months = Math.floor(distance / (1000 * 60 * 60 * 24 * 30));
-      const days = Math.floor((distance % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      countdown = [months, days, hours, minutes, seconds];
-
-      if (distance < 0) {
-        clearInterval(timer);
-        countdown = [0, 0, 0, 0, 0];
-      }
-    }, 1000);
-  });
+  let selectedWeek = 1;
 </script>
 
 <style>
@@ -94,25 +71,6 @@ background: linear-gradient(180deg, rgba(186,230,253,1) 0%, rgba(186,230,253,1) 
           <span class="text-[#002156] font-bold">8주년이니까, 8주간 이어지는 업데이트와 행사!</span><br>
           8주년을 맞아 끄투리오에서 즐거운 시간을 보내보세요!
         </h3>
-
-        <div class="countdown bg-gray-800 rounded-xl px-4 py-2 lg:px-8 lg:py-4 mt-8 flex items-center justify-center text-white gap-x-12" >
-            <div class="text-center">
-                <p class="text-lg lg:text-5xl font-bold">{countdown[1]}</p>
-                <p class="text-sm text-gray-300">일</p>
-            </div>
-            <div class="text-center">
-                <p class="text-lg lg:text-5xl font-bold">{countdown[2]}</p>
-                <p class="text-sm text-gray-300">시간</p>
-              </div>
-              <div class="text-center">
-                <p class="text-lg lg:text-5xl font-bold">{countdown[3]}</p>
-                <p class="text-sm text-gray-300">분</p>
-              </div>
-              <div class="text-center">
-                <p class="text-lg lg:text-5xl font-bold">{countdown[4]}</p>
-                <p class="text-sm text-gray-300">초</p>
-              </div>
-        </div>
     </div>
     <Snow />
 </div>
@@ -134,11 +92,11 @@ style="background: linear-gradient(179deg, rgba(255,255,255,1) 0%, rgba(255,255,
         on:click={() => selectedWeek = 0}>
           1주차
         </button>
-        <!--<button class={selectedWeek === 1 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
+        <button class={selectedWeek === 1 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
         on:click={() => selectedWeek = 1}>
           2주차
         </button>
-        <button class={selectedWeek === 2 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
+        <!--<button class={selectedWeek === 2 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
         on:click={() => selectedWeek = 2}>
           3주차
         </button>

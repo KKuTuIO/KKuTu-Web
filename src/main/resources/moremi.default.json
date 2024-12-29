@@ -30,6 +30,7 @@
     ],
     "equips": [
       "NIK",
+      "BAN",
       "BDG1",
       "BDG2",
       "BDG3",
@@ -55,7 +56,8 @@
         "PCS"
       ],
       "skin": [
-        "NIK"
+        "NIK",
+        "BAN"
       ],
       "badge": [
         "BDG1",

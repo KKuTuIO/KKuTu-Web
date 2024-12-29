@@ -58,7 +58,7 @@ class DictApi(
             response.status = HttpServletResponse.SC_UNAUTHORIZED
             return "{\"error\":400}"
         }
-        Thread.sleep((3000..6000).random().toLong())
+        Thread.sleep((4000..10000).random().toLong())
         return dictService.getWords(startChar, lang, mission)
     }
 }

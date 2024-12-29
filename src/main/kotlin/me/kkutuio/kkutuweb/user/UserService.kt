@@ -33,7 +33,7 @@ import javax.servlet.http.HttpSession
 import kotlin.math.roundToInt
 
 private val AVAIL_EQUIP = listOf(
-    "NIK", "BDG1", "BDG2", "BDG3", "BDG4",
+    "NIK", "BDG1", "BDG2", "BDG3", "BDG4", "BAN",
     "Mhead", "Meye", "Mmouth", "Mhand", "Mclothes", "Mshoes", "Mback"
 )
 

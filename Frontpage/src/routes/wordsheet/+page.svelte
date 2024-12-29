@@ -165,7 +165,9 @@
      {#each wordData as word}
       <div class="w-full max-w-2xl mt-4">
         <div class="bg-white dark:bg-gray-800 dark:text-white p-4 rounded-lg border dark:border-gray-700">
-          <h2 class="text-lg font-bold">{word.word.replace(missionCharBuffer, `<span class="text-green-600">${missionCharBuffer}</span>`)}</h2>
+          <h2 class="text-lg font-bold">
+            {@html word.word.replace(missionCharBuffer, `<span class="text-green-600">${missionCharBuffer}</span>`)}
+          </h2>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
             글자 길이: {word.word.length}자 |
             주제 ID: {word.theme}

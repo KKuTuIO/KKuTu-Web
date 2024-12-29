@@ -16,6 +16,7 @@
 
 	// 타임 릴리즈
 	let showRelayUpdate = false;
+	let mourning = false;
 
 
 	let data = "";
@@ -35,6 +36,13 @@
 	const releaseDate = new Date('2024-12-26T00:05:00');
 	if (today > releaseDate) {
 		showRelayUpdate = true;
+	}
+
+	//국가애도기간동안 로고 흑백 처리
+	const mourningStart = new Date('2024-12-29T00:00:00');
+	const mourningEnd = new Date('2025-01-04T23:59:59');
+	if (today > mourningStart && today < mourningEnd) {
+		mourning = true;
 	}
 
 	const noticeVisible = localStorage.getItem('noticeVisible_241206');
@@ -110,7 +118,7 @@
 		{:else}
 		8주년 랜딩 완료 후 주석 해제
 		{/if}-->
-			<a href="/" class="md:flex">
+			<a href="/" class="md:flex" style={mourning ? 'filter: grayscale(100%)' : ''}>
 				<span class="sr-only">끄투리오</span>
 				<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
 				<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>

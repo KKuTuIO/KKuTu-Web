@@ -39,6 +39,39 @@ class ConsumeService(
     @Autowired private val shopDao: ShopDao,
     @Autowired private val shopService: ShopService
 ) {
+    private val giftProbabilities = listOf(
+        GiftItem("2025_gifticon_reward_1", "메가MGC커피 아이스 아메리카노", 3.0),
+        GiftItem("2025_gifticon_reward_2", "CU 1,000원 교환권", 5.0),
+        GiftItem("2025_gifticon_reward_4", "GS25 1,000원 교환권", 5.0),
+        GiftItem("2025_gifticon_reward_3", "끄투리오 GOLD 멤버십", 10.0),
+        GiftItem("jeongdongjin", "정동진", 5.0),
+        GiftItem("2025_gifticon_ticket", "교환권 응모권", 5.0),
+        GiftItem("aurora_sky", "오로라 하늘 배경", 3.0),
+        GiftItem("8th_name", "8주년 이름", 12.0),
+        GiftItem("2025_stamp", "열정 스탬프", 27.0)
+    )
+
+    private data class GiftItem(
+        val id: String,
+        val name: String,
+        val probability: Double
+    )
+
+    private fun selectRandomGift(): String {
+        val rand = Random.nextDouble() * 100
+        var cumulative = 0.0
+        
+        for (item in giftProbabilities) {
+            cumulative += item.probability
+            if (rand <= cumulative) {
+                return item.id
+            }
+        }
+        
+        return giftProbabilities.last().id
+    }
+
+
     fun consume(id: String, session: HttpSession): String {
         return "{\"error\":400}"
 
@@ -99,6 +132,12 @@ class ConsumeService(
                 val randomGoodId = listOf("b4_bb", "b4_hongsi", "b4_mint").random()
 
                 shopService.obtainGood(user.box, randomGoodId, 1, 604800)
+                return UseItemResult(gain = mapOf(randomGoodId to 1))
+            }
+            "2025_gifticon_ticket" -> {
+                val randomGoodId = selectRandomGift()
+
+                shopService.obtainGood(user.box, randomGoodId, 1, 0)
                 return UseItemResult(gain = mapOf(randomGoodId to 1))
             }
             "dictPage" -> {

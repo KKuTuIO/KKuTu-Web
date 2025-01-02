@@ -40,15 +40,17 @@ class ConsumeService(
     @Autowired private val shopService: ShopService
 ) {
     private val giftProbabilities = listOf(
-        GiftItem("2025_gifticon_reward_1", "메가MGC커피 아이스 아메리카노", 2.0),
-        GiftItem("2025_gifticon_reward_2", "CU 1,000원 교환권", 4.0),
-        GiftItem("2025_gifticon_reward_4", "GS25 1,000원 교환권", 4.0),
+        GiftItem("2025_gifticon_reward_1", "메가MGC커피 아이스 아메리카노", 3.0),
+        GiftItem("2025_gifticon_reward_2", "CU 1,000원 교환권", 4.5),
+        GiftItem("2025_gifticon_reward_4", "GS25 1,000원 교환권", 4.5),
+        GiftItem("2025_gifticon_reward_5", "문화상품권 10,000원", 0.001),
         GiftItem("2025_gifticon_reward_3", "끄투리오 GOLD 멤버십", 10.0),
-        GiftItem("jeongdongjin", "정동진", 5.0),
-        GiftItem("2025_gifticon_ticket", "교환권 응모권", 6.0),
-        GiftItem("aurora_sky", "오로라 하늘 배경", 5.0),
-        GiftItem("8th_name", "8주년 이름", 12.0),
-        GiftItem("2025_stamp", "열정 스탬프", 27.0)
+        GiftItem("jeongdongjin", "정동진", 5.5),
+        GiftItem("2025_gifticon_ticket", "교환권 응모권", 10.0),
+        GiftItem("aurora_sky", "오로라 하늘 배경", 5.5),
+        GiftItem("8th_name", "8주년 이름", 15.0),
+        GiftItem("2025_stamp", "열정 스탬프", 26.999),
+        GiftItem("wordToken", "단어 토큰", 15.0)
     )
 
     private data class GiftItem(

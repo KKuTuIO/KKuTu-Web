@@ -238,7 +238,7 @@
 {#if blockData.blocked}
     <!-- Fullscreen dim -->
     <div class="z-50 fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-        <div class="bg-gray-800 text-center text-white rounded-full p-8">
+        <div class="bg-gray-800 text-center text-white rounded-xl p-8">
             {#if blockData.onlyGuestPunish && blockData.blockType == "IP"}
                 <h2 class="text-2xl font-bold">손님 계정 이용 제한됨</h2>
                 <p class="mt-4 text-gray-300">운영정책 위반으로 <strong>손님 상태에서의 게임 이용</strong>이 제한되었습니다.</p>

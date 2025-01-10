@@ -39,7 +39,7 @@ class WordDao(
         val baseSql = "SELECT * FROM $tableName WHERE _id LIKE ?"
         val startCharParam = "$startChar%"
         val missionCondition = mission?.let { " AND _id LIKE ?" } ?: ""
-        val missionParam = mission?.let { "%$mission%" }
+        val missionParam = mission?.let { "$startChar%$mission%" }
     
         // 첫 번째 조건: 단어가 startChar로 시작하고, mission 문자가 포함된 경우 (또는 mission이 없는 경우)
         val sql = "$baseSql$missionCondition"

@@ -30,6 +30,7 @@
     "no2": { "name": "No2" },
     "nol": { "name": "NoLimit" },
     "asy": { "name": "AntiSynonym" },
+    "ado": { "name": "AntiDoum" },
     "itm": { "name": "Item" },
     "pwr": { "name": "Power" },
     "apm": { "name": "Apmal" },
@@ -79,7 +80,7 @@
     "KSH": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "etq", "nob", "ado", "no2"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -218,6 +219,15 @@
       "time": 2,
       "ai": false,
       "big": true,
+      "ewq": true
+    },
+    "KFT": {
+      "lang": "ko",
+      "rule": "Classic",
+      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "nog", "rms", "tct", "rnk", "itm", "etq"],
+      "time": 1,
+      "ai": true,
+      "big": false,
       "ewq": true
     }
   }

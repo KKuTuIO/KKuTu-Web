@@ -84,6 +84,37 @@ class ShopService(
         return "{\"result\": 200, \"money\": $afterBuyMoney, \"box\": ${user.box.toJson()}}"
     }
 
+    fun consumeToken(session: HttpSession, amount: Int?): String {
+        if (session.isGuest()) return "{\"error\":423}"
+        val oAuthUser = session.getOAuthUser()
+        
+        val tokenId = "wordToken"
+        val tokenAmount = amount ?: 1
+        
+        val userId = oAuthUser.getUserId()
+        val user = userDao.getUser(userId) ?: return "{\"error\":400}"
+        
+        val box = user.box
+        if (!box.has(tokenId)) return "{\"error\":430}"
+        
+        consumeGood(user.box, tokenId, tokenAmount, true)
+        
+        val userBoxJsonObj = PGobject()
+        userBoxJsonObj.type = "json"
+        userBoxJsonObj.value = user.box.toJson()
+        
+        userDao.updateUser(
+            user.id, mapOf(
+                "box" to userBoxJsonObj
+            )
+        )
+        
+        val userName = if (user.nickname == null) userId else "${user.nickname} ($userId)"
+        logger.info("$userName 님이 $tokenId 상품 $tokenAmount 개를 단어 검색에 사용했습니다.")
+        
+        return "{\"result\": 200, \"box\": ${user.box.toJson()}}"
+    }
+
     fun paybackGood(id: String, session: HttpSession): String {
         if (session.isGuest()) return "{\"error\":400}"
         val oAuthUser = session.getOAuthUser()

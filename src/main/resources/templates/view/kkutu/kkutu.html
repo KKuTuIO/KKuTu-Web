@@ -37,7 +37,7 @@
     </div>
     <th:block th:replace="view/kkutu/menu"/>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,title=#{kkutu.dialog.setting.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,height=455,title=#{kkutu.dialog.setting.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.bgm-volume}"></h4>
@@ -306,7 +306,8 @@
                         <option value="4" th:text="#{'game.mode.CSQ.name'}">자음퀴즈</option>
                         <option value="9" th:text="#{'game.mode.HUN.name'}">훈민정음</option>
                         <option value="17" th:text="#{'game.mode.KDG.name'}">한국어 그림퀴즈</option>
-                    </optgroup>
+                        <option value="19" th:text="#{'game.mode.KFT.name'}">한국어 쿵쿵쿵따 (~2/9)</option>  
+                  </optgroup>
                     <optgroup label="영어">
                         <option value="1" th:text="#{'game.mode.ESH.name'}">영어 끝말잇기</option>
                         <option value="0" th:text="#{'game.mode.EKT.name'}">영어 끄투</option>
@@ -503,6 +504,9 @@
     </th:block>
     <th:block layout:replace="~{view/kkutu/dialog::dialog(id='ProfileDiag',width=400)}">
         <th:block layout:fragment="content">
+            <div class="profile-banner">
+
+            </div>
             <div class="dialog-bar profile-head">
                 <button id="profile-add-friend"><i class="fa-solid fa-user-plus button fa-fw" aria-hidden="true"></i></button>
             </div>

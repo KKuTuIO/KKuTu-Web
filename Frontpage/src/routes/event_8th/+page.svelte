@@ -3,7 +3,7 @@
   const title = '8주년 행사';
   import Snow from '../../lib/snow.svelte';
 
-  let selectedWeek = 1;
+  let selectedWeek = 2;
 </script>
 
 <style>
@@ -72,7 +72,7 @@ background: linear-gradient(180deg, rgba(186,230,253,1) 0%, rgba(186,230,253,1) 
           8주년을 맞아 끄투리오에서 즐거운 시간을 보내보세요!
         </h3>
     </div>
-    <Snow />
+    <!--<Snow />-->
 </div>
 <div class="min-h-screen py-12 flex flex-col items-center justify-center"
 style="background: linear-gradient(179deg, rgba(255,255,255,1) 0%, rgba(255,255,255,1) 95.5%, rgba(190,18,60,1) 96%, rgba(190,18,60,1) 100%);">
@@ -96,11 +96,11 @@ style="background: linear-gradient(179deg, rgba(255,255,255,1) 0%, rgba(255,255,
         on:click={() => selectedWeek = 1}>
           2주차
         </button>
-        <!--<button class={selectedWeek === 2 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
+        <button class={selectedWeek === 2 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
         on:click={() => selectedWeek = 2}>
           3주차
         </button>
-        <button class={selectedWeek === 3 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
+        <!--<button class={selectedWeek === 3 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
         on:click={() => selectedWeek = 3}>
           4주차
         </button>

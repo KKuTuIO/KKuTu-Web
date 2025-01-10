@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service
 import javax.servlet.http.HttpSession
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import kotlin.random.Random
 
 @Service
 class ConsumeService(

@@ -18,6 +18,6 @@
         <a href="/login.html" rel="external" class="font-semibold leading-6 text-green-600 hover:text-green-500 dark:text-green-300 dark:hover:text-green-500">
           다시 시도하기
         </a><br><br>
-        &copy; 끄투리오운영, 모든 권리 보유.
+        &copy; 주식회사 큐브시티, 모든 권리 보유.
       </p>
   </div>

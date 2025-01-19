@@ -60,11 +60,11 @@ class DictApi(
             response.status = HttpServletResponse.SC_UNAUTHORIZED
             return "{\"error\":400}"
         }
-        val tokenResult = shopService.consumeToken(session, if (mission != null) 2 else 1)
+        /*val tokenResult = shopService.consumeToken(session, if (mission != null) 2 else 1)
         if (tokenResult.contains("\"error\"")) {
             response.status = HttpServletResponse.SC_PAYMENT_REQUIRED
             return tokenResult
-        }
+        }*/
         Thread.sleep((4000..10000).random().toLong())
         // 단어토큰 사용 (단, 토큰이 부족한 경우 오류 반환)
         return dictService.getWords(startChar, lang, mission)

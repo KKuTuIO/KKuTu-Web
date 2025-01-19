@@ -196,5 +196,5 @@ style="background: linear-gradient(181deg, rgba(190,18,60,1) 0%, rgba(190,18,60,
 
  <!-- Footer -->
   <div class="bg-slate-100 text-slate-500 py-8 text-center">
-    <p>© 끄투리오운영, 모든 권리 보유</p>
+    <p>© 주식회사 큐브시티, 모든 권리 보유</p>
   </div>

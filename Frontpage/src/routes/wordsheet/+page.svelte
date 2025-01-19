@@ -252,13 +252,14 @@ word.theme.ODW=우리말샘
   function confirmPayment(){
       dialogOpen = true;
       dialogType = 'payment';
-      dialogTitle = '단어 토큰 소모';
+      dialogTitle = '단어 토큰 안내';
     if (missionChar.length > 0){
       dialogContent = '단어 토큰 2개를 소모하여 검색하시겠습니까?';
     }
     else{
       dialogContent = '단어 토큰 1개를 소모하여 검색하시겠습니까?';
     }
+    dialogContent = '한시적으로 단어 토큰이 소모되지 않습니다.';
   }
 </script>
 

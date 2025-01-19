@@ -17,6 +17,6 @@
         <a href="/" class="font-semibold leading-6 text-purple-600 hover:text-purple-500 dark:text-purple-300 dark:hover:text-purple-500">
           메인으로 돌아가기
         </a><br><br>
-        &copy; 끄투리오운영, 모든 권리 보유.
+        &copy; 주식회사 큐브시티, 모든 권리 보유.
       </p>
   </div>

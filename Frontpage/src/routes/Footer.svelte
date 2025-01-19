@@ -80,7 +80,7 @@
               </a>
             </div>
           </div>
-          <div class="text-gray-500 dark:text-gray-100 pt-4">&copy; 끄투리오운영, 모든 권리 보유</div>
+          <div class="text-gray-500 dark:text-gray-100 pt-4">&copy; 주식회사 큐브시티, 모든 권리 보유</div>
         </div>
       </div>
       <div class="">

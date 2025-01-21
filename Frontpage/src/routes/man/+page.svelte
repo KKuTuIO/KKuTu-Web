@@ -10,7 +10,7 @@
     var blockData = {
     };
     
-    var patchData = "<p>2021년 10월 20일 업데이트 내용입니다.</p>";
+    var patchData = "";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
     let jsonDataServers = { list: [], max: 9 };
@@ -19,7 +19,7 @@
 
 
     onMount(async () => {
-        
+
         // Fetch server list
         const responseServers = await fetch('https://kkutu.io/servers');
         
@@ -54,8 +54,8 @@
                 긴급 조치 중
             </h1>
             <p>
-                현재 DDoS로 인한 긴급 조치 중입니다.<br>
-                점검기간 동안에는 기타 서비스 이용이 제한되며, 로그인과 게임만 가능합니다.
+                현재 원활한 서비스 이용 환경을 제공해 드리기 위해 <b>긴급 조치</b>가 진행되고 있습니다.
+                긴급 조치 중에는 일부 서비스 이용이 제한될 수 있습니다.
             </p>
             
         </div>
@@ -64,7 +64,8 @@
         <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8">
             <strong>공지사항</strong>
             <span class="block lg:inline-block lg:pl-4 lg:ml-4 lg:border-l dark:border-gray-700 border-gray-300">
-                현재 모든 채널에 손님 계정 접속이 불가능합니다. 로그인 후 이용해주세요.
+                긴급 조치 기간 중에는 손님 계정의 서비스 이용이 제한될 수 있습니다.
+                서비스 이용 시 참고해 주시길 바랍니다.
             </span>
         </div>
         

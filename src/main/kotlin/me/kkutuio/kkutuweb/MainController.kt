@@ -77,8 +77,8 @@ class MainController(
 
         if (server == null) {
                 // 긴급점검 한정 (평상시에는 index.html로 리다이렉트)
-                // return "redirect:/index.html"
-                return "redirect:/man.html"
+                return "redirect:/index.html"
+                //return "redirect:/man.html"
         } else {
             val ip = request.getIp()
             if (isGuest) {

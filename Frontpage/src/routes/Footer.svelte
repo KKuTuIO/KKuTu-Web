@@ -55,6 +55,11 @@
 <footer class="border-t border-gray-200 p-2 dark:border-gray-800 dark:bg-gray-950">
     <div class="max-w-screen-xl mx-auto md:flex md:justify-between md:items-center py-4">
       <div class="">
+        <div class="pb-4 flex">
+          <a href="https://cube.city" target="_blank">
+            <img src="https://cdn.kkutu.io/img/front/CubeCity.png" class="h-8" alt="CubeCity">
+          </a>
+        </div>
         <div class="text-gray-400 text-xs dark:text-gray-400">
           <div class="flex gap-x-2 lg:gap-x-5 text-gray-600 dark:text-gray-100 leading-6">
             <a target="_blank" rel="noopener" href="https://cs.kkutu.io/terms">서비스 이용약관</a>
@@ -75,8 +80,8 @@
             </div>
             <div class="flex flex-col lg:flex-row gap-x-[5px] lg:items-center">
               <span>사업자등록번호 : 473-86-03330</span>
-              <a href="http://www.ftc.go.kr/bizCommPop.do?wrkr_no=4738603330" target="_blank">
-                <button class="bg-gray-200 dark:bg-gray-800 rounded-md px-2 py-1 text-xs">사업자정보조회</button>
+              <a href="http://www.ftc.go.kr/bizCommPop.do?wrkr_no=4738603330" target="_blank" class="bg-gray-200 dark:bg-gray-800 px-1 text-xs">
+                사업자정보조회
               </a>
             </div>
           </div>
@@ -87,15 +92,15 @@
         <div class="flex flex-col items-end justify-end lg:gap-y-4 gap-y-2 mt-4 lg:mt-0">
           <div class="flex gap-x-2">
            <a href="https://play.google.com/store/apps/details?id=io.kkutu.kkutuio" target="_blank">
-             <img src="/img/GooglePlay.svg" class="h-8" alt="Google Play"/>
+             <img src="https://cdn.kkutu.io/img/front/GooglePlay.svg" class="h-8" alt="Google Play"/>
            </a>
            <a href="https://m.onestore.co.kr/mobilepoc/apps/appsDetail.omp?prodId=0000775728" target="_blank">
-             <img src="/img/onestore.png" class="h-8 border border-gray-400 rounded" alt="One Store"/>
+             <img src="https://cdn.kkutu.io/img/front/onestore.png" class="h-8 border border-gray-400 rounded" alt="One Store"/>
            </a>
-           <img src="/img/Pwa.svg" class="h-8 cursor-pointer" on:click={installApp} alt="Pwa"/>
+           <img src="https://cdn.kkutu.io/img/front/Pwa.svg" class="h-8 cursor-pointer" on:click={installApp} alt="Pwa"/>
          </div>
             <a href="https://www.grac.or.kr/Statistics/Popup/Pop_StatisticsDetails.aspx?371e798f34f8dfd4a541d1f1f3960c41a6c813a6a053e8e5ec12581d53453bb0" target="_blank">
-                <img src="/img/grac.svg" class="h-12 mt-2 lg:mt-0" alt="Rating"/>
+                <img src="https://cdn.kkutu.io/img/front/grac.svg" class="h-12 mt-2 lg:mt-0" alt="Rating"/>
             </a>
         </div>
       </div>

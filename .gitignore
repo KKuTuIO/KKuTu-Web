@@ -1,6 +1,3 @@
-## Svelte Static ##
-**/src/main/resources/static/
-
 .DS_Store
 **/.DS_Store
 HELP.md
@@ -9,6 +6,9 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+
+## Svelte Static ##
+**/src/main/resources/static/
 
 ### STS ###
 .apt_generated

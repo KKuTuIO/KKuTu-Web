@@ -339,7 +339,7 @@
             <ul class="glide__slides lg:min-h-[456px] min-h-[280px]">
             </ul>
         </div>
-        <div class="glide__bullets hidden" data-glide-el="controls[nav]">
+        <div class="hidden glide__bullets opacity-0 " data-glide-el="controls[nav]">
         </div>
         
         <div class="-mt-[400px] h-[400px] hidden lg:flex items-center min-w-screen-lg max-w-screen-xl mx-auto justify-end pr-4 z-50">
@@ -478,7 +478,7 @@
             <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4">
                 {#each finalData.slice(0, 4) as cafeNotice}
                 <!-- Card -->
-                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border dark:border-gray-700 flex flex-col" target="_blank">
+                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border border-gray-200 dark:border-gray-700 flex flex-col" target="_blank">
                     <img src={`https://cdn.kkutu.io/img/front/${cafeNotice.menuId}.png`} class="hidden lg:block h-32 w-full object-cover" alt="Patch note"/>
                     <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
                     <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{cafeNotice.content}</p>

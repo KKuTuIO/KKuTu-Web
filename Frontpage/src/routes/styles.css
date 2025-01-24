@@ -2,6 +2,7 @@
 /* Extrabold */  
 @import '@glidejs/glide/dist/css/glide.core.min.css';
 @import '@glidejs/glide/dist/css/glide.theme.min.css';
+@import "tailwindcss";
 
 :root {
 	--font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,

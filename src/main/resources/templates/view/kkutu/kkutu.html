@@ -241,6 +241,26 @@
         </th:block>
     </th:block>
     <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='MailboxDiag',width=312,height=450,title=#{kkutu.dialog.mailbox.title})}">
+        <th:block layout:fragment="content">
+            <div class="dialog-bar" style="height: 350px;">
+                <table id="mails" style="text-align: center;">
+                    <thead style="font-weight: bold; background-color: #DDDDDD;">
+                    <tr>
+                        <td width="120">제목</td>
+                        <td width="120">내용</td>
+                        <td width="70">기한</td>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="dialog-bar tail-button">
+                <button id="mail-ok" class="confirm-btn" th:text="#{kkutu.dialog.mailbox.recieveall}"></button>
+            </div>
+        </th:block>
+    </th:block>
+    <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='QuickDiag',width=320,height=365,title=#{kkutu.dialog.quick.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">

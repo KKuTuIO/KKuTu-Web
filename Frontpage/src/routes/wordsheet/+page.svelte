@@ -56,7 +56,7 @@ word.theme.HOS=히어로즈 오브 더 스톰
 word.theme.BDM=Bang Dream!
 word.theme.KIO=끄투리오
 word.theme.CON=콘솔 게임
-word.theme.HRT=대한민국 문화재
+word.theme.HRT=문화 유산
 word.theme.BRD=브랜드/회사
 word.theme.SFX=특수촬영물
 word.theme.NFM=소설/시/수필/동화
@@ -396,7 +396,7 @@ word.theme.ODW=우리말샘
             {@html word.word.replace(missionCharBuffer, `<span class="text-green-600">${missionCharBuffer}</span>`)}
           </h2>
           <button class="ml-2" on:click={() => readText(word.word, langValue)}>
-            <span class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
+            <span class="material-symbols-outlined flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
               volume_up
             </span>
           </button>

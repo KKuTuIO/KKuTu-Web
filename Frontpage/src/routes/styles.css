@@ -121,3 +121,15 @@
     position: relative;
     z-index: 1; 
 }
+
+
+/* OKGG */
+
+.header-items {
+    @apply px-4 lg:px-8 py-2 border-b-4 border-transparent
+}
+
+.current-header {
+    @apply text-indigo-600 border-b-4 border-indigo-600
+}
+

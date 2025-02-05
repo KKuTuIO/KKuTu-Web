@@ -79,16 +79,18 @@ class WordAuditApi(
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
+
         val searchFilters = mapOf(
-                "id" to id,
-                "type" to type,
-                "word" to word,
-                "old_type" to oldType,
-                "new_type" to newType,
-                "old_theme" to oldTheme,
-                "new_theme" to newTheme,
-                "old_mean" to oldMean,
-                "new_mean" to newMean
+            "id" to id,
+            "type" to type,
+            "word" to word,
+            "old_type" to oldType,
+            "new_type" to newType,
+            "old_theme" to oldTheme,
+            "new_theme" to newTheme,
+            "old_mean" to oldMean,
+            "new_mean" to newMean,
+            "admin" to admin
         )
 
         val wordListRes = adminWordAuditService.getWordAuditListRes(lang, page, pageSize, sortData, searchFilters)

@@ -60,7 +60,7 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_BDM("BDM", "Bang Dream!"),
     THEME_KIO("KIO", "끄투리오"),
     THEME_CON("CON", "콘솔 게임"),
-    THEME_HRT("HRT", "대한민국 문화재"),
+    THEME_HRT("HRT", "국가유산"),
     THEME_BRD("BRD", "브랜드/회사"),
     THEME_SFX("SFX", "특수촬영물"),
     THEME_NFM("NFM", "소설/시/수필/동화"),

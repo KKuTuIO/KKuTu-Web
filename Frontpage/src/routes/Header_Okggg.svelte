@@ -15,8 +15,7 @@ if ($page.url.pathname.includes('rank')) {
 			<div class="flex items-center gap-x-2">
                 <a href="/" rel="external">
                     <span class="sr-only">끄투리오</span>
-                    <img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
-                    <img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
+                    <img class="h-8" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
                 </a>
 
                 <!--<a href="/okggg.html" rel="external">

@@ -25,6 +25,7 @@
     },
     "loa": { "name": "Loanword" },
     "prv": { "name": "Proverb" },
+    "lot": { "name": "Longtext" },
     "str": { "name": "Strict" },
     "k32": { "name": "Sami" },
     "no2": { "name": "No2" },
@@ -107,7 +108,7 @@
     "KTY": {
       "lang": "ko",
       "rule": "Typing",
-      "opts": ["prv", "beg", "rnk", "etq", "nob"],
+      "opts": ["lot", "prv", "beg", "rnk", "etq", "nob"],
       "time": 1,
       "ai": false,
       "big": false,

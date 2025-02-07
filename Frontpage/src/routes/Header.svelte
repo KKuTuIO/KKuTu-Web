@@ -17,6 +17,7 @@
 	// 타임 릴리즈
 	let showRelayUpdate = false;
 	let mourning = false;
+	let eighthevent = false;
 
 
 	let data = "";
@@ -43,6 +44,13 @@
 	const mourningEnd = new Date('2025-01-04T23:59:59');
 	if (today > mourningStart && today < mourningEnd) {
 		mourning = true;
+	}
+
+	//8주년 기간 (~2/15)
+	const eventStart = new Date('2024-02-01T00:00:00');
+	const eventEnd = new Date('2024-02-15T23:59:59');
+	if (today > eventStart && today < eventEnd) {
+		eighthevent = true;
 	}
 
 	const noticeVisible = localStorage.getItem('noticeVisible_241206');
@@ -120,8 +128,8 @@
 		{/if}-->
 			<a href="/" class="md:flex" style={mourning ? 'filter: grayscale(100%)' : ''}>
 				<span class="sr-only">끄투리오</span>
-				<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
-				<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
+				<img class="h-8 dark:hidden" src={eighthevent ? "https://cdn.kkutu.io/img/bi/8th_logo.svg" : "https://cdn.kkutu.io/img/bi/bi_vertical_main.png"} alt="끄투리오"/>
+				<img class="h-8 hidden dark:block" src={eighthevent ? "https://cdn.kkutu.io/img/bi/8th_logo_dark.svg" : "https://cdn.kkutu.io/img/bi/bi_vertical_white.png"} alt="끄투리오"/>
 			</a>
 		</div>
 		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">

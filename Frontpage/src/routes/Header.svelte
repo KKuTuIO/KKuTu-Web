@@ -128,17 +128,11 @@
 		{/if}-->
 			<a href="/" class="md:flex items-center space-x-2" style={mourning ? 'filter: grayscale(100%)' : ''}>
 				<span class="sr-only">끄투리오</span>
-				<div class="flex items-center space-x-2">
+				<div class="flex items-center space-x-4">
 					<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
-					{#if eighthevent}
-					<img class="h-8 dark:hidden hidden sm:block" src="https://cdn.kkutu.io/img/bi/8th_logo.svg" alt="8주년 로고"/>
-					{/if}
 				</div>
 				<div class="flex items-center space-x-2">
 					<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
-					{#if eighthevent}
-					<img class="h-8 hidden dark:block hidden sm:block" src="https://cdn.kkutu.io/img/bi/8th_logo_dark.svg" alt="8주년 로고"/>
-					{/if}
 				</div>
 			</a>
 		

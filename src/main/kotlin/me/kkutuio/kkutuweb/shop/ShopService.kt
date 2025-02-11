@@ -134,16 +134,17 @@ class ShopService(
         userBoxJsonObj.type = "json"
         userBoxJsonObj.value = user.box.toJson()
 
-        val afterPaybackMoney = user.money + (0.4 * good.cost).roundToInt()
+        //val afterPaybackMoney = user.money + (0.4 * good.cost).roundToInt()
+        val afterPaybackMoney = user.money
         userDao.updateUser(
             user.id, mapOf(
-                "money" to afterPaybackMoney,
+                //"money" to afterPaybackMoney,
                 "box" to userBoxJsonObj
             )
         )
 
         val userName = if (user.nickname == null) userId else "${user.nickname} ($userId)"
-        logger.info("$userName 님이 $id 상품을 환불했습니다.")
+        logger.info("$userName 님이 $id 상품을 삭제했습니다.")
 
         return "{\"result\": 200, \"money\": $afterPaybackMoney, \"box\": ${user.box.toJson()}}"
     }

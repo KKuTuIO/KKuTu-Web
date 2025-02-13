@@ -188,7 +188,7 @@
 					<div class="flex items-center gap-x-4 px-2">
 						<div class="level" style={getLevelImage(Number(score))}></div>
 						<div>
-							<div class="font-bold">{ingameName}</div>
+							<div class="font-bold truncate">{ingameName}</div>
 							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor}</div>
 						</div>
 					</div>
@@ -200,6 +200,14 @@
 							</span>
 							내 전적
 						</button>-->
+						<button
+						on:click={() => location.href = "https://kkutu.io/login"}
+						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+							<span class="material-symbols-outlined text-md mr-2">
+								account_circle
+							</span>
+							계정 변경
+						</button>
 						<button
 						on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}
 						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">

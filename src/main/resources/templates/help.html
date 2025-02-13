@@ -21,7 +21,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/in_game_kkutu_help.css?version=1}"/>
+    <link rel="stylesheet" th:href="@{https://cdn.kkutu.io/css/in_game_kkutu_help.css?version=2}"/>
     <script type="text/javascript" src="https://cdn.kkutu.io/js/jquery.min.js?version=1.12.4"></script>
     <script type="text/javascript" src="https://cdn.kkutu.io/js/security.min.js?version=1.12.4"></script>
 </head>
@@ -63,6 +63,7 @@
                     <li><label>영어 워드스택</label></li>
                     <li><label>한국어 그림퀴즈</label></li>
                     <li><label>영어 그림퀴즈</label></li>
+                    <li><label>한국어 쿵쿵쿵따</label></li>
                 </ul>
             </li>
             <li>
@@ -94,6 +95,7 @@
                     <li><label>순서대로</label></li>
                     <li><label>힌트 제거</label></li>
                     <li><label>도중 입장 불가</label></li>
+                    <li><label>장문</label></li>
                 </ul>
             </li>
             <li>
@@ -415,7 +417,22 @@
                 <word>ㅈㅈ</word>
             </blockquote>
             <p>모든 참가자가 답을 맞혔거나 포기를 했다면 즉시 정답 단어가 표시되며 다음 라운드로 넘어갑니다.</p></div>
-        <div class="page-body" id="box-c3p19"><p><b>영어 그림퀴즈</b>은 4자 ~ 16자의 영어 어휘를 그림으로 설명하고 맞춥니다.</p></div>
+            <div class="page-body" id="box-c3p20"><p><b>한국어 쿵쿵쿵따</b>는 이전 한국어 단어의 끝 한 자리로 시작하는 <b>꼭 4글자의</b> 한국어 단어를 이용하여 차례를
+                넘기는 방식입니다.</p>
+                <blockquote>
+                    <word>대한민국</word>
+                    →
+                    <word>국가기관</word>
+                    →
+                    <word>관료주의</word>
+                </blockquote>
+                <p>한글 맞춤법 3장 5절(두음 법칙)을 따라 음절을 바꾸어 이을 수 있습니다.</p>
+                <blockquote>
+                    <word>고속도로</word>
+                    →
+                    <word>노동조합</word>
+                </blockquote>
+            </div>
         <div class="page-body" id="box-c4"><p>이 장에서는 끄투리오에서 방을 만들거나 설정할 때 이용할 수 있는 특수 규칙에 대해 설명하고 있습니다.
             방 만들기 및 방 설정 창에서 특수 규칙을 정할 수 있습니다.</p><img
                 src="https://cdn.kkutu.io/img/kkutu/help/setroom.png?v=3.7" height="360"/></div>
@@ -447,7 +464,7 @@
         <div class="page-body" id="box-c4p5"><p>외래어를 사용할 수 없게 합니다.
             순우리말과 한자어 단어로만 차례를 넘겨야 합니다.
             단, 어인정 규칙에 의해 인정받은 특수한 단어들은 사용할 수 있습니다.</p></div>
-        <div class="page-body" id="box-c4p6"><p>단어를 입력하는 것 대신 문장을 입력하여 진행합니다.
+        <div class="page-body" id="box-c4p6"><p>단어를 입력하는 것 대신 속담을 입력하여 진행합니다.
             단어 입력에 비해 변별력이 다소 떨어질 수 있습니다.</p></div>
         <div class="page-body" id="box-c4p7"><p>반드시 현대 한국어 명사 어휘만을 이용해야 합니다.
             품사가 없는 어휘, 방언, 옛말, 북한말을 모두 배제하고 오직 명사로만 진행합니다.</p></div>
@@ -485,6 +502,8 @@
         <div class="page-body" id="box-c4p24"><p>게임 유형 [한국어 그림퀴즈] 및 [영어 그림퀴즈]에서 순서대로 술래가 되게끔 합니다.</p></div>
         <div class="page-body" id="box-c4p25"><p>게임 유형 [한국어 그림퀴즈] 및 [영어 그림퀴즈]에서 나오는 단어의 힌트를 제거합니다.</p></div>
         <div class="page-body" id="box-c4p26"><p>게임이 진행 중인 게임방에서 다른 회원의 입장을 제한합니다.</p></div>
+        <div class="page-body" id="box-c4p27"><p>단어를 입력하는 것 대신 글을 입력하여 진행합니다.
+            단어 입력에 비해 변별력이 다소 떨어질 수 있습니다.</p></div>
         <div class="page-body" id="box-c5"><p>끄투리오는 여러분이 보다 유익하고 재밌게 게임을 이용할 수 있도록 여러 콘텐츠들을 제공하고 있습니다.
             하위 항목에서 그런 콘텐츠들을 하나씩 소개하도록 하죠.</p></div>
         <div class="page-body" id="box-c5p1"><p>로그인하지 않고 끄투리오에 접속하는 경우 <b>손님 계정</b>으로 간주합니다.
@@ -585,6 +604,6 @@
         </div>
     </div>
 </div>
-<script type="text/javascript" th:src="@{https://cdn.kkutu.io/js/in_game_kkutu_help.min.js?version=1}"></script>
+<script type="text/javascript" th:src="@{https://cdn.kkutu.io/js/in_game_kkutu_help.min.js?version=2}"></script>
 </body>
 </html>

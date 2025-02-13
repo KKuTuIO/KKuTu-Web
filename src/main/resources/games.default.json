@@ -24,8 +24,14 @@
       "req": "mis"
     },
     "loa": { "name": "Loanword" },
-    "prv": { "name": "Proverb" },
-    "lot": { "name": "Longtext" },
+    "prv": { 
+      "name": "Proverb",
+      "group": "T" 
+    },
+    "lot": { 
+      "name": "Longtext",
+      "group": "T"
+    },
     "str": { "name": "Strict" },
     "k32": { "name": "Sami" },
     "no2": { "name": "No2" },

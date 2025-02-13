@@ -21,10 +21,10 @@ jobs:
           node-version: 14.x
 
       - name: "[Frontend] Install node modules"
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --yes
 
       - name: "[New Front] Install node modules"
-        run: cd Frontpage && pnpm install --frozen-lockfile
+        run: cd Frontpage && pnpm install --frozen-lockfile --yes
 
       - name: "[Frontend] Build with Node"
         run: cd ../ && pnpm build --if-present

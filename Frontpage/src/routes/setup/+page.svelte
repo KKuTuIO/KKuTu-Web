@@ -3,6 +3,7 @@
     import { createEventDispatcher } from 'svelte';
     const title = '환영합니다';
 
+  let readRule = false;
   let nickname = '';
   let errors = {
     nickname: null
@@ -30,7 +31,7 @@
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (validate()) {
+    if (validate() && readRule) {
       try {
         const response = await fetch('/api/setup/nick', {
           method: 'POST',
@@ -46,6 +47,9 @@
       } catch (error) {
         console.error('Error:', error);
       }
+    }
+    else {
+      alert('별명 규칙을 확인해 주세요.');
     }
   };
 </script>
@@ -103,6 +107,8 @@
       끄투리오에서 사용하실 별명을 입력해 주세요.
     </p>
     <p class="text-gray-500 dark:text-gray-300 mt-4 text-center">
+      <strong class="font-bold text-red-500 dark:text-red-400">경고: 타인의 명예를 훼손하거나 미풍양속을 해치는 별명은 사용할 수 없습니다.</strong><br>
+      (예: 끄투리오의똥, 박끄리qkqh, 김끄리멍1청이 등)<br><br>
       별명은 2 ~ 15글자의 영문자, 한글, 숫자, 공백, 특수문자 -, _로 설정하실 수 있습니다.<br>
       별명은 7일마다 변경하실 수 있으며, 250핑을 사용하여 고정할 수 있습니다.<br>
       욕설, 비속어 등이 포함된 별명을 사용할 경우 운영정책에 따라 제재될 수 있습니다.
@@ -128,6 +134,11 @@
         {#if errors.nickname && errors.nickname.type === 'pattern'}
           <p class="text-sm text-red-500">별명 규칙을 확인하세요.</p>
         {/if}
+        <!-- Rule check checkbox -->
+        <div class="flex items-center mt-4">
+          <input type="checkbox" on:change={() => readRule ? readRule = false : readRule = true} id="rule"/>
+          <label for="rule" class="ml-2 text-gray-500 dark:text-gray-300">별명 규칙을 확인하였으며, 타인의 명예를 훼손하는 별명을 사용할 경우 운영정책에 의해 조치됨을 인지했습니다.</label>
+        </div>
         <button type="submit" class="mt-4 w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-500 text-white font-semibold rounded-md shadow-sm hover:from-blue-700 hover:to-purple-600 focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500">
           시작하기
         </button>

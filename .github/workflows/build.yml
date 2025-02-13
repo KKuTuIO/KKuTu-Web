@@ -15,10 +15,13 @@ jobs:
       - name: "[Git] Checkout repository"
         uses: actions/checkout@v2
 
-      - name: "[Frontend] Set up Node"
+      - name: "Set-Up Node"
         uses: actions/setup-node@v2
         with:
-          node-version: 14.x
+          node-version: 22.x
+
+      - name: "Set-Up pnpm"
+        uses: pnpm/action-setup@v3
 
       - name: "[Frontend] Install node modules"
         run: pnpm install --yes --frozen-lockfile

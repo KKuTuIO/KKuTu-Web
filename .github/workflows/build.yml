@@ -8,7 +8,7 @@ env:
 
 jobs:
   build:
-    name: "Build - String Boot & Frontend"
+    name: "Build - SpringBoot & Frontend"
     runs-on: ubuntu-latest
 
     steps:
@@ -70,6 +70,7 @@ jobs:
       - name: "[Git] Create Release"
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: kkutu-web-v${{ github.run_number }}
           files: build/libs/kkutu-web-*.jar
       - name: "[Docker] Log in to the Container registry"
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9

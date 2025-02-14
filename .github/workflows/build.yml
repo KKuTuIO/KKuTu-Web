@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: "[Git] Checkout repository"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: "Use pnpm"
         uses: pnpm/action-setup@v4
@@ -24,11 +24,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
-      - name: "[WAS] Install Dependencies"
+      - name: "Install Dependencies"
         run: pnpm install --frozen-lockfile
-
-      - name: "[Frontend] Install Dependencies"
-        run: cd ./Frontpage && pnpm install --frozen-lockfile && cd ..
 
       - name: "[Frontend] Build with Node"
         run: pnpm build
@@ -64,9 +61,9 @@ jobs:
 
     steps:
       - name: "[Git] Checkout repository"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: "[Artifact] Download"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: kkutu-web
           path: build/libs

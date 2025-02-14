@@ -15,16 +15,17 @@ jobs:
       - name: "[Git] Checkout repository"
         uses: actions/checkout@v2
 
-      - name: "Set-Up Node"
-        uses: actions/setup-node@v2
-        with:
-          node-version: 22.x
+      - name: "Use pnpm"
+        uses: pnpm/action-setup@v4
 
-      - name: "Set-Up pnpm"
-        uses: pnpm/action-setup@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
 
       - name: "[Frontend] Install node modules"
-        run: pnpm install --yes --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: "[Frontend] Build with Node"
         run: pnpm build --if-present

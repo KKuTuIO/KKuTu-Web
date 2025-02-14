@@ -24,7 +24,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
-      - name: "[Frontend] Install node modules"
+      - name: Install node modules
         run: pnpm install --frozen-lockfile
 
       - name: "[Frontend] Build with Node"

@@ -3,9 +3,9 @@
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
-		"dev": "vite dev --host",
-		"build": "vite build",
-		"preview": "vite preview",
+		"dev": "npx vite dev --host",
+		"build": "npx vite build",
+		"preview": "npx vite preview",
 		"preinstall": "npx only-allow pnpm"
 	},
 	"devDependencies": {

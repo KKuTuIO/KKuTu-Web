@@ -70,6 +70,11 @@ jobs:
         with:
           name: kkutu-web
           path: build/libs
+      - name: "[Git] Create release"
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: kkutu-web-v${{ github.run_number }}
+          files: kkutu-web.zip
       - name: "[Docker] Log in to the Container registry"
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:

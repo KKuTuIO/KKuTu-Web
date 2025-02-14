@@ -27,9 +27,6 @@ jobs:
       - name: "Install Dependencies"
         run: pnpm install --frozen-lockfile
 
-      - name: "[Frontend] Install Dependencies"
-        run: cd ./Frontpage && pnpm install --frozen-lockfile && cd ..
-
       - name: "[Frontend] Build with Node"
         run: pnpm build
 

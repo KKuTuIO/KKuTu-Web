@@ -3,7 +3,6 @@
     import { createEventDispatcher } from 'svelte';
     const title = '환영합니다';
 
-  let readRule = false;
   let nickname = '';
   let errors = {
     nickname: null
@@ -31,7 +30,7 @@
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (validate() && readRule) {
+    if (validate()) {
       try {
         const response = await fetch('/api/setup/nick', {
           method: 'POST',
@@ -42,14 +41,11 @@
         if (result.success) {
           window.location.href = '/?server=0';
         } else {
-          alert('금지어가 포함되어 있습니다.'); 
+          alert('별명에 사용할 수 없는 단어가 포함되어 있습니다.');
         }
       } catch (error) {
         console.error('Error:', error);
       }
-    }
-    else {
-      alert('별명 규칙을 확인해 주세요.');
     }
   };
 </script>
@@ -133,11 +129,6 @@
         {#if errors.nickname && errors.nickname.type === 'pattern'}
           <p class="text-sm text-red-500">별명 규칙을 확인하세요.</p>
         {/if}
-        <!-- Rule check checkbox -->
-        <div class="flex items-center mt-4">
-          <input type="checkbox" on:change={() => readRule ? readRule = false : readRule = true} id="rule"/>
-          <label for="rule" class="ml-2 text-gray-500 dark:text-gray-300">별명 규칙을 확인하였으며, 타인의 명예를 훼손하는 별명을 사용할 경우 운영정책에 의해 조치됨을 인지했습니다.</label>
-        </div>
         <button type="submit" class="mt-4 w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-500 text-white font-semibold rounded-md shadow-sm hover:from-blue-700 hover:to-purple-600 focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500">
           시작하기
         </button>

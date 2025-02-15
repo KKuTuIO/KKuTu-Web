@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev-js": "webpack -w",
-    "build": "cd Frontpage && pnpm install --frozen-lockfile && pnpm build",
+    "build": "cd Frontpage && pnpm install --frozen-lockfile && pnpm build && webpack --mode=production",
     "preinstall": "npx only-allow pnpm"
   },
   "license": "AGPL-3.0-only",

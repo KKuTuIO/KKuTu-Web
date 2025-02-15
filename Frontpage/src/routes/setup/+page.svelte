@@ -75,7 +75,7 @@
       <!-- Hand wave -->
        <h3 class="text-center text-6xl wave leading-loose">&#x1F44B;</h3>
       <h2 class="mb-2 text-center text-3xl font-semibold leading-9 tracking-wider text-gray-900 dark:text-gray-100">
-        신규 유저님,
+        신규 회원님,
       </h2>
       <h1 class="mt-2 mb-4 text-center text-5xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-purple-500 text-transparent bg-clip-text">
         만나서 반가워요!
@@ -107,11 +107,10 @@
       끄투리오에서 사용하실 별명을 입력해 주세요.
     </p>
     <p class="text-gray-500 dark:text-gray-300 mt-4 text-center">
-      <strong class="font-bold text-red-500 dark:text-red-400">경고: 타인의 명예를 훼손하거나 미풍양속을 해치는 별명은 사용할 수 없습니다.</strong><br>
-      (예: 끄투리오의똥, 박끄리qkqh, 김끄리멍1청이 등)<br><br>
       별명은 2 ~ 15글자의 영문자, 한글, 숫자, 공백, 특수문자 -, _로 설정하실 수 있습니다.<br>
       별명은 7일마다 변경하실 수 있으며, 250핑을 사용하여 고정할 수 있습니다.<br>
-      욕설, 비속어 등이 포함된 별명을 사용할 경우 운영정책에 따라 제재될 수 있습니다.
+      욕설, 비속어 등이 포함된 별명을 사용할 경우 운영정책에 따라 제재될 수 있습니다.<br>
+      <strong class="text-red-500 dark:text-red-400">경고: 타인의 명예를 훼손하거나 미풍양속을 해치는 별명은 사용할 수 없습니다.</strong>
     </p>
 
     <div class="mt-6 sm:mx-auto sm:w-full sm:max-w-sm">

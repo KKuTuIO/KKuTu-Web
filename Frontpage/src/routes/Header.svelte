@@ -158,11 +158,11 @@
 					local_cafe
 				</span>
 				공식카페</a>
-			<a rel="external" href="/wordsheet.html" class="link-header">
+			<a target="_blank" href="https://cs.kkutu.io" class="link-header">
 				<span class="material-symbols-outlined icons-header">
-					collections_bookmark
+					help
 				</span>
-				단어장</a>
+				고객지원</a>
 		</div>
 		<div class="flex flex-1 justify-end gap-x-2">
 			{#if user == "Guest User"}

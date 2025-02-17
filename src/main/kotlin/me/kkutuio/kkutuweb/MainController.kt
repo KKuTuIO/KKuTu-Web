@@ -143,6 +143,17 @@ class MainController(
             enThemes.addAll(kKuTuSetting.getEnInjeongThemes())
             enThemes.removeAll(injeongPickExcepts)
 
+            val images = listOf(
+                "https://cdn.kkutu.io/img/kkutu/intro/tips/0.png",
+                "https://cdn.kkutu.io/img/kkutu/intro/tips/1.png",
+                "https://cdn.kkutu.io/img/kkutu/intro/tips/2.png",
+                "https://cdn.kkutu.io/img/kkutu/intro.png"
+            )
+    
+            val randomImage = images.random()
+            
+            model.addAttribute("randomIntroImage", randomImage)
+
             model.addAttribute("koThemes", koThemes)
             model.addAttribute("enThemes", enThemes)
 

@@ -553,28 +553,32 @@
             </div>
         </div>
 
-        <div class="hidden lg:block bg-gray-50 text-gray-500 dark:text-gray-300 dark:bg-gray-950 rounded-xl py-1">
-            <div class="grid grid-cols-5">
-              <a class="flex items-center justify-center gap-x-2 h-16" href="https://cafe.naver.com/kkutuio/273">
-                <span class="material-symbols-outlined icons-header">group</span>
-                <p class="text-lg">운영진 모집</p>
-              </a>
-              <a class="flex items-center justify-center gap-x-2 h-16" href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=22&search.boardtype=L">
+        <div class="bg-gray-50 text-gray-500 dark:text-gray-300 dark:bg-gray-950 rounded-xl py-1">
+            <div class="grid grid-cols-3 lg:grid-cols-4 gap-y-3 py-2 lg:py-0">
+              <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=22&search.boardtype=L">
                 <span class="material-symbols-outlined icons-header">playlist_add</span>
-                <p class="text-lg">단어 신청</p>
+                <p class="text-sm lg:text-lg">단어 신청</p>
               </a>
-              <a class="flex items-center justify-center gap-x-2 h-16" rel="external" href="/ost.html">
+              <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" rel="external" href="/ost.html">
                 <span class="material-symbols-outlined icons-header">music_note</span>
-                <p class="text-lg">OST 아카이브</p>
+                <p class="text-sm lg:text-lg">OST 아카이브</p>
               </a>
-              <a class="flex items-center justify-center gap-x-2 h-16" rel="external" href="https://support.kkutu.io/order/main/packages/membership/?group_id=2" target="_blank">
+              <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" rel="external" href="https://support.kkutu.io/order/main/packages/membership/?group_id=2" target="_blank">
                 <span class="material-symbols-outlined icons-header">store</span>
-                <p class="text-lg">멤버십</p>
+                <p class="text-sm lg:text-lg">멤버십</p>
               </a>
-              <a class="flex items-center justify-center gap-x-2 h-16" rel="external" href="https://support.kkutu.io/" target="_blank">
+              <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" rel="external" href="https://cs.kkutu.io/faq.html" target="_blank">
                 <span class="material-symbols-outlined icons-header">help</span>
-                <p class="text-lg">고객지원</p>
+                <p class="text-sm lg:text-lg">고객지원</p>
               </a>
+            <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" rel="external" href="/wordsheet.html">
+                <span class="material-symbols-outlined icons-header">collections_bookmark</span>
+                <p class="text-sm lg:text-lg">단어장</p>
+            </a>
+            <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" rel="external" href="/rank.html">
+                <span class="material-symbols-outlined icons-header">emoji_events</span>
+                <p class="text-sm lg:text-lg">랭킹</p>
+            </a>
             </div>
           </div>
     </div>

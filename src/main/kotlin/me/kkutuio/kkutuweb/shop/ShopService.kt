@@ -126,7 +126,7 @@ class ShopService(
         if (!box.has(id)) return "{\"error\":430}"
 
         val isDyn = id.startsWith("$")
-        val good = shopDao.getGood(if (isDyn) id.substring(0, 4) else id) ?: return "{\"error\":430}"
+        val good = shopDao.getGood(if (isDyn) id.substring(0, 4) else id) ?: id
 
         consumeGood(user.box, id, 1, true)
 

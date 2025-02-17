@@ -70,22 +70,22 @@
           </div>
           <div class="text-gray-400 text-xs mt-4">
             <div class="flex flex-col lg:flex-row gap-x-[13px]">
-              <span>회사명 : 주식회사 큐브시티 (CubeCity Co., Ltd.)</span>
-              <span>대표자 : 김도훈</span>
+              <span>상호명: 주식회사 큐브시티 (CubeCity Co., Ltd.)</span>
+              <span>대표자: 김도훈</span>
               <span>개인정보관리책임자: 김도훈</span>
             </div>
             <div class="flex flex-col lg:flex-row gap-x-[13px]">
-              <span>주소 : 서울특별시 양천구 목동동로 411, 2004호 (목동, 부영그린타운3차)</span>
-              <span>통신판매업신고번호 : 제2024-서울양천-1207호</span>
+              <span>주소: 서울특별시 양천구 목동동로 411, 2004호 (목동, 부영그린타운3차)</span>
+              <span>통신판매업신고번호: 제2024-서울양천-1207호</span>
             </div>
             <div class="flex gap-x-[5px] lg:items-center">
-              <span>사업자등록번호 : 473-86-03330</span>
+              <span>사업자등록번호: 473-86-03330</span>
               <a href="http://www.ftc.go.kr/bizCommPop.do?wrkr_no=4738603330" target="_blank" class="bg-gray-200 dark:bg-gray-800 px-1 text-xs">
                 사업자정보조회
               </a>
             </div>
           </div>
-          <div class="text-gray-500 dark:text-gray-100 pt-4">&copy; 주식회사 큐브시티, 모든 권리 보유</div>
+          <div class="text-gray-500 dark:text-gray-100 pt-4">&copy; 주식회사 큐브시티, 모든 권리 보유.</div>
         </div>
       </div>
       <div class="">

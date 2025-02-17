@@ -27,7 +27,7 @@ jobs:
       - name: "Install Dependencies"
         run: pnpm install --frozen-lockfile
 
-      - name: "[Frontend] Build with Node"
+      - name: "[Frontend] Build with Vite"
         run: pnpm build
 
       - name: "[WAS] Set up JDK 11"

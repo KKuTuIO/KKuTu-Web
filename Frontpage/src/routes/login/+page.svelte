@@ -56,9 +56,9 @@
           <a href="https://kkutu.io/login/daldalso">
             <button class="text-lg bg-[#20318D] text-white mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
               <img src="https://cdn.kkutu.io/logo/fusion/daldalso.png" class="h-6 mr-2" alt="Daldalso"/>
-              <span class="text-[#FFE101]">달달소</span>로 로그인 (신규 가입 불가)
+              <span class="text-[#FFE101]">달달소</span>로 로그인&nbsp;<sub class="bottom-[-0.1rem]">(신규 가입 불가)</sub>
             </button>
-            </a>
+          </a>
         </div>
       <p class="mt-10 text-center text-sm text-gray-500 dark:text-gray-300">
         회원가입 또는 로그인을 하면 끄투리오의 <a href="https://cs.kkutu.io/terms" target="_blank" rel="noopener" class="link-signin">서비스 이용약관</a>과 <a href="https://cs.kkutu.io/operation" target="_blank" rel="noopener" class="link-signin">운영정책</a>, <a href="https://cs.kkutu.io/privacy-policy" target="_blank" rel="noopener" class="link-signin">개인정보처리방침</a>에 동의하는 것으로 봅니다.

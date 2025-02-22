@@ -1,5 +1,5 @@
 
-<script>
+<script nonce="kkutuio">
     import { onMount } from 'svelte';
   let deferredPrompt;
     let installButtonVisible = false;

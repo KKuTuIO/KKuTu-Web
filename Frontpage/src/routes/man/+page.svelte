@@ -1,5 +1,5 @@
-<script>
-    import { onMount } from 'svelte';
+<script nonce="kkutuio">
+  import { onMount } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../../lib/getLevelImg.js';
     import { getMoremi } from '../../lib/getMoremi.js';

@@ -1,5 +1,5 @@
-<script>
-    import { onMount } from 'svelte';
+<script nonce="kkutuio">
+  import { onMount } from 'svelte';
     const title = '로그인';
 
     var loginReason = "";

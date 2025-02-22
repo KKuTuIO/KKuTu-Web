@@ -123,6 +123,9 @@ importers:
       chart.js:
         specifier: ^4.4.6
         version: 4.4.7
+      svelte:
+        specifier: ^4.2.19
+        version: 4.2.19
       svelte-chartjs:
         specifier: ^3.1.5
         version: 3.1.5(chart.js@4.4.7)(svelte@4.2.19)
@@ -148,9 +151,6 @@ importers:
       rollup-plugin-css-only:
         specifier: ^4.5.2
         version: 4.5.2(rollup@4.32.1)
-      svelte:
-        specifier: ^4.2.7
-        version: 4.2.19
       tailwindcss:
         specifier: ^4.0.0
         version: 4.0.1
@@ -7452,8 +7452,8 @@ snapshots:
 
   '@jridgewell/source-map@0.3.2':
     dependencies:
-      '@jridgewell/gen-mapping': 0.3.2
-      '@jridgewell/trace-mapping': 0.3.15
+      '@jridgewell/gen-mapping': 0.3.8
+      '@jridgewell/trace-mapping': 0.3.25
 
   '@jridgewell/sourcemap-codec@1.4.14': {}
 
@@ -8161,9 +8161,9 @@ snapshots:
     dependencies:
       acorn: 8.8.0
 
-  acorn-jsx@5.3.2(acorn@8.8.0):
+  acorn-jsx@5.3.2(acorn@8.14.0):
     dependencies:
-      acorn: 8.8.0
+      acorn: 8.14.0
 
   acorn-node@1.8.2:
     dependencies:
@@ -8867,7 +8867,7 @@ snapshots:
   css-tree@2.3.1:
     dependencies:
       mdn-data: 2.0.30
-      source-map-js: 1.0.2
+      source-map-js: 1.2.1
 
   css-what@3.4.2: {}
 
@@ -9430,8 +9430,8 @@ snapshots:
 
   espree@9.4.0:
     dependencies:
-      acorn: 8.8.0
-      acorn-jsx: 5.3.2(acorn@8.8.0)
+      acorn: 8.14.0
+      acorn-jsx: 5.3.2(acorn@8.14.0)
       eslint-visitor-keys: 3.3.0
 
   esprima@4.0.1: {}
@@ -10538,7 +10538,7 @@ snapshots:
   jsdom@16.7.0:
     dependencies:
       abab: 2.0.6
-      acorn: 8.8.0
+      acorn: 8.14.0
       acorn-globals: 6.0.0
       cssom: 0.4.4
       cssstyle: 2.3.0
@@ -12409,7 +12409,7 @@ snapshots:
   terser@5.15.0:
     dependencies:
       '@jridgewell/source-map': 0.3.2
-      acorn: 8.8.0
+      acorn: 8.14.0
       commander: 2.20.3
       source-map-support: 0.5.21
 

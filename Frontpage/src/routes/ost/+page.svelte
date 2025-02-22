@@ -1,4 +1,4 @@
-<script>
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
   const title = 'OST 아카이브';
   

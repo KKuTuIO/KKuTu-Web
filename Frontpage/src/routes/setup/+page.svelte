@@ -1,5 +1,5 @@
-<script>
-    import { onMount } from 'svelte';
+<script nonce="kkutuio">
+  import { onMount } from 'svelte';
     import { createEventDispatcher } from 'svelte';
     const title = '환영합니다';
 

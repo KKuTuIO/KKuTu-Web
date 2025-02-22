@@ -1,4 +1,4 @@
-<script>
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
   const title = '8주년 행사';
   import Snow from '../../lib/snow.svelte';

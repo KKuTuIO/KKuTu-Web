@@ -1,4 +1,4 @@
-<script>
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
   const title = '랭킹';
   const rankColor = ["yellow-500", "green-500", "blue-500", "purple-500"];

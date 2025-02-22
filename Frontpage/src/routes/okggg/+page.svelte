@@ -1,4 +1,4 @@
-<script>
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
   let title = 'OKG.GG';
   let currentStatus = 'main';

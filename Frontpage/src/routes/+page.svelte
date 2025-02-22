@@ -1,4 +1,4 @@
-<script>
+<script nonce="kkutuio">
     import { onMount } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../lib/getLevelImg.js';
@@ -553,6 +553,35 @@
             </div>
         </div>
 
+        <!-- Fan art / Video Area -->
+        <div class="dark:text-white rounded-full p-2 flex flex-col">
+            <div class="mb-6 justify-between flex items-center">
+                <h2 class="font-semibold text-2xl items-center flex justify-center">
+                    <span class="material-symbols-outlined mr-2">
+                        notifications
+                    </span>
+                    새로운 소식</h2>
+                <a href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=8&search.boardtype=L" target="_blank">
+                    <button 
+                    class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
+                    <span class="material-symbols-outlined">
+                       add
+                    </span>
+                </button>
+            </a>
+            </div>
+            <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4">
+                {#each finalData.slice(5, 7) as cafeNotice}
+                <!-- Card -->
+                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border border-gray-200 dark:border-gray-700 flex flex-col" target="_blank">
+                    <img src={`https://cdn.kkutu.io/img/front/${cafeNotice.menuId}.png`} class="hidden lg:block h-32 w-full object-cover" alt="Patch note"/>
+                    <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
+                    <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{cafeNotice.content}</p>
+                </a>
+                {/each}
+            </div>
+        </div>
+        
         <div class="bg-gray-50 text-gray-500 dark:text-gray-300 dark:bg-gray-950 rounded-xl py-1">
             <div class="grid grid-cols-3 lg:grid-cols-4 gap-y-3 py-2 lg:py-0">
               <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=22&search.boardtype=L">
@@ -567,7 +596,7 @@
                 <span class="material-symbols-outlined icons-header">store</span>
                 <p class="text-sm lg:text-lg">멤버십</p>
               </a>
-              <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" rel="external" href="https://cs.kkutu.io/faq.html" target="_blank">
+              <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" rel="external" href="https://cs.kkutu.io/faq" target="_blank">
                 <span class="material-symbols-outlined icons-header">help</span>
                 <p class="text-sm lg:text-lg">고객지원</p>
               </a>

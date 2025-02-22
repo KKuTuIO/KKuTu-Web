@@ -1,4 +1,4 @@
-<script>
+<script nonce="kkutuio">
 import { page } from '$app/stores';
 
 let currentStatus = 'main';

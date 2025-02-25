@@ -38,14 +38,14 @@ const TopLeftPanel = ({onGameStart}) => {
                 </MenuBar>
                 <br />
                 <MenuBar>
-                    <MenuBarText color="#4EB44E" target="_blank" href="//cafe.naver.com/kkutuio">공식 카페</MenuBarText>
+                    <MenuBarText color="#4EB44E" target="_blank" href="//cafe.naver.com/kkutuio">공식카페</MenuBarText>
                 </MenuBar>
             </BrowserView>
             <JJoriping onGameStart={onGameStart}/>
             <MobileView>
                 <MenuBar>
                     <MenuBarText color="#7289DA" target="_blank" href="//discord.gg/kkutuio-395143193114705920">공식 디스코드</MenuBarText>
-                    <MenuBarText color="#4EB44E" target="_blank" href="//cafe.naver.com/kkutuio">공식 카페</MenuBarText>
+                    <MenuBarText color="#4EB44E" target="_blank" href="//cafe.naver.com/kkutuio">공식카페</MenuBarText>
                 </MenuBar>
             </MobileView>
         </TopLeftPanelContainer>

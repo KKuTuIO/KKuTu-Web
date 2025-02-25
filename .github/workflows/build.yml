@@ -1,6 +1,11 @@
 name: Build
 
-on: [ push ]
+on:
+  push:
+    branches:
+      - kkutuio
+    tags-ignore:
+      - 'kkutu-web-v*'
 
 env:
   REGISTRY: ghcr.io

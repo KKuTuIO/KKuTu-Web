@@ -448,7 +448,7 @@
         </div>
     </div>
 
-    <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-8 lg:gap-y-12 flex flex-col">
+    <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-8 flex flex-col">
         <!-- Notice area 
         <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8 rounded-full">
             <i class="fa-solid fa-bell lg:mr-3"></i>

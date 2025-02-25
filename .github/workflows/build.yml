@@ -1,6 +1,11 @@
 name: Build
 
-on: [ push ]
+on:
+  push:
+    branches:
+      - kkutuio
+    tags-ignore:
+      - 'kkutu-web-v*'
 
 env:
   REGISTRY: ghcr.io
@@ -10,7 +15,6 @@ jobs:
   build:
     name: "Build - SpringBoot & Frontend"
     runs-on: ubuntu-latest
-    if: ${{ !startsWith(GITHUB_REF, 'refs/tags/') }}
 
     steps:
       - name: "[Git] Checkout repository"

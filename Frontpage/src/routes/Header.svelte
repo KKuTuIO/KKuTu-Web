@@ -158,6 +158,11 @@
 					local_cafe
 				</span>
 				공식카페</a>
+			<a target="_blank" href="https://kkutu.wiki" class="link-header">
+				<span class="material-symbols-outlined icons-header">
+					book_2
+				</span>
+				리오위키</a>
 			<a target="_blank" href="https://cs.kkutu.io" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					help

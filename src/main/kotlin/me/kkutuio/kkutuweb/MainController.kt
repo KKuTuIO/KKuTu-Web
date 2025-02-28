@@ -148,7 +148,7 @@ class MainController(
                 //"https://cdn.kkutu.io/img/kkutu/intro/tips/1.png",
                 //"https://cdn.kkutu.io/img/kkutu/intro/tips/2.png",
                 //"https://cdn.kkutu.io/img/kkutu/intro.png",
-                "https://cdn.kkutu.io/img/kkutu/116samil.png"
+                "https://cdn.kkutu.io/img/kkutu/intro/116samil.png"
             )
     
             val randomImage = images.random()

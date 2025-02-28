@@ -75,9 +75,9 @@
                 <h4 th:text="#{kkutu.dialog.setting.deny-request.title}"></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='deny-invite',text=#{kkutu.dialog.setting.deny-request.invite})}"/>
-                <!--<th:block
-                        layout:replace="~{view/kkutu/option::settingOption(id='deny-whisper',text=#{kkutu.dialog.setting.deny-request.whisper})}"/>
-                <h4></h4>-->
+                <th:block
+                        layout:replace="~{view/kkutu/option::settingOption(id='deny-lobby',text=#{kkutu.dialog.setting.deny-request.lobby})}"/>
+                <h4></h4>
                 <th:block
                         layout:replace="~{view/kkutu/option::settingOption(id='deny-friend',text=#{kkutu.dialog.setting.deny-request.friend})}"/>
             </div>

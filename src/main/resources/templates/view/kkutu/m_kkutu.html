@@ -306,6 +306,7 @@
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.room.password}"></h4>
                 <input id="room-pw" maxlength="24" th:placeholder="#{kkutu.dialog.room.password.placeholder}" type="password">
+                <input id="room-id" maxlength="20" style="width:1px;height:1px;">
             </div>
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.room.user-limit}"></h4>
@@ -1072,8 +1073,8 @@
         <div class="product-body">
             <div id="Chat"></div>
             <input class="kwjuJw2M" id="Talk" maxlength="180" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                   style="display:none;visibility:hidden;">
-            <input class="kwjuJw2M" id="MessageInput" maxlength="180" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                   style="display:none;visibility:hidden;" readonly>
+            <input class="kwjuJw2M" id="MessageInput" maxlength="180" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly>
             <button id="ChatBtn" th:text="#{kkutu.product.chat.sendBtn}"></button>
         </div>
     </div>

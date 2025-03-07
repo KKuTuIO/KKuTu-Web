@@ -4,7 +4,7 @@ import { createBubbler, stopPropagation } from 'svelte/legacy';
 const bubble = createBubbler();
 import { showDialog } from './dialogStore';
 
-const serverEmoji = ["🥔", "🍜", "🍑", "🍋", "🥭", "🌾", "🥗", "🥬", "🔞"];
+const serverEmoji = ["🥔", "🌿", "🥝", "🍋", "🥭", "🌾", "🥗", "🥬", "🔞"];
 const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
 const guestAble = [true, true, false, false, false, false, false, false, true];
 let jsonDataServers = { list: [], max: 9 };
@@ -60,8 +60,8 @@ function randomServer() {
                 }}>
                 <div class="flex justify-between items-center mt-4 px-4">
                   <h3 class="text-2xl font-bold flex items-center">{serverEmoji[index]} {serverName[index]} 채널
-                    {#if !guestAble[index]}
-                    <span class="ml-2 text-sm font-normal bg-[#E0582B] text-white px-1 rounded-full">회원 전용</span>
+                    {#if guestAble[index]}
+                    <span class="ml-2 text-sm font-normal bg-[#E0582B] text-white px-1">손님</span>
                     {/if}
                   </h3>
                   <span class="font-normal text-right dark:text-gray-300 text-gray-500">{serverUsers === null ? '점검 중' : `${serverUsers} / ${jsonDataServers.max}`}</span>

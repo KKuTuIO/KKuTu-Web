@@ -43,7 +43,7 @@
            <a href="https://m.onestore.co.kr/mobilepoc/apps/appsDetail.omp?prodId=0000775728" target="_blank">
              <img src="https://cdn.kkutu.io/img/front/onestore.png" class="h-8 border border-gray-400 rounded" alt="One Store"/>
            </a>
-           <img src="https://cdn.kkutu.io/img/front/Pwa.svg" alt="Pwa"/>
+           <img src="https://cdn.kkutu.io/img/front/Pwa.svg" class="h-8" alt="Pwa"/>
          </div>
             <a href="https://www.grac.or.kr/Statistics/Popup/Pop_StatisticsDetails.aspx?371e798f34f8dfd4a541d1f1f3960c41a6c813a6a053e8e5ec12581d53453bb0" target="_blank">
                 <img src="https://cdn.kkutu.io/img/front/grac.svg" class="h-12 mt-2 lg:mt-0" alt="Rating"/>

@@ -1,9 +1,9 @@
-<script nonce="kkutuio">
+<script>
   import { onMount } from 'svelte';
   const title = '8주년 행사';
   import Snow from '../../lib/snow.svelte';
 
-  let selectedWeek = 2;
+  let selectedWeek = $state(2);
 </script>
 
 <style>
@@ -89,15 +89,15 @@ style="background: linear-gradient(179deg, rgba(255,255,255,1) 0%, rgba(255,255,
     <!-- Week select -->
      <div class="flex gap-x-4 my-6">
         <button class={selectedWeek === 0 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
-        on:click={() => selectedWeek = 0}>
+        onclick={() => selectedWeek = 0}>
           1주차
         </button>
         <button class={selectedWeek === 1 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
-        on:click={() => selectedWeek = 1}>
+        onclick={() => selectedWeek = 1}>
           2주차
         </button>
         <button class={selectedWeek === 2 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}
-        on:click={() => selectedWeek = 2}>
+        onclick={() => selectedWeek = 2}>
           3주차
         </button>
         <!--<button class={selectedWeek === 3 ? 'bg-[#002156] text-white px-6 py-2 rounded-full lg:text-2xl' : 'bg-gray-200 text-[#002156] px-6 py-2 rounded-full lg:text-2xl'}

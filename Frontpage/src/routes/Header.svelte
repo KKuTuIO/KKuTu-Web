@@ -1,4 +1,4 @@
-<script nonce="kkutuio">
+<script>
 	// @ts-ignore
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
@@ -7,23 +7,24 @@
 
 	import { showDialog } from './dialogStore';
 
-	let user = "Guest User";
-	let authVendor = "KKuTu";
+	let user = $state("Guest User");
+	let authVendor = $state("KKuTu");
 	let vendorId = "0";
 	let name = "Moremi";
-	let profileImage = "";
+	let profileImage = $state("");
+	let isChannelFixed = $state(false);
 
-	let ingameName = "";
-	let score = 0;
+	let ingameName = $state("");
+	let score = $state(0);
 
 	// 타임 릴리즈
 	let showRelayUpdate = false;
-	let mourning = false;
+	let mourning = $state(false);
 	let eighthevent = false;
 
 
 	let data = "";
-	let flyout = false;
+	let flyout = $state(false);
 	var noticeData = "";
 
 	let defaultProfileImage = 'https://cdn.kkutu.io/img/default_profile.png';
@@ -32,8 +33,22 @@
 		event.target.src = defaultProfileImage;
 	}
 
+	function decideChannel() {
+		if (isChannelFixed) {
+			location.href = "/?server="+localStorage.getItem('server');
+		} else {
+			showDialog.set(true);
+		}
+	}
+
 	
 	onMount(async () => {
+	// check if user has server LocalStorage
+	const server = localStorage.getItem('server');
+	if (server) {
+		isChannelFixed = true;
+	}
+
 	// 12월 26일 0시 5분 이후부터 타임 릴리즈 기능 활성화
 	const today = new Date();
 	const releaseDate = new Date('2024-12-26T00:05:00');
@@ -173,7 +188,7 @@
 		</div>
 		<div class="flex flex-1 justify-end gap-x-2">
 			{#if user == "Guest User"}
-				<button on:click={() => showDialog.set(true)}
+				<button onclick={() => decideChannel()}
 				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</button>
@@ -182,11 +197,11 @@
 				로그인
 				</a>
 			{:else}
-				<button on:click={() => showDialog.set(true)}>
+				<button onclick={() => decideChannel()}
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</button>
-				<button on:click={flyoutMenu}>
+				<button onclick={flyoutMenu}>
 					<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp"/>
 				</button>
 				<!-- Flyout Menu -->
@@ -208,7 +223,7 @@
 							내 전적
 						</button>-->
 						<button
-						on:click={() => location.href = "https://kkutu.io/login"}
+						onclick={() => location.href = "https://kkutu.io/login"}
 						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
 							<span class="material-symbols-outlined text-md mr-2">
 								account_circle
@@ -216,7 +231,7 @@
 							계정 변경
 						</button>
 						<button
-						on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}
+						onclick={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}
 						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
 							<span class="material-symbols-outlined text-md mr-2">
 								logout

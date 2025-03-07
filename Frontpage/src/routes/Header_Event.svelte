@@ -1,4 +1,4 @@
-<script nonce="kkutuio">
+<script>
 	// @ts-ignore
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';

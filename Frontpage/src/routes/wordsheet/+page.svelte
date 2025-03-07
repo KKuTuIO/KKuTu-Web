@@ -1,11 +1,11 @@
-<script nonce="kkutuio">
+<script>
   import { onMount } from 'svelte';
   const title = '단어장';
 
-  let dialogOpen = false;
-  let dialogTitle = '';
-  let dialogContent = '';
-  let dialogType = 'info';
+  let dialogOpen = $state(false);
+  let dialogTitle = $state('');
+  let dialogContent = $state('');
+  let dialogType = $state('info');
 
   let themes = [];
   const searchTypes = [
@@ -135,16 +135,16 @@ word.theme.KKT=쿵쿵따
 word.theme.ODW=우리말샘
 `;
 
-  let startChar = '';
-  let missionChar = '';
-  let missionCharBuffer = '';
-  let isSearchFocused = false;
-  let isWaiting = false;
+  let startChar = $state('');
+  let missionChar = $state('');
+  let missionCharBuffer = $state('');
+  let isSearchFocused = $state(false);
+  let isWaiting = $state(false);
   let wordData = [];
-  let sortedWordData = [];
-  let sortType = 'short';
-  let longestWord = 0;
-  let langValue = 'ko';
+  let sortedWordData = $state([]);
+  let sortType = $state('short');
+  let longestWord = $state(0);
+  let langValue = $state('ko');
 
   onMount(() => {
     themes = injAbles.split('\n').filter(Boolean).map(theme => {
@@ -269,7 +269,7 @@ word.theme.ODW=우리말샘
 
 {#if dialogOpen}
     <!-- Fullscreen dim -->
-    <div class="z-50 fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div class="z-50 fixed inset-0 bg-black/50 flex justify-center items-center">
       <div class="bg-gray-800 text-center text-white rounded-xl p-8">
         <h2 class="text-2xl font-bold">{dialogTitle}</h2>
         <p class="mt-4 text-gray-300">{dialogContent}</p>
@@ -277,9 +277,9 @@ word.theme.ODW=우리말샘
         {#if dialogType === 'login'}
         <a href="/login.html" class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg">로그인하기</a>
         {:else if dialogType === 'payment'}
-        <button class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg" on:click={handleSearch}>사용하기</button>
+        <button class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg" onclick={handleSearch}>사용하기</button>
         {:else}
-        <button class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg" on:click={() => dialogOpen = false}>확인</button>
+        <button class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg" onclick={() => dialogOpen = false}>확인</button>
         {/if}
 
       </div>
@@ -299,7 +299,7 @@ word.theme.ODW=우리말샘
       {#each searchTypes as type}
       <button class={`px-4 py-1 font-bold rounded-t-lg
       ${langValue === type.lang ? "text-white bg-[#55aa55] hover:bg-[#51a351]" : "text-gray-600 bg-gray-200 hover:bg-gray-300"}`}
-      on:click={() => langValue = type.lang}>
+      onclick={() => langValue = type.lang}>
         {type.name}
       </button>
       {/each}
@@ -314,7 +314,7 @@ word.theme.ODW=우리말샘
           <!-- Search Icon -->
            {#if !isWaiting}
           <button class="material-symbols-outlined text-[#55aa55] dark:text-[#51a351] icons-header"
-            on:click={confirmPayment}>
+            onclick={confirmPayment}>
             search
           </button>
           {:else}
@@ -328,8 +328,8 @@ word.theme.ODW=우리말샘
             <input
               type="text"
               bind:value={startChar}
-              on:focus={() => isSearchFocused = true}
-              on:blur={() => isSearchFocused = false}
+              onfocus={() => isSearchFocused = true}
+              onblur={() => isSearchFocused = false}
               placeholder="시작"
               maxlength="1"
               required
@@ -353,8 +353,8 @@ word.theme.ODW=우리말샘
             <input
               type="text"
               bind:value={missionChar}
-              on:focus={() => isSearchFocused = true}
-              on:blur={() => isSearchFocused = false}
+              onfocus={() => isSearchFocused = true}
+              onblur={() => isSearchFocused = false}
               placeholder="미션"
               maxlength="1"
               class="font-bold text-center w-8 outline-none bg-transparent dark:text-white"
@@ -381,7 +381,7 @@ word.theme.ODW=우리말샘
     <div class="mt-8">
       <div class="flex items-center justify-between dark:text-gray-200 w-full max-w-2xl">
         <h3 class="text-lg font-bold">최장문 {longestWord}자</h3>
-        <select class="rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-white" bind:value={sortType} on:change={handleSort}>
+        <select class="rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-white" bind:value={sortType} onchange={handleSort}>
           <option value="short">짧은 순</option>
           <option value="long">긴 순</option>
           <option value="abc">가나다 순</option>
@@ -395,7 +395,7 @@ word.theme.ODW=우리말샘
           <h2 class="text-lg font-bold">
             {@html word.word.replace(missionCharBuffer, `<span class="text-green-600">${missionCharBuffer}</span>`)}
           </h2>
-          <button class="ml-2" on:click={() => readText(word.word, langValue)}>
+          <button class="ml-2" onclick={() => readText(word.word, langValue)}>
             <span class="material-symbols-outlined flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
               volume_up
             </span>

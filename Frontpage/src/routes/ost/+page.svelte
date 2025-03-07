@@ -1,4 +1,4 @@
-<script nonce="kkutuio">
+<script>
   import { onMount } from 'svelte';
   const title = 'OST 아카이브';
   
@@ -26,7 +26,7 @@
     { title: "끄투리오 2019 Vol. 2", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/2017vol2.mp3", artist: "Sonhun", cover: "dotnet", isNew: "false" }
   ];
 
-  let currentSong = null;
+  let currentSong = $state(null);
   
   function playSong(song) {
     currentSong?.pause();
@@ -48,7 +48,7 @@
       </div>
       <div>
         <button class="bg-[#55aa55] hover:bg-[#51a351] text-white flex rounded-full py-2 px-2 transform ease-in duration-100 active:scale-95"
-        on:click={() => {
+        onclick={() => {
           if (currentSong) {
             currentSong.pause();
             currentSong = null;
@@ -64,7 +64,7 @@
     <ul class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {#each songs as song}
         <button class="text-left flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transform ease-in duration-100 active:scale-95"
-            on:click={() => playSong(song)}>
+            onclick={() => playSong(song)}>
           <div class="flex">
             <div>
               <img src={ song.cover == "null" ? "https://cdn.kkutu.io/img/bgm/default.png" : "https://cdn.kkutu.io/img/bgm/"+song.cover+".png" } alt="OST" class="w-12 h-12 rounded-lg bg-gray-500 mr-4" />

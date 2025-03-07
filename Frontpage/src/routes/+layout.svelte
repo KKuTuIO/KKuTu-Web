@@ -10,6 +10,13 @@
   
 	import './styles.css';
 	import '../app.css';
+	/**
+	 * @typedef {Object} Props
+	 * @property {import('svelte').Snippet} [children]
+	 */
+
+	/** @type {Props} */
+	let { children } = $props();
   
 	const okggg = ["rank", "okggg", "stats"];
   </script>
@@ -26,7 +33,7 @@
 	  {/if}
   
 	  <main>
-		  <slot />
+		  {@render children?.()}
 	  </main>
   
 	  {#if !$page.url.pathname.includes('event_')}

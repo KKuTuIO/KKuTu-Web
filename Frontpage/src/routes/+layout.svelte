@@ -33,10 +33,7 @@
 		  {@render children?.()}
 	  </main>
   
-	  {#if}
 	  <Footer />
-	  {/if}
-  
 	  <Dialog />
   </div>
   

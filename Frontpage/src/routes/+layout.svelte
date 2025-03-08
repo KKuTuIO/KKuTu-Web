@@ -1,7 +1,6 @@
 <script>
 	import { page } from '$app/stores';
 	import Header from './Header.svelte';
-	import HeaderEvent from './Header_Event.svelte';
 	import HeaderMan from './Header_Maintenance.svelte';
 	import HeaderOkggg from './Header_Okggg.svelte';
 	import Footer from './Footer.svelte';
@@ -26,17 +25,15 @@
 	  <HeaderMan />
 	  {:else if okggg.some((v) => $page.url.pathname.includes(v))}
 	  <HeaderOkggg />
-	  {:else if !$page.url.pathname.includes('event_')}
-	  <Header />
 	  {:else}
-	  <HeaderEvent />
+	  <Header />
 	  {/if}
   
 	  <main>
 		  {@render children?.()}
 	  </main>
   
-	  {#if !$page.url.pathname.includes('event_')}
+	  {#if}
 	  <Footer />
 	  {/if}
   

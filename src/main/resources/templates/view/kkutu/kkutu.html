@@ -879,6 +879,10 @@
             layout:replace="~{view/kkutu/product::product(id='EventList',title=#{kkutu.product.eventList.title})}">
         <th:block layout:fragment="content"></th:block>
     </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/product::product(id='ShopList',title=#{kkutu.product.shopList.title})}">
+        <th:block layout:fragment="content"></th:block>
+    </th:block>
     <div class="RoomListBox Product" style="display: block;">
         <h5 class="product-title">
             <i class="RoomListTitle" style="font-style: unset"></i>
@@ -902,6 +906,7 @@
     <th:block layout:replace="~{view/kkutu/product::product(id='Shop',title=#{kkutu.product.shop.title})}">
         <th:block layout:fragment="content">
             <div class="eventFrame"></div>
+            <div class="recommendFrame"></div>
             <div class="shop-categories">
                 <th:block th:each="moremiCategory : ${moremiCategories}">
                     <div class="category-filter shop-type" th:id="${'shop-type-' + moremiCategory}"
@@ -1063,6 +1068,11 @@
             <div class="game-input">
                 <input id="game-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" th:placeholder="#{kkutu.product.game.yourTurn}" readonly>
             </div>
+        </th:block>
+    </th:block>
+    <th:block layout:replace="~{view/kkutu/product::product(id='ItemBattle',title=#{kkutu.product.itemstatus.title},createWithShown=false)}">
+        <th:block layout:fragment="content">
+            <!-- 아이템전 보유 아이템 표시 영역 -->
         </th:block>
     </th:block>
     <th:block layout:replace="~{view/kkutu/product::product(id='Me',title=#{kkutu.product.me.title},createWithShown=true)}">

@@ -1,8 +1,14 @@
-<script nonce="kkutuio">
+<!-- @migration-task Error while migrating Svelte code: `<tr>` cannot be a child of `<table>`. `<table>` only allows these children: `<caption>`, `<colgroup>`, `<tbody>`, `<thead>`, `<tfoot>`, `<style>`, `<script>`, `<template>`. The browser will 'repair' the HTML (by moving, removing, or inserting elements) which breaks Svelte's assumptions about the structure of your components.
+https://svelte.dev/e/node_invalid_placement -->
+<script>
     import { onMount } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../lib/getLevelImg.js';
     import { getMoremi } from '../lib/getMoremi.js';
+
+	import { showDialog } from './dialogStore';
+
+    let yymmdd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
 	let user = "Guest User";
 	let authVendor = "KKuTu";
@@ -12,6 +18,7 @@
 
 	let ingameName = "";
 	let score = 0;
+    let server = 0;
 	let data = "";
 
     const title = '글자로 놀자! 끄투 온라인';
@@ -37,6 +44,13 @@
             "type": "game"
         }
     ]
+
+    var maintenanceData = {
+        "date": "250301",
+        "type": "정기 점검",
+        "reason": "서비스 안정화",
+        "article": "2249"
+    };
 
     var rankData = {
         "data": {
@@ -143,6 +157,17 @@
 			data = { status: "Guest user" };
 		}
 		
+
+        if (localStorage.getItem('server')) {
+            server = localStorage.getItem('server');
+        }
+        else if (data.status !== "Guest user") {
+            server = 2;
+        }
+        else{
+            server = 0;
+        }
+
 		if (data.status !== "Guest user") {
 			authVendor = data.authVendor;
 			vendorId = data.vendorId;
@@ -177,6 +202,9 @@
         const slideResponse = await fetch('https://static.kkutu.io/slides.json');
         slideData = await slideResponse.json();
         updateSlides();
+
+        const maintenanceResponse = await fetch('https://static.kkutu.io/maintenance.json');
+        maintenanceData = await maintenanceResponse.json();
 
         const rankResponse = await fetch('https://kkutu.io/ranking?p=0');
         rankData = await rankResponse.json();
@@ -237,7 +265,7 @@
 
 {#if blockData.blocked}
     <!-- Fullscreen dim -->
-    <div class="z-50 fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div class="z-50 fixed inset-0 bg-black/50 flex justify-center items-center">
         <div class="bg-gray-800 text-center text-white rounded-xl p-8">
             {#if blockData.onlyGuestPunish && blockData.blockType == "IP"}
                 <h2 class="text-2xl font-bold">손님 계정 이용 제한됨</h2>
@@ -245,27 +273,30 @@
 
                 <div class="mt-4">
                     <table class="w-full text-left border-separate border-spacing-y-3">
-                        <tr>
-                            <td class="w-24 font-semibold">IP 주소</td>
-                            <td class="w-72 text-gray-300">{hideIP(blockData.target)}</td>
-                        </tr>
-                        <tr>
-                            <td class="w-24 font-semibold">해제 일시</td>
-                            <td class="w-72 text-gray-300">{blockData.pardonTime}</td>
-                        </tr>
-                        <tr>
-                            <td class="font-semibold">제한 기간</td>
-                            <td class="text-gray-300">{blockData.duration}</td>
-                        </tr>
-                        <tr>
-                            <td class="font-semibold">제한 사유</td>
-                            <td class="text-gray-300">{blockData.reason}</td>
-                        </tr>
-                        <tr>
-                            <td class="font-semibold">남은 시간</td>
-                            <td class="text-gray-300">{blockData.remain}</td>
-                        </tr>
+                        <tbody>
+                            <tr>
+                                <th scope="row" class="w-24 font-semibold">IP 주소</th>
+                                <td class="w-72 text-gray-300">{hideIP(blockData.target)}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="w-24 font-semibold">해제 일시</th>
+                                <td class="w-72 text-gray-300">{blockData.pardonTime}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="font-semibold">제한 기간</th>
+                                <td class="text-gray-300">{blockData.duration}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="font-semibold">제한 사유</th>
+                                <td class="text-gray-300">{blockData.reason}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="font-semibold">남은 시간</th>
+                                <td class="text-gray-300">{blockData.remain}</td>
+                            </tr>
+                        </tbody>
                     </table>
+                    
 
                     <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
@@ -283,29 +314,31 @@
                 <h2 class="text-2xl font-bold">계정 이용 제한됨</h2>
                 <p class="mt-4 text-gray-300">운영정책 위반으로 <strong>게임 이용</strong>이 제한되었습니다.</p>
 
-                <div class="mt-4">
-                    <table class="w-full text-left border-separate border-spacing-y-3">
+                <div class="mt-4"><table class="w-full text-left border-separate border-spacing-y-3">
+                    <tbody>
                         <tr>
-                            <td class="w-24 font-semibold">식별 번호</td>
+                            <th scope="row" class="w-24 font-semibold">식별 번호</th>
                             <td class="w-72 text-gray-300">{blockData.target}</td>
                         </tr>
                         <tr>
-                            <td class="w-24 font-semibold">해제 일시</td>
+                            <th scope="row" class="w-24 font-semibold">해제 일시</th>
                             <td class="w-72 text-gray-300">{blockData.pardonTime}</td>
                         </tr>
                         <tr>
-                            <td class="font-semibold">제한 기간</td>
+                            <th scope="row" class="font-semibold">제한 기간</th>
                             <td class="text-gray-300">{blockData.duration}</td>
                         </tr>
                         <tr>
-                            <td class="font-semibold">제한 사유</td>
+                            <th scope="row" class="font-semibold">제한 사유</th>
                             <td class="text-gray-300">{blockData.reason}</td>
                         </tr>
                         <tr>
-                            <td class="font-semibold">남은 시간</td>
+                            <th scope="row" class="font-semibold">남은 시간</th>
                             <td class="text-gray-300">{blockData.remain}</td>
                         </tr>
-                    </table>
+                    </tbody>
+                </table>
+                
 
                     <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
@@ -344,15 +377,20 @@
         
         <div class="-mt-[400px] h-[400px] hidden lg:flex items-center min-w-screen-lg max-w-screen-xl mx-auto justify-end pr-4 z-50">
             <div class="w-[260px] mx-4">
-                <a href="https://kkutu.io/?server=0" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-8 px-12 transform ease-in duration-100 items-center justify-center">
-                    게임 시작
+                <a href={`https://kkutu.io/?server=${server}`} rel="external" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-6 px-12 transform ease-in duration-100 items-center justify-center">
+                    게임 시작<br>
+                    <span class="text-2xl mt-1">
+                        ({serverName[server]} 채널)
+                    </span>
                 </a>
-                <a href="#serverList" class="text-gray-900 flex items-center justify-center shadow-lg w-full rounded-b-xl p-3.5 hover:bg-gray-100 bg-white backdrop-filter backdrop-blur-lg transform ease-in duration-100">
-                    <h2 class="text-xl font-semibold">다른 채널 보기</h2>
+                <button
+                on:click={() => showDialog.set(true)}
+                class="text-gray-900 flex items-center justify-center shadow-lg w-full rounded-b-xl p-3.5 hover:bg-gray-100 bg-white backdrop-filter backdrop-blur-lg transform ease-in duration-100">
+                    <h2 class="text-xl font-semibold">다른 채널 선택</h2>
                     <span class="material-symbols-outlined text-2xl">
                         chevron_right
                     </span>
-                </a>
+                </button>
             </div>
         </div>
         <div class="w-full -mt-12 lg:-mt-14 absolute">
@@ -449,14 +487,16 @@
     </div>
 
     <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-8 flex flex-col">
-        <!-- Notice area 
-        <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8 rounded-full">
-            <i class="fa-solid fa-bell lg:mr-3"></i>
-            <strong>공지사항</strong>
+        <!-- Notice area --->
+        {#if Number(maintenanceData.date) == Number(yymmdd) || Number(maintenanceData.date) == Number(yymmdd) + 1}
+        <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8">
+            <strong>{maintenanceData.type} 안내</strong>
             <span class="block lg:inline-block lg:pl-4 lg:ml-4 lg:border-l dark:border-gray-700 border-gray-300">
-                
+                {maintenanceData.reason}
+                <a href={`https://cafe.naver.com/kkutuio/${maintenanceData.article}`} class="ml-2 underline text-green-600 hover:text-green-700 dark:text-green-300 dark:hover:text-green-400">자세히 보기</a>
             </span>
-        </div>--->
+        </div>
+        {/if}
         
         <!-- Patch note area -->
         <div class="dark:text-white rounded-full p-2 flex flex-col">
@@ -487,36 +527,37 @@
             </div>
         </div>
 
-        <!-- Fan art / Video Area -->
+        <!-- Gridded area -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="dark:text-white rounded-full p-2 flex flex-col">
-                <div class="mb-6 justify-between flex items-center">
-                    <h2 class="font-semibold text-2xl items-center flex justify-center">
-                        <span class="material-symbols-outlined mr-2">
-                            manga
-                        </span>
-                        팬아트</h2>
-                    <a href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=8&search.boardtype=L" target="_blank">
-                        <button 
-                        class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
-                        <span class="material-symbols-outlined">
-                        add
-                        </span>
-                    </button>
-                </a>
-                </div>
-                <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-2 lg:gap-4">
-                    {#each finalData.slice(5, 7) as cafeNotice}
-                    <!-- Card -->
-                    <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border border-gray-200 dark:border-gray-700 flex flex-col" target="_blank">
-                        <img src={`${cafeNotice.thumbnailUri}`} class="hidden lg:block h-32 w-full object-cover" alt="Fanart"/>
-                        <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
-                        <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{cafeNotice.content}</p>
+            <div class="">
+                <div class="dark:text-white rounded-full p-2 flex flex-col">
+                    <div class="mb-6 justify-between flex items-center">
+                        <h2 class="font-semibold text-2xl items-center flex justify-center">
+                            <span class="material-symbols-outlined mr-2">
+                                manga
+                            </span>
+                            팬아트</h2>
+                        <a href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=8&search.boardtype=L" target="_blank">
+                            <button 
+                            class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
+                            <span class="material-symbols-outlined">
+                            add
+                            </span>
+                        </button>
                     </a>
-                    {/each}
+                    </div>
+                    <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-2 lg:gap-4">
+                        {#each finalData.slice(5, 7) as cafeNotice}
+                        <!-- Card -->
+                        <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border border-gray-200 dark:border-gray-700 flex flex-col" target="_blank">
+                            <img src={`${cafeNotice.thumbnailUri}`} class="hidden lg:block h-32 w-full object-cover" alt="Fanart"/>
+                            <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
+                            <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{cafeNotice.content}</p>
+                        </a>
+                        {/each}
+                    </div>
                 </div>
-            </div>
-            <div class="dark:text-white rounded-full p-2 flex flex-col">
+            <div class="dark:text-white rounded-full p-2 flex flex-col lg:mt-6">
                 <div class="mb-6 justify-between flex items-center">
                     <h2 class="font-semibold text-2xl items-center flex justify-center">
                         <span class="material-symbols-outlined mr-2">
@@ -538,39 +579,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Gridded area -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div class="dark:text-white rounded-full p-2 flex flex-col" id="serverList">
-                <div class="flex justify-between mb-6 items-center">
-                    <h2 class="font-semibold text-2xl items-center flex justify-center">
-                        <span class="material-symbols-outlined mr-2">
-                            list_alt
-                        </span>
-                        채널 목록</h2>
-                    <button 
-                    on:click={() => reloadList()}
-                    class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
-                    <span class="material-symbols-outlined">
-                        refresh
-                    </span>
-                </button>
-                </div>
-                {#each jsonDataServers.list as serverUsers, index}
-                <a rel="external" href={`${serverUsers === null ? "/" : "https://kkutu.io/?server="+index}`}>
-                    <div class="rounded-full text-gray-900 mb-8">
-                        <div class="flex justify-between">
-                            <h3 class="text-xl font-bold dark:text-green-300 text-[#55aa55]">{serverName[index]} 채널</h3>
-                            <span class="font-normal text-right dark:text-gray-300 text-gray-500">{serverUsers === null ? '점검 중' : `${serverUsers} / ${jsonDataServers.max}`}</span>
-                        </div>
-                        <div class="dark:bg-gray-800 bg-gray-100 h-2 mt-3">
-                            <div class={`${serverUsers === null ? "bg-transparent" : "dark:bg-green-300 bg-[#55aa55]"} h-full`} style={`width: ${(serverUsers / jsonDataServers.max) * 100}%`}>
-                        </div>
-                        </div>
-                    </div>
-                </a>
-                {/each}
-            </div>
             <div class="dark:text-white rounded-full p-2 flex flex-col ">
             <div class="flex justify-between mb-6 items-center">
                 <h2 class="font-semibold text-2xl items-center flex justify-center">

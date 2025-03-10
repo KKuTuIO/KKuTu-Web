@@ -1,11 +1,11 @@
-<script nonce="kkutuio">
+<script>
 	// @ts-ignore
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
 	import { getLevelImage } from '../lib/getLevelImg.js';
 
-	let user = "Guest User";
+	let user = $state("Guest User");
 	let authVendor = "KKuTu";
 	let vendorId = "0";
 	let name = "Moremi";
@@ -14,7 +14,7 @@
 	let ingameName = "";
 	let score = 0;
 
-	let loginDialog = false;
+	let loginDialog = $state(false);
 
 
 	let data = "";
@@ -123,7 +123,7 @@
 		</div>
 		<div class="flex flex-1 justify-end gap-x-2">
 			{#if user == "Guest User"}
-				<button on:click={() => loginDialog = true}
+				<button onclick={() => loginDialog = true}
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				로그인
 				</button>
@@ -140,7 +140,7 @@
 </header>
 
 {#if loginDialog === true}
-<div class="z-50 fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+<div class="z-50 fixed inset-0 bg-black/50 flex justify-center items-center">
 
 	<div class="bg-white dark:bg-gray-900 flex flex-col justify-center px-6 py-8 lg:px-6 max-w-md mx-auto rounded-lg shadow-lg">
 		<div class="flex justify-between items-center">
@@ -148,7 +148,7 @@
 			로그인
 		  </h2>
 		  <button class="text-gray-500 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-400" aria-label="Close modal" 
-		  on:click={() => loginDialog = false}>
+		  onclick={() => loginDialog = false}>
 			<span class="material-symbols-outlined">close</span>
 		  </button>
 		</div>

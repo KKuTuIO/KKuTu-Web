@@ -9,25 +9,25 @@
 		"preinstall": "pnpx only-allow pnpm"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^3.0.0",
-		"@sveltejs/adapter-static": "^3.0.1",
-		"@sveltejs/kit": "^2.0.0",
-		"@sveltejs/vite-plugin-svelte": "^3.0.0",
-		"autoprefixer": "^10.4.19",
+		"@sveltejs/adapter-auto": "^4.0.0",
+		"@sveltejs/adapter-static": "^3.0.8",
+		"@sveltejs/kit": "^2.18.0",
+		"@sveltejs/vite-plugin-svelte": "^5.0.3",
+		"autoprefixer": "^10.4.20",
 		"rollup-plugin-css-only": "^4.5.2",
-		"tailwindcss": "^4.0.0",
-		"vite": "^5.0.3"
+		"tailwindcss": "^4.0.12",
+		"vite": "^6.2.1"
 	},
 	"type": "module",
 	"dependencies": {
-		"@fortawesome/free-brands-svg-icons": "^6.6.0",
-		"@fortawesome/free-solid-svg-icons": "^6.6.0",
-		"@glidejs/glide": "^3.6.2",
-		"@tailwindcss/postcss": "^4.0.0",
-		"@tailwindcss/vite": "^4.0.0",
-		"chart.js": "^4.4.6",
-		"svelte": "^4.2.19",
+		"@fortawesome/free-brands-svg-icons": "^6.7.2",
+		"@fortawesome/free-solid-svg-icons": "^6.7.2",
+		"@glidejs/glide": "^3.7.1",
+		"@tailwindcss/postcss": "^4.0.12",
+		"@tailwindcss/vite": "^4.0.12",
+		"chart.js": "^4.4.8",
+		"svelte": "^5.22.6",
 		"svelte-chartjs": "^3.1.5",
-		"svelte-fa": "^4.0.2"
+		"svelte-fa": "^4.0.3"
 	}
 }

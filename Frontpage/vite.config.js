@@ -6,8 +6,5 @@ export default defineConfig({
 	plugins: [
 		sveltekit(),
 		tailwindcss()
-	],
-    optimizeDeps: {
-        exclude: ['svelte/store']
-    }
+	]
 });

@@ -1,8 +1,8 @@
-<script>
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
     const title = '로그인';
 
-    var loginReason = $state("");
+    var loginReason = "";
 
     onMount(async () => {
       const response = await fetch('https://kkutu.io/api/login/reason');

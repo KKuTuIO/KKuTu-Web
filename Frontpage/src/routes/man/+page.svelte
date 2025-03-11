@@ -1,4 +1,4 @@
-<script>
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../../lib/getLevelImg.js';
@@ -13,7 +13,7 @@
     var patchData = "";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
-    let jsonDataServers = $state({ list: [], max: 9 });
+    let jsonDataServers = { list: [], max: 9 };
 
     let finalData = [];
 
@@ -79,7 +79,7 @@
                         </span>
                         채널 목록</h2>
                     <button 
-                    onclick={() => reloadList()}
+                    on:click={() => reloadList()}
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
                         refresh

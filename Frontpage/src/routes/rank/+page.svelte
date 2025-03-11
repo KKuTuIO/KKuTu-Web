@@ -1,6 +1,4 @@
-<script>
-  import { run } from 'svelte/legacy';
-
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
   const title = '랭킹';
   const rankColor = ["yellow-500", "green-500", "blue-500", "purple-500"];
@@ -8,10 +6,10 @@
   import { getLevelImage } from '../../lib/getLevelImg.js';
   import { getMoremi } from '../../lib/getMoremi.js';
 
-  let currentPage = $state(0);
+  let currentPage = 0;
   let moremiData = [];
 
-  var topRankData = $state({
+  var topRankData = {
     "data": {
         "page": 0,
         "data": [
@@ -23,15 +21,15 @@
             }
         ]
     }
-});
+};
     
-  var rankData = $state({
+  var rankData = {
         "data": {
             "page": 0,
             "data": [
             ]
         }
-  });
+  };
 
   onMount(async () => {
     const res = await fetch('https://kkutu.io/ranking?page=0');
@@ -55,10 +53,10 @@
     return await getMoremi(uid);
   }
   //on currentPage change
-  run(() => {
+  $: {
     if (currentPage < 0) currentPage = 0;
     fetchRankData(currentPage);
-  });
+  }
 </script>
 
 <svelte:head>
@@ -144,7 +142,7 @@
       <!-- Pagination -->
       <div class="flex justify-center items-center gap-x-4">
 			<button 
-      onclick={() => currentPage--}
+      on:click={() => currentPage--}
       class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
         <span class="material-symbols-outlined">
             chevron_left
@@ -154,7 +152,7 @@
         {currentPage + 1} 페이지
       </span>
 			<button 
-      onclick={() => currentPage++}
+      on:click={() => currentPage++}
       class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
         <span class="material-symbols-outlined">
             chevron_right

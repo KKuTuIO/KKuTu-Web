@@ -1,7 +1,7 @@
-<script>
+<script nonce="kkutuio">
   import { onMount } from 'svelte';
-  let title = $state('OKG.GG');
-  let currentStatus = $state('main');
+  let title = 'OKG.GG';
+  let currentStatus = 'main';
 
   onMount(() => {
     const urlParams = new URLSearchParams(window.location.search);

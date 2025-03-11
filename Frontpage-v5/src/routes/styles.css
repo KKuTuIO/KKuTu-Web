@@ -1,0 +1,166 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+/* Extrabold */  
+@import '@glidejs/glide/dist/css/glide.core.min.css';
+@import '@glidejs/glide/dist/css/glide.theme.min.css';
+@import "tailwindcss";
+
+:root {
+	--font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+		Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-family: var(--font-body);
+}
+
+
+@keyframes DiagAppearance {
+    from {
+        opacity: 0;
+        transform: scale(0.95)
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1)
+    }
+}
+
+@keyframes DimmerAppearance {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.3;
+    }
+}
+
+.diag{
+	animation: DiagAppearance 0.3s ease-out;
+	transform-origin: center;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(.4,0,.2,1);
+    transition-duration: .15s;
+}
+
+.link-signin{
+	@apply font-semibold leading-6 text-green-600 hover:text-green-500 dark:text-green-300 dark:hover:text-green-500
+}
+
+.link-header{
+	@apply flex-col items-center justify-center text-gray-800 hover:text-[#55aa55] dark:text-gray-200 dark:hover:text-green-300 text-xs text-center transform ease-in duration-100 w-16
+}
+.link-sidebar{
+	@apply leading-none font-medium text-sm group-hover:text-[#55aa55] dark:group-hover:text-green-300
+}
+.icons-sidebar{
+	@apply text-2xl group-hover:text-[#55aa55] dark:group-hover:text-green-300
+}
+.icons-header{
+	@apply text-2xl font-medium block leading-none
+}
+
+.glide {
+	width: 100%;
+	margin: 0 auto;
+}
+
+.glide__slide {
+	text-align: center;
+	font-size: 1.5rem;
+	background: #f0f0f0;
+}
+
+.glide__bullets {
+	text-align: center;
+}
+
+.glide__bullet {
+	width: 10px;
+	height: 10px;
+	background: #ddd;
+	border-radius: 50%;
+	display: inline-block;
+	margin: 0 5px;
+	cursor: pointer;
+}
+
+.glide__bullet--active {
+	background: #333;
+}
+
+#pfp{
+	background-image: url("https://cdn.kkutu.io/img/defaultProfile.png");
+}
+
+.level{
+	width: 18px;
+	height: 18px;
+	background-image: url(https://cdn.kkutu.io/img/kkutu/lv/newlv.png);
+    background-size: 2560%;
+    transform: scale(1.5);
+}
+
+.rankBg{
+	background-image: url(https://cdn.kkutu.io/img/kkutu/stage.png);
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+
+.rightHand{
+	-webkit-transform: scaleX(-1);
+	transform: scaleX(-1);
+}
+
+.eighthTitle{
+	/* BFDBFE - E9D5FF gradient text */
+	background: linear-gradient(90deg, #BFDBFE, #E9D5FF);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	
+}
+
+@keyframes mBGScroll {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: -64px 0;
+    }
+}
+
+.membershipBGScroll {
+    position: relative;
+    overflow: hidden;
+}
+
+.membershipBGScroll:hover::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url(https://cdn.kkutu.io/img/kkutu/membership/checkerBoard.png);
+    background-size: 64px 64px;
+    animation: mBGScroll 2s linear infinite;
+    opacity: 0.3; 
+    z-index: 0;
+}
+
+.membershipBGScroll * {
+    position: relative;
+    z-index: 1; 
+}
+
+
+/* OKGG */
+
+.header-items {
+    @apply px-4 lg:px-8 py-2 border-b-4 border-transparent
+}
+
+.current-header {
+    @apply text-indigo-600 border-b-4 border-indigo-600
+}
+

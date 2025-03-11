@@ -1,7 +1,7 @@
-<script>
+<script nonce="kkutuio">
 import { page } from '$app/stores';
 
-let currentStatus = $state('main');
+let currentStatus = 'main';
 
 if ($page.url.pathname.includes('rank')) {
     currentStatus = 'rank';

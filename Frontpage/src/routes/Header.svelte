@@ -173,19 +173,27 @@
 		</div>
 		<div class="flex flex-1 justify-end gap-x-2">
 			{#if user == "Guest User"}
-				<button on:click={() => showDialog.set(true)}
+				<!--<button on:click={() => showDialog.set(true)}
 				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
-				</button>
+				</button>--->
+				<a href="/?server=0" rel="external"
+				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				게임 시작
+				</a>
 				<a href="/login"
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				로그인
 				</a>
 			{:else}
-				<button on:click={() => showDialog.set(true)}>
+				<!--<button on:click={() => showDialog.set(true)}
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
-				</button>
+				</button>-->
+				<a href="/?server=0" rel="external"
+				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				게임 시작
+				</a>
 				<button on:click={flyoutMenu}>
 					<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp"/>
 				</button>

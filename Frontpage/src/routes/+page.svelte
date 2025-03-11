@@ -349,6 +349,7 @@
                 <a href="https://kkutu.io/?server=0" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-8 px-12 transform ease-in duration-100 items-center justify-center">
                     게임 시작
                 </a>
+                <!--
                 <button
                 on:click={() => showDialog.set(true)}
                 class="text-gray-900 flex items-center justify-center shadow-lg w-full rounded-b-xl p-3.5 hover:bg-gray-100 bg-white backdrop-filter backdrop-blur-lg transform ease-in duration-100">
@@ -356,7 +357,14 @@
                     <span class="material-symbols-outlined text-2xl">
                         chevron_right
                     </span>
-                </button>
+                </button>-->
+                
+                <a href="#serverList" class="text-gray-900 flex items-center justify-center shadow-lg w-full rounded-b-xl p-3.5 hover:bg-gray-100 bg-white backdrop-filter backdrop-blur-lg transform ease-in duration-100">
+                    <h2 class="text-xl font-semibold">다른 채널 보기</h2>
+                    <span class="material-symbols-outlined text-2xl">
+                        chevron_right
+                    </span>
+                </a>
             </div>
         </div>
         <div class="w-full -mt-12 lg:-mt-14 absolute">

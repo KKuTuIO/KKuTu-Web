@@ -2,14 +2,14 @@
     import { showDialog } from './dialogStore';
   </script>
   
-  {#if $showDialog}
-    <div class="dialog-overlay" on:click={() => showDialog.set(false)}>
+  <!--{#if $showDialog}
+    <!--<div class="dialog-overlay" on:click={() => showDialog.set(false)}>
       <div class="dialog-box" on:click|stopPropagation>
         <p>Hello World</p>
         <button on:click={() => showDialog.set(false)}>Close</button>
       </div>
     </div>
-  {/if}
+  {/if}-->
   
   <style>
     .dialog-overlay {

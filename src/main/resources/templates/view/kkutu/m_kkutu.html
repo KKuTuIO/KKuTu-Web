@@ -533,8 +533,16 @@
                 </button>
             </div>
             <div class="dialog-bar">
-                <h4 style="width: 83px;" th:text="#{kkutu.dialog.profile.place}"></h4>
+                <h4 style="width: 16px;" class="profile-place-icon">
+                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                </h4>
                 <h4 class="dialog-bar-value" id="profile-place"></h4>
+            </div>
+            <div class="dialog-bar">
+                <h4 style="display:none; width: 16px;" class="profile-createdat-icon">
+                    <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                </h4>
+                <h4 style="display:none;" class="dialog-bar-value" id="profile-createdat"></h4>
             </div>
             <div class="dialog-bar profile-record"
                  style="padding: 2px 0px; border-top: 1px dashed #CCC; margin: 2px 0px; height: 175px; overflow-y: scroll;">

@@ -500,6 +500,15 @@
             </div>
         </th:block>
     </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='RevisedInviteDiag',width=300,height=135,title=#{kkutu.dialog.invite.title})}">
+        <th:block layout:fragment="content">
+            <button id="invite-kakao" th:text="#{kkutu.dialog.invite.inviteKakao}"></button>
+            <button id="invite-link" th:text="#{kkutu.dialog.invite.inviteLink}"></button>
+            <button id="invite-ingame" th:text="#{kkutu.dialog.invite.inviteIngame}"></button>
+            <button id="invite-copy" th:text="#{kkutu.dialog.invite.inviteCopy}"></button>
+        </th:block>
+    </th:block>
     <th:block layout:replace="~{view/kkutu/dialog::dialog(id='RoomInfoDiag',width=300,height=365)}">
         <th:block layout:fragment="content">
             <div class="dialog-bar room-info-head">
@@ -520,6 +529,7 @@
             <div class="dialog-bar tail-button">
                 <button id="room-info-join" th:text="#{kkutu.dialog.roomInfo.joinBtn}"></button>
                 <button id="room-info-master" th:text="#{kkutu.dialog.roomInfo.masterBtn}"></button>
+                <button id="room-info-report" th:text="#{kkutu.dialog.roomInfo.reportBtn}" style="display:none;"></button>
             </div>
         </th:block>
     </th:block>
@@ -808,6 +818,32 @@
         </th:block>
     </th:block>
     <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='ItemFactoryDiag',width=500,height=465,title=#{kkutu.dialog.itemFactory.title})}">
+        <th:block layout:fragment="content">
+            <div class="dialog-bar" style="width: 300px;">
+                <div id="if-tray"></div>
+            </div>
+            <div class="dialog-bar" style="width: 200px;"><h4
+                    style="border-bottom: 1px solid #CCCCCC; width: 100%; height: 24px;"
+                    th:text="#{kkutu.dialog.itemFactory.ifReward}"></h4>
+                <div id="if-reward"></div>
+            </div>
+            <div class="dialog-bar" style="width: 200px;">
+                <div id="if-tray"></div>
+            </div>
+            <div class="dialog-bar">
+                <div class="goods-box" id="if-goods"></div>
+            </div>
+            <div class="dialog-bar tail-button">
+                <div class="itemfactory-tooltip">
+                    <input class="fa-pseudo search-box" id="itemfactory-search" type="text" th:placeholder="#{'kkutu.dialog.itemFactory.search'}">
+                </div>
+                <button id="cf-reset"><i class="fa-solid fa-trash"></i></button>
+                <button id="cf-compose" th:text="#{kkutu.dialog.itemFactory.ifCompose}"></button>
+            </div>
+        </th:block>
+    </th:block>
+    <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='ChatLogDiag',width=350,height=540,title=#{kkutu.dialog.chatLog.title})}">
         <th:block layout:fragment="content">
             <div id="chat-log-board" style="height: 475px; font-size: 11px; overflow-y: scroll;"></div>
@@ -916,6 +952,8 @@
     <th:block layout:replace="~{view/kkutu/product::product(id='Shop',title=#{kkutu.product.shop.title})}">
         <th:block layout:fragment="content">
             <div class="eventFrame"></div>
+            <div class="coffeeShopFrame"></div>
+            <div class="musicShopFrame"></div>
             <div class="recommendFrame"></div>
             <div class="shop-categories">
                 <th:block th:each="moremiCategory : ${moremiCategories}">

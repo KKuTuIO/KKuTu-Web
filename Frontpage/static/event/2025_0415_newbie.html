@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="dns-prefetch" href="//cdn.kkutu.io" />
+    <title>끄투리오 신규/복귀 사용자 특별 보상</title>
+    
+    <link rel="icon" type="image/x-icon" href="https://cdn.kkutu.io/favicon.ico?v=3.7">
+    <link rel="manifest" href="/manifest.json">
+
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
+    integrity="sha384-DKYJZ8NLiK8MN4/C5P2dtSmLQ4KwPaoqAfyA/DfmEc1VDxu4yyC7wy6K1Hs90nka" crossorigin="anonymous"></script>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <img src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="Logo" style="height: 36px;">
+            <div class="header-links">
+                <a href="/">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Home.svg">
+                </a>
+                <a href="https://cafe.naver.com/kkutuio" target="_blank">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Cafe.svg">
+                </a>
+                <a href="/?server=0">
+                    <button>
+                        게임 시작
+                    </button>
+                </a>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="container">
+            <div class="logo-group">
+                <div class="decoration">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Upper_L.png" alt="Upper Left Decoration" class="upper-left">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Upper_NewReturning.png" alt="Upper New Returning Decoration" class="upper-new-returning">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Upper_R.png" alt="Upper Right Decoration" class="upper-right">
+                </div>
+                <div class="logo">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Teuk.png" class="logo-teuk" alt="Special Logo">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Byeol.png" class="logo-byeol" alt="Star Logo">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Bo.png" class="logo-bo" alt="Bo Logo">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Sang.png" class="logo-sang" alt="Sang Logo">
+                </div>
+            </div>
+            <div class="text">
+                <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/ContainerDesc.png" alt="Description" class="description">
+                <div class="share">
+                    <img src="https://cdn.kkutu.io/img/kkutu/kakao.png" alt="Kakao Share" class="kakao-share">
+                    <a href="#">
+                        <img src="https://cdn.kkutu.io/img/kkutu/copy.png" alt="Link Share" class="link-share">
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="content">
+            <a href="https://cs.kkutu.io/probability#info" target="_blank">
+                <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/ContentProb.png" alt="Probability" class="probability">
+            </a>
+        </div>
+        <div class="disclaimer"></div>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = "./2025_0415_newbie.css";
+            document.head.appendChild(link);
+        });
+
+        //카카오링크 init
+        Kakao.init('424a33dd14697c7a6fe8fce22fa4fb14');
+
+        document. querySelector('.kakao-share').addEventListener('click', function() {
+            Kakao.Share.sendCustom({
+                templateId: 118900
+            });
+        });
+
+        document.querySelector('.link-share').addEventListener('click', function() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(function() {
+                alert("링크가 복사되었습니다.");
+            }, function(err) {
+                console.error('Error copying text: ', err);
+            });
+        });
+    </script>
+</body>
+</html>

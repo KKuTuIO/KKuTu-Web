@@ -1182,7 +1182,8 @@
                  data-full-width-responsive="true"></ins> -->
         </th:block>
     </th:block>
-    <div id="MessageOverlay"></div>
+
+    <!-- Social Tab -->
     <div id="SocialSidebar">
         <div class="sidebar-header">
             <div class="sidebar-title" th:utext="#{kkutu.product.social.title}"></div>
@@ -1190,10 +1191,10 @@
         </div>
         <div class="sidebar-tabs">
             <div class="sidebar-tab" id="SocialTabFriend" th:text="#{kkutu.product.social.friend}"></div>
-            <div class="sidebar-tab" id="SocialTabBlock" th:text="#{kkutu.product.social.block}"></div>
             <div class="sidebar-tab" id="SocialTabFriendRequest" th:text="#{kkutu.product.social.friendRequest}"></div>
-            <div class="sidebar-tab" id="SocialTabMailBox" th:text="#{kkutu.product.social.mailBox}"></div>
+            <div class="sidebar-tab" id="SocialTabBlock" th:text="#{kkutu.product.social.block}"></div>
             <div class="sidebar-tab" id="SocialTabAlert" th:text="#{kkutu.product.social.alert}"></div>
+            <div class="sidebar-tab" id="SocialTabMailBox" th:text="#{kkutu.product.social.mailBox}"></div>
         </div>
         <div class="sidebar-content">
             <div id="SocialContentFriend"></div>
@@ -1208,6 +1209,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Scenario -->
+    <div id="Scenario">
+        <div class="scenario-header">
+            <button id="ScenarioScript">
+                <i class="fa-solid fa-book-open"></i>
+            </button>
+            <button id="ScenarioSkip" th:text="#{kkutu.product.scenario.skip}"></button>
+        </div>
+        <div class="scenario-body">
+            <div class="scenario-image"></div>
+            <div class="scenario-choice"></div>
+            <div class="scenario-timecard"></div>
+        </div>
+        <div class="scenario-footer">
+            <div class="scenario-name"></div>
+            <div class="scenario-text"></div>
+            <button id="ScenarioNext" th:text="#{kkutu.product.scenario.next}"></button>
+        </div>
+    </div>
+
+    <div id="MessageOverlay"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer type="text/javascript"></script>
     <script th:src="@{'https://cdn.kkutu.io/js/kawaiii.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{'https://cdn.kkutu.io/js/in_game_kkutu.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>

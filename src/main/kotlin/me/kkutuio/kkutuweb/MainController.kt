@@ -145,14 +145,23 @@ class MainController(
 
             val images = listOf(
                 "https://cdn.kkutu.io/img/kkutu/intro/tips/0.png",
-                //"https://cdn.kkutu.io/img/kkutu/intro/tips/1.png",
-                //"https://cdn.kkutu.io/img/kkutu/intro/tips/2.png",
+                "https://cdn.kkutu.io/img/kkutu/intro/tips/1.png",
+                "https://cdn.kkutu.io/img/kkutu/intro/tips/2.png",
                 //"https://cdn.kkutu.io/img/kkutu/intro.png"
-                "https://cdn.kkutu.io/img/kkutu/intro/spring.png",
-                "https://cdn.kkutu.io/img/kkutu/intro/event/darae_activation.png"
+                "https://cdn.kkutu.io/img/kkutu/intro/spring.png"
             )
     
             val randomImage = images.random()
+
+            val calendar = Calendar.getInstance()
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+            val month = calendar.get(Calendar.MONTH) + 1
+
+            if (day == 1 && month == 4) {
+                model.addAttribute("randomIntroImage", "https://cdn.kkutu.io/img/kkutu/intro/event/aprilfools.png")
+            } else {
+                model.addAttribute("randomIntroImage", randomImage)
+            }
             
             model.addAttribute("randomIntroImage", randomImage)
 

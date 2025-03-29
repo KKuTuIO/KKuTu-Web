@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="dns-prefetch" href="//cdn.kkutu.io" />
-    <title>끄투리오 신규/복귀 사용자 특별 보상</title>
+    <title>끄투리오 4.0 프롤로그</title>
     
     <link rel="icon" type="image/x-icon" href="https://cdn.kkutu.io/favicon.ico?v=3.7">
     <link rel="manifest" href="/manifest.json">
@@ -18,10 +18,10 @@
             <img src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="Logo" style="height: 36px;">
             <div class="header-links">
                 <a href="/">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Home.svg">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/Home.svg">
                 </a>
                 <a href="https://cafe.naver.com/kkutuio" target="_blank">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Cafe.svg">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/Cafe.svg">
                 </a>
                 <a href="/?server=0">
                     <button>
@@ -35,19 +35,17 @@
         <div class="container">
             <div class="logo-group">
                 <div class="decoration">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Upper_L.png" alt="Upper Left Decoration" class="upper-left">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Upper_NewReturning.png" alt="Upper New Returning Decoration" class="upper-new-returning">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Upper_R.png" alt="Upper Right Decoration" class="upper-right">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/Upper.png" class="upper">
                 </div>
                 <div class="logo">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Teuk.png" class="logo-teuk" alt="Special Logo">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Byeol.png" class="logo-byeol" alt="Star Logo">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Bo.png" class="logo-bo" alt="Bo Logo">
-                    <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Card_Sang.png" class="logo-sang" alt="Sang Logo">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/Logo_Sparkle.png" alt="Logo" class="logo-sparkle-l">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/Logo_V4.png" alt="Logo" class="logo-v4">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/Logo_Update.png" alt="Logo" class="logo-update">
+                    <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/Logo_SparkleR.png" alt="Logo" class="logo-sparkle-r">
                 </div>
             </div>
             <div class="text">
-                <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/ContainerDesc.png" alt="Description" class="description">
+                <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/ContainerDesc.png" alt="Description" class="description">
                 <div class="share">
                     <img src="https://cdn.kkutu.io/img/kkutu/kakao.png" alt="Kakao Share" class="kakao-share">
                     <a href="#">
@@ -57,8 +55,8 @@
             </div>
         </div>
         <div class="content">
-            <a href="https://cs.kkutu.io/probability#info" target="_blank">
-                <img src="https://cdn.kkutu.io/img/front/event/2025_0415_newbie/ContentProb.png" alt="Probability" class="probability">
+            <a href="https://cafe.naver.com/kkutuio/2458" target="_blank">
+                <img src="https://cdn.kkutu.io/img/front/event/2025_0330_v4/ContentLink.png" alt="Probability" class="probability">
             </a>
         </div>
         <div class="disclaimer"></div>
@@ -68,19 +66,21 @@
         document.addEventListener("DOMContentLoaded", function() {
             const link = document.createElement("link");
             link.rel = "stylesheet";
-            link.href = "./2025_0415_newbie.css";
+            link.href = "./2025_0330_v4.css";
             document.head.appendChild(link);
         });
 
         if (window.innerWidth < 800) {
             alert("본 페이지는 PC 화면에 최적화되어 있습니다. 모바일에서는 정상적으로 표시되지 않을 수 있습니다.");
         }
+        
+
         //카카오링크 init
         Kakao.init('424a33dd14697c7a6fe8fce22fa4fb14');
 
         document. querySelector('.kakao-share').addEventListener('click', function() {
             Kakao.Share.sendCustom({
-                templateId: 118904
+                templateId: 118900
             });
         });
 

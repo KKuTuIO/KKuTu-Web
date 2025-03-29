@@ -63,13 +63,14 @@ main {
         transform-origin: top left;
     }
 }
+
 .container {
     max-width: 2560px;
     min-width: 1280px;
     width: 100%;
     height: 940px;
 
-    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0415_newbie/ContainerBG.png');
+    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/ContainerBG.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -86,7 +87,7 @@ main {
     width: 100%;
     height: 900px;
 
-    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Content.png');
+    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/Content.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -100,9 +101,9 @@ main {
     max-width: 2560px;
     min-width: 1280px;
     width: 100%;
-    height: 330px;
+    height: 1200px;
 
-    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0415_newbie/Disclaimer.png');
+    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/Roadmap.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -146,10 +147,19 @@ main {
 
 @keyframes marginLeft {
     0% {
-        margin-left: 0px;
+        transform: translateX(50px);
     }
     100% {
-        margin-left: -25px;
+        transform: translateX(-5px);
+    }
+}
+
+@keyframes marginRight {
+    0% {
+        transform: translateX(-50px);
+    }
+    100% {
+        transform: translateX(5px);
     }
 }
 
@@ -162,6 +172,24 @@ main {
     }
 }
 
+@keyframes marginDown {
+    0% {
+        transform: translateY(0px);
+    }
+    100% {
+        transform: translateY(25px);
+    }
+}
+
+@keyframes marginUp {
+    0% {
+        transform: translateY(0px);
+    }
+    100% {
+        transform: translateY(-25px);
+    }
+}
+
 .logo-group {
     display: flex;
     justify-content: center;
@@ -170,25 +198,26 @@ main {
     animation: zoomIn 0.5s ease-out forwards;
 }
 
-.upper-left {
-    animation: upLeft 1s ease-out forwards;
-    animation-delay: 0.5s;
-    transform: translateX(50px) translateY(-10px);
+.upper {
+    animation: wipe 1s ease-out forwards;
 }
 
-.upper-right {
-    animation: upRight 1s ease-out forwards;
-    animation-delay: 0.5s;
-    transform: translateX(-50px) translateY(-10px);
+.logo-sparkle-l {
+    animation: marginDown 1s ease-out forwards;
 }
 
-.upper-new-returning {
-    z-index: 1;
+.logo-sparkle-r {
+    animation: marginUp 1s ease-out forwards;
 }
 
-.logo-byeol, .logo-bo, .logo-sang {
+.logo-v4 {
     animation: marginLeft 1s ease-out forwards;
-    animation-delay: 0.5s;
+    transform: translateX(50px);
+}
+
+.logo-update {
+    animation: marginRight 1s ease-out forwards;
+    transform: translateX(-50px);
 }
 
 .text {
@@ -208,7 +237,7 @@ main {
 .text .share {
     width: 300px;
     height: 72px;
-    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0415_newbie/ContainerShare.png');
+    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/ContainerShare.png');
     margin-top: 30px;
     display: flex;
     justify-content: end;
@@ -228,6 +257,6 @@ main {
 }
 
 .content a {
-    margin-top: 640px;
+    margin-top: 780px;
     width: 340px;
 }

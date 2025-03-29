@@ -3,7 +3,8 @@
   const title = 'OST 아카이브';
   
   const songs = [
-    { title: "끄투리오 8주년", url: "https://cdn.kkutu.io/media/LobbyBGM_2025_8th.mp3", artist: "BGM Farm", cover: "null", isNew: "true" },
+    { title: "끄투리오 2025 만우절", url: "https://cdn.kkutu.io/media/LobbyBGM_2025_AprilFools.mp3", artist: "Suno AI", cover: "null", isNew: "true" },
+    { title: "끄투리오 8주년", url: "https://cdn.kkutu.io/media/LobbyBGM_2025_8th.mp3", artist: "BGM Farm", cover: "null", isNew: "false" },
     { title: "끄투리오 2024 가을", url: "https://cdn.kkutu.io/media/LobbyBGM_2024_Fall.mp3", artist: "BGM Farm", cover: "fall2024", isNew: "false" },
     { title: "끄투리오 신년맞이", url: "https://cdn.kkutu.io/media/LobbyBGM_2023_Winter.mp3", artist: "Hexacube", cover: "null", isNew: "false" },
     { title: "끄투리오 2022 가을", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/2022Fall.flac", artist: "Hexacube", cover: "null", isNew: "false" },

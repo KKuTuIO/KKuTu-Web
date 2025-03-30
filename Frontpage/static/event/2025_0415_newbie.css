@@ -57,12 +57,6 @@ main {
     background-color: #0f0f0f;
 }
 
-@media (max-width: 720px) {
-    main {
-        transform: scale(0);
-        transform-origin: top left;
-    }
-}
 .container {
     max-width: 2560px;
     min-width: 1280px;

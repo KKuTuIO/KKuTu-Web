@@ -57,18 +57,11 @@ main {
     background-color: #0f0f0f;
 }
 
-@media (max-width: 720px) {
-    main {
-        transform: scale(0);
-        transform-origin: top left;
-    }
-}
-
 .container {
     max-width: 2560px;
     min-width: 1280px;
     width: 100%;
-    height: 940px;
+    height: 1000px;
 
     background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/ContainerBG.png');
     background-size: cover;
@@ -85,9 +78,9 @@ main {
     max-width: 2560px;
     min-width: 1280px;
     width: 100%;
-    height: 900px;
+    height: 1440px;
 
-    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/Content.png');
+    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/Content_2.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -101,9 +94,9 @@ main {
     max-width: 2560px;
     min-width: 1280px;
     width: 100%;
-    height: 1200px;
+    height: 1600px;
 
-    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/Roadmap.png');
+    background-image: url('https://cdn.kkutu.io/img/front/event/2025_0330_v4/Roadmap_2.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -147,7 +140,7 @@ main {
 
 @keyframes marginLeft {
     0% {
-        transform: translateX(50px);
+        transform: translateX(100px);
     }
     100% {
         transform: translateX(-5px);
@@ -156,7 +149,7 @@ main {
 
 @keyframes marginRight {
     0% {
-        transform: translateX(-50px);
+        transform: translateX(-100px);
     }
     100% {
         transform: translateX(5px);
@@ -174,19 +167,19 @@ main {
 
 @keyframes marginDown {
     0% {
-        transform: translateY(0px);
+        transform: translateY(-30px);
     }
     100% {
-        transform: translateY(25px);
+        transform: translateY(30px);
     }
 }
 
 @keyframes marginUp {
     0% {
-        transform: translateY(0px);
+        transform: translateY(30px);
     }
     100% {
-        transform: translateY(-25px);
+        transform: translateY(-30px);
     }
 }
 
@@ -195,28 +188,28 @@ main {
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    animation: zoomIn 0.5s ease-out forwards;
+    animation: zoomIn 1s ease-out forwards;
 }
 
 .upper {
-    animation: wipe 1s ease-out forwards;
+    animation: wipe 2s ease-out forwards;
 }
 
 .logo-sparkle-l {
-    animation: marginDown 1s ease-out forwards;
+    animation: marginDown 2s ease-out forwards;
 }
 
 .logo-sparkle-r {
-    animation: marginUp 1s ease-out forwards;
+    animation: marginUp 2s ease-out forwards;
 }
 
 .logo-v4 {
-    animation: marginLeft 1s ease-out forwards;
+    animation: marginLeft 2s ease-out forwards;
     transform: translateX(50px);
 }
 
 .logo-update {
-    animation: marginRight 1s ease-out forwards;
+    animation: marginRight 2s ease-out forwards;
     transform: translateX(-50px);
 }
 
@@ -246,7 +239,7 @@ main {
     padding: 0 20px;
     box-sizing: border-box;
     animation: fadeIn 1s ease-out forwards;
-    animation-delay: 1s;
+    animation-delay: 1.5s;
     opacity: 0;
 }
 
@@ -257,6 +250,52 @@ main {
 }
 
 .content a {
-    margin-top: 780px;
-    width: 340px;
+    margin-top: 1193px;
+    width: 255px;
+}
+
+.back-decoration {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    height: 100%;
+}
+
+.back-decoration .left-decoration {
+    opacity: 0;
+    transform: translateX(-50px);
+    animation: fadeSlideRight 2s ease-out forwards;
+    position: absolute;
+}
+
+.back-decoration .right-decoration {
+    opacity: 0;
+    transform: translateX(50px);
+    animation: fadeSlideLeft 2s ease-out forwards;
+    position: absolute;
+}
+
+@keyframes fadeSlideRight {
+    0% {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeSlideLeft {
+    0% {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }

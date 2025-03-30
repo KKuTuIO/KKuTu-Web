@@ -698,6 +698,16 @@
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='PurchaseDiag',width=300,height=205,title=#{kkutu.dialog.purchase.title})}">
         <th:block layout:fragment="content">
+            <div class="dialog-bar" style="display: none;">
+                <h4 th:text="#{kkutu.dialog.purchase.count}"></h4>
+                <div id="purchase-count">
+                    <button>MIN</button>
+                    <button>-</button>
+                    <b></b>
+                    <button>+</button>
+                    <button>MAX</button>
+                </div>
+            </div>
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.purchase.pingBefore}"></h4>
                 <h4 class="dialog-bar-value purchase-ping" id="purchase-ping-before"></h4>

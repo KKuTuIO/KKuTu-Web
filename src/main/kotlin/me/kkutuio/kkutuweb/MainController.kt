@@ -162,8 +162,6 @@ class MainController(
             } else {
                 model.addAttribute("randomIntroImage", randomImage)
             }
-            
-            model.addAttribute("randomIntroImage", randomImage)
 
             model.addAttribute("koThemes", koThemes)
             model.addAttribute("enThemes", enThemes)

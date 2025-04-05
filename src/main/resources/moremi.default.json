@@ -13,7 +13,8 @@
       "headDeco",
       "faceDeco",
       "eyeDeco",
-      "dressDeco"
+      "dressDeco",
+      "body"
     ],
     "categories": [
       "all",
@@ -36,6 +37,7 @@
       "BDG2",
       "BDG3",
       "BDG4",
+      "BON",
       "Mhead",
       "Meye",
       "Mmouth",
@@ -46,7 +48,8 @@
       "MheadDeco",
       "MfaceDeco",
       "MeyeDeco",
-      "MdressDeco"
+      "MdressDeco",
+      "Mbody"
     ],
     "groups": {
       "spec": [
@@ -54,12 +57,15 @@
         "PIY",
         "PIZ",
         "CNS",
-        "PCS"
+        "PCS",
+        "BON",
+        "OST"
       ],
       "skin": [
         "NIK",
         "BAN",
-        "BAD"
+        "BAD",
+        "Mbody"
       ],
       "badge": [
         "BDG1",

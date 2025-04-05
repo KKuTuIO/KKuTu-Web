@@ -38,6 +38,7 @@
       "BDG3",
       "BDG4",
       "BON",
+      "VOP",
       "Mhead",
       "Meye",
       "Mmouth",
@@ -65,7 +66,8 @@
         "NIK",
         "BAN",
         "BAD",
-        "Mbody"
+        "Mbody",
+        "VOP"
       ],
       "badge": [
         "BDG1",

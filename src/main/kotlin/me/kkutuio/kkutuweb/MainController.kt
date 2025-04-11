@@ -144,11 +144,13 @@ class MainController(
             enThemes.removeAll(injeongPickExcepts)
 
             val images = listOf(
-                "https://cdn.kkutu.io/img/kkutu/intro/tips/0.png",
-                "https://cdn.kkutu.io/img/kkutu/intro/tips/1.png",
-                "https://cdn.kkutu.io/img/kkutu/intro/tips/2.png",
+                //"https://cdn.kkutu.io/img/kkutu/intro/tips/0.png",
+                //"https://cdn.kkutu.io/img/kkutu/intro/tips/1.png",
+                //"https://cdn.kkutu.io/img/kkutu/intro/tips/2.png",
                 //"https://cdn.kkutu.io/img/kkutu/intro.png"
-                "https://cdn.kkutu.io/img/kkutu/intro/spring.png"
+                "https://cdn.kkutu.io/img/kkutu/intro/spring.png",
+                "https://cdn.kkutu.io/img/kkutu/intro/mathtrain.png",
+                "https://cdn.kkutu.io/img/kkutu/intro/v4.png"
             )
     
             val randomImage = images.random()

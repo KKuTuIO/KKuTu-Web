@@ -123,7 +123,7 @@
     "ETY": {
       "lang": "en",
       "rule": "Typing",
-      "opts": ["prv", "beg", "rnk", "etq", "nob"],
+      "opts": ["lot", "prv", "beg", "rnk", "etq", "nob"],
       "time": 1,
       "ai": false,
       "big": false,
@@ -236,6 +236,15 @@
       "ai": true,
       "big": false,
       "ewq": true
+    },
+    "KMT": {
+      "lang": "ko",
+      "rule": "Mathquiz",
+      "opts": [],
+      "time": 1,
+      "ai": false,
+      "big": false,
+      "ewq": false
     }
   }
 }

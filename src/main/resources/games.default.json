@@ -240,7 +240,7 @@
     "KMT": {
       "lang": "ko",
       "rule": "Mathquiz",
-      "opts": [],
+      "opts": ["etq", "nob"],
       "time": 1,
       "ai": false,
       "big": false,

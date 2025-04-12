@@ -34,7 +34,8 @@ import kotlin.math.roundToInt
 
 private val AVAIL_EQUIP = listOf(
     "NIK", "BDG1", "BDG2", "BDG3", "BDG4", "BAN", "BAD",
-    "Mhead", "Meye", "Mmouth", "Mhand", "Mclothes", "Mshoes", "Mback"
+    "Mhead", "Meye", "Mmouth", "Mhand", "Mclothes", "Mshoes", "Mback",
+    "BON"
 )
 
 @Service

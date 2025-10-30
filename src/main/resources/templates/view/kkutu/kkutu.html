@@ -891,11 +891,10 @@
     </th:block>
     <!-- Social Tab -->
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='SocialDiag',width=380,height=450,title=#{kkutu.product.social.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='SocialDiag',width=320,height=450,title=#{kkutu.product.social.title})}">
         <th:block layout:fragment="content">
             <div class="sidebar-tabs">
                 <div class="sidebar-tab" id="SocialDiagFriend" th:text="#{kkutu.product.social.friend}"></div>
-                <div class="sidebar-tab" id="SocialDiagFriendRequest" th:text="#{kkutu.product.social.friendRequest}"></div>
                 <div class="sidebar-tab" id="SocialDiagBlock" th:text="#{kkutu.product.social.block}"></div>
                 <div class="sidebar-tab" id="SocialDiagAlert" th:text="#{kkutu.product.social.alert}"></div>
                 <div class="sidebar-tab" id="SocialDiagMailBox" th:text="#{kkutu.product.social.mailBox}"></div>
@@ -904,7 +903,6 @@
             <div class="sidebar-content">
                 <div id="SocialContentFriend"></div>
                 <div id="SocialContentBlock"></div>
-                <div id="SocialContentFriendRequest"></div>
                 <div id="SocialContentAlert">
                     <div class="sidebar-alert-list"></div>
                 </div>

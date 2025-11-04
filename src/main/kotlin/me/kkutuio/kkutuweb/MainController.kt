@@ -143,26 +143,33 @@ class MainController(
             enThemes.addAll(kKuTuSetting.getEnInjeongThemes())
             enThemes.removeAll(injeongPickExcepts)
 
-            val images = listOf(
-                //"https://cdn.kkutu.io/img/kkutu/intro/tips/0.png",
-                //"https://cdn.kkutu.io/img/kkutu/intro/tips/1.png",
-                //"https://cdn.kkutu.io/img/kkutu/intro/tips/2.png",
-                //"https://cdn.kkutu.io/img/kkutu/intro.png"
-                "https://cdn.kkutu.io/img/kkutu/intro/farm.png",
-                "https://cdn.kkutu.io/img/kkutu/intro/mathtrain.png"
-            )
-    
-            val randomImage = images.random()
-
             val calendar = Calendar.getInstance()
-            val day = calendar.get(Calendar.DAY_OF_MONTH)
             val month = calendar.get(Calendar.MONTH) + 1
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
 
-            if (day == 1 && month == 4) {
-                model.addAttribute("randomIntroImage", "https://cdn.kkutu.io/img/kkutu/intro/event/aprilfools.png")
-            } else {
-                model.addAttribute("randomIntroImage", randomImage)
+            val baseUrl = "https://dl.kkutu.io/img/intro"
+
+            // 절기별 PC/모바일 이미지 매핑
+            val pcImage = when (month) {
+                in 3..5 -> "$baseUrl/spring.png"
+                in 6..8 -> "$baseUrl/summer.png"
+                in 9..11 -> "$baseUrl/fall.png"
+                else -> "$baseUrl/winter.png"
             }
+            val mobileImage = when (month) {
+                in 3..5 -> "$baseUrl/spring_m.png"
+                in 6..8 -> "$baseUrl/summer_m.png"
+                in 9..11 -> "$baseUrl/fall_m.png"
+                else -> "$baseUrl/winter_m.png"
+            }
+
+            // 9주년 행사 (PC 전용, 2월 1일~14일)
+            val eventImage = null
+            // if (month == 2 && day in 1..14) "$baseUrl/9th_1.png" else null
+
+            // 모델에 전달
+            model.addAttribute("randomIntroImage", eventImage ?: pcImage)
+            model.addAttribute("mobileIntroImage", mobileImage)
 
             model.addAttribute("koThemes", koThemes)
             model.addAttribute("enThemes", enThemes)

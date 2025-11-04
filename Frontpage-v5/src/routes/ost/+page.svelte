@@ -3,27 +3,153 @@
   const title = 'OST 아카이브';
   
   const songs = [
-    { title: "끄투리오 8주년", url: "https://cdn.kkutu.io/media/LobbyBGM_2025_8th.mp3", artist: "BGM Farm", cover: "null", isNew: "true" },
-    { title: "끄투리오 2024 가을", url: "https://cdn.kkutu.io/media/LobbyBGM_2024_Fall.mp3", artist: "BGM Farm", cover: "fall2024", isNew: "false" },
-    { title: "끄투리오 신년맞이", url: "https://cdn.kkutu.io/media/LobbyBGM_2023_Winter.mp3", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "끄투리오 2022 가을", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/2022Fall.flac", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "끄투리오 6주년", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/20236th.flac", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "끄투리오 2023 여름", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/2023Summer.flac", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "끄투리오 2024 봄", url: "https://cdn.kkutu.io/media/LobbyBGM_2024_Spring.mp3", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "새로운 시작", url: "https://cdn.kkutu.io/media/LobbyBGM_NEW.mp3", artist: "BerylKing", cover: "null", isNew: "false" },
-    { title: "끄투리오 2020 가을", url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Fall.mp3", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "끄투리오 Lo-fi", url: "https://cdn.kkutu.io/media/LobbyBGM_Plus_S2.mp3", artist: "Roman Rajczyk", cover: "plusS2", isNew: "false" },
-    { title: "다함께 끄투리오!", url: "https://cdn.kkutu.io/media/LobbyBGM_Plus_S1.mp3", artist: "Xpolcore", cover: "plusS1", isNew: "false" },
-    { title: "오리지널 끄투", url: "https://cdn.kkutu.io/media/LobbyBGM.mp3", artist: "JJoriping", cover: "kkutu", isNew: "false" },
-    { title: "끄투 명절", url: "https://cdn.kkutu.io/media/LobbySeolBGM.mp3", artist: "JJoriping", cover: "kkutu", isNew: "false" },
-    { title: "끄투리오 명절", url: "https://cdn.kkutu.io/media/LobbyBGM_KKuTuIO_Seol.mp3", artist: "KKuTuIO", cover: "null", isNew: "false" },
-    { title: "끄투리오 2020 여름", url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Summer.mp3", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "Breakdown Fragment", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/Breakdown_Fragment.mp3", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "끄투리오 2020 겨울", url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Winter.mp3", artist: "Hexacube", cover: "null", isNew: "false" },
-    { title: "끄투리오 2017", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/2017.mp3", artist: "Seunghin", cover: "dotnet", isNew: "false" },
-    { title: "끄투리오 2018", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/2018.mp3", artist: "Seunghin", cover: "dotnet", isNew: "false" },
-    { title: "끄투리오 2019 Vol. 1", url: "https://cdn.kkutu.io/media/LobbyBGM_2017.mp3", artist: "Sonhun", cover: "dotnet", isNew: "false" },
-    { title: "끄투리오 2019 Vol. 2", url: "https://pub-e336c74b058c476bb58f9267c51fbab4.r2.dev/2017vol2.mp3", artist: "Sonhun", cover: "dotnet", isNew: "false" }
+    {
+      title: "끄투리오 8주년",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2025_8th.mp3",
+      artist: "BGM Farm",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2024 가을",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2024_Fall.mp3",
+      artist: "BGM Farm",
+      cover: "fall2024",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 신년맞이",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2023_Winter.mp3",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2022 가을",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2022_Fall.flac",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 6주년",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2023_6th.flac",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2023 여름",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2023_Summer.flac",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2024 봄",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2024_Spring.mp3",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "새로운 시작",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_NEW.mp3",
+      artist: "BerylKing",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2020 가을",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Fall.mp3",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 Lo-fi",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_Plus_S2.mp3",
+      artist: "Roman Rajczyk",
+      cover: "plusS2",
+      isNew: "false"
+    },
+    {
+      title: "다함께 끄투리오!",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_Plus_S1.mp3",
+      artist: "Xpolcore",
+      cover: "plusS1",
+      isNew: "false"
+    },
+    {
+      title: "오리지널 끄투",
+      url: "https://cdn.kkutu.io/media/LobbyBGM.mp3",
+      artist: "JJoriping",
+      cover: "kkutu",
+      isNew: "false"
+    },
+    {
+      title: "끄투 명절",
+      url: "https://cdn.kkutu.io/media/LobbySeolBGM.mp3",
+      artist: "JJoriping",
+      cover: "kkutu",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 명절",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_KKuTuIO_Seol.mp3",
+      artist: "KKuTuIO",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2020 여름",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Summer.mp3",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "Breakdown Fragment",
+      url: "https://dl.kkutu.io/media/LobbyBGM_Breakdown_Fragment.mp3",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2020 겨울",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Winter.mp3",
+      artist: "Hexacube",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2017",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2017.mp3",
+      artist: "Seunghin",
+      cover: "dotnet",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2018",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2018.mp3",
+      artist: "Seunghin",
+      cover: "dotnet",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2019 Vol. 1",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2019_v1.mp3",
+      artist: "Sonhun",
+      cover: "dotnet",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2019 Vol. 2",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2019_v2.mp3",
+      artist: "Sonhun",
+      cover: "dotnet",
+      isNew: "false"
+    }
   ];
 
   let currentSong = $state(null);

@@ -13,8 +13,8 @@
       "group": "M"
     },
     "ext": { "name": "Injeong" },
-    "ijp": {
-      "name": "InjPick",
+    "inp": {
+      "name": "InjeongPick",
       "req": "ext"
     },
     "odw": { "name": "OpenDict" },
@@ -56,8 +56,14 @@
     "ord": { "name": "Order" },
     "rmh": { "name": "RemoveHint" },
     "rnk": { "name": "RankMode" },
-    "etq": { "name": "Etiquette" },
-    "beg": { "name": "OnlyBeginner" },
+    "etq": {
+      "name": "Etiquette",
+      "noguest": true
+    },
+    "beg": {
+      "name": "OnlyBeginner",
+      "noguest": true
+    },
     "nob": { "name": "NoObserver" }
   },
   "RULE": {

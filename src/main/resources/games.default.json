@@ -13,6 +13,10 @@
       "group": "M"
     },
     "ext": { "name": "Injeong" },
+    "ijp": {
+      "name": "InjPick",
+      "req": "ext"
+    },
     "odw": { "name": "OpenDict" },
     "mis": { "name": "Mission" },
     "rms": {
@@ -60,7 +64,7 @@
     "EKT": {
       "lang": "en",
       "rule": "Classic",
-      "opts": ["man", "saf", "ext", "mis", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "ext", "inj", "mis", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -69,7 +73,7 @@
     "ESH": {
       "lang": "en",
       "rule": "Classic",
-      "opts": ["ext", "mis", "beg", "rms", "rnk", "itm", "etq", "nob"],
+      "opts": ["ext", "inj", "mis", "beg", "rms", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -78,7 +82,7 @@
     "KKT": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "k32", "beg", "rms", "tct", "rnk", "pwr", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "k32", "beg", "rms", "tct", "rnk", "pwr", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -87,7 +91,7 @@
     "KSH": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "etq", "nob", "ado", "no2"],
+      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "etq", "nob", "ado", "no2"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -186,7 +190,7 @@
     "EAP": {
       "lang": "en",
       "rule": "Classic",
-      "opts": ["ext", "mis", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
+      "opts": ["ext", "inj", "mis", "beg", "rms", "tct", "rnk", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -231,7 +235,7 @@
     "KFT": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "nog", "rms", "tct", "rnk", "itm", "etq"],
+      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "beg", "nog", "rms", "tct", "rnk", "itm", "etq"],
       "time": 1,
       "ai": true,
       "big": false,

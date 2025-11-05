@@ -103,7 +103,7 @@
     },
     {
       title: "끄투리오 2020 여름",
-      url: "https://cdn.kkutu.io/media/LobbyBGM_2020_Summer.mp3",
+      url: "https://dl.kkutu.io/media/LobbyBGM_2020_Summer.mp3",
       artist: "Hexacube",
       cover: "null",
       isNew: "false"

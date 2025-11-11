@@ -627,7 +627,7 @@
     </th:block>
     <th:block layout:replace="~{view/kkutu/dialog::dialog(id='SurveyDiag',width=350,height=538,title=#{kkutu.dialog.survey.title})}">
         <th:block layout:fragment="content">
-            <div id="survey-list"></div>
+            <div id="survey-list" style="height: 470px; overflow-y: scroll;"></div>
             <div class="dialog-bar tail-button">
                 <button id="survey-close" class="confirm-btn" th:text="#{kkutu.dialog.survey.close}"></button>
             </div>

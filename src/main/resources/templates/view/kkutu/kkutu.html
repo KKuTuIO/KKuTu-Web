@@ -170,8 +170,8 @@
                 </div>
                 <div class="account-options">
                     <div class="account-options-menu">
-                        <button id="account-check-block" th:utext="#{kkutu.dialog.accountOptions.checkBlock}"></button>
-                        <div th:text="#{kkutu.dialog.accountOptions.checkBlock.expl}"></div>
+                        <button id="account-check-block" th:utext="#{kkutu.dialog.accountOptions.checkSurvey}"></button>
+                        <div th:text="#{kkutu.dialog.accountOptions.checkSurvey.expl}"></div>
                     </div>
                 </div>
                 <div class="account-options">
@@ -625,7 +625,7 @@
             <button id="policy-ok" class="confirm-btn" th:text="#{kkutu.dialog.policy.ok}"></button>
         </th:block>
     </th:block>
-    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='SurveyDiag',width=350,height=538,title=#{kkutu.dialog.policy.title})}">
+    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='SurveyDiag',width=350,height=538,title=#{kkutu.dialog.survey.title})}">
         <div id="survey-list"></div>
         <div class="dialog-bar tail-button">
             <button id="survey-close" class="confirm-btn" th:text="#{kkutu.dialog.survey.close}"></button>

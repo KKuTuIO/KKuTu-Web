@@ -627,6 +627,12 @@
             <button id="policy-ok" class="confirm-btn" th:text="#{kkutu.dialog.policy.ok}"></button>
         </th:block>
     </th:block>
+    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='SurveyDiag',width=350,height=538,title=#{kkutu.dialog.policy.title})}">
+        <div id="survey-list"></div>
+        <div class="dialog-bar tail-button">
+            <button id="survey-close" class="confirm-btn" th:text="#{kkutu.dialog.survey.close}"></button>
+        </div>
+    </th:block>
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='MessageDiag',width=300,height=150,title=#{kkutu.dialog.message.title})}">
         <th:block layout:fragment="content">

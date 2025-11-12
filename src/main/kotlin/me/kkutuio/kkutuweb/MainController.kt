@@ -67,7 +67,7 @@ class MainController(
         }
     }
 
-    @GetMapping("/game/server/{server}")
+    @GetMapping("/game/server/{server:[0-9]+}")
     fun game(
         @PathVariable server: Short,
         model: Model, session: HttpSession, request: HttpServletRequest

@@ -20,7 +20,10 @@ package me.kkutuio.kkutuweb.config
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.io.Resource
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import org.springframework.web.servlet.config.annotation.CorsRegistry
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
@@ -34,5 +37,29 @@ class WebConfig(
             .allowCredentials(true)
             .allowedMethods(*methods)
             .allowedOrigins(*allowedOrigins)
+    }
+
+    override fun addViewControllers(registry: ViewControllerRegistry) {
+        // JAR 내부 리소스를 스캔하여 모든 .html 파일을 자동으로 감지
+        val resolver = PathMatchingResourcePatternResolver()
+        val resources: Array<Resource> = try {
+            resolver.getResources("classpath:static/**/*.html")
+        } catch (e: Exception) {
+            emptyArray()
+        }
+
+        resources.forEach { resource ->
+            val uri = resource.uri.toString()
+            val staticIndex = uri.indexOf("static/")
+            if (staticIndex != -1) {
+                val path = uri.substring(staticIndex + 7) // "static/" 이후 경로
+
+                // 특수 파일은 제외
+                if (!path.startsWith(".")) {
+                    val pathWithoutExt = path.removeSuffix(".html")
+                    registry.addViewController("/$pathWithoutExt").setViewName("forward:/$path")
+                }
+            }
+        }
     }
 }

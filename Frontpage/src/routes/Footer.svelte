@@ -52,7 +52,7 @@
       }
     }
 </script>
-<footer class="border-t border-gray-200 p-2 dark:border-gray-800 dark:bg-gray-950">
+<footer class="border-t border-gray-200 p-8 dark:border-gray-800 dark:bg-gray-950">
     <div class="max-w-screen-xl mx-auto md:flex md:justify-between md:items-center py-4">
       <div class="">
         <div class="pb-4 flex">

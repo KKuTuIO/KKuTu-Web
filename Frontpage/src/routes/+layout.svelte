@@ -12,7 +12,12 @@
 	import '../app.css';
   
 	const okggg = ["rank", "okggg", "stats"];
-  </script>
+
+ </script>
+
+  <svelte:head>
+      <link rel="canonical" href="https://kkutu.io{$page.url.pathname.replace(/\.html$/, '')}" />
+  </svelte:head>
   
   <div class="app">
 	  {#if $page.url.pathname.includes('man')}

@@ -46,7 +46,7 @@ class LoginController(
         model: Model,
         request: HttpServletRequest
     ): String {
-            return "redirect:/login.html"
+            return "forward:/login.html"
     }
 
     @GetMapping("/fail")
@@ -54,7 +54,7 @@ class LoginController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        return "redirect:/loginFail.html"
+        return "forward:/loginFail.html"
     }
 
     @GetMapping("/logout")
@@ -83,8 +83,8 @@ class LoginController(
         @RequestParam("state", required = false, defaultValue = "") state: String,
         request: HttpServletRequest
     ): String {
-        if (code.isEmpty() || state.isEmpty()) return "redirect:/loginFail.html"
-        val vendorType = AuthVendor.fromName(vendorName) ?: return "redirect:/loginFail.html"
+        if (code.isEmpty() || state.isEmpty()) return "redirect:/login/fail"
+        val vendorType = AuthVendor.fromName(vendorName) ?: return "redirect:/login/fail"
 
         val loginSuccess = loginService.login(request, vendorType, code, state)
         if (loginSuccess) {
@@ -96,7 +96,7 @@ class LoginController(
             logger.info("[${request.getIp()}] ${request.session.id} 세션에서 ${vendorType.name} 로그인에 실패했습니다.")
         }
 
-        return if (!loginSuccess) "redirect:/loginFail.html"
+        return if (!loginSuccess) "redirect:/login/fail"
         else "redirect:/"
     }
 }

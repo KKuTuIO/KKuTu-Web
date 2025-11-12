@@ -63,7 +63,7 @@ class MainController(
         return if (server != null) {
             "redirect:/game/server/$server"
         } else {
-            "redirect:/index.html"
+            "forward:/index.html"
         }
     }
 

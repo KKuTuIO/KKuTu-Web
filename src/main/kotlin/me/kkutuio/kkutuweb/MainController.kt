@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.support.RequestContextUtils
 import java.util.*
@@ -58,8 +59,17 @@ class MainController(
     private val logger = LoggerFactory.getLogger(MainController::class.java)
 
     @GetMapping
-    fun main(
-        @RequestParam(required = false) server: Short?,
+    fun index(@RequestParam(required = false) server: Short?): String {
+        return if (server != null) {
+            "redirect:/game/server/$server"
+        } else {
+            "redirect:/index.html"
+        }
+    }
+
+    @GetMapping("/game/server/{server}")
+    fun game(
+        @PathVariable server: Short,
         model: Model, session: HttpSession, request: HttpServletRequest
     ): String {
         val isMobile = model.getAttribute("mobile") as Boolean
@@ -75,14 +85,9 @@ class MainController(
         val runnerVersion = kKuTuSetting.runnerVersion()
         model.addAttribute("runnerVersion", runnerVersion)
 
-        if (server == null) {
-                // 긴급점검 한정 (평상시에는 index.html로 리다이렉트)
-                return "redirect:/index.html"
-                //return "redirect:/man.html"
-        } else {
-            val ip = request.getIp()
-            if (isGuest) {
-                val blacklistType = ipCheckService.getBlacklistType(ip)
+        val ip = request.getIp()
+        if (isGuest) {
+            val blacklistType = ipCheckService.getBlacklistType(ip)
                 if (blacklistType != null) {
                     session.setAttribute("loginReason", "모바일 네트워크 이용자(3G,4G,LTE,5G)는 로그인 후 게임 이용이 가능합니다.")
                     return "redirect:/login"
@@ -183,7 +188,6 @@ class MainController(
 
                 logger.info("[$ip] $nickname(${sessionProfile.id}) 님이 게임에 접속했습니다.$mobileLogText - 서버: $server")
             }
-        }
 
         return request.getView(View.LAYOUT)
     }

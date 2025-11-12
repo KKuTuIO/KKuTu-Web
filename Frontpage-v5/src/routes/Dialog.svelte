@@ -36,7 +36,7 @@
       if (document.getElementById('remember')?.checked) {
           localStorage.setItem('server', server);
       }
-      location.href = `https://kkutu.io/?server=${server}`;
+      location.href = `https://kkutu.io/game/server/${server}`;
   }
   /*
   function randomServer() {
@@ -44,7 +44,7 @@
       if (jsonDataServers.list[server] === null) {
           return randomServer();
       }
-      location.href = `https://kkutu.io/?server=${server}`;
+      location.href = `https://kkutu.io/game/server/${server}`;
   }*/
   
   function closeDialog() {

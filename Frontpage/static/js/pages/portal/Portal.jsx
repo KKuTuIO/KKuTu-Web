@@ -75,7 +75,7 @@ const Portal = () => {
     }
 
     const joinServer = (id) => {
-        location.href = "/?server=" + id;
+        location.href = "/game/server/" + id;
     }
 
     const getBlockStatus = () => {

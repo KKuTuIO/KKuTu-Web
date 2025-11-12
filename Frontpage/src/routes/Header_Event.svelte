@@ -45,7 +45,7 @@
 			</button>
 			<div class="hidden lg:block border-l pl-2 dark:border-gray-500"></div>
 		-->
-			<a rel="external" href="https://kkutu.io/?server=0"
+			<a rel="external" href="https://kkutu.io/game/server/0"
 				class="hidden lg:flex bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-lg py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 			</a>

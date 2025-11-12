@@ -432,7 +432,7 @@ https://svelte.dev/e/node_invalid_placement -->
         
         <div class="-mt-[400px] h-[400px] hidden lg:flex items-center min-w-screen-lg max-w-screen-xl mx-auto justify-end pr-4 z-50">
             <div class="w-[260px] mx-4">
-                <a href={`https://kkutu.io/?server=${server}`} rel="external" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-6 px-12 transform ease-in duration-100 items-center justify-center">
+                <a href={`https://kkutu.io/game/server/${server}`} rel="external" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-6 px-12 transform ease-in duration-100 items-center justify-center">
                     게임 시작<br>
                     <span class="text-2xl mt-1">
                         ({serverName[server]} 채널)

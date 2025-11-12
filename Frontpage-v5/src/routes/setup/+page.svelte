@@ -41,7 +41,7 @@
         });
         const result = await response.json();
         if (result.success) {
-          window.location.href = '/?server=0';
+          window.location.href = '/game/server/0';
         } else {
           alert('별명에 사용할 수 없는 단어가 포함되어 있습니다.');
         }

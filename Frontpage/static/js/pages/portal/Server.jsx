@@ -43,7 +43,9 @@ const Server = ({index, count, max, onClick}) => {
         const percent = count / max * 100;
 
         setOnline(isOnline);
-        setPeopleText(isOnline ? count + " / " + max : '-');
+        setPeopleText(
+            isOnline ? count + " / " + max : '-'
+        );
         setPercent(percent);
 
         if (isOnline) {

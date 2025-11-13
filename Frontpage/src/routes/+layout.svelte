@@ -3,7 +3,7 @@
 	import Header from './Header.svelte';
 	import HeaderEvent from './Header_Event.svelte';
 	import HeaderMan from './Header_Maintenance.svelte';
-	import HeaderOkggg from './Header_Okggg.svelte';
+	// import HeaderOkggg from './Header_Okggg.svelte';
 	import Footer from './Footer.svelte';
 	import Dialog from './Dialog.svelte';
 	import { showDialog } from './dialogStore';
@@ -22,12 +22,10 @@
   <div class="app">
 	  {#if $page.url.pathname.includes('man')}
 	  <HeaderMan />
-	  {:else if okggg.some((v) => $page.url.pathname.includes(v))}
-	  <HeaderOkggg />
-	  {:else if !$page.url.pathname.includes('event_')}
-	  <Header />
-	  {:else}
+	  {:else if $page.url.pathname.includes('event_')}
 	  <HeaderEvent />
+	  {:else}
+	  <Header />
 	  {/if}
   
 	  <main>

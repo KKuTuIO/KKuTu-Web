@@ -415,7 +415,7 @@
                 <!-- Logout status -->
                 <div class="flex flex-col items-center justify-center h-full">
                 <p class="text-white text-lg">로그인하고 플레이 기록을 저장하세요!</p>
-                <a href="/login.html" rel="external">
+                <a href="/login" rel="external">
                     <button class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex justify-center items-center gap-x-2 text-lg mt-4 w-36 py-2 px-3 transform ease-in duration-100 active:scale-95">
                         <span class="material-symbols-outlined">
                             login
@@ -590,7 +590,7 @@
                         emoji_events
                     </span>
                     랭킹</h2>
-                <a href="/rank.html" rel="external">
+                <a href="/rank" rel="external">
                     <button 
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
@@ -625,7 +625,7 @@
                 <span class="material-symbols-outlined icons-header">playlist_add</span>
                 <p class="text-sm lg:text-lg">단어 신청</p>
               </a>
-              <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" rel="external" href="/ost.html">
+              <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" rel="external" href="/ost">
                 <span class="material-symbols-outlined icons-header">music_note</span>
                 <p class="text-sm lg:text-lg">OST 아카이브</p>
               </a>
@@ -637,11 +637,11 @@
                 <span class="material-symbols-outlined icons-header">help</span>
                 <p class="text-sm lg:text-lg">고객지원</p>
               </a>
-            <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" rel="external" href="/wordsheet.html">
+            <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" rel="external" href="/wordsheet">
                 <span class="material-symbols-outlined icons-header">collections_bookmark</span>
                 <p class="text-sm lg:text-lg">단어장</p>
             </a>
-            <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" rel="external" href="/rank.html">
+            <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" rel="external" href="/rank">
                 <span class="material-symbols-outlined icons-header">emoji_events</span>
                 <p class="text-sm lg:text-lg">랭킹</p>
             </a>

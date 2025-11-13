@@ -145,7 +145,7 @@
 					home
 				</span>
 					홈</a>
-			<a rel="external" href="/rank.html" class="link-header">
+			<a rel="external" href="/rank" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					trophy
 				</span>
@@ -165,6 +165,11 @@
 					book_2
 				</span>
 				리오위키</a>
+            <a href="/wordsheet" class="link-header">
+				<span class="material-symbols-outlined icons-header">
+					collections_bookmark
+				</span>
+                단어장</a>
 			<a target="_blank" href="https://cs.kkutu.io" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					help

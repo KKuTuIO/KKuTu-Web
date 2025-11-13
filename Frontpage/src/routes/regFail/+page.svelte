@@ -17,7 +17,7 @@
     </div>
   
       <p class="mt-10 text-center text-sm text-gray-500 dark:text-gray-300">
-        <a href="/login.html" rel="external" class="font-semibold leading-6 text-green-600 hover:text-green-500 dark:text-green-300 dark:hover:text-green-500">
+        <a href="/login" rel="external" class="font-semibold leading-6 text-green-600 hover:text-green-500 dark:text-green-300 dark:hover:text-green-500">
           다른 방법 사용하기
         </a><br><br>
         &copy; 주식회사 큐브시티, 모든 권리 보유.

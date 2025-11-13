@@ -86,6 +86,7 @@
             </div>
           </div>
           <div class="text-gray-500 dark:text-gray-100 pt-4">&copy; 주식회사 큐브시티, 모든 권리 보유.</div>
+          <div class="text-gray-500 dark:text-gray-100">끄투리오는 주식회사 큐브시티의 상표입니다.</div>
         </div>
       </div>
       <div class="">

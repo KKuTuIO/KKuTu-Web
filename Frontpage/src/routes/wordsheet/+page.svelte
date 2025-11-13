@@ -275,7 +275,7 @@ word.theme.ODW=우리말샘
         <p class="mt-4 text-gray-300">{dialogContent}</p>
 
         {#if dialogType === 'login'}
-        <a href="/login.html" class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg">로그인하기</a>
+        <a href="/login" class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg">로그인하기</a>
         {:else if dialogType === 'payment'}
         <button class="mt-4 bg-[#55aa55] hover:bg-[#51a351] text-white font-bold py-2 px-4 rounded-lg" on:click={handleSearch}>사용하기</button>
         {:else}

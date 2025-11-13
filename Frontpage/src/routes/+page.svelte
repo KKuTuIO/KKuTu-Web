@@ -454,6 +454,7 @@
                             <div class="w-[120px] h-[120px]">
                                 <div class="flex flex-col items-center justify-center h-full">
                                     <p class="text-white text-lg">계정 설정 필요</p>
+                                    <a href="/setup" rel="external">
                                         <button class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex justify-center items-center gap-x-2 text-lg mt-4 w-36 py-2 px-3 transform ease-in duration-100 active:scale-95">
                                         <span class="material-symbols-outlined">how_To_reg</span>
                                             설정하기

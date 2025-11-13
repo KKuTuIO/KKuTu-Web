@@ -428,9 +428,9 @@
 
                 <!-- Login status -->
                 <div class="flex justify-center items-center gap-x-4 h-full w-full">
-                    <div class="w-[120px] h-[120px]">
-                        {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
-                            {#if equip && Object.keys(equip).length}
+                    {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
+                        {#if equip && Object.keys(equip).length}
+                            <div class="w-[120px] h-[120px]">
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" />
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body.png`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" />
@@ -440,32 +440,32 @@
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" />
-                            {:else}
-                                <div class="w-[120px] h-[120px] flex items-center justify-center bg-gray-800 rounded-md text-white p-3 text-center">
-                                    <p class="text-white text-lg">계정 설정 후 게임을 이용해 주세요.</p>
-                                    <a href="/login" rel="external">
+                            </div>
+
+                            <div class="flex flex-col">
+                                    <div class="flex items-center gap-x-2">
+                                    <div class="level" style={getLevelImage(Number(score))}></div>
+                                    <h3 class="text-2xl font-bold text-white truncate w-48">{ingameName}</h3>
+                                </div>
+                                <p class="text-gray-300">{score.toLocaleString()}점</p>
+                                <p class="text-gray-300">{authVendor} 계정</p>
+                            </div>
+                        {:else}
+                            <div class="w-[120px] h-[120px]">
+                                <div class="flex flex-col items-center justify-center h-full">
+                                    <p class="text-white text-lg">계정 설정 필요</p>
                                         <button class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex justify-center items-center gap-x-2 text-lg mt-4 w-36 py-2 px-3 transform ease-in duration-100 active:scale-95">
                                         <span class="material-symbols-outlined">how_To_reg</span>
-                                            계정 설정하기
+                                            설정하기
                                         </button>
                                     </a>
                                 </div>
-                            {/if}
-                        {:catch error}
-                            <div></div>
-                        {/await}
-                    </div>
-
-                    <div class="flex flex-col">
-                            <div class="flex items-center gap-x-2">
-                            <div class="level" style={getLevelImage(Number(score))}></div>
-                            <h3 class="text-2xl font-bold text-white truncate w-48">{ingameName}</h3>
-                        </div>
-                        <p class="text-gray-300">{score.toLocaleString()}점</p>
-                        <p class="text-gray-300">{authVendor} 계정</p>
-                    </div>
-
-                 </div>
+                            </div>
+                        {/if}
+                    {:catch error}
+                        <div class="w-[120px] h-[120px]"><div></div></div>
+                    {/await}
+                </div>
             {/if}
             </div>
 
@@ -473,15 +473,15 @@
     </div>
 
     <div class="max-w-screen-xl mx-auto lg:py-12 p-4 lg:px-8 gap-y-8 flex flex-col">
-        <!-- Notice area 
+        <!-- Notice area
         <div class="dark:border-green-700 dark:text-green-300 dark:bg-green-950 text-green-600 bg-green-100 border-green-200 border p-4 lg:px-8 rounded-full">
             <i class="fa-solid fa-bell lg:mr-3"></i>
             <strong>공지사항</strong>
             <span class="block lg:inline-block lg:pl-4 lg:ml-4 lg:border-l dark:border-gray-700 border-gray-300">
-                
+
             </span>
         </div>--->
-        
+
         <!-- Patch note area -->
         <div class="dark:text-white rounded-full p-2 flex flex-col">
             <div class="mb-6 justify-between flex items-center">
@@ -491,7 +491,7 @@
                     </span>
                     새로운 소식</h2>
                 <a href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=8&search.boardtype=L" target="_blank">
-                    <button 
+                    <button
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
                        add
@@ -521,7 +521,7 @@
                         </span>
                         팬아트</h2>
                     <a href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=8&search.boardtype=L" target="_blank">
-                        <button 
+                        <button
                         class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                         <span class="material-symbols-outlined">
                         add
@@ -572,7 +572,7 @@
                             list_alt
                         </span>
                         채널 목록</h2>
-                    <button 
+                    <button
                     on:click={() => reloadList()}
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
@@ -603,7 +603,7 @@
                     </span>
                     랭킹</h2>
                 <a href="/rank" rel="external">
-                    <button 
+                    <button
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
                        add
@@ -630,7 +630,7 @@
             </div>
         </div>
 
-        
+
         <div class="bg-gray-50 text-gray-500 dark:text-gray-300 dark:bg-gray-950 rounded-xl py-1">
             <div class="grid grid-cols-3 lg:grid-cols-4 gap-y-3 py-2 lg:py-0">
               <a class="flex flex-col lg:flex-row items-center justify-center gap-x-2 h-16" href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=22&search.boardtype=L">
@@ -661,3 +661,4 @@
           </div>
     </div>
 </div>
+

@@ -427,21 +427,33 @@
             {:else}
 
                 <!-- Login status -->
-                 <div class="flex justify-center items-center gap-x-4 h-full w-full">
+                <div class="flex justify-center items-center gap-x-4 h-full w-full">
                     <div class="w-[120px] h-[120px]">
-                      {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body.png`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${equip.Mmouth || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Mouth" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${equip.Mclothes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Pants" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${equip.Mshoes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Shoes" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
-                        <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" />
-                      {:catch error}
-                        <div></div>
-                      {/await}
+                        {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
+                            {#if equip && Object.keys(equip).length}
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body.png`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${equip.Mmouth || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Mouth" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${equip.Mclothes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Pants" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${equip.Mshoes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Shoes" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" />
+                            {:else}
+                                <div class="w-[120px] h-[120px] flex items-center justify-center bg-gray-800 rounded-md text-white p-3 text-center">
+                                    <p class="text-white text-lg">계정 설정 후 게임을 이용해 주세요.</p>
+                                    <a href="/login" rel="external">
+                                        <button class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex justify-center items-center gap-x-2 text-lg mt-4 w-36 py-2 px-3 transform ease-in duration-100 active:scale-95">
+                                        <span class="material-symbols-outlined">how_To_reg</span>
+                                            계정 설정하기
+                                        </button>
+                                    </a>
+                                </div>
+                            {/if}
+                        {:catch error}
+                            <div></div>
+                        {/await}
                     </div>
 
                     <div class="flex flex-col">

@@ -65,6 +65,6 @@ class SetupController(
         model.addAttribute("viewName", request.getView(View.REACT))
 
         logger.info("[${request.getIp()}] 초기 설정 화면에 접속했습니다.")
-            return "redirect:/setup"
+        return "forward:/setup.html"
     }
 }

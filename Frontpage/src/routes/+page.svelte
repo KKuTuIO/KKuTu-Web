@@ -163,31 +163,28 @@
 			const userRes = await fetch(`https://kkutu.io/user/${authVendor.toLowerCase()}-${vendorId}`);
 			const userData = await userRes.json();
 
-			ingameName = userData.profile.title;
-			score = userData.data.score;
-
-
+			ingameName = userData.profile ? userData.profile.title : "계정 설정 필요";
+			score = userData.data ? userData.data.score : 0;
 		} else {
 			console.log("User is not logged in");
 		}
 		
         // Fetch slide data
-        try{
-        const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
-        finalData = await cafeResponse_events.json();
+        try {
+            const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
+            finalData = await cafeResponse_events.json();
 
-        const slideResponse = await fetch('https://static.kkutu.io/slides.json');
-        slideData = await slideResponse.json();
-        updateSlides();
+            const slideResponse = await fetch('https://static.kkutu.io/slides.json');
+            slideData = await slideResponse.json();
+            updateSlides();
 
-        const rankResponse = await fetch('https://kkutu.io/ranking?p=0');
-        rankData = await rankResponse.json();
-        filteredData = rankData.data.data.slice(0, 10);
+            const rankResponse = await fetch('https://kkutu.io/ranking?p=0');
+            rankData = await rankResponse.json();
+            filteredData = rankData.data.data.slice(0, 10);
 
-        const blockResponse = await fetch('https://kkutu.io/api/block');
-        blockData = await blockResponse.json();
-        }
-        catch(e){
+            const blockResponse = await fetch('https://kkutu.io/api/block');
+            blockData = await blockResponse.json();
+        } catch (e) {
             console.error(e);
         }
     

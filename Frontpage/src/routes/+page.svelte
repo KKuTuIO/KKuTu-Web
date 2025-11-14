@@ -426,7 +426,7 @@
                 <!-- Login status -->
                 <div class="flex justify-center items-center gap-x-4 h-full w-full">
                     {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
-                        {#if equip && Object.keys(equip).length}
+                        {#if equip}
                             <div class="w-[120px] h-[120px]">
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" />
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body.png`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />

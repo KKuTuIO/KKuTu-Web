@@ -209,7 +209,7 @@
 						<div class="level" style={getLevelImage(Number(score))}></div>
 						<div>
 							<div class="font-bold truncate">{ingameName}</div>
-							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor}</div>
+							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor} 계정</div>
 						</div>
 					</div>
 					<div class="mt-2">

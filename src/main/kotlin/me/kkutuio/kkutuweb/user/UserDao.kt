@@ -55,14 +55,18 @@ class UserDao(
 
     // meanableNick only checked on Unique Nicknames
     fun newUser(id: String, nick: String, similarityNick: String) {
-        val sql = "INSERT INTO users(_id, nickname, money, kkutu, \"meanableNick\") VALUES(?, ?, ?, ?, ?)"
+        val sql = "INSERT INTO users(_id, nickname, money, kkutu, flags, \"meanableNick\") VALUES(?, ?, ?, ?, ?, ?)"
 
         val kkutuJsonObj = PGobject()
         kkutuJsonObj.type = "json"
         kkutuJsonObj.value =
             "{\"score\":0,\"playTime\":0,\"connectDate\":0,\"record\":{\"EKT\":[0,0,0,0],\"ESH\":[0,0,0,0],\"KKT\":[0,0,0,0],\"KSH\":[0,0,0,0],\"CSQ\":[0,0,0,0],\"KCW\":[0,0,0,0],\"KTY\":[0,0,0,0],\"ETY\":[0,0,0,0],\"KAP\":[0,0,0,0],\"HUN\":[0,0,0,0],\"KDA\":[0,0,0,0],\"EDA\":[0,0,0,0],\"KSS\":[0,0,0,0],\"ESS\":[0,0,0,0]}}"
 
-        jdbcTemplate.update(sql, id, nick, 0, kkutuJsonObj, similarityNick)
+        val flagsObj = PGobject()
+        flagsObj.type = "json"
+        flagsObj.value = "{\"first\":1}"
+
+        jdbcTemplate.update(sql, id, nick, 0, kkutuJsonObj, flagsObj, similarityNick)
     }
 
     fun updateUser(id: String, values: Map<String, Any?>) {

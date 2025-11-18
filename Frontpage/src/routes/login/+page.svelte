@@ -37,7 +37,7 @@
             </a>
             <a href="https://kkutu.io/login/facebook">
                 <button class="text-lg bg-[#1877F2] text-white mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
-                    <img src="https://cdn.kkutu.io/logo/fusion/facebook.svg" class="h-6 mr-2" alt="Google"/>
+                    <img src="https://cdn.kkutu.io/logo/fusion/facebook.svg" class="h-6 mr-2" alt="Facebook"/>
                     Facebook으로 로그인
                 </button>
             </a>

@@ -21,7 +21,7 @@
     onMount(async () => {
 
         // Fetch server list
-        const responseServers = await fetch('https://kkutu.io/servers');
+        const responseServers = await fetch('/servers');
         
         if (!responseServers.ok) {
           throw new Error('Failed to fetch data');
@@ -33,7 +33,7 @@
     });
 
     function reloadList() { 
-        fetch('https://kkutu.io/servers')
+        fetch('/servers')
             .then(response => response.json())
             .then(data => {
                 jsonDataServers = data;

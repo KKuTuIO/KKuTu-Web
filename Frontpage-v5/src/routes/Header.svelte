@@ -89,7 +89,7 @@
 		try {
 			// DEV ONLY
 			//data = { authVendor: "DISCORD", vendorId: "1234567890", name: "Moremi", image: "https://cdn.discordapp.com/avatars/1234567890/1234567890.webp" };
-			const res = await fetch('https://kkutu.io/user/oauth');
+			const res = await fetch('/user/oauth');
 			const jsonData = await res.json();
 			data = jsonData;
 		} catch (e) {

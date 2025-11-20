@@ -205,7 +205,7 @@ https://svelte.dev/e/node_invalid_placement -->
     onMount(async () => {
         
 		try {
-			const res = await fetch('https://kkutu.io/user/oauth');
+			const res = await fetch('/user/oauth');
 			const jsonData = await res.json();
 			data = jsonData;
 		} catch (e) {
@@ -261,11 +261,11 @@ https://svelte.dev/e/node_invalid_placement -->
         const maintenanceResponse = await fetch('https://static.kkutu.io/maintenance.json');
         maintenanceData = await maintenanceResponse.json();
 
-        const rankResponse = await fetch('https://kkutu.io/ranking?p=0');
+        const rankResponse = await fetch('/ranking?p=0');
         rankData = await rankResponse.json();
         filteredData = rankData.data.data.slice(0, 10);
 
-        const blockResponse = await fetch('https://kkutu.io/api/block');
+        const blockResponse = await fetch('/api/block');
         blockData = await blockResponse.json();
         }
         catch(e){
@@ -273,7 +273,7 @@ https://svelte.dev/e/node_invalid_placement -->
         }
     
         // Fetch server list
-        const responseServers = await fetch('https://kkutu.io/servers');
+        const responseServers = await fetch('/servers');
         
         if (!responseServers.ok) {
           throw new Error('Failed to fetch data');
@@ -285,7 +285,7 @@ https://svelte.dev/e/node_invalid_placement -->
     });
 
     function reloadList() { 
-        fetch('https://kkutu.io/servers')
+        fetch('/servers')
             .then(response => response.json())
             .then(data => {
                 jsonDataServers = data;

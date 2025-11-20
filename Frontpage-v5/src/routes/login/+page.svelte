@@ -5,7 +5,7 @@
     var loginReason = $state("");
 
     onMount(async () => {
-      const response = await fetch('https://kkutu.io/api/login/reason');
+      const response = await fetch('/api/login/reason');
       const data = await response.text();
       loginReason = data;
     });

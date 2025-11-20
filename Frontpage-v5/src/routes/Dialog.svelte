@@ -53,7 +53,7 @@
   
   // Only fetch once when the component mounts
   onMount(() => {
-      fetch('https://kkutu.io/servers')
+      fetch('/servers')
           .then(response => response.json())
           .then(data => {
               jsonDataServers = data;

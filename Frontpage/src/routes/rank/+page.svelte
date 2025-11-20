@@ -32,7 +32,7 @@
   };
 
   onMount(async () => {
-    const res = await fetch('https://kkutu.io/ranking?page=0');
+    const res = await fetch('/ranking?page=0');
     topRankData = await res.json();
     topRankData.data.data = topRankData.data.data.slice(0, 4);
 

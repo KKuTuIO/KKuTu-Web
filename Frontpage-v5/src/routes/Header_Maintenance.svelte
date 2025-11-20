@@ -47,7 +47,7 @@
 		}
 	}*/
 		try {
-			const res = await fetch('https://kkutu.io/user/oauth');
+			const res = await fetch('/user/oauth');
 			const jsonData = await res.json();
 			data = jsonData;
 		} catch (e) {

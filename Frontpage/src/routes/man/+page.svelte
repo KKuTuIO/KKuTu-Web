@@ -87,7 +87,7 @@
                 </button>
                 </div>
                 {#each jsonDataServers.list as serverUsers, index}
-                <a rel="external" href={`${serverUsers === null ? "/" : "https://kkutu.io/game/server/"+index}`}>
+                <a rel="external" href={`${serverUsers === null ? "/" : "/game/server/"+index}`}>
                     <div class="rounded-full text-gray-900 mb-8">
                         <div class="flex justify-between">
                             <h3 class="text-xl font-bold dark:text-green-300 text-[#55aa55]">{serverName[index]} 채널</h3>

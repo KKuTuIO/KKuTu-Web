@@ -29,37 +29,37 @@
 
     <div class="mt-4 sm:mx-auto sm:w-full ">
         <div class="sm:mx-auto sm:sm:max-w-sm">
-            <a href="/login/naver">
+            <a href="/login/naver" rel="external">
                 <button class="text-lg bg-[#03C75A] text-white mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
                     <img src="https://cdn.kkutu.io/logo/fusion/naver.svg" class="h-6 mr-2" alt="NAVER"/>
                     네이버로 로그인
                 </button>
             </a>
-            <a href="/login/facebook">
+            <a href="/login/facebook" rel="external">
                 <button class="text-lg bg-[#1877F2] text-white mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
                     <img src="https://cdn.kkutu.io/logo/fusion/facebook.svg" class="h-6 mr-2" alt="Facebook"/>
                     Facebook으로 로그인
                 </button>
             </a>
-            <a href="/login/google">
+            <a href="/login/google" rel="external">
                 <button class="text-lg bg-gray-100 hover:bg-gray-200 text-black mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
                     <img src="https://cdn.kkutu.io/logo/fusion/google.svg" class="h-6 mr-2" alt="Google"/>
                     Google로 로그인
                 </button>
             </a>
-            <a href="/login/kakao">
+            <a href="/login/kakao" rel="external">
                 <button class="text-lg bg-[#FFDE00] text-[#3C1E1E] mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
                     <img src="https://cdn.kkutu.io/logo/fusion/kakao.svg" class="h-6 mr-2" alt="Kakao"/>
                     카카오로 로그인
                 </button>
             </a>
-            <a href="/login/discord">
+            <a href="/login/discord" rel="external">
                 <button class="text-lg bg-[#5865F2] text-white mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
                     <img src="https://cdn.kkutu.io/logo/fusion/discord.svg" class="h-6 mr-2" alt="Discord"/>
                     Discord로 로그인
                 </button>
             </a>
-            <a href="/login/daldalso">
+            <a href="/login/daldalso" rel="external">
                 <button class="text-lg bg-[#20318D] text-white mt-4 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md transform ease-in duration-100 active:scale-95">
                     <img src="https://cdn.kkutu.io/logo/fusion/daldalso.png" class="h-6 mr-2" alt="Daldalso"/>
                     <span class="text-[#FFE101]">달달소</span>로 로그인&nbsp;<sub class="bottom-[-0.1rem]">(신규 가입 불가)</sub>

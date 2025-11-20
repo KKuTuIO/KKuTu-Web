@@ -2,7 +2,7 @@
 let moremiData = [];
 export async function getMoremi(uid){
     if (moremiData[uid]) return moremiData[uid];
-    const res = await fetch(`https://kkutu.io/user/${uid}`);
+    const res = await fetch(`/user/${uid}`);
     var data = await res.json();
 
     for (var key in data.equip) {

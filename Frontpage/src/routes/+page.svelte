@@ -160,7 +160,7 @@
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
 			// get user data
-			const userRes = await fetch(`https://kkutu.io/user/${authVendor.toLowerCase()}-${vendorId}`);
+			const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
 			const userData = await userRes.json();
 
 			ingameName = userData.profile ? userData.profile.title : "계정 설정 필요";

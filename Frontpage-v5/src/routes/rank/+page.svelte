@@ -46,7 +46,7 @@
   
 
   async function fetchRankData(page) {
-    const res = await fetch(`https://kkutu.io/ranking?page=${page}`);
+    const res = await fetch(`/ranking?page=${page}`);
     const data = await res.json();
     rankData = data;
   }

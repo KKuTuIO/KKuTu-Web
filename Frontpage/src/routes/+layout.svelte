@@ -17,6 +17,13 @@
 
   <svelte:head>
       <link rel="canonical" href="https://kkutu.io{$page.url.pathname.replace(/\.html$/, '')}" />
+	  {#if $page.url.pathname !== '/unsupported'}
+	  <script nonce="kkutuio">
+		  if (window.navigator.userAgent.indexOf("MSIE ") > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) {
+			  location.href = "/unsupported";
+		  }
+	  </script>
+	  {/if}
   </svelte:head>
   
   <div class="app">

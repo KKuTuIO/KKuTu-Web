@@ -51,7 +51,7 @@
     var blockData = {
     };
     
-    var patchData = "<p>2021년 10월 20일 업데이트 내용입니다.</p>";
+    var patchData = "<p>업데이트 내용입니다.</p>";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
     let jsonDataServers = { list: [], max: 9 };
@@ -134,7 +134,12 @@
     function goRight() {
         glide.go('>');
     }
-    
+
+    function processNick(nick) {
+        return nick.split("#")[0] +
+            (nick.includes("#") ? '<small style="color:#bbb">#' + nick.split("#")[1] + '</small>' : "");
+    }
+
     onMount(async () => {
         
 		try {
@@ -163,7 +168,7 @@
 			const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
 			const userData = await userRes.json();
 
-			ingameName = userData.profile ? userData.profile.title : "계정 설정 필요";
+			ingameName = userData.profile ? processNick(userData.profile.title) : "계정 설정 필요";
 			score = userData.data ? userData.data.score : 0;
 		} else {
 			console.log("User is not logged in");
@@ -442,7 +447,7 @@
                             <div class="flex flex-col">
                                     <div class="flex items-center gap-x-2">
                                     <div class="level" style={getLevelImage(Number(score))}></div>
-                                    <h3 class="text-2xl font-bold text-white truncate w-48">{ingameName}</h3>
+                                    <h3 class="text-2xl font-bold text-white truncate w-48">{@html ingameName}</h3>
                                 </div>
                                 <p class="text-gray-300">{score.toLocaleString()}점</p>
                                 <p class="text-gray-300">{authVendor} 계정</p>

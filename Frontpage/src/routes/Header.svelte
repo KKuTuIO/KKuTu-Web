@@ -32,6 +32,10 @@
 		event.target.src = defaultProfileImage;
 	}
 
+    function processNick(nick) {
+        return nick.split("#")[0] +
+            (nick.includes("#") ? '<small style="color:#bbb">#' + nick.split("#")[1] + '</small>' : "");
+    }
 	
 	onMount(async () => {
 	// 12월 26일 0시 5분 이후부터 타임 릴리즈 기능 활성화
@@ -100,8 +104,8 @@
 			const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
 			const userData = await userRes.json();
 
-			ingameName = userData.profile.title;
-			score = userData.data.score;
+			ingameName = processNick(userData.profile.title);
+            score = userData.data.score;
 
 
 		} else {
@@ -208,7 +212,7 @@
 					<div class="flex items-center gap-x-4 px-2">
 						<div class="level" style={getLevelImage(Number(score))}></div>
 						<div>
-							<div class="font-bold truncate">{ingameName}</div>
+							<div class="font-bold truncate">{@html ingameName}</div>
 							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor} 계정</div>
 						</div>
 					</div>

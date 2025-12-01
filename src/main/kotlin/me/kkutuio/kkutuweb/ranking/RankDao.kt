@@ -21,6 +21,7 @@ package me.kkutuio.kkutuweb.ranking
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.SessionCallback
+import org.springframework.data.redis.core.RedisOperations
 import org.springframework.stereotype.Component
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -81,10 +82,13 @@ class RankDao(
         if (ids.isEmpty()) return emptyList()
 
         val results = redisTemplate.executePipelined(object : SessionCallback<Any?> {
-            override fun <K, V> execute(operations: org.springframework.data.redis.core.RedisOperations<K, V>): Any? {
-                val ops = operations.opsForZSet()
+            @Suppress("UNCHECKED_CAST")
+            override fun <K, V> execute(operations: RedisOperations<K, V>): Any? {
+                val stringOps = operations as RedisOperations<String, Any>
+                val zSetOps = stringOps.opsForZSet()
+
                 ids.forEach { id ->
-                    ops.reverseRank(REDIS_KEY_SNAPSHOT as K, id)
+                    zSetOps.reverseRank(REDIS_KEY_SNAPSHOT, id)
                 }
                 return null
             }

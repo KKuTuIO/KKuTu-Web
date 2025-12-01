@@ -29,13 +29,25 @@ class RankingService(
     @Autowired private val nicknameCacheService: NicknameCacheService
 ) {
     fun getRanking(p: Long?, id: String?): RankResponse {
-        return if (id == null) {
-            val page = p ?: 0L
-            val ranks = rankDao.getPage(page, 15)
-            RankResponse(page, ranks.map { ResponseRank.fromRank(it, nicknameCacheService.getNickname(it.id)) })
+        val pageIndex = if (id == null) p ?: 0L else 0L
+
+        val currentRanks: List<Rank> = if (id == null) {
+            rankDao.getPage(pageIndex, 15)
         } else {
-            val ranks = rankDao.getSurround(id, 15)
-            RankResponse(0, ranks.map { ResponseRank.fromRank(it, nicknameCacheService.getNickname(it.id)) })
+            rankDao.getSurround(id, 15)
         }
+
+        val ids = currentRanks.map { it.id }
+        val prevRanks = rankDao.getSnapshotRanks(ids)
+
+        val responseData = currentRanks.mapIndexed { index, rankObj ->
+            ResponseRank.fromRank(
+                current = rankObj,
+                nickname = nicknameCacheService.getNickname(rankObj.id),
+                prevRank = prevRanks.getOrNull(index)
+            )
+        }
+
+        return RankResponse(pageIndex, responseData)
     }
 }

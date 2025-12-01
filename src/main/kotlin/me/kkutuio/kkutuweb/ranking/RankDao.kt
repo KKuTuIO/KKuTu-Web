@@ -25,6 +25,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 private const val REDIS_KEY = "KKuTu_Score"
+private const val REDIS_KEY_SNAPSHOT = "KKuTu_Score_Snapshot"
 
 @Component
 class RankDao(
@@ -73,5 +74,19 @@ class RankDao(
         }
 
         return ranks
+    }
+
+    fun getSnapshotRanks(ids: List<String>): List<Long?> {
+        if (ids.isEmpty()) return emptyList()
+
+        val results = redisTemplate.executePipelined { connection ->
+            val ops = redisTemplate.opsForZSet()
+            ids.forEach { id ->
+                ops.reverseRank(REDIS_KEY_SNAPSHOT, id)
+            }
+            return@executePipelined null
+        }
+
+        return results.map { it as? Long }
     }
 }

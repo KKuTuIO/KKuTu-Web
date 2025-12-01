@@ -24,11 +24,25 @@ data class ResponseRank(
     val id: String,
     val name: String?,
     val rank: Int,
-    val score: String
+    val score: Long,
+    val delta: String
 ) {
     companion object {
-        fun fromRank(rank: Rank, name: String?): ResponseRank {
-            return ResponseRank(rank.id, name, rank.rank, rank.score.toString())
+        fun fromRank(current: Rank, nickname: String?, prevRank: Long?): ResponseRank {
+
+            val deltaValue = when (prevRank) {
+                null -> "*"                     // 변동 정보 없음
+                current.rank.toLong() -> "-"    // 변동 없음
+                else -> (prevRank - current.rank).toString()
+            }
+
+            return ResponseRank(
+                id = current.id,
+                name = nickname,
+                rank = current.rank,
+                score = current.score,
+                delta = deltaValue
+            )
         }
     }
 }

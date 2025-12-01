@@ -31,9 +31,15 @@ data class ResponseRank(
         fun fromRank(current: Rank, nickname: String?, prevRank: Long?): ResponseRank {
 
             val deltaValue = when (prevRank) {
-                null -> "*"                     // 변동 정보 없음
-                current.rank.toLong() -> "-"    // 변동 없음
-                else -> (prevRank - current.rank).toString()
+                null -> "*"                         // 변동 정보 없음
+                current.rank.toLong() -> "0"        // 변동 없음
+                else -> {
+                    val diff = prevRank - current.rank
+                    when {
+                        diff > 0 -> "+$diff"        // 랭킹 상승
+                        else -> diff.toString()     // 랭킹 하락
+                    }
+                }
             }
 
             return ResponseRank(

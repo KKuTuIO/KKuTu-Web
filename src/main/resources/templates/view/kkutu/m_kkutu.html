@@ -188,7 +188,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='LeaderboardDiag',width=312,height=450,title=#{kkutu.dialog.leaderboard.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='LeaderboardDiag',width=342,height=450,title=#{kkutu.dialog.leaderboard.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar" style="height: 350px;">
                 <table id="ranking" style="text-align: center;">
@@ -198,6 +198,7 @@
                         <td th:text="#{kkutu.dialog.leaderboard.level}" width="55">레벨</td>
                         <td th:text="#{kkutu.dialog.leaderboard.name}" width="115">이름</td>
                         <td th:text="#{kkutu.dialog.leaderboard.totalExp}" width="100">총 경험치</td>
+                        <td th:text="#{kkutu.dialog.leaderboard.delta}" width="30">변동</td>
                     </tr>
                     </thead>
                     <tbody></tbody>

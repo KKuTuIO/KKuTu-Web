@@ -20,6 +20,7 @@ package me.kkutuio.kkutuweb.ranking
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.redis.core.RedisTemplate
+import org.springframework.data.redis.core.SessionCallback
 import org.springframework.stereotype.Component
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -79,14 +80,16 @@ class RankDao(
     fun getSnapshotRanks(ids: List<String>): List<Long?> {
         if (ids.isEmpty()) return emptyList()
 
-        val results = redisTemplate.executePipelined { connection ->
-            val ops = redisTemplate.opsForZSet()
-            ids.forEach { id ->
-                ops.reverseRank(REDIS_KEY_SNAPSHOT, id)
+        val results = redisTemplate.executePipelined(object : SessionCallback<Any?> {
+            override fun <K, V> execute(operations: org.springframework.data.redis.core.RedisOperations<K, V>): Any? {
+                val ops = operations.opsForZSet()
+                ids.forEach { id ->
+                    ops.reverseRank(REDIS_KEY_SNAPSHOT as K, id)
+                }
+                return null
             }
-            return@executePipelined null
-        }
+        })
 
-        return results.map { it as? Long }
+        return results.map { (it as? Number)?.toLong() }
     }
 }

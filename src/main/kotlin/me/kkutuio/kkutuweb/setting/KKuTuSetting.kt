@@ -119,7 +119,7 @@ class KKuTuSetting(
     fun getRunnerVersion() = runnerUID
 
     fun getCdnHost() = kkutu["cdnHost"].textValue()!!
-    
+
     fun getApiKey() = kkutu["apiKey"].textValue()!!
 
     fun getCryptoKey() = kkutu["cryptoKey"].textValue()!!
@@ -163,4 +163,29 @@ class KKuTuSetting(
     }
 
     fun getGameModes() = games["RULE"].fieldNames().asSequence().toList()
+
+    fun getServiceMode() = kkutu["serviceMode"]?.textValue() ?: "NORMAL"
+
+    fun getMainPageConfig(): MainPageSetting {
+        if (getServiceMode() == "NORMAL") {
+            return MainPageSetting(
+                status = false,
+                title = "",
+                body = "",
+                noticeTitle = "",
+                noticeMessage = "",
+                showNotice = false
+            );
+        }
+
+        val mainPage = kkutu["mainPage"]
+        return MainPageSetting(
+            status = mainPage["status"]?.booleanValue() ?: false,
+            title = mainPage["title"]?.textValue() ?: "",
+            body = mainPage["body"]?.textValue() ?: "",
+            noticeTitle = mainPage["noticeTitle"]?.textValue() ?: "",
+            noticeMessage = mainPage["noticeMessage"]?.textValue() ?: "",
+            showNotice = mainPage["showNotice"]?.booleanValue() ?: false
+        )
+    }
 }

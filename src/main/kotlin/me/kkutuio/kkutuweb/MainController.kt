@@ -63,7 +63,11 @@ class MainController(
         return if (server != null) {
             "redirect:/game/server/$server"
         } else {
-            "forward:/index.html"
+            if (kKuTuSetting.getServiceMode() == "SIMPLIFIED") {
+                "forward:/simplified.html"
+            } else {
+                "forward:/index.html"
+            }
         }
     }
 

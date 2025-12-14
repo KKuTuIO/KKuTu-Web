@@ -73,7 +73,10 @@ class LoginController(
     ): String {
         val vendorType = AuthVendor.fromName(vendorName) ?: return "redirect:/login/fail"
 
-        return "redirect:" + loginService.getAuthorizationUrl(session, vendorType)
+        val authorizationUrl = loginService.getAuthorizationUrl(session, vendorType)
+            ?: return "redirect:/login/fail"
+
+        return "redirect:$authorizationUrl"
     }
 
     @GetMapping("/{vendorName}/callback")

@@ -11,6 +11,15 @@
       "cid": 1
     }
   ],
+  "serviceMode": "NORMAL",
+  "mainPage": {
+    "status": false,
+    "title": "",
+    "body": "",
+    "noticeTitle": "",
+    "noticeMessage": "",
+    "showNotice": false
+  },
   "admins": [
     {
       "id": "<User ID>",
@@ -22,6 +31,7 @@
       ]
     }
   ],
+  "cdnHost": "<CDN Host>",
   "apiKey": "<API Key>",
   "cryptoKey": "<32-Bit Secret Key>"
 }

@@ -116,8 +116,8 @@ class KKuTuSetting(
         )
     }
 
-    fun runnerVersion() = runnerUID
-
+    fun getRunnerVersion() = runnerUID
+    fun getCdnHost() = kkutu["cdnHost"].textValue()!!
     fun getApiKey() = kkutu["apiKey"].textValue()!!
 
     fun getCryptoKey() = kkutu["cryptoKey"].textValue()!!

@@ -31,11 +31,11 @@
     <meta property="og:title" th:content="#{og.title}">
     <meta property="og:description" th:content="#{og.description}">
 
-    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/m_style.css?rv=' + ${runnerVersion}}"/>
+    <link rel="stylesheet" th:href="@{${cdnHost} + '/css/m_style.css?rv=' + ${runnerVersion}}"/>
     <link rel="stylesheet" href="https://assets.kkutu.io/fonts/fontawesome-pro-7.1.0-web/css/fontawesome.min.css"/>
     <link rel="stylesheet" href="https://assets.kkutu.io/fonts/fontawesome-pro-7.1.0-web/css/solid.min.css"/>
     <link rel="stylesheet" href="https://assets.kkutu.io/fonts/fontawesome-pro-7.1.0-web/css/regular.min.css"/>
-    <link rel="stylesheet" th:href="@{'https://cdn.kkutu.io/css/expl.css?rv=' + ${runnerVersion}}"/>
+    <link rel="stylesheet" th:href="@{${cdnHost} + '/css/expl.css?rv=' + ${runnerVersion}}"/>
     <link rel="manifest" href="manifest.json">
 
     <script type="text/javascript" th:inline="javascript" nonce="HhKDLdJS4bHMDv6V">

@@ -82,8 +82,11 @@ class MainController(
             return "redirect:/setup"
         }
 
-        val runnerVersion = kKuTuSetting.runnerVersion()
+        val runnerVersion = kKuTuSetting.getRunnerVersion()
+        val cdnHost = kKuTuSetting.getCdnHost()
+
         model.addAttribute("runnerVersion", runnerVersion)
+        model.addAttribute("cdnHost", cdnHost)
 
         val ip = request.getIp()
         if (isGuest) {

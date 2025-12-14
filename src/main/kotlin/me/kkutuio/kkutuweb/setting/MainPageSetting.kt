@@ -16,21 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.kkutuio.kkutuweb.oauth
+package me.kkutuio.kkutuweb.setting
 
-import com.github.scribejava.core.oauth.OAuth20Service
-
-abstract class OAuthService(private val authorizationUrlParams: Map<String, String> = emptyMap()) {
-    protected lateinit var oAuth20Service: OAuth20Service
-    var allowRegister: Boolean = true;
-
-    abstract fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean)
-    abstract fun login(code: String): OAuthUser
-
-    fun isInitialized() = ::oAuth20Service.isInitialized
-
-    fun getAuthorizationUrl(randomState: String) = oAuth20Service.createAuthorizationUrlBuilder()
-        .state(randomState)
-        .additionalParams(authorizationUrlParams)
-        .build()!!
-}
+data class MainPageSetting(
+    val status: Boolean,
+    val title: String,
+    val body: String,
+    val noticeTitle: String,
+    val noticeMessage: String,
+    val showNotice: Boolean?
+)

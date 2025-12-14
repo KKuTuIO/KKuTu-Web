@@ -16,21 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.kkutuio.kkutuweb.oauth
+package me.kkutuio.kkutuweb.info
 
-import com.github.scribejava.core.oauth.OAuth20Service
+import me.kkutuio.kkutuweb.setting.KKuTuSetting
+import me.kkutuio.kkutuweb.setting.MainPageSetting
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RestController
 
-abstract class OAuthService(private val authorizationUrlParams: Map<String, String> = emptyMap()) {
-    protected lateinit var oAuth20Service: OAuth20Service
-    var allowRegister: Boolean = true;
-
-    abstract fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean)
-    abstract fun login(code: String): OAuthUser
-
-    fun isInitialized() = ::oAuth20Service.isInitialized
-
-    fun getAuthorizationUrl(randomState: String) = oAuth20Service.createAuthorizationUrlBuilder()
-        .state(randomState)
-        .additionalParams(authorizationUrlParams)
-        .build()!!
+@RestController
+class MainPageInfoApi(
+    @Autowired private val kKuTuSetting: KKuTuSetting,
+) {
+    @Cacheable(value = ["info"], key = "mainPageInfo")
+    @GetMapping("/api/info/main")
+    fun getServers(): MainPageSetting {
+        return kKuTuSetting.getMainPageConfig()
+    }
 }

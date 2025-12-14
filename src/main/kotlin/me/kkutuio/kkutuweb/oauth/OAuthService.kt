@@ -27,6 +27,8 @@ abstract class OAuthService(private val authorizationUrlParams: Map<String, Stri
     abstract fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean)
     abstract fun login(code: String): OAuthUser
 
+    fun isInitialized() = ::oAuth20Service.isInitialized
+
     fun getAuthorizationUrl(randomState: String) = oAuth20Service.createAuthorizationUrlBuilder()
         .state(randomState)
         .additionalParams(authorizationUrlParams)

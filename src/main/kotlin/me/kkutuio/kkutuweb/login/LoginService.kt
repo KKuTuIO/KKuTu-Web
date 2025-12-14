@@ -65,10 +65,15 @@ class LoginService(
     }
 
     fun getAuthorizationUrl(session: HttpSession, authVendor: AuthVendor): String? {
+        val oAuthService = getOAuthService(authVendor)
+        if (!oAuthService.isInitialized()) {
+            return null
+        }
+
         val randomState = getRandomState()
         session.setAttribute(SessionAttribute.OAUTH_STATE.attributeName, randomState)
 
-        return getOAuthService(authVendor).getAuthorizationUrl(randomState)
+        return oAuthService.getAuthorizationUrl(randomState)
     }
 
     fun login(request: HttpServletRequest, authVendor: AuthVendor, code: String, state: String): Boolean {

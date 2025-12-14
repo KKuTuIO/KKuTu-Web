@@ -18,6 +18,7 @@
 
 package me.kkutuio.kkutuweb
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.block.BlockService
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.geo.GeoService
@@ -46,6 +47,7 @@ import kotlin.streams.asSequence
 @Controller
 class MainController(
     @Autowired private val kKuTuSetting: KKuTuSetting,
+    @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val loginService: LoginService,
     @Autowired private val setupService: SetupService,
     @Autowired private val blockService: BlockService,
@@ -59,11 +61,18 @@ class MainController(
     private val logger = LoggerFactory.getLogger(MainController::class.java)
 
     @GetMapping
-    fun index(@RequestParam(required = false) server: Short?): String {
+    fun index(@RequestParam(required = false) server: Short?, model: Model): String {
         return if (server != null) {
             "redirect:/game/server/$server"
         } else {
-            "forward:/index.html"
+            val serviceMode = kKuTuSetting.getServiceMode()
+            if (serviceMode == "SIMPLIFIED") {
+                val mainPageConfig = kKuTuSetting.getMainPageConfig()
+                model.addAttribute("mainPageConfig", objectMapper.writeValueAsString(mainPageConfig))
+                "forward:/simplified.html"
+            } else {
+                "forward:/index.html"
+            }
         }
     }
 

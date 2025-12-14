@@ -119,7 +119,7 @@ class KKuTuSetting(
     fun getRunnerVersion() = runnerUID
 
     fun getCdnHost() = kkutu["cdnHost"].textValue()!!
-    
+
     fun getApiKey() = kkutu["apiKey"].textValue()!!
 
     fun getCryptoKey() = kkutu["cryptoKey"].textValue()!!
@@ -163,4 +163,28 @@ class KKuTuSetting(
     }
 
     fun getGameModes() = games["RULE"].fieldNames().asSequence().toList()
+
+    fun getServiceMode() = kkutu["serviceMode"]?.textValue() ?: "NORMAL"
+
+    fun getMainPageConfig(): MainPageConfig {
+        val mainPage = kkutu["mainPage"]
+
+        return MainPageConfig(
+            emergencyMode = mainPage["emergencyMode"]?.booleanValue() ?: false,
+            emergencyTitle = mainPage["emergencyTitle"]?.textValue() ?: "",
+            emergencyMessage = mainPage["emergencyMessage"]?.textValue() ?: "",
+            noticeTitle = mainPage["noticeTitle"]?.textValue() ?: "",
+            noticeMessage = mainPage["noticeMessage"]?.textValue() ?: "",
+            showNotice = mainPage["showNotice"]?.booleanValue() ?: false
+        )
+    }
 }
+
+data class MainPageConfig(
+    val emergencyMode: Boolean,
+    val emergencyTitle: String,
+    val emergencyMessage: String,
+    val noticeTitle: String,
+    val noticeMessage: String,
+    val showNotice: Boolean
+)

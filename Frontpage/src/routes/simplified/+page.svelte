@@ -7,7 +7,11 @@
     const title = "글자로 놀자! 끄투 온라인";
 
     var blockData = {};
-    var mainPageData = {};
+    let mainPageData = {
+        title: "불러오는 중",
+        body: "잠시만 기다려 주세요.",
+        showNotice: false
+    };
 
     const serverName = [
         "감자",
@@ -39,7 +43,7 @@
 
         if (responseInfo.ok) {
             const data = await responseInfo.json();
-            if (data && typeof data === 'object') {
+            if (data && typeof data === "object") {
                 mainPageData = data;
             }
         }

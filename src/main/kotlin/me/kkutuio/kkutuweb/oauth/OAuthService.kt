@@ -20,7 +20,10 @@ package me.kkutuio.kkutuweb.oauth
 
 import com.github.scribejava.core.oauth.OAuth20Service
 
-abstract class OAuthService(private val authorizationUrlParams: Map<String, String> = emptyMap()) {
+abstract class OAuthService(
+    private val authorizationUrlParams: Map<String, String> = emptyMap(),
+    private val config: Map<String, String> = emptyMap()
+) {
     protected lateinit var oAuth20Service: OAuth20Service
     var allowRegister: Boolean = true;
 

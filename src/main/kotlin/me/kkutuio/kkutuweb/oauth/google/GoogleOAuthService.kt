@@ -24,7 +24,6 @@ import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
 import com.github.scribejava.core.model.Verb
 import me.kkutuio.kkutuweb.oauth.AuthVendor
-import me.kkutuio.kkutuweb.oauth.Gender
 import me.kkutuio.kkutuweb.oauth.OAuthService
 import me.kkutuio.kkutuweb.oauth.OAuthUser
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,19 +32,15 @@ import org.springframework.stereotype.Service
 @Service
 class GoogleOAuthService(
     @Autowired private val objectMapper: ObjectMapper
-) : OAuthService(
-    mapOf(
-        "access_type" to "offline"
-    )
-) {
-    private val protectedResourceUrl = "https://www.googleapis.com/plus/v1/people/me"
+) : OAuthService() {
+    private val protectedResourceUrl = "https://www.googleapis.com/oauth2/v3/userinfo"
 
     override fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean) {
         allowRegister = _allowRegister
         oAuth20Service = ServiceBuilder(apiKey)
             .apiSecret(apiSecret)
             .callback(callbackUrl)
-            .defaultScope("profile https://www.googleapis.com/auth/plus.login")
+            .defaultScope("openid profile email")
             .build(GoogleApi20.instance())
     }
 
@@ -60,12 +55,12 @@ class GoogleOAuthService(
 
         return OAuthUser(
             authVendor = AuthVendor.GOOGLE,
-            vendorId = jsonResponse["id"].textValue(),
-            name = jsonResponse["displayName"].textValue(),
-            profileImage = jsonResponse["image"]["url"].textValue(),
-            gender = if (jsonResponse.has("gender")) Gender.fromName(jsonResponse["gender"].textValue()) else null,
-            minAge = if (jsonResponse.has("ageRange") && jsonResponse["ageRange"].has("min")) jsonResponse["ageRange"]["min"].intValue() else null,
-            maxAge = if (jsonResponse.has("ageRange") && jsonResponse["ageRange"].has("max")) jsonResponse["ageRange"]["max"].intValue() else null
+            vendorId = jsonResponse.path("sub").asText(),
+            name = jsonResponse.path("name").asText(null) ?: jsonResponse.path("email").asText(""),
+            profileImage = jsonResponse.path("picture").asText(null),
+            gender = null,
+            minAge = null,
+            maxAge = null
         )
     }
 }

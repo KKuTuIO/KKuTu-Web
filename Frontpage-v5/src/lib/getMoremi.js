@@ -1,22 +1,23 @@
-
 let moremiData = [];
 export async function getMoremi(uid){
     if (moremiData[uid]) return moremiData[uid];
     const res = await fetch(`/user/${uid}`);
-    var data = await res.json();
+    const json = await res.json();
+    const equip = json.equip || {};
 
-    for (var key in data.equip) {
-      if (data.equip[key] === null) {
-        data.equip[key] = "default";
+    const proc = {};
+    for (let key in equip) {
+      if (!equip[key] || equip[key] === null) {
+        proc[key] = "default.png";
       }
-      else if (data.equip[key] === "stars") {
-        data.equip[key] = "stars.gif";
+      else if (equip[key] === "stars") {
+        proc[key] = "stars.gif";
       }
       else {
-        data.equip[key] = data.equip[key]+".png";
+        proc[key] = val.endsWith('.png') ? val : val + ".png";
       }
     }
 
-    moremiData[uid] = data.equip;
-    return data.equip;
+    moremiData[uid] = proc;
+    return proc;
   }

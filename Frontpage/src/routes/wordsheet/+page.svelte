@@ -179,6 +179,14 @@ word.theme.ODW=우리말샘
       .then(res => {
         if (!res.ok) {
           if (res.status === 400) {
+            showBadRequest();
+            dialogOpen = true;
+            dialogTitle = '잘못된 요청';
+            dialogContent = '검색 조건을 다시 확인해주세요.';
+            dialogType = 'info';
+            throw new Error('Bad Request');
+          }
+          if (res.status === 401) {
             dialogOpen = true;
             dialogTitle = '손님 계정 이용 제한됨';
             dialogContent = '단어장 검색은 로그인 후 이용 가능합니다.';
@@ -199,7 +207,7 @@ word.theme.ODW=우리말샘
       })
       .then(data => {
         if (data.error !== undefined) {
-          if (data.error === "400"){
+          if (data.error === "401"){
             dialogOpen = true;
             dialogTitle = '손님 계정 이용 제한됨';
             dialogContent = '단어장 검색은 로그인 후 이용 가능합니다.';
@@ -232,7 +240,7 @@ word.theme.ODW=우리말샘
       })
       .catch(error => {
         console.error('Fetch error:', error);
-        wordData = [{ message: error.message }];
+        // wordData = [{ message: error.message }];
         isWaiting = false;
       });
   }

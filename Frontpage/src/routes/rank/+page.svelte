@@ -110,7 +110,7 @@
         </div>
         <!-- User Name -->
         <div class="items-center justify-center flex text-lg font-bold">
-          <div class="level mr-2" style={getLevelImage(Number(rank.score))}></div>
+          <div class="level mr-2 w-[27px] h-[27px] flex-none bg-no-repeat" style={getLevelImage(Number(rank.score))}></div>
           {#if rank.name.includes('#')}
               {rank.name.split('#')[0]}<small>#{rank.name.split('#')[1]}</small>
           {:else}

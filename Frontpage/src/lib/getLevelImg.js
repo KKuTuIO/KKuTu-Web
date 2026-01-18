@@ -34,8 +34,9 @@ export function getLevel(score) {
 }
 
 export function getLevelImage(score) {
-    var lv = getLevel(score) - 1;
-    var lX = (lv % 25) * -100;
-    var lY = Math.floor(lv * 0.04) * -100;
+    const lv = getLevel(score) - 1;
+    const columns = 25;
+    const lX = (lv % columns) * -100;
+    const lY = Math.floor(lv / columns) * -100;
     return `background-position: ${lX}% ${lY}%;`;
 }

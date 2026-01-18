@@ -38,5 +38,5 @@ export function getLevelImage(score) {
     const columns = 25;
     const lX = (lv % columns) * -100;
     const lY = Math.floor(lv / columns) * -100;
-    return `background-position: ${lX}% ${lY}%;`;
+    return `background-position: ${lX}% ${lY}%; flex-shrink: 0;`;
 }

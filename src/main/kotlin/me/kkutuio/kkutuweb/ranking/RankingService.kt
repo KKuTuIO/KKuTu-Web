@@ -34,8 +34,17 @@ class RankingService(
         val currentRanks: List<Rank> = if (id == null) {
             rankDao.getPage(pageIndex, 15)
         } else {
-            rankDao.getSurround(id, 15)
+            try {
+                rankDao.getSurround(id, 15)
+            } catch (e: NullPointerException) {
+                emptyList()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                emptyList()
+            }
         }
+
+        if (currentRanks.isEmpty()) return RankResponse(pageIndex, emptyList())
 
         val ids = currentRanks.map { it.id }
         val prevRanks = rankDao.getSnapshotRanks(ids)

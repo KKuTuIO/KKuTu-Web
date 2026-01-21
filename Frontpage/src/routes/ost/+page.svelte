@@ -6,7 +6,7 @@
     {
       title: "끄투리오 2025 겨울",
       url: "https://cdn.kkutu.io/media/LobbyBGM_2025_Winter.mp3",
-      artist: "BGM Farm",
+      artist: "KKuTuIO",
       cover: "null",
       isNew: "false"
     },
@@ -14,6 +14,13 @@
       title: "끄투리오 8주년",
       url: "https://cdn.kkutu.io/media/LobbyBGM_2025_8th.mp3",
       artist: "BGM Farm",
+      cover: "null",
+      isNew: "false"
+    },
+    {
+      title: "끄투리오 2024 겨울",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2024_Winter.mp3",
+      artist: "KKuTuIO",
       cover: "null",
       isNew: "false"
     },

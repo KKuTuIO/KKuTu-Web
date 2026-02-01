@@ -101,6 +101,8 @@
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${equip.Mshoes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Shoes" on:error={(e) => handleImgErr(e, 'shoes', equip.Mshoes)} />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${equip.Mhead || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Head" on:error={(e) => handleImgErr(e, 'head', equip.Mhead)} />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" on:error={(e) => handleImgErr(e, 'hand', equip.Mrhand)} />
+            <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${equip.MheadDeco || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi HeadDeco" on:error={(e) => handleImgErr(e, 'headDeco', equip.MheadDeco)} />
+            <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${equip.MdressDeco || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi DressDeco" on:error={(e) => handleImgErr(e, 'dressDeco', equip.MdressDeco)} />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" on:error={(e) => handleImgErr(e, 'hand', equip.Mlhand)} />
             <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" on:error={(e) => handleImgErr(e, 'badge', equip.BDG)} />
           {:catch error}

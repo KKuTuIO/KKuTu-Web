@@ -1175,7 +1175,7 @@
     </th:block>
     <div id="MessageOverlay"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer type="text/javascript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+    <script th:src="@{${cdnHost} + '/js/in_game_util.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{${cdnHost} + '/js/kawaiii.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{${cdnHost} + '/js/in_game_kkutu.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{${cdnHost} + '/js/modules.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>

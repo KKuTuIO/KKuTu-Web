@@ -20,6 +20,19 @@
     <link rel="stylesheet" th:href="@{${cdnHost} + '/css/in_game_kkutu_shop.css?rv=' + ${runnerVersion}}"/>
     <link rel="stylesheet" th:href="@{${cdnHost} + '/css/in_m_kkutu.css?rv=' + ${runnerVersion}}"/>
 
+    <style>
+        body, #Intro, .Product {
+            overscroll-behavior-y: contain;
+            touch-action: pan-x pan-y;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        input {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+    </style>
+
     <span id="PUBLIC">true</span>
     <!-- span#PORT= locals.PORT-->
     <span id="URL" th:text="${websocketUrl}"></span>
@@ -748,7 +761,7 @@
             <div class="dialog-bar">
                 <h4 style="width: 80px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
                 <input id="dress-nickname" style="width: calc(255px - 85px)" maxlength="18"
-                       th:placeholder="#{kkutu.dialog.dress.nickname.placeHolder}" type="textfield">
+                       th:placeholder="#{kkutu.dialog.dress.nickname.placeHolder}" type="text">
                 <div class="dialog-opt" style="width: 80px">
                     <input id="fixed-nickname" type="checkbox" style="margin-top: 5px; width: auto;">
                     <label for="fixed-nickname" style="padding-top: 5px; display: block;" th:text="#{kkutu.dialog.dress.nickname.fixed}"></label>
@@ -757,12 +770,12 @@
             <div class="dialog-bar">
                 <h4 style="width: 80px;" th:text="#{kkutu.dialog.dress.exordial.name}"></h4>
                 <input id="dress-exordial" maxlength="100"
-                       th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}" type="textfield">
+                       th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}" type="text">
             </div>
             <div class="dialog-bar">
                 <h4 style="width: 80px;" th:text="#{kkutu.dialog.dress.itemSearch.name}"></h4>
                 <input id="dress-search" maxlength="100"
-                       th:placeholder="#{kkutu.dialog.dress.itemSearch.placeHolder}" type="textfield">
+                       th:placeholder="#{kkutu.dialog.dress.itemSearch.placeHolder}" type="text">
             </div>
             <div class="dialog-bar" style="padding: 5px; width: 340px;">
                 <div class="moremi-category">
@@ -1103,7 +1116,8 @@
             </div>
             <div class="game-body"></div>
             <div class="game-input">
-                <input id="game-input" autocomplete="off" autocorrect="off" spellcheck="false" th:placeholder="#{kkutu.product.game.yourTurn}">
+                <input id="game-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-autocomplete="none" inputmode="text" enterkeyhint="go"
+                        th:placeholder="#{kkutu.product.game.yourTurn}">
             </div>
         </th:block>
     </th:block>
@@ -1117,10 +1131,10 @@
         </div>
         <div class="product-body">
             <div id="Chat"></div>
-            <input class="kwjuJw2M" id="Talk" maxlength="180" autocomplete="off" autocorrect="off" spellcheck="false"
-                   style="display:none;visibility:hidden;">
-            <input class="kwjuJw2M" id="jkpA3mRw" maxlength="180" autocomplete="off" autocorrect="off" spellcheck="false"
-                   th:placeholder="#{kkutu.product.chat.info}">
+            <input class="kwjuJw2M" id="Talk" maxlength="180" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-autocomplete="none" enterkeyhint="send"
+                    style="display:none;visibility:hidden;">
+            <input class="kwjuJw2M" id="jkpA3mRw" maxlength="180" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-autocomplete="none" enterkeyhint="send"
+                    th:placeholder="#{kkutu.product.chat.info}">
             <button id="ChatBtn" th:text="#{kkutu.product.chat.sendBtn}"></button>
         </div>
     </div>

@@ -749,7 +749,7 @@
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.nickname.name}"></h4>
-                <input id="dress-nickname" type="textfield" th:placeholder="#{kkutu.dialog.dress.nickname.placeHolder}"
+                <input id="dress-nickname" type="text" th:placeholder="#{kkutu.dialog.dress.nickname.placeHolder}"
                        style="width: 355px;" maxlength="18">
                 <div class="dialog-opt" style="width: 80px">
                     <input id="fixed-nickname" type="checkbox" style="margin-top: 5px; width: auto;">
@@ -758,7 +758,7 @@
             </div>
             <div class="dialog-bar">
                 <h4 style="width: 150px;" th:text="#{kkutu.dialog.dress.exordial.name}"></h4>
-                <input id="dress-exordial" type="textfield" th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}"
+                <input id="dress-exordial" type="text" th:placeholder="#{kkutu.dialog.dress.exordial.placeHolder}"
                        style="width: 435px;" maxlength="100">
             </div>
             <div class="dialog-bar" style="width: 150px;">
@@ -823,14 +823,13 @@
             <div class="dialog-bar" style="width: 300px;">
                 <div id="if-tray"></div>
             </div>
-            <div class="dialog-bar" style="width: 200px;"><h4
-                    style="border-bottom: 1px solid #CCCCCC; width: 100%; height: 24px;"
+            <div class="dialog-bar" style="width: 200px;">
+                <h4 style="border-bottom: 1px solid #CCCCCC; width: 100%; height: 24px;"
                     th:text="#{kkutu.dialog.itemFactory.ifReward}"></h4>
                 <div id="if-reward"></div>
             </div>
             <div class="dialog-bar" style="width: 200px;">
-                <div id="if-tray"></div>
-            </div>
+                </div>
             <div class="dialog-bar">
                 <div class="goods-box" id="if-goods"></div>
             </div>
@@ -838,8 +837,8 @@
                 <div class="itemfactory-tooltip">
                     <input class="fa-pseudo search-box" id="itemfactory-search" type="text" th:placeholder="#{'kkutu.dialog.itemFactory.search'}">
                 </div>
-                <button id="cf-reset"><i class="fa-solid fa-trash"></i></button>
-                <button id="cf-compose" th:text="#{kkutu.dialog.itemFactory.ifCompose}"></button>
+                <button id="if-reset"><i class="fa-solid fa-trash"></i></button>
+                <button id="if-compose" th:text="#{kkutu.dialog.itemFactory.ifCompose}"></button>
             </div>
         </th:block>
     </th:block>
@@ -1021,7 +1020,7 @@
                     <input class="fa-pseudo search-box" id="shop-search" type="text" th:placeholder="#{'item.search'}">
                 </div>
             </div>
-            <a target="_blank" class="category-filter shop-type event-category"
+            <a target="_blank" rel="noopener noreferrer" class="category-filter shop-type event-category"
                style="width: 100px !important; float: right; display: block; margin: -3px 0px 5px 0px"
                th:text="#{'item.info.text'}" th:href="#{'item.info.href'}"></a>
             <div id="shop-shelf" style="width: 100%; height: 285px; overflow-y: scroll;"></div>

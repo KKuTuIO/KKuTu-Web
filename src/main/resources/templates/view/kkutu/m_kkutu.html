@@ -318,7 +318,7 @@
                         <option value="4" th:text="#{'game.mode.CSQ.name'}">자음퀴즈</option>
                         <option value="9" th:text="#{'game.mode.HUN.name'}">훈민정음</option>
                         <option value="17" th:text="#{'game.mode.KDG.name'}">한국어 그림퀴즈</option>
-                        <option value="19" th:text="#{'game.mode.KFT.name'}">한국어 쿵쿵쿵따 (~2/9)</option>
+                        <option value="19" th:text="#{'game.mode.KFT.name'}">한국어 쿵쿵쿵따</option>
                     </optgroup>
                     <optgroup label="기타">
                         <option value="20" th:text="#{'game.mode.KMT.name'}">수학 대결</option>
@@ -1188,6 +1188,8 @@
         </th:block>
     </th:block>
     <div id="MessageOverlay"></div>
+    <div id="ShopCartSidebar" style="display: none;"></div>
+    <div id="Scenario" style="display: none;"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer type="text/javascript"></script>
     <script th:src="@{${cdnHost} + '/js/in_game_util.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{${cdnHost} + '/js/kawaiii.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>

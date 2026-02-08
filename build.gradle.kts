@@ -49,6 +49,7 @@ sourceSets {
             exclude(
                 "**/*.jsx",
                 "**/in_game_kkutu_help.js",
+                "**/in_game_kkutu_security.js",
                 "**/in_game_kkutu.js",
                 "**/in_login.js",
                 "**/in_portal.js",

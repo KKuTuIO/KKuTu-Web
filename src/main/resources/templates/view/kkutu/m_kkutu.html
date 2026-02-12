@@ -210,10 +210,10 @@
                     <thead style="font-weight: bold; background-color: #DDDDDD;">
                     <tr>
                         <td width="30">#</td>
-                        <td th:text="#{kkutu.dialog.leaderboard.level}" width="55">레벨</td>
-                        <td th:text="#{kkutu.dialog.leaderboard.name}" width="115">이름</td>
-                        <td th:text="#{kkutu.dialog.leaderboard.totalExp}" width="100">총 경험치</td>
-                        <td th:text="#{kkutu.dialog.leaderboard.delta}" width="40">변동</td>
+                        <td th:text="#{kkutu.dialog.leaderboard.level}">레벨</td>
+                        <td th:text="#{kkutu.dialog.leaderboard.name}">이름</td>
+                        <td th:text="#{kkutu.dialog.leaderboard.totalExp}">총 경험치</td>
+                        <td th:text="#{kkutu.dialog.leaderboard.delta}">변동</td>
                     </tr>
                     </thead>
                     <tbody></tbody>
@@ -468,7 +468,7 @@
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.dict.wpHere}"></h4>
-                <input id="dict-input" maxlength="200" style="width: 183px;"
+                <input id="dict-input" maxlength="200"
                        th:placeholder="#{kkutu.dialog.dict.wpInput}">
             </div>
             <div class="dialog-bar" id="dict-output"

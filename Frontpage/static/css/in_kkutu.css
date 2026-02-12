@@ -2037,6 +2037,9 @@ td.ranking-name {
 
 .TLXFQZBox .product-body {
     text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 @keyframes RoundEffect {

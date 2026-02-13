@@ -1206,7 +1206,7 @@
               {#each historyRows as row}
                 <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" style={`border-left: 6px solid ${row.won ? '#eab308' : '#9ca3af'}`}>
                   <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(row.gameId)}>
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
                       <div class="text-3xl font-black">
                         #{row.placement}
                         <span class="text-lg font-semibold text-gray-500 dark:text-gray-300">/ {row.playerCount}</span>
@@ -1373,10 +1373,12 @@
                                       {#if !chainEntry.isItem}
                                         <span class={getChainDeltaClass(chainEntry.delta)}>{formatSignedScore(chainEntry.delta)}</span>
                                       {/if}
-                                      <span class="pointer-events-none absolute -top-10 left-1/2 z-20 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block dark:bg-slate-100 dark:text-slate-900">
-                                        {getChainTooltipText(chainEntry)}
+                                      <span class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden -translate-x-1/2 group-hover:block">
+                                        <span class="relative block whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium leading-none text-white shadow-lg dark:bg-slate-100 dark:text-slate-900">
+                                          {getChainTooltipText(chainEntry)}
+                                          <span class="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-slate-900 dark:bg-slate-100"></span>
+                                        </span>
                                       </span>
-                                      <span class="pointer-events-none absolute -top-1 left-1/2 z-10 hidden h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900 group-hover:block dark:bg-slate-100"></span>
                                     </div>
                                     {#if idx < detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem).length - 1}
                                       <span class="text-slate-400">›</span>
@@ -1449,7 +1451,7 @@
         <h3 class="text-2xl font-bold mb-3">경기 조회 결과</h3>
         <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(gameSearchResult.gameId)}>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
               <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.roomTitle || '제목 없음'}</div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-lg truncate">{getModeLabel(gameSearchResult)}</div>
@@ -1608,10 +1610,12 @@
                             {#if !chainEntry.isItem}
                               <span class={getChainDeltaClass(chainEntry.delta)}>{formatSignedScore(chainEntry.delta)}</span>
                             {/if}
-                            <span class="pointer-events-none absolute -top-10 left-1/2 z-20 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block dark:bg-slate-100 dark:text-slate-900">
-                              {getChainTooltipText(chainEntry)}
+                            <span class="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden -translate-x-1/2 group-hover:block">
+                              <span class="relative block whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium leading-none text-white shadow-lg dark:bg-slate-100 dark:text-slate-900">
+                                {getChainTooltipText(chainEntry)}
+                                <span class="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-slate-900 dark:bg-slate-100"></span>
+                              </span>
                             </span>
-                            <span class="pointer-events-none absolute -top-1 left-1/2 z-10 hidden h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900 group-hover:block dark:bg-slate-100"></span>
                           </div>
                           {#if idx < detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem).length - 1}
                             <span class="text-slate-400">›</span>

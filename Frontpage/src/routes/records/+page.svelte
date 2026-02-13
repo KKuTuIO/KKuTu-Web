@@ -1246,7 +1246,7 @@
                       </div>
                       <div class="shrink-0 text-left sm:text-right">
                         <div class="text-2xl font-extrabold">{Number(row.score).toLocaleString()}점</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-300">EXP +{Number(row.exp || 0).toLocaleString()}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-300">경험치 +{Number(row.exp || 0).toLocaleString()}</div>
                       </div>
                     </div>
                   </button>
@@ -1295,7 +1295,7 @@
                                     {#if participant.id && participant.id !== participant.nickname}
                                       <span>식별번호: {participant.id}</span>
                                     {/if}
-                                    <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
+                                    <span>획득 경험치: +{Number(participant.exp || 0).toLocaleString()}</span>
                                     {#if participant.robot}
                                       <span class="rounded bg-slate-300 px-1.5 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">BOT</span>
                                     {/if}
@@ -1532,7 +1532,7 @@
                           {#if participant.id && participant.id !== participant.nickname}
                             <span>식별번호: {participant.id}</span>
                           {/if}
-                          <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
+                          <span>획득 경험치: +{Number(participant.exp || 0).toLocaleString()}</span>
                           {#if participant.robot}
                             <span class="rounded bg-slate-300 px-1.5 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">BOT</span>
                           {/if}

@@ -18,6 +18,7 @@ data class RecordGame(
     val channel: Int,
     val roomId: Int,
     val mode: Int,
+    val modeName: String = "UNKNOWN",
     val rule: String,
     val lang: String,
     val roomTitle: String,

@@ -1259,7 +1259,7 @@
                         <div class="text-sm text-red-600">상세 정보를 불러오지 못했습니다.</div>
                       {:else if detailMap[row.gameId]}
                         <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
-                          <div class="cursor-text select-text rounded px-1 py-0.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/60" on:click={selectTextFromCurrentTarget}>경기번호: <code data-select-text>{row.gameId}</code></div>
+                          <div class="cursor-text select-text" on:click={selectTextFromCurrentTarget}>경기번호: <code data-select-text>{row.gameId}</code></div>
                           <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white dark:bg-gray-700" on:click={() => downloadKkio(detailMap[row.gameId])}>
                             <span class="material-symbols-outlined text-base">download</span> 리플레이 내려받기
                           </button>
@@ -1483,7 +1483,7 @@
               <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.roomTitle || '제목 없음'}</div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-lg truncate">{getModeLabel(gameSearchResult)}</div>
-                <div data-select-text class="cursor-text select-text rounded px-1 py-0.5 text-sm text-gray-500 hover:bg-slate-100/70 dark:text-gray-300 dark:hover:bg-slate-800/60" on:click|stopPropagation={selectTextFromCurrentTarget}>{gameSearchResult.gameId}</div>
+                <div data-select-text class="cursor-text select-text text-sm text-gray-500 dark:text-gray-300" on:click|stopPropagation={selectTextFromCurrentTarget}>{gameSearchResult.gameId}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatAgo(gameSearchResult.startedAt)} · {formatDate(gameSearchResult.startedAt)}</div>
               </div>
               <div class="shrink-0 text-left sm:text-right">

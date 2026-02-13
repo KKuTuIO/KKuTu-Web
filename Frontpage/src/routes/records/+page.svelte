@@ -1,5 +1,6 @@
 <script nonce="kkutuio">
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
+  import { fade, fly } from 'svelte/transition';
   import { browser } from '$app/environment';
   import { getLevel } from '../../lib/getLevelImg.js';
 
@@ -107,8 +108,9 @@
   let loading = false;
   let loadingHistory = false;
   let errorMessage = '';
-  let errorToast = '';
-  let errorToastTimer = null;
+  let toasts = [];
+  let toastId = 0;
+  const toastTimers = new Map();
 
   let page = 1;
   let pageSize = 10;
@@ -176,14 +178,29 @@
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
   }
 
+  function removeToast(id) {
+    const timer = toastTimers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimers.delete(id);
+    }
+    toasts = toasts.filter((toast) => toast.id !== id);
+  }
+
+  function pushToast(message = '', kind = 'error', durationMs = 4500) {
+    const text = String(message || '').trim();
+    if (!text) return;
+    const id = ++toastId;
+    toasts = [...toasts, { id, message: text, kind }];
+    const timeout = Number.isFinite(durationMs) ? Math.max(1200, Math.floor(durationMs)) : 4500;
+    const timer = setTimeout(() => removeToast(id), timeout);
+    toastTimers.set(id, timer);
+  }
+
   function showError(message = '') {
     errorMessage = String(message || '');
-    errorToast = errorMessage;
-    if (errorToastTimer) clearTimeout(errorToastTimer);
-    if (!errorToast) return;
-    errorToastTimer = setTimeout(() => {
-      errorToast = '';
-    }, 4500);
+    if (!errorMessage) return;
+    pushToast(errorMessage, 'error', 4500);
   }
 
   function selectTextFromCurrentTarget(event) {
@@ -1078,6 +1095,11 @@
       await loadAll(false);
     }
   });
+
+  onDestroy(() => {
+    for (const timer of toastTimers.values()) clearTimeout(timer);
+    toastTimers.clear();
+  });
 </script>
 
 <svelte:head>
@@ -1087,14 +1109,14 @@
 <div class="bg-slate-950 text-slate-100 py-4">
   <div class={`${hasResultView ? 'min-h-[50vh]' : 'min-h-screen'} rankBg relative flex h-full flex-col items-center overflow-hidden px-4 pb-20 pt-24 md:pb-28 md:pt-32`}>
     <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-slate-950"></div>
-    <p class="relative z-10 text-gray-200 text-lg my-4 flex items-center gap-2">
+    <p in:fade={{ duration: 180 }} class="relative z-10 text-gray-200 text-lg my-4 flex items-center gap-2">
       <span class="material-symbols-outlined">insights</span>
       전적 조회
     </p>
-    <h1 class="relative z-10 mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
+    <h1 in:fly={{ y: -10, duration: 220 }} class="relative z-10 mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
       끄투리오 전적 검색
     </h1>
-    <div class="relative z-10 mt-8 flex w-full max-w-3xl items-center rounded-2xl border border-white/40 bg-slate-900/60 p-2 shadow-xl backdrop-blur sm:mt-10">
+    <div in:fly={{ y: 16, duration: 260, delay: 40 }} class="relative z-10 mt-8 flex w-full max-w-3xl items-center rounded-2xl border border-white/40 bg-slate-900/60 p-2 shadow-xl backdrop-blur sm:mt-10">
       <select class="h-10 rounded-xl border border-white/20 bg-slate-950/70 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-400/60" bind:value={searchType}>
         <option value={SEARCH_TYPE.nickname}>별명</option>
         <option value={SEARCH_TYPE.id}>식별번호</option>
@@ -1114,7 +1136,7 @@
   </div>
 
   {#if currentStatus === 'user' && profile}
-    <div class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
+    <div in:fly={{ y: 18, duration: 220 }} class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="rounded-xl overflow-hidden border border-gray-300/70 dark:border-gray-700">
         <div class="flex flex-col gap-5 bg-gradient-to-br from-emerald-50 to-sky-50 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between dark:from-slate-800 dark:to-slate-900">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
@@ -1172,8 +1194,8 @@
         <section class="mt-5">
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {#if modeStats.length}
-              {#each modeStats.slice(0, selectedTab === 'stats' ? modeStats.length : 3) as stat}
-                <article class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+              {#each modeStats.slice(0, selectedTab === 'stats' ? modeStats.length : 3) as stat (stat.key)}
+                <article in:fade={{ duration: 180 }} class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
                   <div class="text-xl font-bold text-blue-600 dark:text-blue-300 flex items-center gap-2">
                     <span class="material-symbols-outlined">stadia_controller</span>
                     {stat.modeName}
@@ -1232,7 +1254,7 @@
           {:else}
             <div class="space-y-3">
               {#each historyRows as row}
-                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" style={`border-left: 6px solid ${row.won ? '#eab308' : '#9ca3af'}`}>
+                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-900" style={`border-left: 6px solid ${row.won ? '#eab308' : '#9ca3af'}`}>
                   <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(row.gameId)}>
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
                       <div class="text-3xl font-black">
@@ -1474,10 +1496,10 @@
   {/if}
 
   {#if currentStatus === 'game' && gameSearchResult}
-    <div class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
+    <div in:fly={{ y: 18, duration: 220 }} class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="mt-2">
         <h3 class="text-2xl font-bold mb-3">경기 조회 결과</h3>
-        <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
           <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(gameSearchResult.gameId)}>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
               <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.roomTitle || '제목 없음'}</div>
@@ -1686,9 +1708,28 @@
     </div>
   {/if}
 
-  {#if errorToast}
-    <div class="fixed bottom-6 right-4 z-[90] max-w-[min(92vw,680px)] rounded-xl border border-rose-300/70 bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-700 shadow-lg shadow-black/20 dark:border-rose-500/50 dark:bg-rose-950/90 dark:text-rose-100">
-      {errorToast}
+  {#if toasts.length}
+    <div class="pointer-events-none fixed bottom-6 right-4 z-[90] flex w-[min(92vw,680px)] flex-col gap-2">
+      {#each toasts as toast (toast.id)}
+        <div
+          in:fly={{ y: 12, duration: 180 }}
+          out:fly={{ y: 12, duration: 160 }}
+          class={`pointer-events-auto flex items-start gap-2 rounded-xl border px-4 py-3 text-sm shadow-lg shadow-black/20 ${
+            toast.kind === 'error'
+              ? 'border-rose-300/70 bg-rose-100 text-rose-700 dark:border-rose-500/50 dark:bg-rose-950/90 dark:text-rose-100'
+              : 'border-slate-300/70 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-100'
+          }`}
+        >
+          <span class="flex-1 leading-snug">{toast.message}</span>
+          <button
+            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-inherit/70 transition hover:bg-black/10 hover:text-inherit dark:hover:bg-white/10"
+            aria-label="닫기"
+            on:click={() => removeToast(toast.id)}
+          >
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+      {/each}
     </div>
   {/if}
 </div>

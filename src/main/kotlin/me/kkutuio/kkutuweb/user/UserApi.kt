@@ -22,12 +22,15 @@
  import org.springframework.http.MediaType
  import org.springframework.web.bind.annotation.*
  import javax.servlet.http.HttpSession
+ import javax.servlet.http.HttpServletRequest
  import me.kkutuio.kkutuweb.extension.isGuest
  import me.kkutuio.kkutuweb.extension.getOAuthUser
+ import me.kkutuio.kkutuweb.record.RecordCheckRateLimiter
  
  @RestController
  class UserApi(
-     @Autowired private val userService: UserService
+     @Autowired private val userService: UserService,
+     @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter
  ) {
      @GetMapping("/box", produces = [MediaType.APPLICATION_JSON_VALUE])
      fun getBox(session: HttpSession): String {
@@ -90,8 +93,12 @@
      @GetMapping("/idFromNick/{nick}", produces = [MediaType.APPLICATION_JSON_VALUE])
      fun getIdFromNick(
          @PathVariable nick: String,
+         request: HttpServletRequest,
          session: HttpSession
      ): String {
+         if (!recordCheckRateLimiter.allow(request, session)) {
+             return """{"result":429,"error":"rate-limited"}"""
+         }
          return userService.getIdFromNick(nick)
      }
  }

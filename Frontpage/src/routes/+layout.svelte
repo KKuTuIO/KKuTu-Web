@@ -11,8 +11,6 @@
 	import './styles.css';
 	import '../app.css';
   
-	const okggg = ["rank", "okggg", "stats"];
-
  </script>
 
   <svelte:head>

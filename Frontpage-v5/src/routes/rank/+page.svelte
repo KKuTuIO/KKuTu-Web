@@ -130,7 +130,7 @@
         <thead class="bg-gray-200 dark:bg-gray-700 dark:text-white">
           <tr>
             <th class="py-2 text-center">순위</th>
-            <th class="py-2 text-center">닉네임</th>
+            <th class="py-2 text-center">별명</th>
             <th class="py-2 text-center">레벨</th>
             <th class="py-2 text-center">점수</th>
           </tr>

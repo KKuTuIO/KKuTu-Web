@@ -3,7 +3,7 @@
   import { browser } from '$app/environment';
   import { getLevel } from '../../lib/getLevelImg.js';
 
-  const title = 'OKG.GG';
+  const title = 'Records';
   const ALLOWED_PAGE_SIZES = [10, 30, 50];
   const SEARCH_TYPE = {
     nickname: 'nickname',
@@ -35,6 +35,7 @@
     KQZ: '퀴즈 대결',
     UNKNOWN: '기타'
   };
+  const CHAIN_MODE_SET = new Set(['KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT', 'HUN', 'KDA', 'EDA', 'KSS', 'ESS']);
 
   let searchType = SEARCH_TYPE.nickname;
   let searchNick = '';
@@ -57,9 +58,13 @@
   let expandedGameId = '';
   let detailLoading = {};
   let detailMap = {};
-  let userNameCache = {};
   let selectedRoundByGame = {};
+  let hoveredChainPlayerByGame = {};
+  let showItemEntriesByGame = {};
   let gameSearchResult = null;
+  let hasResultView = false;
+
+  $: hasResultView = (currentStatus === 'user' && !!profile) || (currentStatus === 'game' && !!gameSearchResult);
 
   function normalizeSearchType(value) {
     if (value === SEARCH_TYPE.id) return SEARCH_TYPE.id;
@@ -69,7 +74,7 @@
 
   function searchPlaceholder() {
     if (searchType === SEARCH_TYPE.id) return '식별번호를 입력하세요.';
-    if (searchType === SEARCH_TYPE.gameId) return '경기 ID를 입력하세요.';
+    if (searchType === SEARCH_TYPE.gameId) return '경기번호를 입력하세요.';
     return '별명을 입력하세요.';
   }
 
@@ -171,7 +176,7 @@
         playHours: normalizePlayHoursFromMs(row.playTimeMs)
       }))
       .filter((row) => row.playTimeMs > 0 || row.wins > 0 || row.games > 0 || row.acceptedWords > 0 || row.exp > 0)
-      .sort((a, b) => b.playTimeMs - a.playTimeMs || b.games - a.games);
+      .sort((a, b) => b.exp - a.exp || b.playTimeMs - a.playTimeMs || b.games - a.games);
 
     return rows;
   }
@@ -207,15 +212,6 @@
     return `${min}분 ${sec}초`;
   }
 
-  async function resolveUserName(id) {
-    if (!id) return '-';
-    if (userNameCache[id]) return userNameCache[id];
-    const { body } = await fetchJson(`/user/${encodeURIComponent(id)}`);
-    const nickname = body?.profile?.title || body?.profile?.name || id;
-    userNameCache = { ...userNameCache, [id]: nickname };
-    return nickname;
-  }
-
   async function decodeReplayPayload(base64) {
     if (!base64 || !browser) return null;
     try {
@@ -233,18 +229,29 @@
 
   function buildReplayView(payload) {
     if (!payload || !Array.isArray(payload.p) || !Array.isArray(payload.w)) return null;
+    const modeCode = String(payload.rm?.[2] || '');
+    const isChainMode = CHAIN_MODE_SET.has(modeCode);
     const players = payload.p.map((row, index) => ({
       index,
       id: row[0],
       nickname: row[1],
+      exordial: row[2] || '',
       level: Number(row[3] || 1),
-      robot: Number(row[6] || 0) === 1
+      robot: Number(row[6] || 0) === 1,
+      team: Number(row[5] || 0),
+      createdAt: Number(row[7] || 0),
+      profileTitle: row[8] || '',
+      profileName: row[9] || '',
+      profileImage: row[10] || '',
+      outfit: Array.isArray(row[11]) ? row[11] : []
     }));
     const words = payload.w;
     const extras = Array.isArray(payload.x) ? payload.x : [];
     const inputs = Array.isArray(payload.i) ? payload.i : [];
     const modeEvents = Array.isArray(payload.mv) ? payload.mv : [];
     const rounds = {};
+    const chainEntriesByRound = {};
+    let hasChainItemEvents = false;
     const rejectReasonLabel = {
       NCH: '체인 불일치',
       DUP: '중복 단어',
@@ -269,27 +276,29 @@
       const elapsedTurnMs = Number(row[2] || 0);
       const elapsedGameMs = Number(row[3] || 0);
       const extraIndex = Number(row[6] || -1);
+      const turn = Number(row[5] || 0);
       const extraRaw = extraIndex >= 0 ? String(extras[extraIndex] || '') : '';
       const extraTokens = extraRaw ? extraRaw.split(',') : [];
+      const extraTag = extraTokens[0] || '';
       let displayWord = words[wordIndex] || '(알 수 없음)';
-      if (extraTokens[0] === 'D') {
+      if (extraTag === 'D') {
         const drawerIndex = Number(extraTokens[1] || -1);
         const drawerName = drawerIndex >= 0 ? (players[drawerIndex]?.nickname || `Player#${drawerIndex}`) : '-';
         const hintsGiven = Number(extraTokens[2] || 0);
         displayWord = `${displayWord} (정답 · 힌트 ${hintsGiven} · 화가 ${drawerName})`;
-      } else if (extraTokens[0] === 'CA') {
+      } else if (extraTag === 'CA') {
         const score = Number(extraTokens[1] || 0);
         const bonus = Number(extraTokens[2] || 0);
         displayWord = `${displayWord} (인정 +${score}${bonus ? ` · 미션 +${bonus}` : ''})`;
-      } else if (extraTokens[0] === 'CR') {
+      } else if (extraTag === 'CR') {
         const reason = extraTokens[1] || 'OTH';
         const code = Number(extraTokens[2] || -1);
         const label = rejectReasonLabel[reason] || rejectReasonLabel.OTH;
         displayWord = `${displayWord} (거절 · ${label}${code >= 0 ? ` · 코드 ${code}` : ''})`;
-      } else if (extraTokens[0] === 'J') {
+      } else if (extraTag === 'J') {
         const hintsGiven = Number(extraTokens[1] || 0);
         displayWord = `${displayWord} (정답 · 힌트 ${hintsGiven})`;
-      } else if (extraTokens[0] === 'C') {
+      } else if (extraTag === 'C') {
         const board = Number(extraTokens[1] || 0);
         const x = Number(extraTokens[2] || 0);
         const y = Number(extraTokens[3] || 0);
@@ -305,6 +314,32 @@
         elapsedGameMs
       };
       appendRoundItem(round, item);
+
+      if (isChainMode && round > 0 && (extraTag === '' || extraTag === 'CA' || extraTag === 'CR')) {
+        if (!chainEntriesByRound[round]) chainEntriesByRound[round] = [];
+        let delta = 0;
+        let rejected = false;
+        let reason = '';
+        if (extraTag === 'CA') {
+          delta = Number(extraTokens[1] || 0) + Number(extraTokens[2] || 0);
+        } else if (extraTag === 'CR') {
+          rejected = true;
+          reason = rejectReasonLabel[extraTokens[1] || 'OTH'] || rejectReasonLabel.OTH;
+        }
+        chainEntriesByRound[round].push({
+          playerIndex,
+          nickname: players[playerIndex]?.nickname || `Player#${playerIndex}`,
+          word: words[wordIndex] || '(알 수 없음)',
+          delta,
+          elapsedTurnMs,
+          elapsedGameMs,
+          turn,
+          showTurn: true,
+          rejected,
+          reason,
+          isItem: false
+        });
+      }
     }
 
     for (const row of modeEvents) {
@@ -353,6 +388,25 @@
         elapsedTurnMs: elapsedGameMs,
         elapsedGameMs
       });
+
+      if (isChainMode && round > 0 && (eventType === 'CTO' || eventType === 'CIT')) {
+        if (!chainEntriesByRound[round]) chainEntriesByRound[round] = [];
+        const timeoutDelta = eventType === 'CTO' ? Number(extraTokens[1] || 0) : 0;
+        if (eventType === 'CIT') hasChainItemEvents = true;
+        chainEntriesByRound[round].push({
+          playerIndex,
+          nickname: players[playerIndex]?.nickname || `Player#${playerIndex}`,
+          word: eventType === 'CTO' ? '입력 실패' : `아이템 ${Number(extraTokens[1] || -1)} 사용`,
+          delta: timeoutDelta,
+          elapsedTurnMs: elapsedGameMs,
+          elapsedGameMs,
+          turn: Number.MAX_SAFE_INTEGER,
+          showTurn: false,
+          rejected: eventType === 'CTO',
+          reason: eventType === 'CTO' ? '시간 초과' : '',
+          isItem: eventType === 'CIT'
+        });
+      }
     }
 
     for (const key of Object.keys(rounds)) {
@@ -365,7 +419,8 @@
         const playerIndex = Number(row[0] || 0);
         return {
           playerIndex,
-          nickname: players[playerIndex]?.nickname || `Player#${playerIndex}`,
+          playerId: players[playerIndex]?.id || '',
+          nickname: players[playerIndex]?.nickname || `#${playerIndex}`,
           placement: Number(row[1] || 0) + 1,
           score: Number(row[2] || 0),
           exp: Number(row[4] || 0),
@@ -382,13 +437,193 @@
       .map((k) => Number(k))
       .sort((a, b) => a - b);
 
+    const totalRounds = Math.max(1, Number(payload.rm?.[5] || 0));
+    const chainRoundKeys = isChainMode
+      ? Array.from({ length: totalRounds }, (_, idx) => idx + 1)
+      : Object.keys(chainEntriesByRound).map((k) => Number(k)).sort((a, b) => a - b);
+    const chainRounds = {};
+    const cumulativeScoreByPlayer = players.map(() => 0);
+    for (const round of chainRoundKeys) {
+      const entries = (chainEntriesByRound[round] || []).slice().sort((a, b) => {
+        if (a.elapsedGameMs !== b.elapsedGameMs) return a.elapsedGameMs - b.elapsedGameMs;
+        if (a.turn !== b.turn) return a.turn - b.turn;
+        return a.playerIndex - b.playerIndex;
+      });
+      const orderIndices = [];
+      for (const entry of entries) {
+        if (!orderIndices.includes(entry.playerIndex)) orderIndices.push(entry.playerIndex);
+      }
+      for (let playerIndex = 0; playerIndex < players.length; playerIndex++) {
+        if (!orderIndices.includes(playerIndex)) orderIndices.push(playerIndex);
+      }
+      chainRounds[round] = {
+        order: orderIndices.map((playerIndex, order) => ({
+          playerIndex,
+          order: order + 1,
+          nickname: players[playerIndex]?.nickname || `Player#${playerIndex}`,
+          startScore: Number(cumulativeScoreByPlayer[playerIndex] || 0)
+        })),
+        entries
+      };
+      for (const entry of entries) {
+        cumulativeScoreByPlayer[entry.playerIndex] = Number(cumulativeScoreByPlayer[entry.playerIndex] || 0) + Number(entry.delta || 0);
+      }
+    }
+
     return {
+      payload,
+      modeCode,
       players,
       ranking,
       rounds,
       roundKeys,
-      acceptedChain
+      acceptedChain,
+      chain: {
+        enabled: isChainMode && chainRoundKeys.length > 0,
+        hasItemEvents: hasChainItemEvents,
+        roundKeys: chainRoundKeys,
+        rounds: chainRounds
+      }
     };
+  }
+
+  function buildParticipants(game, replayView) {
+    if (!replayView || !Array.isArray(replayView.players)) {
+      const winnerIds = new Set(Array.isArray(game?.winnerIds) ? game.winnerIds : []);
+      const userIds = Array.isArray(game?.userIds) ? game.userIds : [];
+      return userIds.map((id) => ({
+        id,
+        nickname: id,
+        won: winnerIds.has(id),
+        robot: false,
+        left: false,
+        exp: 0,
+        score: 0,
+        placement: 0
+      }));
+    }
+    const rankByIndex = new Map((replayView.ranking || []).map((row) => [row.playerIndex, row]));
+    const winnerIds = new Set(Array.isArray(game?.winnerIds) ? game.winnerIds : []);
+    const participants = replayView.players.map((player) => {
+      const rankRow = rankByIndex.get(player.index);
+      const left = !rankRow;
+      return {
+        id: player.id,
+        nickname: player.nickname || player.id,
+        won: rankRow ? rankRow.placement === 1 : winnerIds.has(player.id),
+        robot: Boolean(player.robot),
+        left,
+        exp: Number(rankRow?.exp || 0),
+        score: Number(rankRow?.score || 0),
+        placement: Number(rankRow?.placement || 0)
+      };
+    });
+    participants.sort((a, b) => {
+      if (a.left !== b.left) return a.left ? 1 : -1;
+      if (a.placement > 0 && b.placement > 0 && a.placement !== b.placement) return a.placement - b.placement;
+      if (a.placement > 0 && b.placement <= 0) return -1;
+      if (a.placement <= 0 && b.placement > 0) return 1;
+      return b.score - a.score;
+    });
+    return participants;
+  }
+
+  async function copyPlayerId(id) {
+    if (!browser || !id) return;
+    try {
+      await navigator.clipboard.writeText(id);
+    } catch {
+      errorMessage = '식별번호 복사에 실패했습니다.';
+    }
+  }
+
+  async function searchPlayerById(id) {
+    if (!id) return;
+    searchType = SEARCH_TYPE.id;
+    searchNick = id;
+    uid = id;
+    page = 1;
+    currentStatus = 'main';
+    gameSearchResult = null;
+    await loadAll(true);
+  }
+
+  async function openAccountInfo(id) {
+    await searchPlayerById(id);
+    selectedTab = 'profile';
+  }
+
+  function getParticipantLabel(participant) {
+    if (participant?.left) return '중도 퇴장';
+    if (Number(participant?.placement || 0) > 0) return `${participant.placement}위`;
+    return '-';
+  }
+
+  function getParticipantScoreText(participant) {
+    if (participant?.left) return '-';
+    return `${Number(participant?.score || 0).toLocaleString()}점`;
+  }
+
+  function formatSignedScore(value) {
+    const n = Number(value || 0);
+    return `${n > 0 ? '+' : ''}${n}`;
+  }
+
+  let recordScriptPromise = null;
+  const RECORD_SCRIPT_URL = 'https://cdn.kkutu.io/js/in_records.min.js?v=4.2.0';
+
+  function getRecordGlobal() {
+    if (!browser) return null;
+    const candidate = window?.KKuTuRecord;
+    if (!candidate || typeof candidate.downloadKkio !== 'function') return null;
+    return candidate;
+  }
+
+  function loadRecordScript() {
+    if (!browser) return Promise.resolve(false);
+    if (getRecordGlobal()) return Promise.resolve(true);
+    if (recordScriptPromise) return recordScriptPromise;
+
+    recordScriptPromise = new Promise((resolve) => {
+      const existing = document.querySelector('script[data-kkutu-record="1"]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(Boolean(getRecordGlobal())), { once: true });
+        existing.addEventListener('error', () => resolve(false), { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = RECORD_SCRIPT_URL;
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.dataset.kkutuRecord = '1';
+      script.addEventListener('load', () => resolve(Boolean(getRecordGlobal())), { once: true });
+      script.addEventListener('error', () => resolve(false), { once: true });
+      document.head.appendChild(script);
+    });
+
+    return recordScriptPromise;
+  }
+
+  async function downloadKkio(detail) {
+    if (!browser) return;
+    const loaded = await loadRecordScript();
+    if (!loaded) {
+      errorMessage = '리플레이 내보내기 모듈 로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      return;
+    }
+    const recordGlobal = getRecordGlobal();
+    if (!recordGlobal) {
+      errorMessage = '리플레이 내보내기 모듈을 찾을 수 없습니다.';
+      return;
+    }
+
+    try {
+      const ok = recordGlobal.downloadKkio(detail);
+      if (!ok) errorMessage = '리플레이 파일 생성에 실패했습니다.';
+    } catch {
+      errorMessage = '리플레이 파일 생성에 실패했습니다.';
+    }
   }
 
   async function loadProfile() {
@@ -403,12 +638,23 @@
       lastLoginTs: toEpochMs(body?.profile?.lastLogin),
       score: Number(body?.data?.score || 0),
       level: getLevel(Number(body?.data?.score || 0)),
+      rank: null,
       record: body?.data?.record || {},
       raw: body
     };
     profile = nextProfile;
     moremi = normalizeEquip(body.equip);
     return nextProfile;
+  }
+
+  async function loadUserRanking(userId) {
+    const { body } = await fetchJson(`/ranking?id=${encodeURIComponent(userId)}`);
+    const rankRows = Array.isArray(body?.data?.data) ? body.data.data : [];
+    const current = rankRows.find((row) => row?.id === userId) || rankRows[0];
+    if (!current) return null;
+    const rank = Number(current.rank);
+    if (!Number.isFinite(rank)) return null;
+    return rank + 1;
   }
 
   async function loadModeStats() {
@@ -441,7 +687,9 @@
     if (resetPage) page = 1;
     syncQuery();
     try {
-      const [loadedProfile, , replayModeStats] = await Promise.all([loadProfile(), loadHistory(page), loadModeStats()]);
+      const [loadedProfile, , replayModeStats, ranking] = await Promise.all([loadProfile(), loadHistory(page), loadModeStats(), loadUserRanking(uid)]);
+      loadedProfile.rank = ranking;
+      profile = { ...loadedProfile };
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
       syncQuery();
     } catch (err) {
@@ -456,6 +704,8 @@
     expandedGameId = '';
     detailMap = {};
     detailLoading = {};
+    hoveredChainPlayerByGame = {};
+    showItemEntriesByGame = {};
     historyRows = [];
     hasNext = false;
     gameSearchResult = null;
@@ -476,18 +726,13 @@
       const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(keyword)}?includePayload=true`);
       if (!body?.ok || !body?.game) {
         if (body?.code === 429) throw new Error('경기 조회 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.');
-        throw new Error('경기 조회 실패입니다: 입력한 경기 ID를 찾을 수 없습니다.');
+        throw new Error('경기 조회 실패입니다: 입력한 경기번호를 찾을 수 없습니다.');
       }
       const game = body.game;
-      const userIds = Array.isArray(game.userIds) ? game.userIds : [];
-      const participants = await Promise.all(userIds.map(async (id) => ({
-        id,
-        nickname: await resolveUserName(id),
-        won: Array.isArray(game.winnerIds) ? game.winnerIds.includes(id) : false
-      })));
       const payload = await decodeReplayPayload(game.payload);
       const replayView = buildReplayView(payload);
-      const firstRound = replayView?.roundKeys?.[0] || 0;
+      const participants = buildParticipants(game, replayView);
+      const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
       selectedRoundByGame = { ...selectedRoundByGame, [game.gameId]: firstRound };
       detailMap = { ...detailMap, [game.gameId]: { ...game, participants, replayView } };
       expandedGameId = game.gameId;
@@ -571,15 +816,10 @@
       return;
     }
     const game = body.game;
-    const userIds = Array.isArray(game.userIds) ? game.userIds : [];
-    const participants = await Promise.all(userIds.map(async (id) => ({
-      id,
-      nickname: await resolveUserName(id),
-      won: Array.isArray(game.winnerIds) ? game.winnerIds.includes(id) : false
-    })));
     const payload = await decodeReplayPayload(game.payload);
     const replayView = buildReplayView(payload);
-    const firstRound = replayView?.roundKeys?.[0] || 0;
+    const participants = buildParticipants(game, replayView);
+    const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
     selectedRoundByGame = { ...selectedRoundByGame, [gameId]: firstRound };
     detailLoading = { ...detailLoading, [gameId]: false };
     detailMap = { ...detailMap, [gameId]: { ...game, participants, replayView } };
@@ -614,20 +854,19 @@
 </svelte:head>
 
 <div class="dark:bg-gray-900">
-  <div class="min-h-screen h-full py-40 px-4 flex flex-col items-center rankBg">
+  <div class={`${hasResultView ? 'min-h-50' : 'min-h-screen'} h-full py-40 px-4 flex flex-col items-center rankBg`}>
     <p class="text-gray-200 text-lg my-4 flex items-center gap-2">
       <span class="material-symbols-outlined">insights</span>
       전적 조회
     </p>
     <h1 class="text-white text-5xl font-bold mb-2 flex items-center gap-3">
-      <span class="material-symbols-outlined text-5xl">sports_score</span>
       끄투리오 전적 검색
     </h1>
     <div class="search-wrap flex items-center border-3 border-white rounded-full p-2 mt-10">
       <select class="search-type-select" bind:value={searchType}>
         <option value={SEARCH_TYPE.nickname}>별명</option>
         <option value={SEARCH_TYPE.id}>식별번호</option>
-        <option value={SEARCH_TYPE.gameId}>경기 ID</option>
+        <option value={SEARCH_TYPE.gameId}>경기번호</option>
       </select>
       <input
         bind:value={searchNick}
@@ -663,6 +902,9 @@
             <div>
               <div class="flex items-center gap-2 mb-2">
                 <span class="badge-level">레벨 {profile.level}</span>
+                {#if profile.rank}
+                  <span class="badge-rank">{Number(profile.rank).toLocaleString()}등</span>
+                {/if}
                 <span class="badge-score">경험치: {Number(profile.score).toLocaleString()}점</span>
               </div>
               <div class="text-4xl font-bold leading-tight">{profile.nickname}</div>
@@ -785,8 +1027,11 @@
                       {:else if detailMap[row.gameId]?.error}
                         <div class="text-sm text-red-600">상세 정보를 불러오지 못했습니다.</div>
                       {:else if detailMap[row.gameId]}
-                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                          경기 ID: <code>{row.gameId}</code>
+                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
+                          <div>경기번호: <code>{row.gameId}</code></div>
+                          <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white dark:bg-gray-700" on:click={() => downloadKkio(detailMap[row.gameId])}>
+                            <span class="material-symbols-outlined text-base">download</span> 리플레이 내려받기
+                          </button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                           <div>채널: <b>{detailMap[row.gameId].channel}</b></div>
@@ -800,11 +1045,36 @@
                           <div class="font-semibold mb-2">참가자</div>
                           <div class="space-y-1">
                             {#each detailMap[row.gameId].participants || [] as participant}
-                              <div class:font-bold={participant.id === uid} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800">
-                                <span>{participant.nickname}</span>
-                                {#if participant.won}
-                                  <span class="text-yellow-600">우승</span>
-                                {/if}
+                              <div class:font-bold={participant.id === uid} class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
+                                <div class="min-w-0 flex items-center gap-2">
+                                  <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                                  <span class="text-xl">🙂</span>
+                                  <div class="min-w-0">
+                                    <span class="truncate">{participant.nickname}</span>
+                                    {#if participant.robot}
+                                      <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
+                                    {/if}
+                                  </div>
+                                  <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                                    <span>식별번호: {participant.id}</span>
+                                    <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
+                                  </div>
+                                  {#if participant.left}
+                                    <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
+                                  {/if}
+                                </div>
+                                <div class="shrink-0 flex items-center gap-1">
+                                  <button class="icon-action-btn" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
+                                    <span class="material-symbols-outlined text-base">content_copy</span>
+                                  </button>
+                                  <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
+                                    <span class="material-symbols-outlined text-base">account_circle</span>
+                                  </button>
+                                  {#if participant.won}
+                                    <span class="text-yellow-600 ml-1">우승</span>
+                                  {/if}
+                                </div>
+                                <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
                               </div>
                             {/each}
                           </div>
@@ -818,7 +1088,7 @@
                                 <thead>
                                   <tr class="text-left border-b border-gray-200 dark:border-gray-600">
                                     <th class="py-2">순위</th>
-                                    <th class="py-2">닉네임</th>
+                                    <th class="py-2">별명</th>
                                     <th class="py-2 text-right">점수</th>
                                     <th class="py-2 text-right">경험치</th>
                                   </tr>
@@ -837,34 +1107,105 @@
                             </div>
                           </div>
 
-                          <div class="mt-5">
-                            <div class="font-semibold mb-2">낱말 내역</div>
-                            <div class="flex flex-wrap gap-2 mb-3">
-                              {#each detailMap[row.gameId].replayView.roundKeys as roundKey}
-                                <button
-                                  class:round-selected={selectedRoundByGame[row.gameId] === roundKey}
-                                  class="round-btn"
-                                  on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}
-                                >
-                                  라운드 {roundKey}
-                                </button>
-                              {/each}
-                            </div>
-                            <div class="space-y-2">
-                              {#each detailMap[row.gameId].replayView.rounds[selectedRoundByGame[row.gameId]] || [] as inputLog}
-                                <div class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm flex items-center justify-between gap-3">
-                                  <div>
-                                    <b>{inputLog.nickname}</b>
-                                    <span class="mx-2 text-gray-400">→</span>
-                                    <span>{inputLog.word}</span>
-                                  </div>
-                                  <div class="text-gray-500 dark:text-gray-300">
-                                    +{(inputLog.elapsedTurnMs / 1000).toFixed(2)}초
-                                  </div>
+                          {#if detailMap[row.gameId].replayView.chain?.enabled}
+                            <div class="mt-5 rounded-xl border border-gray-200 dark:border-gray-600 p-3 bg-gray-50/80 dark:bg-gray-800/40">
+                              <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                <div class="font-semibold">라운드 기록</div>
+                                <label class="text-sm inline-flex items-center gap-2">
+                                  <span>아이템 기록 표시</span>
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(showItemEntriesByGame[row.gameId])}
+                                    on:change={(e) => (showItemEntriesByGame = { ...showItemEntriesByGame, [row.gameId]: e.currentTarget.checked })}
+                                  />
+                                </label>
+                              </div>
+                              <div class="flex flex-wrap gap-2 mb-3">
+                                {#each detailMap[row.gameId].replayView.chain.roundKeys as roundKey}
+                                  <button
+                                    class:round-selected={selectedRoundByGame[row.gameId] === roundKey}
+                                    class="round-btn"
+                                    on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}
+                                  >
+                                    라운드 {roundKey}
+                                  </button>
+                                {/each}
+                              </div>
+                              {#if detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]]}
+                                <div class="text-sm font-semibold mb-2">{selectedRoundByGame[row.gameId]} 라운드</div>
+                                <div class="chain-order-row">
+                                  {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].order as slot, idx}
+                                    <div
+                                      class="chain-order-chip"
+                                      role="presentation"
+                                      on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: slot.playerIndex })}
+                                      on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
+                                    >
+                                      <span class="chain-order-num">{slot.order}</span>
+                                      <span class="font-semibold">{slot.nickname}</span>
+                                      <span class="text-gray-500 dark:text-gray-300">{slot.startScore.toLocaleString()}점</span>
+                                    </div>
+                                    {#if idx < detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].order.length - 1}
+                                      <span class="text-gray-400">→</span>
+                                    {/if}
+                                  {/each}
                                 </div>
-                              {/each}
+                                <div class="chain-entry-row mt-3">
+                                  {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem) as chainEntry, idx}
+                                    <div
+                                      class={`chain-entry-chip ${hoveredChainPlayerByGame[row.gameId] === chainEntry.playerIndex ? 'active' : ''} ${chainEntry.rejected ? 'reject' : ''}`}
+                                      title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}
+                                    >
+                                      {#if chainEntry.showTurn}
+                                        <span class="chain-turn-badge">{chainEntry.turn}</span>
+                                      {/if}
+                                      <span class="chain-word">{chainEntry.word}</span>
+                                      {#if chainEntry.reason}
+                                        <span class="chain-reason">({chainEntry.reason})</span>
+                                      {/if}
+                                      {#if !chainEntry.isItem}
+                                        <span class={`chain-delta ${Number(chainEntry.delta || 0) < 0 ? 'neg' : Number(chainEntry.delta || 0) > 0 ? 'pos' : ''}`}>
+                                          {formatSignedScore(chainEntry.delta)}
+                                        </span>
+                                      {/if}
+                                    </div>
+                                    {#if idx < detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem).length - 1}
+                                      <span class="text-gray-400">›</span>
+                                    {/if}
+                                  {/each}
+                                </div>
+                              {/if}
                             </div>
-                          </div>
+                          {:else}
+                            <div class="mt-5">
+                              <div class="font-semibold mb-2">낱말 내역</div>
+                              <div class="flex flex-wrap gap-2 mb-3">
+                                {#each detailMap[row.gameId].replayView.roundKeys as roundKey}
+                                  <button
+                                    class:round-selected={selectedRoundByGame[row.gameId] === roundKey}
+                                    class="round-btn"
+                                    on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}
+                                  >
+                                    라운드 {roundKey}
+                                  </button>
+                                {/each}
+                              </div>
+                              <div class="space-y-2">
+                                {#each detailMap[row.gameId].replayView.rounds[selectedRoundByGame[row.gameId]] || [] as inputLog}
+                                  <div class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm flex items-center justify-between gap-3">
+                                    <div>
+                                      <b>{inputLog.nickname}</b>
+                                      <span class="mx-2 text-gray-400">→</span>
+                                      <span>{inputLog.word}</span>
+                                    </div>
+                                    <div class="text-gray-500 dark:text-gray-300">
+                                      +{(inputLog.elapsedTurnMs / 1000).toFixed(2)}초
+                                    </div>
+                                  </div>
+                                {/each}
+                              </div>
+                            </div>
+                          {/if}
 
                           {#if detailMap[row.gameId].replayView.acceptedChain?.length}
                             <div class="mt-5">
@@ -927,15 +1268,46 @@
                 <div>경기 시간: <b>{formatDuration(detailMap[gameSearchResult.gameId].durationMs)}</b></div>
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
               </div>
+              <div class="mt-3 flex justify-end">
+                <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white dark:bg-gray-700" on:click={() => downloadKkio(detailMap[gameSearchResult.gameId])}>
+                  <span class="material-symbols-outlined text-base">download</span>
+                  .kkio 다운로드
+                </button>
+              </div>
               <div class="mt-3 text-sm">
                 <div class="font-semibold mb-2">참가자</div>
                 <div class="space-y-1">
                   {#each detailMap[gameSearchResult.gameId].participants || [] as participant}
-                    <div class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800">
-                      <span>{participant.nickname}</span>
-                      {#if participant.won}
-                        <span class="text-yellow-600">우승</span>
-                      {/if}
+                    <div class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
+                      <div class="min-w-0 flex items-center gap-2">
+                        <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                        <span class="text-xl">🙂</span>
+                        <div class="min-w-0">
+                          <span class="truncate">{participant.nickname}</span>
+                          {#if participant.robot}
+                            <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
+                          {/if}
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                          <span>식별번호: {participant.id}</span>
+                          <span>획득 경험치: +{Number(participant.exp || 0).toLocaleString()}</span>
+                        </div>
+                        {#if participant.left}
+                          <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
+                        {/if}
+                      </div>
+                      <div class="shrink-0 flex items-center gap-1">
+                        <button class="icon-action-btn" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
+                          <span class="material-symbols-outlined text-base">content_copy</span>
+                        </button>
+                        <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
+                          <span class="material-symbols-outlined text-base">account_circle</span>
+                        </button>
+                        {#if participant.won}
+                          <span class="text-yellow-600 ml-1">우승</span>
+                        {/if}
+                      </div>
+                      <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
                     </div>
                   {/each}
                 </div>
@@ -949,9 +1321,9 @@
                       <thead>
                         <tr class="text-left border-b border-gray-200 dark:border-gray-600">
                           <th class="py-2">순위</th>
-                          <th class="py-2">닉네임</th>
+                          <th class="py-2">별명</th>
                           <th class="py-2 text-right">점수</th>
-                          <th class="py-2 text-right">EXP</th>
+                          <th class="py-2 text-right">경험치</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -968,34 +1340,105 @@
                   </div>
                 </div>
 
-                <div class="mt-5">
-                  <div class="font-semibold mb-2">라운드 낱말 로그</div>
-                  <div class="flex flex-wrap gap-2 mb-3">
-                    {#each detailMap[gameSearchResult.gameId].replayView.roundKeys as roundKey}
-                      <button
-                        class:round-selected={selectedRoundByGame[gameSearchResult.gameId] === roundKey}
-                        class="round-btn"
-                        on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}
-                      >
-                        라운드 {roundKey}
-                      </button>
-                    {/each}
-                  </div>
-                  <div class="space-y-2">
-                    {#each detailMap[gameSearchResult.gameId].replayView.rounds[selectedRoundByGame[gameSearchResult.gameId]] || [] as inputLog}
-                      <div class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm flex items-center justify-between gap-3">
-                        <div>
-                          <b>{inputLog.nickname}</b>
-                          <span class="mx-2 text-gray-400">→</span>
-                          <span>{inputLog.word}</span>
-                        </div>
-                        <div class="text-gray-500 dark:text-gray-300">
-                          +{(inputLog.elapsedTurnMs / 1000).toFixed(2)}초
-                        </div>
+                {#if detailMap[gameSearchResult.gameId].replayView.chain?.enabled}
+                  <div class="mt-5 rounded-xl border border-gray-200 dark:border-gray-600 p-3 bg-gray-50/80 dark:bg-gray-800/40">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div class="font-semibold">라운드 기록</div>
+                      <label class="text-sm inline-flex items-center gap-2">
+                        <span>아이템 기록 표시</span>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(showItemEntriesByGame[gameSearchResult.gameId])}
+                          on:change={(e) => (showItemEntriesByGame = { ...showItemEntriesByGame, [gameSearchResult.gameId]: e.currentTarget.checked })}
+                        />
+                      </label>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                      {#each detailMap[gameSearchResult.gameId].replayView.chain.roundKeys as roundKey}
+                        <button
+                          class:round-selected={selectedRoundByGame[gameSearchResult.gameId] === roundKey}
+                          class="round-btn"
+                          on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}
+                        >
+                          라운드 {roundKey}
+                        </button>
+                      {/each}
+                    </div>
+                    {#if detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]]}
+                      <div class="text-sm font-semibold mb-2">{selectedRoundByGame[gameSearchResult.gameId]} 라운드</div>
+                      <div class="chain-order-row">
+                        {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].order as slot, idx}
+                          <div
+                            class="chain-order-chip"
+                            role="presentation"
+                            on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: slot.playerIndex })}
+                            on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
+                          >
+                            <span class="chain-order-num">{slot.order}</span>
+                            <span class="font-semibold">{slot.nickname}</span>
+                            <span class="text-gray-500 dark:text-gray-300">{slot.startScore.toLocaleString()}점</span>
+                          </div>
+                          {#if idx < detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].order.length - 1}
+                            <span class="text-gray-400">→</span>
+                          {/if}
+                        {/each}
                       </div>
-                    {/each}
+                      <div class="chain-entry-row mt-3">
+                        {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem) as chainEntry, idx}
+                          <div
+                            class={`chain-entry-chip ${hoveredChainPlayerByGame[gameSearchResult.gameId] === chainEntry.playerIndex ? 'active' : ''} ${chainEntry.rejected ? 'reject' : ''}`}
+                            title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}
+                          >
+                            {#if chainEntry.showTurn}
+                              <span class="chain-turn-badge">{chainEntry.turn}</span>
+                            {/if}
+                            <span class="chain-word">{chainEntry.word}</span>
+                            {#if chainEntry.reason}
+                              <span class="chain-reason">({chainEntry.reason})</span>
+                            {/if}
+                            {#if !chainEntry.isItem}
+                              <span class={`chain-delta ${Number(chainEntry.delta || 0) < 0 ? 'neg' : Number(chainEntry.delta || 0) > 0 ? 'pos' : ''}`}>
+                                {formatSignedScore(chainEntry.delta)}
+                              </span>
+                            {/if}
+                          </div>
+                          {#if idx < detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem).length - 1}
+                            <span class="text-gray-400">›</span>
+                          {/if}
+                        {/each}
+                      </div>
+                    {/if}
                   </div>
-                </div>
+                {:else}
+                  <div class="mt-5">
+                    <div class="font-semibold mb-2">라운드 기록</div>
+                    <div class="flex flex-wrap gap-2 mb-3">
+                      {#each detailMap[gameSearchResult.gameId].replayView.roundKeys as roundKey}
+                        <button
+                          class:round-selected={selectedRoundByGame[gameSearchResult.gameId] === roundKey}
+                          class="round-btn"
+                          on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}
+                        >
+                          라운드 {roundKey}
+                        </button>
+                      {/each}
+                    </div>
+                    <div class="space-y-2">
+                      {#each detailMap[gameSearchResult.gameId].replayView.rounds[selectedRoundByGame[gameSearchResult.gameId]] || [] as inputLog}
+                        <div class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm flex items-center justify-between gap-3">
+                          <div>
+                            <b>{inputLog.nickname}</b>
+                            <span class="mx-2 text-gray-400">→</span>
+                            <span>{inputLog.word}</span>
+                          </div>
+                          <div class="text-gray-500 dark:text-gray-300">
+                            +{(inputLog.elapsedTurnMs / 1000).toFixed(2)}초
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
               {/if}
             </div>
           {/if}
@@ -1006,6 +1449,9 @@
 </div>
 
 <style>
+  .min-h-50 {
+    min-height: 50vh;
+  }
   .okgg-wrap {
     border: 1px solid rgba(156, 163, 175, 0.24);
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
@@ -1024,6 +1470,14 @@
   }
   .badge-score {
     background: #8b5cf6;
+    color: #fff;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 14px;
+  }
+  .badge-rank {
+    background: #2563eb;
     color: #fff;
     font-weight: 700;
     border-radius: 999px;
@@ -1113,5 +1567,114 @@
   .round-selected {
     background: #111827;
     color: #fff;
+  }
+  .participant-muted {
+    opacity: 0.56;
+    filter: grayscale(0.2);
+  }
+  .icon-action-btn {
+    border: 1px solid rgba(107, 114, 128, 0.35);
+    border-radius: 8px;
+    padding: 4px 6px;
+    background: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .participant-rank {
+    font-weight: 800;
+    min-width: 70px;
+    color: #6b7280;
+  }
+  .participant-rank.first {
+    color: #d97706;
+  }
+  .participant-rank.second {
+    color: #16a34a;
+  }
+  .participant-rank.third {
+    color: #2563eb;
+  }
+  .participant-rank.left {
+    color: #9ca3af;
+  }
+  .chain-order-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .chain-order-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(156, 163, 175, 0.45);
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #fff;
+    cursor: default;
+  }
+  .chain-order-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: #e5e7eb;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .chain-entry-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .chain-entry-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 10px;
+    padding: 7px 10px;
+    background: #f3f4f6;
+    border: 1px solid rgba(156, 163, 175, 0.2);
+    font-size: 14px;
+  }
+  .chain-entry-chip.active .chain-word {
+    font-weight: 800;
+    text-decoration: underline;
+  }
+  .chain-entry-chip.reject .chain-word {
+    color: #dc2626;
+  }
+  .chain-turn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: #e5e7eb;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .chain-reason {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .chain-delta {
+    font-weight: 700;
+  }
+  .chain-delta.pos {
+    color: #16a34a;
+  }
+  .chain-delta.neg {
+    color: #dc2626;
   }
 </style>

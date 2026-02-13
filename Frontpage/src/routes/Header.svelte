@@ -154,11 +154,11 @@
 					trophy
 				</span>
 				랭킹</a>
-			<a target="_blank" href="https://discord.gg/kkutuio-395143193114705920" class="link-header">
+            <a href="/records" class="link-header">
 				<span class="material-symbols-outlined icons-header">
-					forum
+					id_card
 				</span>
-				디스코드</a>
+                전적</a>
 			<a target="_blank" href="https://cafe.naver.com/kkutuio" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					local_cafe

@@ -35,6 +35,68 @@
     KQZ: '퀴즈 대결',
     UNKNOWN: '기타'
   };
+  const OPTION_BADGE_LABEL = {
+    // Short option ids
+    man: '매너',
+    saf: '안전',
+    ext: '어인정',
+    mis: '미션',
+    inp: '단어장',
+    ijp: '단어장',
+    loa: '우리말',
+    prv: '속담',
+    lot: '장문',
+    str: '깐깐',
+    k32: '3232',
+    no2: '2글자 금지',
+    beg: '초보',
+    nol: '길이 무제한',
+    rms: '랜덤미션',
+    tct: '택티컬',
+    rnk: '친선전',
+    asy: '유의어 제거',
+    ado: '두음법칙 제거',
+    pwr: '파워두음',
+    etq: '에티켓',
+    gnt: '젠틀',
+    apm: '앞말잇기',
+    itm: '아이템전',
+    odw: '우리말샘',
+    ulm: '무한정',
+    sht: '짧음',
+    ord: '순서대로',
+    rmh: '힌트 제거',
+    nob: '도중 입장 불가',
+    // Long option ids
+    manner: '매너',
+    safe: '안전',
+    injeong: '어인정',
+    mission: '미션',
+    injeongpick: '단어장',
+    loanword: '우리말',
+    proverb: '속담',
+    longtext: '장문',
+    strict: '깐깐',
+    sami: '3232',
+    onlybeginner: '초보',
+    nolimit: '길이 무제한',
+    randmission: '랜덤미션',
+    tactical: '택티컬',
+    rankmode: '친선전',
+    antisynonym: '유의어 제거',
+    antidoum: '두음법칙 제거',
+    power: '파워두음',
+    etiquette: '에티켓',
+    gentle: '젠틀',
+    apmal: '앞말잇기',
+    item: '아이템전',
+    opendict: '우리말샘',
+    unlimited: '무한정',
+    short: '짧음',
+    order: '순서대로',
+    removehint: '힌트 제거',
+    noobserver: '도중 입장 불가'
+  };
   const CHAIN_MODE_SET = new Set(['KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT', 'HUN', 'KDA', 'EDA', 'KSS', 'ESS']);
 
   let searchType = SEARCH_TYPE.nickname;
@@ -82,6 +144,23 @@
   function normalizePageSize(value) {
     const parsed = Number(value);
     return ALLOWED_PAGE_SIZES.includes(parsed) ? parsed : 10;
+  }
+
+  function getRoomOptionBadges(detail) {
+    const payloadOpts = detail?.replayView?.payload?.rm?.[9];
+    const opts = Array.isArray(payloadOpts) ? payloadOpts : [];
+    if (!opts.length) return [];
+    const seen = new Set();
+    const labels = [];
+    for (const raw of opts) {
+      const key = String(raw || '').trim();
+      if (!key) continue;
+      const label = OPTION_BADGE_LABEL[key] || OPTION_BADGE_LABEL[key.toLowerCase()];
+      if (!label || seen.has(label)) continue;
+      seen.add(label);
+      labels.push(label);
+    }
+    return labels;
   }
 
   function syncQuery() {
@@ -374,7 +453,10 @@
         displayWord = `제작 ${craftedWords}단어 · ${craftedLetters}글자`;
       } else if (eventType === 'CTO') {
         const delta = Number(extraTokens[1] || 0);
-        displayWord = `시간초과 점수 ${delta >= 0 ? '+' : ''}${delta}`;
+        displayWord = delta > 0 ? `공격 성공 점수 +${delta}` : `시간초과 점수 ${delta >= 0 ? '+' : ''}${delta}`;
+      } else if (eventType === 'CAS') {
+        const delta = Number(extraTokens[1] || 0);
+        displayWord = `공격 성공 점수 +${Math.max(0, delta)}`;
       } else if (eventType === 'CIT') {
         const itemId = Number(extraTokens[1] || -1);
         const isTurnEnd = Number(extraTokens[2] || 0) === 1;
@@ -390,21 +472,24 @@
         elapsedGameMs
       });
 
-      if (isChainMode && round > 0 && (eventType === 'CTO' || eventType === 'CIT')) {
+      if (isChainMode && round > 0 && (eventType === 'CTO' || eventType === 'CAS' || eventType === 'CIT')) {
         if (!chainEntriesByRound[round]) chainEntriesByRound[round] = [];
-        const timeoutDelta = eventType === 'CTO' ? Number(extraTokens[1] || 0) : 0;
+        const timeoutDelta = eventType === 'CTO' || eventType === 'CAS' ? Number(extraTokens[1] || 0) : 0;
+        const timeoutPenalty = eventType === 'CTO' && timeoutDelta <= 0;
         if (eventType === 'CIT') hasChainItemEvents = true;
         chainEntriesByRound[round].push({
           playerIndex,
           nickname: players[playerIndex]?.nickname || `Player#${playerIndex}`,
-          word: eventType === 'CTO' ? '입력 실패' : `아이템 ${Number(extraTokens[1] || -1)} 사용`,
+          word: eventType === 'CIT'
+            ? `아이템 ${Number(extraTokens[1] || -1)} 사용`
+            : (timeoutDelta > 0 ? '공격 성공' : '입력 실패'),
           delta: timeoutDelta,
           elapsedTurnMs: elapsedGameMs,
           elapsedGameMs,
           turn: Number.MAX_SAFE_INTEGER,
           showTurn: false,
-          rejected: eventType === 'CTO',
-          reason: eventType === 'CTO' ? '시간 초과' : '',
+          rejected: timeoutPenalty,
+          reason: timeoutPenalty ? '시간 초과' : '',
           isItem: eventType === 'CIT'
         });
       }
@@ -670,6 +755,7 @@
       const extraTokens = extraRaw ? extraRaw.split(',') : [];
       let text = '';
       if (type === 'CTO') text = `시간초과 ${Number(extraTokens[1] || 0)}점`;
+      else if (type === 'CAS') text = `공격 성공 +${Math.max(0, Number(extraTokens[1] || 0))}점`;
       else if (type === 'CIT') text = `아이템 ${Number(extraTokens[1] || -1)} 사용`;
       else if (type === 'TPM') text = `타/분 ${Number(extraTokens[1] || 0)}`;
       else if (type === 'MQR') text = `정답 ${Number(extraTokens[1] || 0)} · 오답 ${Number(extraTokens[2] || 0)}`;
@@ -1002,7 +1088,7 @@
       <input
         bind:value={searchNick}
         type="text"
-        class="ml-3 w-72 bg-transparent text-white outline-none"
+        class="ml-3 w-96 bg-transparent text-white outline-none"
         placeholder={searchPlaceholder()}
         on:keydown={(e) => e.key === 'Enter' && runSearch()}
       />
@@ -1167,7 +1253,18 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                           <div>채널: <b>{detailMap[row.gameId].channel}</b></div>
                           <div>방 번호: <b>{detailMap[row.gameId].roomId}</b></div>
-                          <div>규칙: <b>{detailMap[row.gameId].rule}</b></div>
+                          <div>
+                            특수규칙:
+                            {#if getRoomOptionBadges(detailMap[row.gameId]).length}
+                              <span class="inline-flex flex-wrap gap-1 ml-1 align-middle">
+                                {#each getRoomOptionBadges(detailMap[row.gameId]) as optionLabel}
+                                  <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 dark:bg-slate-600 dark:text-slate-100">{optionLabel}</span>
+                                {/each}
+                              </span>
+                            {:else}
+                              <b>-</b>
+                            {/if}
+                          </div>
                           <div>언어: <b>{detailMap[row.gameId].lang}</b></div>
                           <div>경기 시간: <b>{formatDuration(detailMap[row.gameId].durationMs)}</b></div>
                           <div>압축 크기: <b>{Number(detailMap[row.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
@@ -1390,7 +1487,18 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div>채널: <b>{detailMap[gameSearchResult.gameId].channel}</b></div>
                 <div>방 번호: <b>{detailMap[gameSearchResult.gameId].roomId}</b></div>
-                <div>규칙: <b>{detailMap[gameSearchResult.gameId].rule}</b></div>
+                <div>
+                  특수규칙:
+                  {#if getRoomOptionBadges(detailMap[gameSearchResult.gameId]).length}
+                    <span class="inline-flex flex-wrap gap-1 ml-1 align-middle">
+                      {#each getRoomOptionBadges(detailMap[gameSearchResult.gameId]) as optionLabel}
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 dark:bg-slate-600 dark:text-slate-100">{optionLabel}</span>
+                      {/each}
+                    </span>
+                  {:else}
+                    <b>-</b>
+                  {/if}
+                </div>
                 <div>언어: <b>{detailMap[gameSearchResult.gameId].lang}</b></div>
                 <div>경기 시간: <b>{formatDuration(detailMap[gameSearchResult.gameId].durationMs)}</b></div>
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>

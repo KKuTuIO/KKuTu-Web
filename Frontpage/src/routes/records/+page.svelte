@@ -986,7 +986,7 @@
 
   function getChainEntryClass(chainEntry, highlighted) {
     const rejected = Boolean(chainEntry?.rejected);
-    return `inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm ${
+    return `group relative inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm ${
       rejected
         ? 'border-rose-300 bg-rose-50 dark:border-rose-700/60 dark:bg-rose-950/30'
         : 'border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'
@@ -1003,9 +1003,13 @@
 
   function getChainWordClass(chainEntry, highlighted) {
     const rejected = Boolean(chainEntry?.rejected);
-    return `${highlighted ? 'font-extrabold underline decoration-2 underline-offset-2' : 'font-semibold'} ${
+    return `${highlighted ? 'font-extrabold' : 'font-semibold'} ${
       rejected ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100'
     }`;
+  }
+
+  function getChainTooltipText(chainEntry) {
+    return `${chainEntry.nickname} · ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(1)}초 소요`;
   }
 
   function getChainDeltaClass(delta) {
@@ -1356,7 +1360,6 @@
                                   {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem) as chainEntry, idx}
                                     <div
                                       class={getChainEntryClass(chainEntry, hoveredChainPlayerByGame[row.gameId] === chainEntry.playerIndex)}
-                                      title={`${chainEntry.nickname} · ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(1)}초 소요`}
                                       on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: chainEntry.playerIndex })}
                                       on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
                                     >
@@ -1370,6 +1373,10 @@
                                       {#if !chainEntry.isItem}
                                         <span class={getChainDeltaClass(chainEntry.delta)}>{formatSignedScore(chainEntry.delta)}</span>
                                       {/if}
+                                      <span class="pointer-events-none absolute -top-10 left-1/2 z-20 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block dark:bg-slate-100 dark:text-slate-900">
+                                        {getChainTooltipText(chainEntry)}
+                                      </span>
+                                      <span class="pointer-events-none absolute -top-1 left-1/2 z-10 hidden h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900 group-hover:block dark:bg-slate-100"></span>
                                     </div>
                                     {#if idx < detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem).length - 1}
                                       <span class="text-slate-400">›</span>
@@ -1443,10 +1450,10 @@
         <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(gameSearchResult.gameId)}>
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.gameId}</div>
+              <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.roomTitle || '제목 없음'}</div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-lg truncate">{getModeLabel(gameSearchResult)}</div>
-                <div class="text-sm text-gray-500 dark:text-gray-300">{gameSearchResult.roomTitle || '제목 없음'}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-300">{gameSearchResult.gameId}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatAgo(gameSearchResult.startedAt)} · {formatDate(gameSearchResult.startedAt)}</div>
               </div>
               <div class="shrink-0 text-left sm:text-right">
@@ -1480,7 +1487,7 @@
               <div class="mt-3 flex justify-end">
                 <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white dark:bg-gray-700" on:click={() => downloadKkio(detailMap[gameSearchResult.gameId])}>
                   <span class="material-symbols-outlined text-base">download</span>
-                  .kkio 다운로드
+                    리플레이 내려받기
                 </button>
               </div>
               <div class="mt-3 text-sm">
@@ -1588,7 +1595,6 @@
                         {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem) as chainEntry, idx}
                           <div
                             class={getChainEntryClass(chainEntry, hoveredChainPlayerByGame[gameSearchResult.gameId] === chainEntry.playerIndex)}
-                            title={`${chainEntry.nickname} · ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(1)}초 소요`}
                             on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: chainEntry.playerIndex })}
                             on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
                           >
@@ -1602,6 +1608,10 @@
                             {#if !chainEntry.isItem}
                               <span class={getChainDeltaClass(chainEntry.delta)}>{formatSignedScore(chainEntry.delta)}</span>
                             {/if}
+                            <span class="pointer-events-none absolute -top-10 left-1/2 z-20 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow-lg group-hover:block dark:bg-slate-100 dark:text-slate-900">
+                              {getChainTooltipText(chainEntry)}
+                            </span>
+                            <span class="pointer-events-none absolute -top-1 left-1/2 z-10 hidden h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900 group-hover:block dark:bg-slate-100"></span>
                           </div>
                           {#if idx < detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem).length - 1}
                             <span class="text-slate-400">›</span>

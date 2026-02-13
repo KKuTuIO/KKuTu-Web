@@ -949,6 +949,60 @@
     return MODE_LABEL[row.modeName] || MODE_LABEL[row.mode] || row.modeName || '일반';
   }
 
+  function getTabClass(tab) {
+    const selected = selectedTab === tab;
+    return `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+      selected
+        ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
+        : 'text-slate-200 hover:bg-slate-700/70 hover:text-white'
+    }`;
+  }
+
+  function getRoundButtonClass(gameId, roundKey) {
+    const selected = selectedRoundByGame[gameId] === roundKey;
+    return `rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+      selected
+        ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900'
+        : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700'
+    }`;
+  }
+
+  function getParticipantRowClass(participant, isMe = false) {
+    const muted = participant?.robot || participant?.left;
+    return `flex items-start gap-2 rounded-lg border px-3 py-2 text-sm sm:items-center ${
+      muted ? 'opacity-60 grayscale-[0.2]' : ''
+    } ${
+      isMe
+        ? 'border-sky-400/80 bg-sky-50/60 dark:border-sky-500/60 dark:bg-sky-900/20'
+        : 'border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'
+    }`;
+  }
+
+  function getParticipantRankClass(participant) {
+    if (participant?.left) return 'shrink-0 min-w-[64px] font-extrabold text-slate-400';
+    if (participant?.placement === 1) return 'shrink-0 min-w-[64px] font-extrabold text-amber-500';
+    if (participant?.placement === 2) return 'shrink-0 min-w-[64px] font-extrabold text-emerald-500';
+    if (participant?.placement === 3) return 'shrink-0 min-w-[64px] font-extrabold text-blue-500';
+    return 'shrink-0 min-w-[64px] font-extrabold text-slate-500';
+  }
+
+  function getChainEntryClass(gameId, chainEntry) {
+    const highlighted = hoveredChainPlayerByGame[gameId] === chainEntry.playerIndex;
+    const rejected = Boolean(chainEntry?.rejected);
+    return `inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm ${
+      rejected
+        ? 'border-rose-300 bg-rose-50 dark:border-rose-700/60 dark:bg-rose-950/30'
+        : 'border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'
+    } ${highlighted ? 'font-extrabold underline decoration-2 underline-offset-2' : ''}`;
+  }
+
+  function getChainDeltaClass(delta) {
+    const score = Number(delta || 0);
+    if (score > 0) return 'font-bold text-emerald-600 dark:text-emerald-400';
+    if (score < 0) return 'font-bold text-rose-600 dark:text-rose-400';
+    return 'font-bold text-slate-500 dark:text-slate-300';
+  }
+
   onMount(async () => {
     const params = new URLSearchParams(window.location.search);
     const typeParam = normalizeSearchType(params.get('type') || SEARCH_TYPE.nickname);
@@ -973,17 +1027,17 @@
   <title>끄투리오 - {title}</title>
 </svelte:head>
 
-<div class="dark:bg-gray-900">
-  <div class={`${hasResultView ? 'min-h-50' : 'min-h-screen'} h-full py-40 px-4 flex flex-col items-center rankBg`}>
+<div class="bg-slate-950 text-slate-100">
+  <div class={`${hasResultView ? 'min-h-[50vh]' : 'min-h-screen'} rankBg flex h-full flex-col items-center px-4 pb-20 pt-24 md:pb-28 md:pt-32`}>
     <p class="text-gray-200 text-lg my-4 flex items-center gap-2">
       <span class="material-symbols-outlined">insights</span>
       전적 조회
     </p>
-    <h1 class="text-white text-5xl font-bold mb-2 flex items-center gap-3">
+    <h1 class="mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
       끄투리오 전적 검색
     </h1>
-    <div class="search-wrap flex items-center border-3 border-white rounded-full p-2 mt-10">
-      <select class="search-type-select" bind:value={searchType}>
+    <div class="mt-8 flex w-full max-w-3xl items-center rounded-2xl border border-white/40 bg-slate-900/60 p-2 shadow-xl backdrop-blur sm:mt-10">
+      <select class="h-10 rounded-xl border border-white/20 bg-slate-950/70 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-400/60" bind:value={searchType}>
         <option value={SEARCH_TYPE.nickname}>별명</option>
         <option value={SEARCH_TYPE.id}>식별번호</option>
         <option value={SEARCH_TYPE.gameId}>경기번호</option>
@@ -991,47 +1045,47 @@
       <input
         bind:value={searchNick}
         type="text"
-        class="ml-3 w-96 bg-transparent text-white outline-none"
+        class="ml-2 min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none placeholder:text-slate-300/80 sm:text-base"
         placeholder={searchPlaceholder()}
         on:keydown={(e) => e.key === 'Enter' && runSearch()}
       />
-      <button class="text-white px-4 cursor-pointer" on:click={runSearch}>
+      <button class="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white transition hover:bg-white/10" on:click={runSearch}>
         <i class="material-symbols-outlined icons-header">search</i>
       </button>
     </div>
     {#if errorMessage}
-      <div class="mt-4 px-4 py-2 rounded-lg bg-red-100 text-red-700 text-sm">
+      <div class="mt-4 rounded-lg border border-rose-300/60 bg-rose-100 px-4 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">
         {errorMessage}
       </div>
     {/if}
   </div>
 
   {#if currentStatus === 'user' && profile}
-    <div class="okgg-wrap lg:shadow-md mx-2 lg:mx-auto max-w-screen-xl -mt-16 mb-24 p-3 lg:p-4 bg-gray-100 dark:bg-gray-800 dark:text-white rounded-lg">
+    <div class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="rounded-xl overflow-hidden border border-gray-300/70 dark:border-gray-700">
-        <div class="profile-header px-6 py-8 flex items-center justify-between gap-6">
-          <div class="flex items-center gap-6">
-            <div class="w-[108px] h-[108px] relative shrink-0 rounded-2xl bg-white/40">
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${moremi.Mback || 'default.png'}`} class="absolute object-cover w-[108px] h-[108px]" alt="bg" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body/${moremi.Mbody || 'default.png'}`} class="absolute object-cover w-[108px] h-[108px]" alt="body" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${moremi.Meye || 'default.png'}`} class="absolute object-cover w-[108px] h-[108px]" alt="eye" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${moremi.Mmouth || 'default.png'}`} class="absolute object-cover w-[108px] h-[108px]" alt="mouth" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${moremi.Mclothes || 'default.png'}`} class="absolute object-cover w-[108px] h-[108px]" alt="clothes" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${moremi.Mshoes || 'default.png'}`} class="absolute object-cover w-[108px] h-[108px]" alt="shoes" />
+        <div class="flex flex-col gap-5 bg-gradient-to-br from-emerald-50 to-sky-50 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between dark:from-slate-800 dark:to-slate-900">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/70 shadow-sm sm:h-28 sm:w-28 dark:border-slate-600 dark:bg-slate-800/70">
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${moremi.Mback || 'default.png'}`} class="absolute h-full w-full object-cover" alt="bg" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body/${moremi.Mbody || 'default.png'}`} class="absolute h-full w-full object-cover" alt="body" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${moremi.Meye || 'default.png'}`} class="absolute h-full w-full object-cover" alt="eye" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${moremi.Mmouth || 'default.png'}`} class="absolute h-full w-full object-cover" alt="mouth" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${moremi.Mclothes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="clothes" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${moremi.Mshoes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="shoes" />
             </div>
-            <div>
-              <div class="flex items-center gap-2 mb-2">
-                <span class="badge-level">레벨 {profile.level}</span>
+            <div class="min-w-0">
+              <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white dark:bg-slate-700">레벨 {profile.level}</span>
                 {#if profile.rank}
-                  <span class="badge-rank">{Number(profile.rank).toLocaleString()}등</span>
+                  <span class="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">{Number(profile.rank).toLocaleString()}등</span>
                 {/if}
-                <span class="badge-score">경험치: {Number(profile.score).toLocaleString()}점</span>
+                <span class="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white">경험치: {Number(profile.score).toLocaleString()}점</span>
               </div>
-              <div class="text-4xl font-bold leading-tight">{profile.nickname}</div>
-              <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              <div class="truncate text-3xl font-bold leading-tight sm:text-4xl">{profile.nickname}</div>
+              <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 {profile.exordial || '소개 한마디가 없습니다.'}
               </div>
-              <div class="text-xs text-gray-600 dark:text-gray-300 mt-2 flex items-center gap-1">
+              <div class="mt-2 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
                 <span class="material-symbols-outlined text-sm">schedule</span>
                 최근 접속:
                 {#if profile.lastLoginTs}
@@ -1042,20 +1096,20 @@
               </div>
             </div>
           </div>
-          <button class="refresh-btn" on:click={() => loadAll(false)} disabled={loading}>
+          <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-extrabold text-slate-900 shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[150px]" on:click={() => loadAll(false)} disabled={loading}>
             <span class="material-symbols-outlined text-xl">{loading ? 'progress_activity' : 'refresh'}</span>
             {loading ? '불러오는 중...' : '새로고침'}
           </button>
         </div>
 
-        <div class="px-3 py-2 bg-neutral-800 flex items-center gap-2">
-          <button class:selected={selectedTab === 'profile'} class="tab-btn" on:click={() => (selectedTab = 'profile')}>
+        <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-2">
+          <button class={getTabClass('profile')} on:click={() => (selectedTab = 'profile')}>
             <span class="material-symbols-outlined text-base">person</span> 사용자 정보
           </button>
-          <button class:selected={selectedTab === 'stats'} class="tab-btn" on:click={() => (selectedTab = 'stats')}>
+          <button class={getTabClass('stats')} on:click={() => (selectedTab = 'stats')}>
             <span class="material-symbols-outlined text-base">query_stats</span> 통계
           </button>
-          <button class:selected={selectedTab === 'history'} class="tab-btn" on:click={() => (selectedTab = 'history')}>
+          <button class={getTabClass('history')} on:click={() => (selectedTab = 'history')}>
             <span class="material-symbols-outlined text-base">history</span> 경기 내역
           </button>
         </div>
@@ -1066,7 +1120,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {#if modeStats.length}
               {#each modeStats.slice(0, selectedTab === 'stats' ? modeStats.length : 3) as stat}
-                <article class="stat-card">
+                <article class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
                   <div class="text-xl font-bold text-blue-600 dark:text-blue-300 flex items-center gap-2">
                     <span class="material-symbols-outlined">stadia_controller</span>
                     {stat.modeName}
@@ -1094,7 +1148,7 @@
                 </article>
               {/each}
             {:else}
-              <article class="stat-card text-gray-500">기록된 통계가 없습니다.</article>
+              <article class="rounded-2xl border border-slate-200 bg-white/95 p-4 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">기록된 통계가 없습니다.</article>
             {/if}
           </div>
         </section>
@@ -1106,7 +1160,7 @@
             <h3 class="text-2xl font-bold">경기 내역</h3>
             <div class="flex items-center gap-2 text-sm">
               <span>쪽 당 행</span>
-              <select class="rounded-md border px-2 py-1 bg-white dark:bg-gray-700" bind:value={pageSize} on:change={changePageSize}>
+              <select class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" bind:value={pageSize} on:change={changePageSize}>
                 {#each ALLOWED_PAGE_SIZES as size}
                   <option value={size}>{size}</option>
                 {/each}
@@ -1115,15 +1169,15 @@
           </div>
 
           {#if loadingHistory}
-            <div class="rounded-xl border bg-white dark:bg-gray-700 p-4 text-gray-500">불러오는 중...</div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">불러오는 중...</div>
           {:else if !historyRows.length}
-            <div class="rounded-xl border bg-white dark:bg-gray-700 p-4 text-gray-500">최근 3년 내 경기 기록이 없습니다.</div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">최근 3년 내 경기 기록이 없습니다.</div>
           {:else}
             <div class="space-y-3">
               {#each historyRows as row}
-                <article class="match-card bg-white dark:bg-gray-700" style={`border-left: 6px solid ${row.won ? '#eab308' : '#9ca3af'}`}>
+                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900" style={`border-left: 6px solid ${row.won ? '#eab308' : '#9ca3af'}`}>
                   <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(row.gameId)}>
-                    <div class="flex items-center justify-between gap-3">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div class="text-3xl font-black">
                         #{row.placement}
                         <span class="text-lg font-semibold text-gray-500 dark:text-gray-300">/ {row.playerCount}</span>
@@ -1133,7 +1187,7 @@
                         <div class="text-sm text-gray-500 dark:text-gray-300">{row.roomTitle || '제목 없음'}</div>
                         <div class="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatAgo(row.startedAt)} · {formatDate(row.startedAt)}</div>
                       </div>
-                      <div class="text-right shrink-0">
+                      <div class="shrink-0 text-left sm:text-right">
                         <div class="text-2xl font-extrabold">{Number(row.score).toLocaleString()}점</div>
                         <div class="text-sm text-gray-500 dark:text-gray-300">EXP +{Number(row.exp || 0).toLocaleString()}</div>
                       </div>
@@ -1176,32 +1230,32 @@
                           <div class="font-semibold mb-2">참가자</div>
                           <div class="space-y-1">
                             {#each detailMap[row.gameId].participants || [] as participant}
-                              <div class:font-bold={participant.id === uid} class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
-                                <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                              <div class={getParticipantRowClass(participant, participant.id === uid)}>
+                                <span class={getParticipantRankClass(participant)}>{getParticipantLabel(participant)}</span>
                                 <div class="min-w-0 flex-1">
                                   <div class="truncate font-semibold">{participant.nickname}</div>
-                                  <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                                  <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
                                     {#if participant.id && participant.id !== participant.nickname}
                                       <span>식별번호: {participant.id}</span>
                                     {/if}
                                     <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                                     {#if participant.robot}
-                                      <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
+                                      <span class="rounded bg-slate-300 px-1.5 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">BOT</span>
                                     {/if}
                                   </div>
                                   {#if participant.left}
-                                    <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
+                                    <div class="mt-0.5 text-xs text-red-600 dark:text-red-400">게임 도중 퇴장하였습니다.</div>
                                   {/if}
                                 </div>
                                 <div class="shrink-0 flex items-center gap-1">
-                                  <button class="icon-action-btn" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
+                                  <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
                                     <span class="material-symbols-outlined text-base">content_copy</span>
                                   </button>
-                                  <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
+                                  <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
                                     <span class="material-symbols-outlined text-base">account_circle</span>
                                   </button>
                                 </div>
-                                <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
+                                <div class="shrink-0 text-lg font-extrabold text-slate-700 dark:text-slate-100">{getParticipantScoreText(participant)}</div>
                               </div>
                             {/each}
                           </div>
@@ -1249,55 +1303,46 @@
                               </div>
                               <div class="flex flex-wrap gap-2 mb-3">
                                 {#each detailMap[row.gameId].replayView.chain.roundKeys as roundKey}
-                                  <button
-                                    class:round-selected={selectedRoundByGame[row.gameId] === roundKey}
-                                    class="round-btn"
-                                    on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}
-                                  >
+                                  <button class={getRoundButtonClass(row.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
                                     라운드 {roundKey}
                                   </button>
                                 {/each}
                               </div>
                               {#if detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]]}
                                 <div class="text-sm font-semibold mb-2">{selectedRoundByGame[row.gameId]} 라운드</div>
-                                <div class="chain-order-row">
+                                <div class="flex flex-wrap items-center gap-2">
                                   {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].order as slot, idx}
                                     <div
-                                      class="chain-order-chip"
+                                      class="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
                                       role="presentation"
                                       on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: slot.playerIndex })}
                                       on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
                                     >
-                                      <span class="chain-order-num">{slot.order}</span>
+                                      <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{slot.order}</span>
                                       <span class="font-semibold">{slot.nickname}</span>
-                                      <span class="text-gray-500 dark:text-gray-300">{slot.startScore.toLocaleString()}점</span>
+                                      <span class="text-slate-500 dark:text-slate-300">{slot.startScore.toLocaleString()}점</span>
                                     </div>
                                     {#if idx < detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].order.length - 1}
-                                      <span class="text-gray-400">→</span>
+                                      <span class="text-slate-400">→</span>
                                     {/if}
                                   {/each}
                                 </div>
-                                <div class="chain-entry-row mt-3">
+                                <div class="mt-3 flex flex-wrap items-center gap-2">
                                   {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem) as chainEntry, idx}
-                                    <div
-                                      class={`chain-entry-chip ${hoveredChainPlayerByGame[row.gameId] === chainEntry.playerIndex ? 'active' : ''} ${chainEntry.rejected ? 'reject' : ''}`}
-                                      title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}
-                                    >
+                                    <div class={getChainEntryClass(row.gameId, chainEntry)} title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}>
                                       {#if chainEntry.showTurn}
-                                        <span class="chain-turn-badge">{chainEntry.turn}</span>
+                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{chainEntry.turn}</span>
                                       {/if}
-                                      <span class="chain-word">{chainEntry.word}</span>
+                                      <span>{chainEntry.word}</span>
                                       {#if chainEntry.reason}
-                                        <span class="chain-reason">({chainEntry.reason})</span>
+                                        <span class="text-xs text-slate-500 dark:text-slate-300">({chainEntry.reason})</span>
                                       {/if}
                                       {#if !chainEntry.isItem}
-                                        <span class={`chain-delta ${Number(chainEntry.delta || 0) < 0 ? 'neg' : Number(chainEntry.delta || 0) > 0 ? 'pos' : ''}`}>
-                                          {formatSignedScore(chainEntry.delta)}
-                                        </span>
+                                        <span class={getChainDeltaClass(chainEntry.delta)}>{formatSignedScore(chainEntry.delta)}</span>
                                       {/if}
                                     </div>
                                     {#if idx < detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem).length - 1}
-                                      <span class="text-gray-400">›</span>
+                                      <span class="text-slate-400">›</span>
                                     {/if}
                                   {/each}
                                 </div>
@@ -1308,11 +1353,7 @@
                               <div class="font-semibold mb-2">낱말 내역</div>
                               <div class="flex flex-wrap gap-2 mb-3">
                                 {#each detailMap[row.gameId].replayView.roundKeys as roundKey}
-                                  <button
-                                    class:round-selected={selectedRoundByGame[row.gameId] === roundKey}
-                                    class="round-btn"
-                                    on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}
-                                  >
+                                  <button class={getRoundButtonClass(row.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
                                     라운드 {roundKey}
                                   </button>
                                 {/each}
@@ -1355,9 +1396,9 @@
             </div>
 
             <div class="mt-4 flex items-center justify-center gap-3">
-              <button class="page-btn" on:click={() => movePage(page - 1)} disabled={page <= 1 || loading}>이전</button>
-              <span class="text-sm text-gray-600 dark:text-gray-300">{page}쪽</span>
-              <button class="page-btn" on:click={() => movePage(page + 1)} disabled={!hasNext || loading}>다음</button>
+              <button class="rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" on:click={() => movePage(page - 1)} disabled={page <= 1 || loading}>이전</button>
+              <span class="text-sm text-slate-600 dark:text-slate-300">{page}쪽</span>
+              <button class="rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" on:click={() => movePage(page + 1)} disabled={!hasNext || loading}>다음</button>
             </div>
           {/if}
         </section>
@@ -1366,19 +1407,19 @@
   {/if}
 
   {#if currentStatus === 'game' && gameSearchResult}
-    <div class="okgg-wrap lg:shadow-md mx-2 lg:mx-auto max-w-screen-xl -mt-16 mb-24 p-3 lg:p-4 bg-gray-100 dark:bg-gray-800 dark:text-white rounded-lg">
+    <div class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="mt-2">
         <h3 class="text-2xl font-bold mb-3">경기 조회 결과</h3>
-        <article class="match-card bg-white dark:bg-gray-700">
+        <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(gameSearchResult.gameId)}>
-            <div class="flex items-center justify-between gap-3">
-              <div class="text-2xl font-black">{gameSearchResult.gameId}</div>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.gameId}</div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-lg truncate">{getModeLabel(gameSearchResult)}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300">{gameSearchResult.roomTitle || '제목 없음'}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatAgo(gameSearchResult.startedAt)} · {formatDate(gameSearchResult.startedAt)}</div>
               </div>
-              <div class="text-right shrink-0">
+              <div class="shrink-0 text-left sm:text-right">
                 <div class="text-lg font-bold">{gameSearchResult.playerCount}명</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300">{gameSearchResult.rule} · {gameSearchResult.lang}</div>
               </div>
@@ -1416,32 +1457,32 @@
                 <div class="font-semibold mb-2">참가자</div>
                 <div class="space-y-1">
                   {#each detailMap[gameSearchResult.gameId].participants || [] as participant}
-                    <div class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
-                      <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                    <div class={getParticipantRowClass(participant, participant.id === uid)}>
+                      <span class={getParticipantRankClass(participant)}>{getParticipantLabel(participant)}</span>
                       <div class="min-w-0 flex-1">
                         <div class="truncate font-semibold">{participant.nickname}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                        <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
                           {#if participant.id && participant.id !== participant.nickname}
                             <span>식별번호: {participant.id}</span>
                           {/if}
                           <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                           {#if participant.robot}
-                            <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
+                            <span class="rounded bg-slate-300 px-1.5 py-0.5 text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">BOT</span>
                           {/if}
                         </div>
                         {#if participant.left}
-                          <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
+                          <div class="mt-0.5 text-xs text-red-600 dark:text-red-400">게임 도중 퇴장하였습니다.</div>
                         {/if}
                       </div>
                       <div class="shrink-0 flex items-center gap-1">
-                        <button class="icon-action-btn" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
+                        <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
                           <span class="material-symbols-outlined text-base">content_copy</span>
                         </button>
-                        <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
+                        <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
                           <span class="material-symbols-outlined text-base">account_circle</span>
                         </button>
                       </div>
-                      <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
+                      <div class="shrink-0 text-lg font-extrabold text-slate-700 dark:text-slate-100">{getParticipantScoreText(participant)}</div>
                     </div>
                   {/each}
                 </div>
@@ -1489,55 +1530,46 @@
                     </div>
                     <div class="flex flex-wrap gap-2 mb-3">
                       {#each detailMap[gameSearchResult.gameId].replayView.chain.roundKeys as roundKey}
-                        <button
-                          class:round-selected={selectedRoundByGame[gameSearchResult.gameId] === roundKey}
-                          class="round-btn"
-                          on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}
-                        >
+                        <button class={getRoundButtonClass(gameSearchResult.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
                           라운드 {roundKey}
                         </button>
                       {/each}
                     </div>
                     {#if detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]]}
                       <div class="text-sm font-semibold mb-2">{selectedRoundByGame[gameSearchResult.gameId]} 라운드</div>
-                      <div class="chain-order-row">
+                      <div class="flex flex-wrap items-center gap-2">
                         {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].order as slot, idx}
                           <div
-                            class="chain-order-chip"
+                            class="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
                             role="presentation"
                             on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: slot.playerIndex })}
                             on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
                           >
-                            <span class="chain-order-num">{slot.order}</span>
+                            <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{slot.order}</span>
                             <span class="font-semibold">{slot.nickname}</span>
-                            <span class="text-gray-500 dark:text-gray-300">{slot.startScore.toLocaleString()}점</span>
+                            <span class="text-slate-500 dark:text-slate-300">{slot.startScore.toLocaleString()}점</span>
                           </div>
                           {#if idx < detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].order.length - 1}
-                            <span class="text-gray-400">→</span>
+                            <span class="text-slate-400">→</span>
                           {/if}
                         {/each}
                       </div>
-                      <div class="chain-entry-row mt-3">
+                      <div class="mt-3 flex flex-wrap items-center gap-2">
                         {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem) as chainEntry, idx}
-                          <div
-                            class={`chain-entry-chip ${hoveredChainPlayerByGame[gameSearchResult.gameId] === chainEntry.playerIndex ? 'active' : ''} ${chainEntry.rejected ? 'reject' : ''}`}
-                            title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}
-                          >
+                          <div class={getChainEntryClass(gameSearchResult.gameId, chainEntry)} title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}>
                             {#if chainEntry.showTurn}
-                              <span class="chain-turn-badge">{chainEntry.turn}</span>
+                              <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{chainEntry.turn}</span>
                             {/if}
-                            <span class="chain-word">{chainEntry.word}</span>
+                            <span>{chainEntry.word}</span>
                             {#if chainEntry.reason}
-                              <span class="chain-reason">({chainEntry.reason})</span>
+                              <span class="text-xs text-slate-500 dark:text-slate-300">({chainEntry.reason})</span>
                             {/if}
                             {#if !chainEntry.isItem}
-                              <span class={`chain-delta ${Number(chainEntry.delta || 0) < 0 ? 'neg' : Number(chainEntry.delta || 0) > 0 ? 'pos' : ''}`}>
-                                {formatSignedScore(chainEntry.delta)}
-                              </span>
+                              <span class={getChainDeltaClass(chainEntry.delta)}>{formatSignedScore(chainEntry.delta)}</span>
                             {/if}
                           </div>
                           {#if idx < detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem).length - 1}
-                            <span class="text-gray-400">›</span>
+                            <span class="text-slate-400">›</span>
                           {/if}
                         {/each}
                       </div>
@@ -1548,11 +1580,7 @@
                     <div class="font-semibold mb-2">라운드 기록</div>
                     <div class="flex flex-wrap gap-2 mb-3">
                       {#each detailMap[gameSearchResult.gameId].replayView.roundKeys as roundKey}
-                        <button
-                          class:round-selected={selectedRoundByGame[gameSearchResult.gameId] === roundKey}
-                          class="round-btn"
-                          on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}
-                        >
+                        <button class={getRoundButtonClass(gameSearchResult.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
                           라운드 {roundKey}
                         </button>
                       {/each}
@@ -1581,234 +1609,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .min-h-50 {
-    min-height: 50vh;
-  }
-  .okgg-wrap {
-    border: 1px solid rgba(156, 163, 175, 0.24);
-    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
-    backdrop-filter: blur(6px);
-  }
-  .profile-header {
-    background: linear-gradient(135deg, #d8e8cd 0%, #c7dcc5 42%, #dfeeda 100%);
-  }
-  .badge-level {
-    background: #111827;
-    color: #fff;
-    font-weight: 700;
-    border-radius: 999px;
-    padding: 2px 10px;
-    font-size: 14px;
-  }
-  .badge-score {
-    background: #8b5cf6;
-    color: #fff;
-    font-weight: 700;
-    border-radius: 999px;
-    padding: 2px 10px;
-    font-size: 14px;
-  }
-  .badge-rank {
-    background: #2563eb;
-    color: #fff;
-    font-weight: 700;
-    border-radius: 999px;
-    padding: 2px 10px;
-    font-size: 14px;
-  }
-  .refresh-btn {
-    background: #fbbf24;
-    color: #111827;
-    font-weight: 800;
-    border-radius: 12px;
-    padding: 12px 20px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 8px 20px rgba(251, 191, 36, 0.3);
-  }
-  .refresh-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  .tab-btn {
-    color: #fff;
-    border-radius: 10px 10px 0 0;
-    padding: 10px 14px;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: background-color 0.15s ease;
-  }
-  .tab-btn.selected {
-    background: #fff;
-    color: #111827;
-  }
-  .stat-card {
-    border: 1px solid rgba(156, 163, 175, 0.35);
-    border-radius: 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    padding: 16px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
-  }
-  .match-card {
-    border: 1px solid rgba(156, 163, 175, 0.35);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
-  }
-  .page-btn {
-    border: 1px solid rgba(107, 114, 128, 0.35);
-    border-radius: 10px;
-    padding: 6px 14px;
-    background: white;
-    cursor: pointer;
-  }
-  .page-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-  .search-wrap {
-    width: min(560px, 92vw);
-    background: rgba(15, 23, 42, 0.4);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.32);
-  }
-  .search-type-select {
-    background: rgba(17, 24, 39, 0.82);
-    color: #fff;
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    padding: 6px 12px;
-  }
-  .round-btn {
-    border: 1px solid rgba(107, 114, 128, 0.35);
-    border-radius: 999px;
-    padding: 5px 12px;
-    font-size: 13px;
-    cursor: pointer;
-    background: #fff;
-  }
-  .round-selected {
-    background: #111827;
-    color: #fff;
-  }
-  .participant-muted {
-    opacity: 0.56;
-    filter: grayscale(0.2);
-  }
-  .icon-action-btn {
-    border: 1px solid rgba(107, 114, 128, 0.35);
-    border-radius: 8px;
-    padding: 4px 6px;
-    background: #fff;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .icon-action-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-  .participant-rank {
-    font-weight: 800;
-    min-width: 70px;
-    color: #6b7280;
-  }
-  .participant-rank.first {
-    color: #d97706;
-  }
-  .participant-rank.second {
-    color: #16a34a;
-  }
-  .participant-rank.third {
-    color: #2563eb;
-  }
-  .participant-rank.left {
-    color: #9ca3af;
-  }
-  .chain-order-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-  .chain-order-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid rgba(156, 163, 175, 0.45);
-    border-radius: 999px;
-    padding: 6px 10px;
-    background: #fff;
-    cursor: default;
-  }
-  .chain-order-num {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 6px;
-    background: #e5e7eb;
-    font-size: 12px;
-    font-weight: 800;
-  }
-  .chain-entry-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-  .chain-entry-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 10px;
-    padding: 7px 10px;
-    background: #f3f4f6;
-    border: 1px solid rgba(156, 163, 175, 0.2);
-    font-size: 14px;
-  }
-  .chain-entry-chip.active .chain-word {
-    font-weight: 800;
-    text-decoration: underline;
-  }
-  .chain-entry-chip.reject .chain-word {
-    color: #dc2626;
-  }
-  .chain-turn-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    background: #e5e7eb;
-    font-size: 12px;
-    font-weight: 800;
-  }
-  .chain-reason {
-    font-size: 12px;
-    color: #6b7280;
-  }
-  .chain-delta {
-    font-weight: 700;
-  }
-  .chain-delta.pos {
-    color: #16a34a;
-  }
-  .chain-delta.neg {
-    color: #dc2626;
-  }
-</style>

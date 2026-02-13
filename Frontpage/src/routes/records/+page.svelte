@@ -107,6 +107,8 @@
   let loading = false;
   let loadingHistory = false;
   let errorMessage = '';
+  let errorToast = '';
+  let errorToastTimer = null;
 
   let page = 1;
   let pageSize = 10;
@@ -168,11 +170,33 @@
     const params = new URLSearchParams();
     if (searchType !== SEARCH_TYPE.nickname) params.set('type', searchType);
     if (searchNick) params.set('q', searchNick);
-    if (uid) params.set('uid', uid);
     if (page > 1) params.set('page', String(page));
     if (pageSize !== 10) params.set('pageSize', String(pageSize));
     const query = params.toString();
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }
+
+  function showError(message = '') {
+    errorMessage = String(message || '');
+    errorToast = errorMessage;
+    if (errorToastTimer) clearTimeout(errorToastTimer);
+    if (!errorToast) return;
+    errorToastTimer = setTimeout(() => {
+      errorToast = '';
+    }, 4500);
+  }
+
+  function selectTextFromCurrentTarget(event) {
+    if (!browser) return;
+    const node = event?.currentTarget;
+    if (!node || typeof window?.getSelection !== 'function') return;
+    const textNode = node.querySelector?.('[data-select-text]') || node;
+    const selection = window.getSelection();
+    if (!selection) return;
+    const range = document.createRange();
+    range.selectNodeContents(textNode);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   function normalizeEquip(rawEquip) {
@@ -253,7 +277,8 @@
     const rows = Object.values(rowsByMode)
       .map((row) => ({
         ...row,
-        playHours: normalizePlayHoursFromMs(row.playTimeMs)
+        playHours: normalizePlayHoursFromMs(row.playTimeMs),
+        winRate: row.games > 0 ? Math.round((row.wins / row.games) * 10000) / 100 : 0
       }))
       .filter((row) => row.playTimeMs > 0 || row.wins > 0 || row.games > 0 || row.acceptedWords > 0 || row.exp > 0)
       .sort((a, b) => b.exp - a.exp || b.playTimeMs - a.playTimeMs || b.games - a.games);
@@ -640,7 +665,7 @@
     try {
       await navigator.clipboard.writeText(id);
     } catch {
-      errorMessage = '식별번호 복사에 실패했습니다.';
+      showError('식별번호 복사에 실패했습니다.');
     }
   }
 
@@ -729,20 +754,20 @@
     const loaded = await loadRecordScript();
     if (!loaded) {
       recordScriptPromise = null;
-      errorMessage = '리플레이 내보내기 모듈 로드에 실패했습니다.';
+      showError('리플레이 내보내기 모듈 로드에 실패했습니다.');
       return;
     }
     try {
       const recordApi = resolveRecordApi();
       if (!recordApi) {
-        errorMessage = '리플레이 내보내기 모듈을 찾을 수 없습니다.';
+        showError('리플레이 내보내기 모듈을 찾을 수 없습니다.');
         return;
       }
       const ok = recordApi.fn.call(recordApi.ctx, detail);
-      if (ok === false) errorMessage = '리플레이 파일 생성에 실패했습니다.';
+      if (ok === false) showError('리플레이 파일 생성에 실패했습니다.');
     } catch (err) {
       console.error(err);
-      errorMessage = '리플레이 파일 생성에 실패했습니다.';
+      showError('리플레이 파일 생성에 실패했습니다.');
     }
   }
 
@@ -802,7 +827,7 @@
   async function loadAll(resetPage = false) {
     if (!uid) return;
     loading = true;
-    errorMessage = '';
+    showError('');
     currentStatus = 'user';
     if (resetPage) page = 1;
     syncQuery();
@@ -813,7 +838,7 @@
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
       syncQuery();
     } catch (err) {
-      errorMessage = err.message || '전적을 불러오지 못했습니다.';
+      showError(err.message || '전적을 불러오지 못했습니다.');
     } finally {
       loading = false;
       loadingHistory = false;
@@ -835,7 +860,7 @@
     const keyword = searchNick.trim();
     if (!keyword) return;
     loading = true;
-    errorMessage = '';
+    showError('');
     uid = '';
     profile = null;
     modeStats = [];
@@ -869,7 +894,7 @@
       syncQuery();
     } catch (err) {
       loading = false;
-      errorMessage = err.message || '경기 조회 실패입니다: 검색에 실패했습니다.';
+      showError(err.message || '경기 조회 실패입니다: 검색에 실패했습니다.');
       currentStatus = 'main';
     } finally {
       loading = false;
@@ -880,7 +905,7 @@
     const keyword = searchNick.trim();
     if (!keyword) return;
     loading = true;
-    errorMessage = '';
+    showError('');
     resetSearchResult();
     try {
       if (searchType === SEARCH_TYPE.nickname) {
@@ -896,7 +921,7 @@
       await loadAll(true);
     } catch (err) {
       loading = false;
-      errorMessage = err.message || '사용자 조회 실패입니다: 사용자 검색에 실패했습니다.';
+      showError(err.message || '사용자 조회 실패입니다: 사용자 검색에 실패했습니다.');
       currentStatus = 'main';
     }
   }
@@ -1035,20 +1060,23 @@
   onMount(async () => {
     const params = new URLSearchParams(window.location.search);
     const typeParam = normalizeSearchType(params.get('type') || SEARCH_TYPE.nickname);
-    const nickParam = params.get('q') || params.get('nick') || '';
+    const qParam = params.get('q') || params.get('nick') || '';
     const uidParam = params.get('uid') || '';
     const pageParam = Number(params.get('page') || 1);
     const sizeParam = normalizePageSize(params.get('pageSize') || 10);
 
     searchType = typeParam;
-    searchNick = nickParam;
-    uid = uidParam;
+    searchNick = qParam || (typeParam === SEARCH_TYPE.id ? uidParam : '');
+    uid = '';
     page = Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
     pageSize = sizeParam;
 
     if (searchType === SEARCH_TYPE.gameId && searchNick) await searchGame();
-    else if (uid) await loadAll(false);
     else if (searchNick) await searchUser();
+    else if (uidParam) {
+      uid = uidParam;
+      await loadAll(false);
+    }
   });
 </script>
 
@@ -1057,15 +1085,16 @@
 </svelte:head>
 
 <div class="bg-slate-950 text-slate-100 py-4">
-  <div class={`${hasResultView ? 'min-h-[50vh]' : 'min-h-screen'} rankBg flex h-full flex-col items-center px-4 pb-20 pt-24 md:pb-28 md:pt-32`}>
-    <p class="text-gray-200 text-lg my-4 flex items-center gap-2">
+  <div class={`${hasResultView ? 'min-h-[50vh]' : 'min-h-screen'} rankBg relative flex h-full flex-col items-center overflow-hidden px-4 pb-20 pt-24 md:pb-28 md:pt-32`}>
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-slate-950"></div>
+    <p class="relative z-10 text-gray-200 text-lg my-4 flex items-center gap-2">
       <span class="material-symbols-outlined">insights</span>
       전적 조회
     </p>
-    <h1 class="mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
+    <h1 class="relative z-10 mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
       끄투리오 전적 검색
     </h1>
-    <div class="mt-8 flex w-full max-w-3xl items-center rounded-2xl border border-white/40 bg-slate-900/60 p-2 shadow-xl backdrop-blur sm:mt-10">
+    <div class="relative z-10 mt-8 flex w-full max-w-3xl items-center rounded-2xl border border-white/40 bg-slate-900/60 p-2 shadow-xl backdrop-blur sm:mt-10">
       <select class="h-10 rounded-xl border border-white/20 bg-slate-950/70 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-400/60" bind:value={searchType}>
         <option value={SEARCH_TYPE.nickname}>별명</option>
         <option value={SEARCH_TYPE.id}>식별번호</option>
@@ -1082,11 +1111,6 @@
         <i class="material-symbols-outlined icons-header">search</i>
       </button>
     </div>
-    {#if errorMessage}
-      <div class="mt-4 rounded-lg border border-rose-300/60 bg-rose-100 px-4 py-2 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-900/30 dark:text-rose-200">
-        {errorMessage}
-      </div>
-    {/if}
   </div>
 
   {#if currentStatus === 'user' && profile}
@@ -1167,6 +1191,10 @@
                     <b>{stat.games.toLocaleString()}회</b>
                   </div>
                   <div class="mt-2 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>승률</span>
+                    <b>{stat.winRate.toFixed(2)}%</b>
+                  </div>
+                  <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">spellcheck</span>낱말 입력</span>
                     <b>{stat.acceptedWords.toLocaleString()}회</b>
                   </div>
@@ -1231,7 +1259,7 @@
                         <div class="text-sm text-red-600">상세 정보를 불러오지 못했습니다.</div>
                       {:else if detailMap[row.gameId]}
                         <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
-                          <div>경기번호: <code>{row.gameId}</code></div>
+                          <div class="cursor-text select-text rounded px-1 py-0.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/60" on:click={selectTextFromCurrentTarget}>경기번호: <code data-select-text>{row.gameId}</code></div>
                           <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white dark:bg-gray-700" on:click={() => downloadKkio(detailMap[row.gameId])}>
                             <span class="material-symbols-outlined text-base">download</span> 리플레이 내려받기
                           </button>
@@ -1455,7 +1483,7 @@
               <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.roomTitle || '제목 없음'}</div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-lg truncate">{getModeLabel(gameSearchResult)}</div>
-                <div class="text-sm text-gray-500 dark:text-gray-300">{gameSearchResult.gameId}</div>
+                <div data-select-text class="cursor-text select-text rounded px-1 py-0.5 text-sm text-gray-500 hover:bg-slate-100/70 dark:text-gray-300 dark:hover:bg-slate-800/60" on:click|stopPropagation={selectTextFromCurrentTarget}>{gameSearchResult.gameId}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatAgo(gameSearchResult.startedAt)} · {formatDate(gameSearchResult.startedAt)}</div>
               </div>
               <div class="shrink-0 text-left sm:text-right">
@@ -1655,6 +1683,12 @@
           {/if}
         </article>
       </section>
+    </div>
+  {/if}
+
+  {#if errorToast}
+    <div class="fixed bottom-6 right-4 z-[90] max-w-[min(92vw,680px)] rounded-xl border border-rose-300/70 bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-700 shadow-lg shadow-black/20 dark:border-rose-500/50 dark:bg-rose-950/90 dark:text-rose-100">
+      {errorToast}
     </div>
   {/if}
 </div>

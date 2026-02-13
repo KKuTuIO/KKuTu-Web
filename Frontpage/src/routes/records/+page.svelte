@@ -1111,7 +1111,7 @@
     <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-slate-950"></div>
     <p in:fade={{ duration: 180 }} class="relative z-[1] text-gray-200 text-lg my-4 flex items-center gap-2">
       <span class="material-symbols-outlined">insights</span>
-      전적 조회
+      쉽고 빠른 전적 조회
     </p>
     <h1 in:fly={{ y: -10, duration: 220 }} class="relative z-[1] mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
       끄투리오 전적 검색

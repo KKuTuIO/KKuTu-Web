@@ -350,7 +350,7 @@
   }
 
   function buildReplayView(payload) {
-    if (!payload || !Array.isArray(payload.p) || !Array.isArray(payload.w)) return null;
+    if (!payload || !Array.isArray(payload.p)) return null;
     const modeCode = String(payload.rm?.[2] || '');
     const isChainMode = CHAIN_MODE_SET.has(modeCode);
     const players = payload.p.map((row, index) => ({
@@ -367,7 +367,7 @@
       profileImage: row[10] || '',
       outfit: Array.isArray(row[11]) ? row[11] : []
     }));
-    const words = payload.w;
+    const words = Array.isArray(payload.w) ? payload.w : [];
     const extras = Array.isArray(payload.x) ? payload.x : [];
     const inputs = Array.isArray(payload.i) ? payload.i : [];
     const modeEvents = Array.isArray(payload.mv) ? payload.mv : [];

@@ -61,6 +61,7 @@
   let selectedRoundByGame = {};
   let hoveredChainPlayerByGame = {};
   let showItemEntriesByGame = {};
+  let participantNicknameCache = {};
   let gameSearchResult = null;
   let hasResultView = false;
 
@@ -212,8 +213,8 @@
     return `${min}분 ${sec}초`;
   }
 
-  async function decodeReplayPayload(base64) {
-    if (!base64 || !browser) return null;
+  async function decodeReplayPayload(base64, payloadCodec = 'br64') {
+    if (!base64 || !browser || payloadCodec !== 'br64') return null;
     try {
       const binary = atob(base64);
       const source = new Uint8Array(binary.length);
@@ -528,6 +529,27 @@
     return participants;
   }
 
+  async function fetchUserNickname(userId) {
+    if (!userId || participantNicknameCache[userId]) return participantNicknameCache[userId] || null;
+    const { body } = await fetchJson(`/user/${encodeURIComponent(userId)}`);
+    const nickname = body?.profile?.title || null;
+    if (nickname) participantNicknameCache = { ...participantNicknameCache, [userId]: nickname };
+    return nickname;
+  }
+
+  async function hydrateParticipants(participants) {
+    if (!Array.isArray(participants) || participants.length < 1) return participants;
+    const next = participants.map((row) => ({ ...row }));
+    await Promise.all(
+      next.map(async (participant) => {
+        if (participant.robot || !participant.id || participant.nickname !== participant.id) return;
+        const nickname = await fetchUserNickname(participant.id);
+        if (nickname) participant.nickname = nickname;
+      })
+    );
+    return next;
+  }
+
   async function copyPlayerId(id) {
     if (!browser || !id) return;
     try {
@@ -555,7 +577,9 @@
 
   function getParticipantLabel(participant) {
     if (participant?.left) return '중도 퇴장';
-    if (Number(participant?.placement || 0) > 0) return `${participant.placement}위`;
+    const placement = Number(participant?.placement || 0);
+    if (placement === 1) return '우승';
+    if (placement > 1) return `${placement}등`;
     return '-';
   }
 
@@ -572,22 +596,32 @@
   let recordScriptPromise = null;
   const RECORD_SCRIPT_URL = 'https://cdn.kkutu.io/js/in_records.min.js?v=4.2.0';
 
-  function getRecordGlobal() {
+  function resolveRecordApi() {
     if (!browser) return null;
-    const candidate = window?.KKuTuRecord;
-    if (!candidate || typeof candidate.downloadKkio !== 'function') return null;
-    return candidate;
+    const candidates = [
+      window?.KKuTuRecord,
+      window?.inRecord,
+      window?.InRecord,
+      window?.in_record,
+      window?.KKUTU_RECORD
+    ];
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate.downloadKkio === 'function') return { fn: candidate.downloadKkio, ctx: candidate };
+      if (candidate && typeof candidate.download === 'function') return { fn: candidate.download, ctx: candidate };
+    }
+    if (typeof window?.downloadKkio === 'function') return { fn: window.downloadKkio, ctx: window };
+    return null;
   }
 
   function loadRecordScript() {
     if (!browser) return Promise.resolve(false);
-    if (getRecordGlobal()) return Promise.resolve(true);
+    if (resolveRecordApi()) return Promise.resolve(true);
     if (recordScriptPromise) return recordScriptPromise;
 
     recordScriptPromise = new Promise((resolve) => {
       const existing = document.querySelector('script[data-kkutu-record="1"]');
       if (existing) {
-        existing.addEventListener('load', () => resolve(Boolean(getRecordGlobal())), { once: true });
+        existing.addEventListener('load', () => resolve(Boolean(resolveRecordApi())), { once: true });
         existing.addEventListener('error', () => resolve(false), { once: true });
         return;
       }
@@ -597,7 +631,7 @@
       script.async = true;
       script.crossOrigin = 'anonymous';
       script.dataset.kkutuRecord = '1';
-      script.addEventListener('load', () => resolve(Boolean(getRecordGlobal())), { once: true });
+      script.addEventListener('load', () => resolve(Boolean(resolveRecordApi())), { once: true });
       script.addEventListener('error', () => resolve(false), { once: true });
       document.head.appendChild(script);
     });
@@ -605,23 +639,120 @@
     return recordScriptPromise;
   }
 
-  async function downloadKkio(detail) {
-    if (!browser) return;
-    const loaded = await loadRecordScript();
-    if (!loaded) {
-      errorMessage = '리플레이 내보내기 모듈 로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
-      return;
-    }
-    const recordGlobal = getRecordGlobal();
-    if (!recordGlobal) {
-      errorMessage = '리플레이 내보내기 모듈을 찾을 수 없습니다.';
-      return;
+  function buildFallbackKkioRecord(detail) {
+    const replayView = detail?.replayView;
+    const payload = replayView?.payload;
+    if (!payload || !Array.isArray(replayView?.players) || replayView.players.length < 1) return null;
+    const words = Array.isArray(payload.w) ? payload.w : [];
+    const extras = Array.isArray(payload.x) ? payload.x : [];
+    const events = [];
+
+    const pushChat = (time, playerIndex, text) => {
+      const player = replayView.players[playerIndex];
+      if (!player || !text) return;
+      events.push({
+        time: Math.max(0, Number(time) || 0),
+        data: { type: 'chat', from: player.id, profile: { id: player.id, title: `#${player.id}` }, value: text }
+      });
+    };
+
+    for (const row of Array.isArray(payload.i) ? payload.i : []) {
+      if (!Array.isArray(row)) continue;
+      const word = words[Number(row[1] || -1)] || '(알 수 없음)';
+      const extraRaw = Number(row[6] || -1) >= 0 ? String(extras[Number(row[6] || -1)] || '') : '';
+      pushChat(Number(row[3] || 0), Number(row[0] || 0), `${extraRaw.startsWith('CR,') ? '[거절]' : '[입력]'} ${word}`);
     }
 
+    for (const row of Array.isArray(payload.mv) ? payload.mv : []) {
+      if (!Array.isArray(row)) continue;
+      const type = String(row[0] || '');
+      const extraRaw = Number(row[4] || -1) >= 0 ? String(extras[Number(row[4] || -1)] || '') : '';
+      const extraTokens = extraRaw ? extraRaw.split(',') : [];
+      let text = '';
+      if (type === 'CTO') text = `시간초과 ${Number(extraTokens[1] || 0)}점`;
+      else if (type === 'CIT') text = `아이템 ${Number(extraTokens[1] || -1)} 사용`;
+      else if (type === 'TPM') text = `타/분 ${Number(extraTokens[1] || 0)}`;
+      else if (type === 'MQR') text = `정답 ${Number(extraTokens[1] || 0)} · 오답 ${Number(extraTokens[2] || 0)}`;
+      else if (type === 'SOK') text = `조합 ${extraTokens[1] || '-'}`;
+      else if (type === 'WSA') text = `공격 ${extraTokens[1] || '-'} -> ${extraTokens[2] || '-'}`;
+      else if (type === 'WSS') text = `제작 ${Number(extraTokens[1] || 0)}단어 · ${Number(extraTokens[2] || 0)}글자`;
+      if (text) pushChat(Number(row[3] || 0), Number(row[1] || 0), text);
+    }
+
+    const roundEndResult = (replayView.ranking || []).map((row) => ({
+      id: row.playerId,
+      rank: Math.max(0, Number(row.placement || 1) - 1),
+      score: Number(row.score || 0),
+      dim: 1,
+      reward: { score: Number(row.exp || 0), money: 0, playTime: 0, ep: Number(row.ep || 0), _score: Number(row.exp || 0), _money: 0, _blog: 0 }
+    }));
+    events.push({ time: Math.max(0, Number(payload.d || detail.durationMs || 0)), data: { type: 'roundEnd', result: roundEndResult, data: {} } });
+    events.sort((a, b) => a.time - b.time);
+
+    const players = replayView.players.map((player) => ({
+      id: player.id,
+      title: player.nickname || `#${player.id}`,
+      robot: Boolean(player.robot),
+      data: { score: Math.max(0, Number(player.level || 1) * 10) },
+      equip: {}
+    }));
+    const sequence = replayView.players.map((player) => (player.robot ? { id: player.id, robot: true, game: { score: 0 } } : player.id));
+    const roundCount = Math.max(1, Number(payload.rm?.[5] || 1));
+
+    return {
+      version: 'record.v2',
+      me: players.find((row) => !row.robot)?.id || players[0]?.id || '',
+      players,
+      events,
+      title: String(payload.rm?.[7] || detail.roomTitle || 'Replay'),
+      roundTime: Math.max(10, Number(payload.rm?.[6] || 60)),
+      round: roundCount,
+      mode: Number(payload.rm?.[1] || detail.mode || 0),
+      limit: players.length,
+      game: { title: payload.rm?.[8] || '', seq: sequence, turn: 0, round: roundCount },
+      opts: Array.isArray(payload.rm?.[9]) ? payload.rm[9] : [],
+      readies: {},
+      injpick: Array.isArray(payload.rm?.[10]) ? payload.rm[10] : [],
+      time: Number(payload.s || detail.startedAt || Date.now()),
+      recordGameId: detail.gameId
+    };
+  }
+
+  function fallbackDownloadKkio(detail) {
+    const record = buildFallbackKkioRecord(detail);
+    if (!record || !browser) return false;
+    const recBase = btoa(unescape(encodeURIComponent(JSON.stringify(record))));
+    const recData = new Uint8Array(recBase.length + 10);
+    const recKey = [Math.floor(Math.random() * 239) + 16, Math.floor(Math.random() * 239) + 16];
+    recData.set([75, 75, 73, 79]);
+    recData.set(recKey, 4);
+    for (let i = 0; i < 3; i++) recData[6 + i] = (recBase.length >> (i * 8)) & 0xff;
+    for (let i = 0; i < recBase.length; i++) recData[10 + i] = recBase.charCodeAt(i) ^ recKey[i % 2];
+    const blob = new Blob([recData], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `KKuTuIO-${detail.gameId || Date.now()}.kkio`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return true;
+  }
+
+  async function downloadKkio(detail) {
+    if (!browser) return;
+    await loadRecordScript();
     try {
-      const ok = recordGlobal.downloadKkio(detail);
-      if (!ok) errorMessage = '리플레이 파일 생성에 실패했습니다.';
-    } catch {
+      const recordApi = resolveRecordApi();
+      if (recordApi) {
+        const ok = recordApi.fn.call(recordApi.ctx, detail);
+        if (ok) return;
+      }
+      const fallbackOk = fallbackDownloadKkio(detail);
+      if (!fallbackOk) errorMessage = '리플레이 파일 생성에 실패했습니다.';
+    } catch (err) {
+      console.error(err);
       errorMessage = '리플레이 파일 생성에 실패했습니다.';
     }
   }
@@ -729,9 +860,9 @@
         throw new Error('경기 조회 실패입니다: 입력한 경기번호를 찾을 수 없습니다.');
       }
       const game = body.game;
-      const payload = await decodeReplayPayload(game.payload);
+      const payload = game.payloadDecoded || await decodeReplayPayload(game.payload, game.payloadCodec);
       const replayView = buildReplayView(payload);
-      const participants = buildParticipants(game, replayView);
+      const participants = await hydrateParticipants(buildParticipants(game, replayView));
       const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
       selectedRoundByGame = { ...selectedRoundByGame, [game.gameId]: firstRound };
       detailMap = { ...detailMap, [game.gameId]: { ...game, participants, replayView } };
@@ -816,9 +947,9 @@
       return;
     }
     const game = body.game;
-    const payload = await decodeReplayPayload(game.payload);
+    const payload = game.payloadDecoded || await decodeReplayPayload(game.payload, game.payloadCodec);
     const replayView = buildReplayView(payload);
-    const participants = buildParticipants(game, replayView);
+    const participants = await hydrateParticipants(buildParticipants(game, replayView));
     const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
     selectedRoundByGame = { ...selectedRoundByGame, [gameId]: firstRound };
     detailLoading = { ...detailLoading, [gameId]: false };
@@ -1046,18 +1177,17 @@
                           <div class="space-y-1">
                             {#each detailMap[row.gameId].participants || [] as participant}
                               <div class:font-bold={participant.id === uid} class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
-                                <div class="min-w-0 flex items-center gap-2">
-                                  <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
-                                  <span class="text-xl">🙂</span>
-                                  <div class="min-w-0">
-                                    <span class="truncate">{participant.nickname}</span>
+                                <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                                <div class="min-w-0 flex-1">
+                                  <div class="truncate font-semibold">{participant.nickname}</div>
+                                  <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                                    {#if participant.id && participant.id !== participant.nickname}
+                                      <span>식별번호: {participant.id}</span>
+                                    {/if}
+                                    <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                                     {#if participant.robot}
                                       <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
                                     {/if}
-                                  </div>
-                                  <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
-                                    <span>식별번호: {participant.id}</span>
-                                    <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                                   </div>
                                   {#if participant.left}
                                     <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
@@ -1070,9 +1200,6 @@
                                   <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
                                     <span class="material-symbols-outlined text-base">account_circle</span>
                                   </button>
-                                  {#if participant.won}
-                                    <span class="text-yellow-600 ml-1">우승</span>
-                                  {/if}
                                 </div>
                                 <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
                               </div>
@@ -1279,18 +1406,17 @@
                 <div class="space-y-1">
                   {#each detailMap[gameSearchResult.gameId].participants || [] as participant}
                     <div class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
-                      <div class="min-w-0 flex items-center gap-2">
-                        <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
-                        <span class="text-xl">🙂</span>
-                        <div class="min-w-0">
-                          <span class="truncate">{participant.nickname}</span>
+                      <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                      <div class="min-w-0 flex-1">
+                        <div class="truncate font-semibold">{participant.nickname}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                          {#if participant.id && participant.id !== participant.nickname}
+                            <span>식별번호: {participant.id}</span>
+                          {/if}
+                          <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                           {#if participant.robot}
                             <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
                           {/if}
-                        </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
-                          <span>식별번호: {participant.id}</span>
-                          <span>획득 경험치: +{Number(participant.exp || 0).toLocaleString()}</span>
                         </div>
                         {#if participant.left}
                           <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
@@ -1303,9 +1429,6 @@
                         <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
                           <span class="material-symbols-outlined text-base">account_circle</span>
                         </button>
-                        {#if participant.won}
-                          <span class="text-yellow-600 ml-1">우승</span>
-                        {/if}
                       </div>
                       <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
                     </div>

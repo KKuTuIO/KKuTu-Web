@@ -160,19 +160,20 @@ class MainController(
             val day = calendar.get(Calendar.DAY_OF_MONTH)
 
             val baseUrl = "https://dl.kkutu.io/img/intro"
+            val baseUrl2 = "https://cdn.kkutu.io/img/kkutu/intro/"
 
             // 절기별 PC/모바일 이미지 매핑
             val pcImage = when (month) {
                 in 3..5 -> "$baseUrl/spring.png"
                 in 6..8 -> "$baseUrl/summer.png"
                 in 9..11 -> "$baseUrl/fall.png"
-                else -> "$baseUrl/winter.png"
+                else -> "$baseUrl2/winter.png"
             }
             val mobileImage = when (month) {
                 in 3..5 -> "$baseUrl/spring_m.png"
                 in 6..8 -> "$baseUrl/summer_m.png"
                 in 9..11 -> "$baseUrl/fall_m.png"
-                else -> "$baseUrl/winter_m.png"
+                else -> "$baseUrl2/m_winter.png"
             }
 
             // 9주년 행사 (PC 전용, 2월 1일~14일)

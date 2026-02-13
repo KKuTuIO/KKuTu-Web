@@ -32,7 +32,7 @@ class RecordClient(
     private fun connectWebSocket() {
         try {
             val protocol = if (isSecure) "wss" else "ws"
-            val webSocketUrl = "$protocol://$host:$port/$key:$id"
+            val webSocketUrl = "$protocol://$host:$port/$key:record:$id"
 
             webSocket = WebSocketFactory()
                 .setConnectionTimeout(5000)
@@ -67,7 +67,10 @@ class RecordClient(
     override fun onTextMessage(websocket: WebSocket, text: String) {
         val jsonNode = objectMapper.readTree(text)
         val type = jsonNode["type"]?.textValue() ?: return
-        if (type != "record-find-game-result" && type != "record-find-user-history-result") return
+        if (type != "record-find-game-result" &&
+            type != "record-find-user-history-result" &&
+            type != "record-find-user-mode-stats-result"
+        ) return
 
         val requestId = jsonNode["requestId"]?.textValue() ?: return
         val future = pendingReplayRequests.remove(requestId) ?: return
@@ -96,6 +99,12 @@ class RecordClient(
         payload.put("page", page)
         payload.put("pageSize", pageSize)
         return requestReplay("record-find-user-history", payload)
+    }
+
+    fun requestReplayUserModeStats(userId: String): String? {
+        val payload = objectMapper.createObjectNode()
+        payload.put("userId", userId)
+        return requestReplay("record-find-user-mode-stats", payload)
     }
 
     private fun requestReplay(type: String, payload: ObjectNode, timeoutMs: Long = 2500): String? {

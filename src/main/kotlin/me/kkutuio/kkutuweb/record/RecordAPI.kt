@@ -33,6 +33,14 @@ class RecordAPI(
         return recordService.findUserHistory(userId, page, pageSize)
     }
 
+    @RateLimiter(name = "recordFindUserModeStats", fallbackMethod = "onUserModeStatsRateLimited")
+    @GetMapping("/user/{userId}/mode-stats")
+    fun findUserModeStats(
+        @PathVariable userId: String
+    ): RecordUserModeStatsResponse {
+        return recordService.findUserModeStats(userId)
+    }
+
     @Suppress("UNUSED_PARAMETER")
     fun onGameRateLimited(
         gameId: String,
@@ -50,5 +58,13 @@ class RecordAPI(
         throwable: RequestNotPermitted
     ): RecordUserHistoryResponse {
         return RecordUserHistoryResponse(ok = false, code = 429, error = "rate-limited")
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    fun onUserModeStatsRateLimited(
+        userId: String,
+        throwable: RequestNotPermitted
+    ): RecordUserModeStatsResponse {
+        return RecordUserModeStatsResponse(ok = false, code = 429, error = "rate-limited")
     }
 }

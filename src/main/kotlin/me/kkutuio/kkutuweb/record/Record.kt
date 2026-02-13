@@ -66,3 +66,22 @@ data class RecordPagination(
     val pageSize: Int,
     val hasNext: Boolean
 )
+
+data class RecordUserModeStatsResponse(
+    val type: String? = null,
+    val requestId: String? = null,
+    val ok: Boolean = false,
+    val code: Int = 500,
+    val error: String? = null,
+    val stats: List<RecordUserModeStat> = emptyList()
+)
+
+data class RecordUserModeStat(
+    val mode: Int,
+    val modeName: String,
+    val games: Int,
+    val wins: Int,
+    val exp: Int,
+    val playTime: Long,
+    val acceptedWords: Int
+)

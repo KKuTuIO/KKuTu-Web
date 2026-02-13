@@ -21,4 +21,9 @@ class RecordService(
         return recordDao.findUserHistory(userId, safePage, safePageSize)
             ?: RecordUserHistoryResponse(ok = false, code = 503, error = "game-server-unavailable")
     }
+
+    fun findUserModeStats(userId: String): RecordUserModeStatsResponse {
+        return recordDao.findUserModeStats(userId)
+            ?: RecordUserModeStatsResponse(ok = false, code = 503, error = "game-server-unavailable")
+    }
 }

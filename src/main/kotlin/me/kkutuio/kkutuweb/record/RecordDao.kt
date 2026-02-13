@@ -24,4 +24,14 @@ class RecordDao(
         val raw = recordClientManager.requestReplayUserHistory(userId, page, pageSize) ?: return null
         return recordMapper.toUserHistoryResponse(raw)
     }
+
+    @Cacheable(
+        value = [CacheConfig.RECORD_USER_MODE_STATS_CACHE],
+        key = "#userId",
+        unless = "#result == null || #result.ok == false"
+    )
+    fun findUserModeStats(userId: String): RecordUserModeStatsResponse? {
+        val raw = recordClientManager.requestReplayUserModeStats(userId) ?: return null
+        return recordMapper.toUserModeStatsResponse(raw)
+    }
 }

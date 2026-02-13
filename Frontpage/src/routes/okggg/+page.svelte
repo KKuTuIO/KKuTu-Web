@@ -115,35 +115,64 @@
     return { ok: res.ok, status: res.status, body };
   }
 
-  function normalizePlayHours(value) {
-    const raw = Number(value) || 0;
-    if (raw <= 0) return 0;
-    const seconds = raw > 100000000 ? raw / 1000 : raw;
-    return seconds / 3600;
+  function normalizePlayHoursFromMs(value) {
+    const ms = Math.max(0, Number(value) || 0);
+    return ms / 3600000;
   }
 
-  function buildModeStats(record) {
-    if (!record || typeof record !== 'object') return [];
-    const rows = [];
-    for (const key of Object.keys(record)) {
-      const values = Array.isArray(record[key]) ? record[key] : [];
-      const playHours = normalizePlayHours(values[0]);
-      const wins = Number(values[1]) || 0;
-      const rounds = Number(values[2]) || 0;
-      const words = Number(values[3]) || 0;
-      const items = Number(values[4]) || 0;
-      if (!playHours && !wins && !rounds && !words && !items) continue;
-      rows.push({
+  function toEpochMs(value) {
+    if (value === null || value === undefined) return 0;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return parsed > 1000000000000 ? Math.floor(parsed) : Math.floor(parsed * 1000);
+  }
+
+  function buildModeStats(record, replayStats) {
+    const rowsByMode = {};
+    const fromRecord = record && typeof record === 'object' ? record : {};
+
+    for (const key of Object.keys(fromRecord)) {
+      const values = Array.isArray(fromRecord[key]) ? fromRecord[key] : [];
+      rowsByMode[key] = {
         key,
         modeName: MODE_LABEL[key] || key,
-        playHours,
-        wins,
-        rounds,
-        words,
-        items
-      });
+        games: Number(values[0] || 0),
+        wins: Number(values[1] || 0),
+        exp: Number(values[2] || 0),
+        playTimeMs: Math.max(0, Number(values[3] || 0)),
+        acceptedWords: 0
+      };
     }
-    rows.sort((a, b) => b.playHours - a.playHours);
+
+    if (Array.isArray(replayStats)) {
+      for (const row of replayStats) {
+        const key = row?.modeName || 'UNKNOWN';
+        const current = rowsByMode[key] || {
+          key,
+          modeName: MODE_LABEL[key] || key,
+          games: 0,
+          wins: 0,
+          exp: 0,
+          playTimeMs: 0,
+          acceptedWords: 0
+        };
+        current.games = Number(row?.games || 0);
+        current.wins = Number(row?.wins || 0);
+        current.exp = Number(row?.exp || 0);
+        current.playTimeMs = Math.max(0, Number(row?.playTime || 0));
+        current.acceptedWords = Number(row?.acceptedWords || 0);
+        rowsByMode[key] = current;
+      }
+    }
+
+    const rows = Object.values(rowsByMode)
+      .map((row) => ({
+        ...row,
+        playHours: normalizePlayHoursFromMs(row.playTimeMs)
+      }))
+      .filter((row) => row.playTimeMs > 0 || row.wins > 0 || row.games > 0 || row.acceptedWords > 0 || row.exp > 0)
+      .sort((a, b) => b.playTimeMs - a.playTimeMs || b.games - a.games);
+
     return rows;
   }
 
@@ -371,15 +400,24 @@
       id: body.id || uid,
       nickname: body?.profile?.title || uid,
       exordial: body.exordial || '',
-      lastLogin: body?.profile?.lastLogin || '',
+      lastLoginTs: toEpochMs(body?.profile?.lastLogin),
       score: Number(body?.data?.score || 0),
       level: getLevel(Number(body?.data?.score || 0)),
       record: body?.data?.record || {},
       raw: body
     };
     profile = nextProfile;
-    modeStats = buildModeStats(nextProfile.record);
     moremi = normalizeEquip(body.equip);
+    return nextProfile;
+  }
+
+  async function loadModeStats() {
+    const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}/mode-stats`);
+    if (!body?.ok) {
+      if (body?.code === 429) throw new Error('모드 통계 조회 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.');
+      return [];
+    }
+    return Array.isArray(body.stats) ? body.stats : [];
   }
 
   async function loadHistory(targetPage = page) {
@@ -403,7 +441,8 @@
     if (resetPage) page = 1;
     syncQuery();
     try {
-      await Promise.all([loadProfile(), loadHistory(page)]);
+      const [loadedProfile, , replayModeStats] = await Promise.all([loadProfile(), loadHistory(page), loadModeStats()]);
+      modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
       syncQuery();
     } catch (err) {
       errorMessage = err.message || '전적을 불러오지 못했습니다.';
@@ -576,8 +615,14 @@
 
 <div class="dark:bg-gray-900">
   <div class="min-h-screen h-full py-40 px-4 flex flex-col items-center rankBg">
-    <p class="text-gray-300 text-2xl my-4">전적 조회</p>
-    <h1 class="text-white text-5xl font-bold mb-2">끄투리오 전적 검색</h1>
+    <p class="text-gray-200 text-lg my-4 flex items-center gap-2">
+      <span class="material-symbols-outlined">insights</span>
+      전적 조회
+    </p>
+    <h1 class="text-white text-5xl font-bold mb-2 flex items-center gap-3">
+      <span class="material-symbols-outlined text-5xl">sports_score</span>
+      끄투리오 전적 검색
+    </h1>
     <div class="search-wrap flex items-center border-3 border-white rounded-full p-2 mt-10">
       <select class="search-type-select" bind:value={searchType}>
         <option value={SEARCH_TYPE.nickname}>별명</option>
@@ -617,27 +662,40 @@
             </div>
             <div>
               <div class="flex items-center gap-2 mb-2">
-                <span class="badge-level">Lv. {profile.level}</span>
-                <span class="badge-score">PP. {Number(profile.score).toLocaleString()}</span>
+                <span class="badge-level">레벨 {profile.level}</span>
+                <span class="badge-score">경험치: {Number(profile.score).toLocaleString()}점</span>
               </div>
               <div class="text-4xl font-bold leading-tight">{profile.nickname}</div>
               <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">
                 {profile.exordial || '소개 한마디가 없습니다.'}
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-300 mt-2">
-                최근 접속: {profile.lastLogin || '-'}
+              <div class="text-xs text-gray-600 dark:text-gray-300 mt-2 flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">schedule</span>
+                최근 접속:
+                {#if profile.lastLoginTs}
+                  {formatDate(profile.lastLoginTs)} ({formatAgo(profile.lastLoginTs)})
+                {:else}
+                  -
+                {/if}
               </div>
             </div>
           </div>
           <button class="refresh-btn" on:click={() => loadAll(false)} disabled={loading}>
+            <span class="material-symbols-outlined text-xl">{loading ? 'progress_activity' : 'refresh'}</span>
             {loading ? '불러오는 중...' : '새로고침'}
           </button>
         </div>
 
         <div class="px-3 py-2 bg-neutral-800 flex items-center gap-2">
-          <button class:selected={selectedTab === 'profile'} class="tab-btn" on:click={() => (selectedTab = 'profile')}>사용자 정보</button>
-          <button class:selected={selectedTab === 'stats'} class="tab-btn" on:click={() => (selectedTab = 'stats')}>통계</button>
-          <button class:selected={selectedTab === 'history'} class="tab-btn" on:click={() => (selectedTab = 'history')}>경기 내역</button>
+          <button class:selected={selectedTab === 'profile'} class="tab-btn" on:click={() => (selectedTab = 'profile')}>
+            <span class="material-symbols-outlined text-base">person</span> 사용자 정보
+          </button>
+          <button class:selected={selectedTab === 'stats'} class="tab-btn" on:click={() => (selectedTab = 'stats')}>
+            <span class="material-symbols-outlined text-base">query_stats</span> 통계
+          </button>
+          <button class:selected={selectedTab === 'history'} class="tab-btn" on:click={() => (selectedTab = 'history')}>
+            <span class="material-symbols-outlined text-base">history</span> 경기 내역
+          </button>
         </div>
       </section>
 
@@ -647,11 +705,30 @@
             {#if modeStats.length}
               {#each modeStats.slice(0, selectedTab === 'stats' ? modeStats.length : 3) as stat}
                 <article class="stat-card">
-                  <div class="text-xl font-bold text-blue-600 dark:text-blue-300">{stat.modeName}</div>
-                  <div class="text-5xl font-black mt-3">{stat.playHours.toFixed(1)}<span class="text-xl ml-1 font-medium">시간</span></div>
-                  <div class="mt-4 text-lg flex justify-between"><span>우승</span> <b>{stat.wins.toLocaleString()}회</b></div>
-                  <div class="mt-2 text-lg flex justify-between"><span>라운드</span> <b>{stat.rounds.toLocaleString()}회</b></div>
-                  <div class="mt-2 text-lg flex justify-between"><span>낱말 입력</span> <b>{stat.words.toLocaleString()}회</b></div>
+                  <div class="text-xl font-bold text-blue-600 dark:text-blue-300 flex items-center gap-2">
+                    <span class="material-symbols-outlined">stadia_controller</span>
+                    {stat.modeName}
+                  </div>
+                  <div class="text-5xl font-black mt-3 flex items-end gap-1">
+                    {stat.playHours.toFixed(1)}
+                    <span class="text-xl font-medium">시간</span>
+                  </div>
+                  <div class="mt-4 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">emoji_events</span>우승</span>
+                    <b>{stat.wins.toLocaleString()}회</b>
+                  </div>
+                  <div class="mt-2 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">sports_esports</span>경기</span>
+                    <b>{stat.games.toLocaleString()}회</b>
+                  </div>
+                  <div class="mt-2 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">spellcheck</span>낱말 입력</span>
+                    <b>{stat.acceptedWords.toLocaleString()}회</b>
+                  </div>
+                  <div class="mt-2 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">auto_awesome</span>획득 경험치</span>
+                    <b>{stat.exp.toLocaleString()}</b>
+                  </div>
                 </article>
               {/each}
             {:else}
@@ -930,10 +1007,12 @@
 
 <style>
   .okgg-wrap {
-    border: 1px solid rgba(156, 163, 175, 0.2);
+    border: 1px solid rgba(156, 163, 175, 0.24);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(6px);
   }
   .profile-header {
-    background: linear-gradient(135deg, #d8e8cd 0%, #cfe3c7 42%, #dfeeda 100%);
+    background: linear-gradient(135deg, #d8e8cd 0%, #c7dcc5 42%, #dfeeda 100%);
   }
   .badge-level {
     background: #111827;
@@ -958,6 +1037,10 @@
     border-radius: 12px;
     padding: 12px 20px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 20px rgba(251, 191, 36, 0.3);
   }
   .refresh-btn:disabled {
     opacity: 0.6;
@@ -969,6 +1052,10 @@
     padding: 10px 14px;
     font-weight: 700;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.15s ease;
   }
   .tab-btn.selected {
     background: #fff;
@@ -977,13 +1064,20 @@
   .stat-card {
     border: 1px solid rgba(156, 163, 175, 0.35);
     border-radius: 14px;
-    background: #fff;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     padding: 16px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
   }
   .match-card {
     border: 1px solid rgba(156, 163, 175, 0.35);
     border-radius: 14px;
     overflow: hidden;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
   }
   .page-btn {
     border: 1px solid rgba(107, 114, 128, 0.35);
@@ -998,9 +1092,11 @@
   }
   .search-wrap {
     width: min(560px, 92vw);
+    background: rgba(15, 23, 42, 0.4);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.32);
   }
   .search-type-select {
-    background: rgba(17, 24, 39, 0.65);
+    background: rgba(17, 24, 39, 0.82);
     color: #fff;
     border-radius: 9999px;
     border: 1px solid rgba(255, 255, 255, 0.35);

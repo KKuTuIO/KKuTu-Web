@@ -78,3 +78,7 @@ resilience4j:
         limitForPeriod: 5
         limitRefreshPeriod: 1s
         timeoutDuration: 0s
+      recordFindUserModeStats:
+        limitForPeriod: 3
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0s

@@ -14,13 +14,15 @@ class CacheConfig {
     companion object {
         const val RECORD_USER_INFO_CACHE = "recordUserInfo10m"
         const val RECORD_USER_HISTORY_CACHE = "recordUserHistory10m"
+        const val RECORD_USER_MODE_STATS_CACHE = "recordUserModeStats10m"
     }
 
     @Bean
     fun cacheManager(): CacheManager {
         val tenMinuteCache = CaffeineCacheManager(
             RECORD_USER_INFO_CACHE,
-            RECORD_USER_HISTORY_CACHE
+            RECORD_USER_HISTORY_CACHE,
+            RECORD_USER_MODE_STATS_CACHE
         ).apply {
             setCaffeine(
                 Caffeine.newBuilder()

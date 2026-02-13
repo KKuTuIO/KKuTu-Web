@@ -23,4 +23,12 @@ class RecordMapper(
             null
         }
     }
+
+    fun toUserModeStatsResponse(raw: String): RecordUserModeStatsResponse? {
+        return try {
+            objectMapper.readValue(raw, RecordUserModeStatsResponse::class.java)
+        } catch (_: Exception) {
+            null
+        }
+    }
 }

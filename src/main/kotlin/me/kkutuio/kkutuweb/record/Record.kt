@@ -1,5 +1,7 @@
 package me.kkutuio.kkutuweb.record
 
+import com.fasterxml.jackson.databind.JsonNode
+
 data class RecordGameLookupResponse(
     val type: String? = null,
     val requestId: String? = null,
@@ -29,7 +31,8 @@ data class RecordGame(
     val payloadVersion: Int,
     val payloadSize: Int,
     val rawSize: Int,
-    val payload: String? = null
+    val payload: String? = null,
+    val payloadDecoded: JsonNode? = null
 )
 
 data class RecordUserHistoryResponse(

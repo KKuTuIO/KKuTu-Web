@@ -35,6 +35,68 @@
     KQZ: '퀴즈 대결',
     UNKNOWN: '기타'
   };
+  const OPTION_BADGE_LABEL = {
+    // Short option ids
+    man: '매너',
+    saf: '안전',
+    ext: '어인정',
+    mis: '미션',
+    inp: '단어장',
+    ijp: '단어장',
+    loa: '우리말',
+    prv: '속담',
+    lot: '장문',
+    str: '깐깐',
+    k32: '3232',
+    no2: '2글자 금지',
+    beg: '초보',
+    nol: '길이 무제한',
+    rms: '랜덤미션',
+    tct: '택티컬',
+    rnk: '친선전',
+    asy: '유의어 제거',
+    ado: '두음법칙 제거',
+    pwr: '파워두음',
+    etq: '에티켓',
+    gnt: '젠틀',
+    apm: '앞말잇기',
+    itm: '아이템전',
+    odw: '우리말샘',
+    ulm: '무한정',
+    sht: '짧음',
+    ord: '순서대로',
+    rmh: '힌트 제거',
+    nob: '도중 입장 불가',
+    // Long option ids
+    manner: '매너',
+    safe: '안전',
+    injeong: '어인정',
+    mission: '미션',
+    injeongpick: '단어장',
+    loanword: '우리말',
+    proverb: '속담',
+    longtext: '장문',
+    strict: '깐깐',
+    sami: '3232',
+    onlybeginner: '초보',
+    nolimit: '길이 무제한',
+    randmission: '랜덤미션',
+    tactical: '택티컬',
+    rankmode: '친선전',
+    antisynonym: '유의어 제거',
+    antidoum: '두음법칙 제거',
+    power: '파워두음',
+    etiquette: '에티켓',
+    gentle: '젠틀',
+    apmal: '앞말잇기',
+    item: '아이템전',
+    opendict: '우리말샘',
+    unlimited: '무한정',
+    short: '짧음',
+    order: '순서대로',
+    removehint: '힌트 제거',
+    noobserver: '도중 입장 불가'
+  };
   const CHAIN_MODE_SET = new Set(['KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT', 'HUN', 'KDA', 'EDA', 'KSS', 'ESS']);
 
   let searchType = SEARCH_TYPE.nickname;
@@ -61,6 +123,7 @@
   let selectedRoundByGame = {};
   let hoveredChainPlayerByGame = {};
   let showItemEntriesByGame = {};
+  let participantNicknameCache = {};
   let gameSearchResult = null;
   let hasResultView = false;
 
@@ -81,6 +144,23 @@
   function normalizePageSize(value) {
     const parsed = Number(value);
     return ALLOWED_PAGE_SIZES.includes(parsed) ? parsed : 10;
+  }
+
+  function getRoomOptionBadges(detail) {
+    const payloadOpts = detail?.replayView?.payload?.rm?.[9];
+    const opts = Array.isArray(payloadOpts) ? payloadOpts : [];
+    if (!opts.length) return [];
+    const seen = new Set();
+    const labels = [];
+    for (const raw of opts) {
+      const key = String(raw || '').trim();
+      if (!key) continue;
+      const label = OPTION_BADGE_LABEL[key] || OPTION_BADGE_LABEL[key.toLowerCase()];
+      if (!label || seen.has(label)) continue;
+      seen.add(label);
+      labels.push(label);
+    }
+    return labels;
   }
 
   function syncQuery() {
@@ -212,8 +292,8 @@
     return `${min}분 ${sec}초`;
   }
 
-  async function decodeReplayPayload(base64) {
-    if (!base64 || !browser) return null;
+  async function decodeReplayPayload(base64, payloadCodec = 'br64') {
+    if (!base64 || !browser || payloadCodec !== 'br64') return null;
     try {
       const binary = atob(base64);
       const source = new Uint8Array(binary.length);
@@ -373,7 +453,10 @@
         displayWord = `제작 ${craftedWords}단어 · ${craftedLetters}글자`;
       } else if (eventType === 'CTO') {
         const delta = Number(extraTokens[1] || 0);
-        displayWord = `시간초과 점수 ${delta >= 0 ? '+' : ''}${delta}`;
+        displayWord = delta > 0 ? `공격 성공 점수 +${delta}` : `시간초과 점수 ${delta >= 0 ? '+' : ''}${delta}`;
+      } else if (eventType === 'CAS') {
+        const delta = Number(extraTokens[1] || 0);
+        displayWord = `공격 성공 점수 +${Math.max(0, delta)}`;
       } else if (eventType === 'CIT') {
         const itemId = Number(extraTokens[1] || -1);
         const isTurnEnd = Number(extraTokens[2] || 0) === 1;
@@ -389,21 +472,24 @@
         elapsedGameMs
       });
 
-      if (isChainMode && round > 0 && (eventType === 'CTO' || eventType === 'CIT')) {
+      if (isChainMode && round > 0 && (eventType === 'CTO' || eventType === 'CAS' || eventType === 'CIT')) {
         if (!chainEntriesByRound[round]) chainEntriesByRound[round] = [];
-        const timeoutDelta = eventType === 'CTO' ? Number(extraTokens[1] || 0) : 0;
+        const timeoutDelta = eventType === 'CTO' || eventType === 'CAS' ? Number(extraTokens[1] || 0) : 0;
+        const timeoutPenalty = eventType === 'CTO' && timeoutDelta <= 0;
         if (eventType === 'CIT') hasChainItemEvents = true;
         chainEntriesByRound[round].push({
           playerIndex,
           nickname: players[playerIndex]?.nickname || `Player#${playerIndex}`,
-          word: eventType === 'CTO' ? '입력 실패' : `아이템 ${Number(extraTokens[1] || -1)} 사용`,
+          word: eventType === 'CIT'
+            ? `아이템 ${Number(extraTokens[1] || -1)} 사용`
+            : (timeoutDelta > 0 ? '공격 성공' : '입력 실패'),
           delta: timeoutDelta,
           elapsedTurnMs: elapsedGameMs,
           elapsedGameMs,
           turn: Number.MAX_SAFE_INTEGER,
           showTurn: false,
-          rejected: eventType === 'CTO',
-          reason: eventType === 'CTO' ? '시간 초과' : '',
+          rejected: timeoutPenalty,
+          reason: timeoutPenalty ? '시간 초과' : '',
           isItem: eventType === 'CIT'
         });
       }
@@ -528,6 +614,27 @@
     return participants;
   }
 
+  async function fetchUserNickname(userId) {
+    if (!userId || participantNicknameCache[userId]) return participantNicknameCache[userId] || null;
+    const { body } = await fetchJson(`/user/${encodeURIComponent(userId)}`);
+    const nickname = body?.profile?.title || null;
+    if (nickname) participantNicknameCache = { ...participantNicknameCache, [userId]: nickname };
+    return nickname;
+  }
+
+  async function hydrateParticipants(participants) {
+    if (!Array.isArray(participants) || participants.length < 1) return participants;
+    const next = participants.map((row) => ({ ...row }));
+    await Promise.all(
+      next.map(async (participant) => {
+        if (participant.robot || !participant.id || participant.nickname !== participant.id) return;
+        const nickname = await fetchUserNickname(participant.id);
+        if (nickname) participant.nickname = nickname;
+      })
+    );
+    return next;
+  }
+
   async function copyPlayerId(id) {
     if (!browser || !id) return;
     try {
@@ -555,7 +662,9 @@
 
   function getParticipantLabel(participant) {
     if (participant?.left) return '중도 퇴장';
-    if (Number(participant?.placement || 0) > 0) return `${participant.placement}위`;
+    const placement = Number(participant?.placement || 0);
+    if (placement === 1) return '우승';
+    if (placement > 1) return `${placement}등`;
     return '-';
   }
 
@@ -570,24 +679,34 @@
   }
 
   let recordScriptPromise = null;
-  const RECORD_SCRIPT_URL = 'https://cdn.kkutu.io/js/in_records.min.js?v=4.2.0';
+  const RECORD_SCRIPT_URL = 'https://cdn.kkutu.io/js/in_record.min.js?v=4.2.0';
 
-  function getRecordGlobal() {
+  function resolveRecordApi() {
     if (!browser) return null;
-    const candidate = window?.KKuTuRecord;
-    if (!candidate || typeof candidate.downloadKkio !== 'function') return null;
-    return candidate;
+    const candidates = [
+      window?.KKuTuRecord,
+      window?.inRecord,
+      window?.InRecord,
+      window?.in_record,
+      window?.KKUTU_RECORD
+    ];
+    for (const candidate of candidates) {
+      if (candidate && typeof candidate.downloadKkio === 'function') return { fn: candidate.downloadKkio, ctx: candidate };
+      if (candidate && typeof candidate.download === 'function') return { fn: candidate.download, ctx: candidate };
+    }
+    if (typeof window?.downloadKkio === 'function') return { fn: window.downloadKkio, ctx: window };
+    return null;
   }
 
   function loadRecordScript() {
     if (!browser) return Promise.resolve(false);
-    if (getRecordGlobal()) return Promise.resolve(true);
+    if (resolveRecordApi()) return Promise.resolve(true);
     if (recordScriptPromise) return recordScriptPromise;
 
     recordScriptPromise = new Promise((resolve) => {
       const existing = document.querySelector('script[data-kkutu-record="1"]');
       if (existing) {
-        existing.addEventListener('load', () => resolve(Boolean(getRecordGlobal())), { once: true });
+        existing.addEventListener('load', () => resolve(Boolean(resolveRecordApi())), { once: true });
         existing.addEventListener('error', () => resolve(false), { once: true });
         return;
       }
@@ -597,7 +716,7 @@
       script.async = true;
       script.crossOrigin = 'anonymous';
       script.dataset.kkutuRecord = '1';
-      script.addEventListener('load', () => resolve(Boolean(getRecordGlobal())), { once: true });
+      script.addEventListener('load', () => resolve(Boolean(resolveRecordApi())), { once: true });
       script.addEventListener('error', () => resolve(false), { once: true });
       document.head.appendChild(script);
     });
@@ -609,19 +728,20 @@
     if (!browser) return;
     const loaded = await loadRecordScript();
     if (!loaded) {
-      errorMessage = '리플레이 내보내기 모듈 로드에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      recordScriptPromise = null;
+      errorMessage = '리플레이 내보내기 모듈 로드에 실패했습니다.';
       return;
     }
-    const recordGlobal = getRecordGlobal();
-    if (!recordGlobal) {
-      errorMessage = '리플레이 내보내기 모듈을 찾을 수 없습니다.';
-      return;
-    }
-
     try {
-      const ok = recordGlobal.downloadKkio(detail);
-      if (!ok) errorMessage = '리플레이 파일 생성에 실패했습니다.';
-    } catch {
+      const recordApi = resolveRecordApi();
+      if (!recordApi) {
+        errorMessage = '리플레이 내보내기 모듈을 찾을 수 없습니다.';
+        return;
+      }
+      const ok = recordApi.fn.call(recordApi.ctx, detail);
+      if (ok === false) errorMessage = '리플레이 파일 생성에 실패했습니다.';
+    } catch (err) {
+      console.error(err);
       errorMessage = '리플레이 파일 생성에 실패했습니다.';
     }
   }
@@ -729,9 +849,9 @@
         throw new Error('경기 조회 실패입니다: 입력한 경기번호를 찾을 수 없습니다.');
       }
       const game = body.game;
-      const payload = await decodeReplayPayload(game.payload);
+      const payload = game.payloadDecoded || await decodeReplayPayload(game.payload, game.payloadCodec);
       const replayView = buildReplayView(payload);
-      const participants = buildParticipants(game, replayView);
+      const participants = await hydrateParticipants(buildParticipants(game, replayView));
       const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
       selectedRoundByGame = { ...selectedRoundByGame, [game.gameId]: firstRound };
       detailMap = { ...detailMap, [game.gameId]: { ...game, participants, replayView } };
@@ -816,9 +936,9 @@
       return;
     }
     const game = body.game;
-    const payload = await decodeReplayPayload(game.payload);
+    const payload = game.payloadDecoded || await decodeReplayPayload(game.payload, game.payloadCodec);
     const replayView = buildReplayView(payload);
-    const participants = buildParticipants(game, replayView);
+    const participants = await hydrateParticipants(buildParticipants(game, replayView));
     const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
     selectedRoundByGame = { ...selectedRoundByGame, [gameId]: firstRound };
     detailLoading = { ...detailLoading, [gameId]: false };
@@ -871,7 +991,7 @@
       <input
         bind:value={searchNick}
         type="text"
-        class="ml-3 w-72 bg-transparent text-white outline-none"
+        class="ml-3 w-96 bg-transparent text-white outline-none"
         placeholder={searchPlaceholder()}
         on:keydown={(e) => e.key === 'Enter' && runSearch()}
       />
@@ -1036,7 +1156,18 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                           <div>채널: <b>{detailMap[row.gameId].channel}</b></div>
                           <div>방 번호: <b>{detailMap[row.gameId].roomId}</b></div>
-                          <div>규칙: <b>{detailMap[row.gameId].rule}</b></div>
+                          <div>
+                            특수규칙:
+                            {#if getRoomOptionBadges(detailMap[row.gameId]).length}
+                              <span class="inline-flex flex-wrap gap-1 ml-1 align-middle">
+                                {#each getRoomOptionBadges(detailMap[row.gameId]) as optionLabel}
+                                  <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 dark:bg-slate-600 dark:text-slate-100">{optionLabel}</span>
+                                {/each}
+                              </span>
+                            {:else}
+                              <b>-</b>
+                            {/if}
+                          </div>
                           <div>언어: <b>{detailMap[row.gameId].lang}</b></div>
                           <div>경기 시간: <b>{formatDuration(detailMap[row.gameId].durationMs)}</b></div>
                           <div>압축 크기: <b>{Number(detailMap[row.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
@@ -1046,18 +1177,17 @@
                           <div class="space-y-1">
                             {#each detailMap[row.gameId].participants || [] as participant}
                               <div class:font-bold={participant.id === uid} class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
-                                <div class="min-w-0 flex items-center gap-2">
-                                  <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
-                                  <span class="text-xl">🙂</span>
-                                  <div class="min-w-0">
-                                    <span class="truncate">{participant.nickname}</span>
+                                <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                                <div class="min-w-0 flex-1">
+                                  <div class="truncate font-semibold">{participant.nickname}</div>
+                                  <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                                    {#if participant.id && participant.id !== participant.nickname}
+                                      <span>식별번호: {participant.id}</span>
+                                    {/if}
+                                    <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                                     {#if participant.robot}
                                       <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
                                     {/if}
-                                  </div>
-                                  <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
-                                    <span>식별번호: {participant.id}</span>
-                                    <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                                   </div>
                                   {#if participant.left}
                                     <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
@@ -1070,9 +1200,6 @@
                                   <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
                                     <span class="material-symbols-outlined text-base">account_circle</span>
                                   </button>
-                                  {#if participant.won}
-                                    <span class="text-yellow-600 ml-1">우승</span>
-                                  {/if}
                                 </div>
                                 <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
                               </div>
@@ -1263,7 +1390,18 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div>채널: <b>{detailMap[gameSearchResult.gameId].channel}</b></div>
                 <div>방 번호: <b>{detailMap[gameSearchResult.gameId].roomId}</b></div>
-                <div>규칙: <b>{detailMap[gameSearchResult.gameId].rule}</b></div>
+                <div>
+                  특수규칙:
+                  {#if getRoomOptionBadges(detailMap[gameSearchResult.gameId]).length}
+                    <span class="inline-flex flex-wrap gap-1 ml-1 align-middle">
+                      {#each getRoomOptionBadges(detailMap[gameSearchResult.gameId]) as optionLabel}
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 dark:bg-slate-600 dark:text-slate-100">{optionLabel}</span>
+                      {/each}
+                    </span>
+                  {:else}
+                    <b>-</b>
+                  {/if}
+                </div>
                 <div>언어: <b>{detailMap[gameSearchResult.gameId].lang}</b></div>
                 <div>경기 시간: <b>{formatDuration(detailMap[gameSearchResult.gameId].durationMs)}</b></div>
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
@@ -1279,18 +1417,17 @@
                 <div class="space-y-1">
                   {#each detailMap[gameSearchResult.gameId].participants || [] as participant}
                     <div class:participant-muted={participant.robot || participant.left} class="flex items-center justify-between px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 gap-2">
-                      <div class="min-w-0 flex items-center gap-2">
-                        <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
-                        <span class="text-xl">🙂</span>
-                        <div class="min-w-0">
-                          <span class="truncate">{participant.nickname}</span>
+                      <span class={`participant-rank ${participant.left ? 'left' : participant.placement === 1 ? 'first' : participant.placement === 2 ? 'second' : participant.placement === 3 ? 'third' : ''}`}>{getParticipantLabel(participant)}</span>
+                      <div class="min-w-0 flex-1">
+                        <div class="truncate font-semibold">{participant.nickname}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
+                          {#if participant.id && participant.id !== participant.nickname}
+                            <span>식별번호: {participant.id}</span>
+                          {/if}
+                          <span>획득 XP: +{Number(participant.exp || 0).toLocaleString()}</span>
                           {#if participant.robot}
                             <span class="text-xs px-1.5 py-0.5 rounded bg-gray-300 text-gray-700">BOT</span>
                           {/if}
-                        </div>
-                        <div class="text-xs text-gray-500 dark:text-gray-300 mt-0.5 flex items-center gap-2">
-                          <span>식별번호: {participant.id}</span>
-                          <span>획득 경험치: +{Number(participant.exp || 0).toLocaleString()}</span>
                         </div>
                         {#if participant.left}
                           <div class="text-xs text-red-600 mt-0.5">게임 도중 퇴장하였습니다.</div>
@@ -1303,9 +1440,6 @@
                         <button class="icon-action-btn" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
                           <span class="material-symbols-outlined text-base">account_circle</span>
                         </button>
-                        {#if participant.won}
-                          <span class="text-yellow-600 ml-1">우승</span>
-                        {/if}
                       </div>
                       <div class="shrink-0 font-extrabold text-lg text-gray-700 dark:text-gray-100">{getParticipantScoreText(participant)}</div>
                     </div>

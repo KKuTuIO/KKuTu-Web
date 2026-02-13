@@ -949,8 +949,7 @@
     return MODE_LABEL[row.modeName] || MODE_LABEL[row.mode] || row.modeName || '일반';
   }
 
-  function getTabClass(tab) {
-    const selected = selectedTab === tab;
+  function getTabClass(selected) {
     return `inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
       selected
         ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white'
@@ -958,8 +957,7 @@
     }`;
   }
 
-  function getRoundButtonClass(gameId, roundKey) {
-    const selected = selectedRoundByGame[gameId] === roundKey;
+  function getRoundButtonClass(selected) {
     return `rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
       selected
         ? 'border-slate-900 bg-slate-900 text-white dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900'
@@ -986,14 +984,28 @@
     return 'shrink-0 min-w-[64px] font-extrabold text-slate-500';
   }
 
-  function getChainEntryClass(gameId, chainEntry) {
-    const highlighted = hoveredChainPlayerByGame[gameId] === chainEntry.playerIndex;
+  function getChainEntryClass(chainEntry, highlighted) {
     const rejected = Boolean(chainEntry?.rejected);
     return `inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm ${
       rejected
         ? 'border-rose-300 bg-rose-50 dark:border-rose-700/60 dark:bg-rose-950/30'
         : 'border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800'
-    } ${highlighted ? 'font-extrabold underline decoration-2 underline-offset-2' : ''}`;
+    } ${highlighted ? 'ring-1 ring-sky-400/70 dark:ring-sky-500/70' : ''}`;
+  }
+
+  function getChainOrderClass(highlighted) {
+    return `inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm transition-colors ${
+      highlighted
+        ? 'border-sky-400 bg-sky-50 text-sky-900 dark:border-sky-500 dark:bg-sky-900/35 dark:text-sky-100'
+        : 'border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-800'
+    }`;
+  }
+
+  function getChainWordClass(chainEntry, highlighted) {
+    const rejected = Boolean(chainEntry?.rejected);
+    return `${highlighted ? 'font-extrabold underline decoration-2 underline-offset-2' : 'font-semibold'} ${
+      rejected ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100'
+    }`;
   }
 
   function getChainDeltaClass(delta) {
@@ -1001,6 +1013,19 @@
     if (score > 0) return 'font-bold text-emerald-600 dark:text-emerald-400';
     if (score < 0) return 'font-bold text-rose-600 dark:text-rose-400';
     return 'font-bold text-slate-500 dark:text-slate-300';
+  }
+
+  function getDisplayTurn(turn) {
+    const n = Number(turn);
+    if (!Number.isFinite(n) || n < 0) return 1;
+    return n + 1;
+  }
+
+  function processNick(nick) {
+    const safe = String(nick ?? '');
+    const split = safe.split('#');
+    return split[0] +
+      (safe.includes('#') ? `<small style="color:#bbb">#${split.slice(1).join('#')}</small>` : '');
   }
 
   onMount(async () => {
@@ -1027,7 +1052,7 @@
   <title>끄투리오 - {title}</title>
 </svelte:head>
 
-<div class="bg-slate-950 text-slate-100">
+<div class="bg-slate-950 text-slate-100 py-4">
   <div class={`${hasResultView ? 'min-h-[50vh]' : 'min-h-screen'} rankBg flex h-full flex-col items-center px-4 pb-20 pt-24 md:pb-28 md:pt-32`}>
     <p class="text-gray-200 text-lg my-4 flex items-center gap-2">
       <span class="material-symbols-outlined">insights</span>
@@ -1081,7 +1106,7 @@
                 {/if}
                 <span class="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white">경험치: {Number(profile.score).toLocaleString()}점</span>
               </div>
-              <div class="truncate text-3xl font-bold leading-tight sm:text-4xl">{profile.nickname}</div>
+              <div class="truncate text-3xl font-bold leading-tight sm:text-4xl">{@html processNick(profile.nickname)}</div>
               <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 {profile.exordial || '소개 한마디가 없습니다.'}
               </div>
@@ -1103,13 +1128,13 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-2">
-          <button class={getTabClass('profile')} on:click={() => (selectedTab = 'profile')}>
+          <button class={getTabClass(selectedTab === 'profile')} on:click={() => (selectedTab = 'profile')}>
             <span class="material-symbols-outlined text-base">person</span> 사용자 정보
           </button>
-          <button class={getTabClass('stats')} on:click={() => (selectedTab = 'stats')}>
+          <button class={getTabClass(selectedTab === 'stats')} on:click={() => (selectedTab = 'stats')}>
             <span class="material-symbols-outlined text-base">query_stats</span> 통계
           </button>
-          <button class={getTabClass('history')} on:click={() => (selectedTab = 'history')}>
+          <button class={getTabClass(selectedTab === 'history')} on:click={() => (selectedTab = 'history')}>
             <span class="material-symbols-outlined text-base">history</span> 경기 내역
           </button>
         </div>
@@ -1233,7 +1258,7 @@
                               <div class={getParticipantRowClass(participant, participant.id === uid)}>
                                 <span class={getParticipantRankClass(participant)}>{getParticipantLabel(participant)}</span>
                                 <div class="min-w-0 flex-1">
-                                  <div class="truncate font-semibold">{participant.nickname}</div>
+                                  <div class="truncate font-semibold">{@html processNick(participant.nickname)}</div>
                                   <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
                                     {#if participant.id && participant.id !== participant.nickname}
                                       <span>식별번호: {participant.id}</span>
@@ -1278,7 +1303,7 @@
                                   {#each detailMap[row.gameId].replayView.ranking as rankRow}
                                     <tr class="border-b border-gray-100 dark:border-gray-700">
                                       <td class="py-2">{rankRow.placement}위</td>
-                                      <td class="py-2">{rankRow.nickname}</td>
+                                      <td class="py-2">{@html processNick(rankRow.nickname)}</td>
                                       <td class="py-2 text-right">{rankRow.score.toLocaleString()}</td>
                                       <td class="py-2 text-right">+{rankRow.exp.toLocaleString()}</td>
                                     </tr>
@@ -1303,7 +1328,7 @@
                               </div>
                               <div class="flex flex-wrap gap-2 mb-3">
                                 {#each detailMap[row.gameId].replayView.chain.roundKeys as roundKey}
-                                  <button class={getRoundButtonClass(row.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
+                                  <button class={getRoundButtonClass(selectedRoundByGame[row.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
                                     라운드 {roundKey}
                                   </button>
                                 {/each}
@@ -1313,13 +1338,13 @@
                                 <div class="flex flex-wrap items-center gap-2">
                                   {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].order as slot, idx}
                                     <div
-                                      class="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
+                                      class={getChainOrderClass(hoveredChainPlayerByGame[row.gameId] === slot.playerIndex)}
                                       role="presentation"
                                       on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: slot.playerIndex })}
                                       on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
                                     >
                                       <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{slot.order}</span>
-                                      <span class="font-semibold">{slot.nickname}</span>
+                                      <span class="font-semibold">{@html processNick(slot.nickname)}</span>
                                       <span class="text-slate-500 dark:text-slate-300">{slot.startScore.toLocaleString()}점</span>
                                     </div>
                                     {#if idx < detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].order.length - 1}
@@ -1329,11 +1354,16 @@
                                 </div>
                                 <div class="mt-3 flex flex-wrap items-center gap-2">
                                   {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem) as chainEntry, idx}
-                                    <div class={getChainEntryClass(row.gameId, chainEntry)} title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}>
+                                    <div
+                                      class={getChainEntryClass(chainEntry, hoveredChainPlayerByGame[row.gameId] === chainEntry.playerIndex)}
+                                      title={`${chainEntry.nickname} · ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(1)}초 소요`}
+                                      on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: chainEntry.playerIndex })}
+                                      on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
+                                    >
                                       {#if chainEntry.showTurn}
-                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{chainEntry.turn}</span>
+                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{getDisplayTurn(chainEntry.turn)}</span>
                                       {/if}
-                                      <span>{chainEntry.word}</span>
+                                      <span class={getChainWordClass(chainEntry, hoveredChainPlayerByGame[row.gameId] === chainEntry.playerIndex)}>{chainEntry.word}</span>
                                       {#if chainEntry.reason}
                                         <span class="text-xs text-slate-500 dark:text-slate-300">({chainEntry.reason})</span>
                                       {/if}
@@ -1353,7 +1383,7 @@
                               <div class="font-semibold mb-2">낱말 내역</div>
                               <div class="flex flex-wrap gap-2 mb-3">
                                 {#each detailMap[row.gameId].replayView.roundKeys as roundKey}
-                                  <button class={getRoundButtonClass(row.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
+                                  <button class={getRoundButtonClass(selectedRoundByGame[row.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
                                     라운드 {roundKey}
                                   </button>
                                 {/each}
@@ -1362,7 +1392,7 @@
                                 {#each detailMap[row.gameId].replayView.rounds[selectedRoundByGame[row.gameId]] || [] as inputLog}
                                   <div class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm flex items-center justify-between gap-3">
                                     <div>
-                                      <b>{inputLog.nickname}</b>
+                                      <b>{@html processNick(inputLog.nickname)}</b>
                                       <span class="mx-2 text-gray-400">→</span>
                                       <span>{inputLog.word}</span>
                                     </div>
@@ -1460,7 +1490,7 @@
                     <div class={getParticipantRowClass(participant, participant.id === uid)}>
                       <span class={getParticipantRankClass(participant)}>{getParticipantLabel(participant)}</span>
                       <div class="min-w-0 flex-1">
-                        <div class="truncate font-semibold">{participant.nickname}</div>
+                        <div class="truncate font-semibold">{@html processNick(participant.nickname)}</div>
                         <div class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
                           {#if participant.id && participant.id !== participant.nickname}
                             <span>식별번호: {participant.id}</span>
@@ -1505,7 +1535,7 @@
                         {#each detailMap[gameSearchResult.gameId].replayView.ranking as rankRow}
                           <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="py-2">{rankRow.placement}위</td>
-                            <td class="py-2">{rankRow.nickname}</td>
+                            <td class="py-2">{@html processNick(rankRow.nickname)}</td>
                             <td class="py-2 text-right">{rankRow.score.toLocaleString()}</td>
                             <td class="py-2 text-right">+{rankRow.exp.toLocaleString()}</td>
                           </tr>
@@ -1530,7 +1560,7 @@
                     </div>
                     <div class="flex flex-wrap gap-2 mb-3">
                       {#each detailMap[gameSearchResult.gameId].replayView.chain.roundKeys as roundKey}
-                        <button class={getRoundButtonClass(gameSearchResult.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
+                        <button class={getRoundButtonClass(selectedRoundByGame[gameSearchResult.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
                           라운드 {roundKey}
                         </button>
                       {/each}
@@ -1540,13 +1570,13 @@
                       <div class="flex flex-wrap items-center gap-2">
                         {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].order as slot, idx}
                           <div
-                            class="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-sm dark:border-slate-600 dark:bg-slate-800"
+                            class={getChainOrderClass(hoveredChainPlayerByGame[gameSearchResult.gameId] === slot.playerIndex)}
                             role="presentation"
                             on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: slot.playerIndex })}
                             on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
                           >
                             <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{slot.order}</span>
-                            <span class="font-semibold">{slot.nickname}</span>
+                            <span class="font-semibold">{@html processNick(slot.nickname)}</span>
                             <span class="text-slate-500 dark:text-slate-300">{slot.startScore.toLocaleString()}점</span>
                           </div>
                           {#if idx < detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].order.length - 1}
@@ -1556,11 +1586,16 @@
                       </div>
                       <div class="mt-3 flex flex-wrap items-center gap-2">
                         {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem) as chainEntry, idx}
-                          <div class={getChainEntryClass(gameSearchResult.gameId, chainEntry)} title={`${chainEntry.nickname} · 입력까지 ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(2)}초`}>
+                          <div
+                            class={getChainEntryClass(chainEntry, hoveredChainPlayerByGame[gameSearchResult.gameId] === chainEntry.playerIndex)}
+                            title={`${chainEntry.nickname} · ${(Number(chainEntry.elapsedTurnMs || 0) / 1000).toFixed(1)}초 소요`}
+                            on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: chainEntry.playerIndex })}
+                            on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
+                          >
                             {#if chainEntry.showTurn}
-                              <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{chainEntry.turn}</span>
+                              <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{getDisplayTurn(chainEntry.turn)}</span>
                             {/if}
-                            <span>{chainEntry.word}</span>
+                            <span class={getChainWordClass(chainEntry, hoveredChainPlayerByGame[gameSearchResult.gameId] === chainEntry.playerIndex)}>{chainEntry.word}</span>
                             {#if chainEntry.reason}
                               <span class="text-xs text-slate-500 dark:text-slate-300">({chainEntry.reason})</span>
                             {/if}
@@ -1580,7 +1615,7 @@
                     <div class="font-semibold mb-2">라운드 기록</div>
                     <div class="flex flex-wrap gap-2 mb-3">
                       {#each detailMap[gameSearchResult.gameId].replayView.roundKeys as roundKey}
-                        <button class={getRoundButtonClass(gameSearchResult.gameId, roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
+                        <button class={getRoundButtonClass(selectedRoundByGame[gameSearchResult.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
                           라운드 {roundKey}
                         </button>
                       {/each}
@@ -1589,7 +1624,7 @@
                       {#each detailMap[gameSearchResult.gameId].replayView.rounds[selectedRoundByGame[gameSearchResult.gameId]] || [] as inputLog}
                         <div class="px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-sm flex items-center justify-between gap-3">
                           <div>
-                            <b>{inputLog.nickname}</b>
+                            <b>{@html processNick(inputLog.nickname)}</b>
                             <span class="mx-2 text-gray-400">→</span>
                             <span>{inputLog.word}</span>
                           </div>

@@ -66,3 +66,15 @@ management:
 
 geo:
   api-key: <Api Key>
+
+resilience4j:
+  ratelimiter:
+    instances:
+      recordFindByGameId:
+        limitForPeriod: 10
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0s
+      recordFindUserHistory:
+        limitForPeriod: 5
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0s

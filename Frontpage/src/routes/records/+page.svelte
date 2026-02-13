@@ -1107,16 +1107,16 @@
 </svelte:head>
 
 <div class="bg-slate-950 text-slate-100 py-4">
-  <div class={`${hasResultView ? 'min-h-[50vh]' : 'min-h-screen'} rankBg relative flex h-full flex-col items-center overflow-hidden px-4 pb-20 pt-24 md:pb-28 md:pt-32`}>
+  <div class={`${hasResultView ? 'min-h-[50vh]' : 'min-h-screen'} rankBg relative flex h-full flex-col items-center overflow-hidden px-4 pb-20 pt-28 md:pb-28 md:pt-36`}>
     <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-slate-950"></div>
-    <p in:fade={{ duration: 180 }} class="relative z-10 text-gray-200 text-lg my-4 flex items-center gap-2">
+    <p in:fade={{ duration: 180 }} class="relative z-[1] text-gray-200 text-lg my-4 flex items-center gap-2">
       <span class="material-symbols-outlined">insights</span>
       전적 조회
     </p>
-    <h1 in:fly={{ y: -10, duration: 220 }} class="relative z-10 mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
+    <h1 in:fly={{ y: -10, duration: 220 }} class="relative z-[1] mb-2 text-center text-3xl font-bold text-white sm:text-4xl md:text-5xl">
       끄투리오 전적 검색
     </h1>
-    <div in:fly={{ y: 16, duration: 260, delay: 40 }} class="relative z-10 mt-8 flex w-full max-w-3xl items-center rounded-2xl border border-white/40 bg-slate-900/60 p-2 shadow-xl backdrop-blur sm:mt-10">
+    <div in:fly={{ y: 16, duration: 260, delay: 40 }} class="relative z-[1] mt-8 flex w-full max-w-3xl items-center rounded-2xl border border-white/40 bg-slate-900/60 p-2 shadow-xl backdrop-blur sm:mt-10">
       <select class="h-10 rounded-xl border border-white/20 bg-slate-950/70 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sky-400/60" bind:value={searchType}>
         <option value={SEARCH_TYPE.nickname}>별명</option>
         <option value={SEARCH_TYPE.id}>식별번호</option>

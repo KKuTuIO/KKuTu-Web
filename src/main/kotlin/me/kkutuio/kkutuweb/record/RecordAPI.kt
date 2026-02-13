@@ -2,6 +2,9 @@ package me.kkutuio.kkutuweb.record
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter
 import io.github.resilience4j.ratelimiter.RequestNotPermitted
+import me.kkutuio.kkutuweb.extension.getOAuthUser
+import me.kkutuio.kkutuweb.extension.isGuest
+import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -15,8 +18,16 @@ import javax.servlet.http.HttpSession
 @RequestMapping("/api/replay")
 class RecordAPI(
     @Autowired private val recordService: RecordService,
-    @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter
+    @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter,
+    @Autowired private val kKuTuSetting: KKuTuSetting
 ) {
+    private fun resolveRequester(session: HttpSession): Pair<String?, Boolean> {
+        if (session.isGuest()) return Pair(null, false)
+        val userId = runCatching { session.getOAuthUser().getUserId() }.getOrNull() ?: return Pair(null, false)
+        val isAdmin = kKuTuSetting.getAdminIds().contains(userId)
+        return Pair(userId, isAdmin)
+    }
+
     @RateLimiter(name = "recordFindByGameId", fallbackMethod = "onGameRateLimited")
     @GetMapping("/game/{gameId}")
     fun findByGameId(
@@ -28,7 +39,8 @@ class RecordAPI(
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordGameLookupResponse(ok = false, code = 429, error = "rate-limited")
         }
-        return recordService.findByGameId(gameId, includePayload)
+        val (requesterId, _) = resolveRequester(session)
+        return recordService.findByGameId(gameId, includePayload, requesterId)
     }
 
     @RateLimiter(name = "recordFindUserHistory", fallbackMethod = "onUserHistoryRateLimited")
@@ -43,7 +55,8 @@ class RecordAPI(
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordUserHistoryResponse(ok = false, code = 429, error = "rate-limited")
         }
-        return recordService.findUserHistory(userId, page, pageSize)
+        val (requesterId, isAdmin) = resolveRequester(session)
+        return recordService.findUserHistory(userId, page, pageSize, requesterId, isAdmin)
     }
 
     @RateLimiter(name = "recordFindUserModeStats", fallbackMethod = "onUserModeStatsRateLimited")
@@ -56,7 +69,8 @@ class RecordAPI(
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordUserModeStatsResponse(ok = false, code = 429, error = "rate-limited")
         }
-        return recordService.findUserModeStats(userId)
+        val (requesterId, isAdmin) = resolveRequester(session)
+        return recordService.findUserModeStats(userId, requesterId, isAdmin)
     }
 
     @Suppress("UNUSED_PARAMETER")

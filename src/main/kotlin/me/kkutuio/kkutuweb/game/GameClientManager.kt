@@ -77,28 +77,28 @@ class GameClientManager(
         }
     }
 
-    override fun requestReplayByGameId(gameId: String, includePayload: Boolean): String? {
+    override fun requestReplayByGameId(gameId: String, includePayload: Boolean, requesterId: String?): String? {
         for (client in gameClientList) {
             if (!client.isConnected()) continue
-            val response = client.requestReplayByGameId(gameId, includePayload)
+            val response = client.requestReplayByGameId(gameId, includePayload, requesterId)
             if (response != null) return response
         }
         return null
     }
 
-    override fun requestReplayUserHistory(userId: String, page: Int, pageSize: Int): String? {
+    override fun requestReplayUserHistory(userId: String, page: Int, pageSize: Int, canViewAll: Boolean): String? {
         for (client in gameClientList) {
             if (!client.isConnected()) continue
-            val response = client.requestReplayUserHistory(userId, page, pageSize)
+            val response = client.requestReplayUserHistory(userId, page, pageSize, canViewAll)
             if (response != null) return response
         }
         return null
     }
 
-    override fun requestReplayUserModeStats(userId: String): String? {
+    override fun requestReplayUserModeStats(userId: String, canViewAll: Boolean): String? {
         for (client in gameClientList) {
             if (!client.isConnected()) continue
-            val response = client.requestReplayUserModeStats(userId)
+            val response = client.requestReplayUserModeStats(userId, canViewAll)
             if (response != null) return response
         }
         return null

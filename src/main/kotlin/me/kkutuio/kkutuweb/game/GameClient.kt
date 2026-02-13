@@ -112,27 +112,30 @@ class GameClient(
         return webSocket != null && webSocket!!.isOpen
     }
 
-    fun requestReplayByGameId(gameId: String, includePayload: Boolean): String? {
+    fun requestReplayByGameId(gameId: String, includePayload: Boolean, requesterId: String?): String? {
         val payload = objectMapper.createObjectNode()
         payload.put("type", "record-find-game")
         payload.put("gameId", gameId)
         payload.put("includePayload", includePayload)
+        if (!requesterId.isNullOrBlank()) payload.put("requesterId", requesterId)
         return requestReply(payload)
     }
 
-    fun requestReplayUserHistory(userId: String, page: Int, pageSize: Int): String? {
+    fun requestReplayUserHistory(userId: String, page: Int, pageSize: Int, canViewAll: Boolean): String? {
         val payload = objectMapper.createObjectNode()
         payload.put("type", "record-find-user-history")
         payload.put("userId", userId)
         payload.put("page", page)
         payload.put("pageSize", pageSize)
+        payload.put("canViewAll", canViewAll)
         return requestReply(payload)
     }
 
-    fun requestReplayUserModeStats(userId: String): String? {
+    fun requestReplayUserModeStats(userId: String, canViewAll: Boolean): String? {
         val payload = objectMapper.createObjectNode()
         payload.put("type", "record-find-user-mode-stats")
         payload.put("userId", userId)
+        payload.put("canViewAll", canViewAll)
         return requestReply(payload)
     }
 

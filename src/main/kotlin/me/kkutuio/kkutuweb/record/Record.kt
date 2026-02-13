@@ -1,7 +1,9 @@
 package me.kkutuio.kkutuweb.record
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class RecordGameLookupResponse(
     val type: String? = null,
     val requestId: String? = null,
@@ -11,6 +13,7 @@ data class RecordGameLookupResponse(
     val game: RecordGame? = null
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class RecordGame(
     val gameId: String,
     val createdAt: String,
@@ -35,6 +38,7 @@ data class RecordGame(
     val payloadDecoded: JsonNode? = null
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class RecordUserHistoryResponse(
     val type: String? = null,
     val requestId: String? = null,
@@ -45,6 +49,7 @@ data class RecordUserHistoryResponse(
     val pagination: RecordPagination? = null
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class RecordUserHistory(
     val gameId: String,
     val startedAt: Long,
@@ -64,12 +69,14 @@ data class RecordUserHistory(
     val ep: Int
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class RecordPagination(
     val page: Int,
     val pageSize: Int,
     val hasNext: Boolean
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class RecordUserModeStatsResponse(
     val type: String? = null,
     val requestId: String? = null,
@@ -79,6 +86,7 @@ data class RecordUserModeStatsResponse(
     val stats: List<RecordUserModeStat> = emptyList()
 )
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class RecordUserModeStat(
     val mode: Int,
     val modeName: String,

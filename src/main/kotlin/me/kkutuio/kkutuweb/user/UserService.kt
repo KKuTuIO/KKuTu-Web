@@ -25,9 +25,11 @@ import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
 import me.kkutuio.kkutuweb.shop.ShopDao
 import me.kkutuio.kkutuweb.shop.ShopService
+import me.kkutuio.kkutuweb.config.CacheConfig
 import org.postgresql.util.PGobject
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import javax.servlet.http.HttpSession
 import kotlin.math.roundToInt
@@ -155,9 +157,14 @@ class UserService(
         */
     }
 
+    @Cacheable(
+        value = [CacheConfig.RECORD_USER_INFO_CACHE],
+        key = "#id",
+        unless = "#result.contains('\\\"error\\\"')"
+    )
     fun getUserData(id: String): String {
         val user = userDao.getUser(id) ?: return "{\"error\":405}"
-        return "{\"result\":200,\"id\":\"${user.id}\",\"data\":${user.kkutu.toJson()},\"equip\":${user.equip.toJson()},\"exordial\":\"${user.exordial ?: ""}\",\"profile\":{\"authtype\":\"offline\",\"id\":\"${user.id}\",\"title\":\"${user.nickname}\",\"lastLogin\":\"${user.lastLogin}\"}}"
+        return "{\"result\":200,\"id\":\"${user.id}\",\"data\":${user.kkutu.toJson()},\"equip\":${user.equip.toJson()},\"exordial\":\"${user.exordial ?: ""}\",\"profile\":{\"authtype\":\"offline\",\"id\":\"${user.id}\",\"title\":\"${user.nickname}\",\"lastLogin\":${user.lastLogin ?: 0}}}"
         // NekoP - /user/{id}로 요청하여 회원의 정보를 받아 올 수 있게 함
     }
 

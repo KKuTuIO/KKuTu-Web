@@ -18,6 +18,7 @@
 
 package me.kkutuio.kkutuweb.game
 
+import me.kkutuio.kkutuweb.record.RecordSocketBridge
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
@@ -27,7 +28,7 @@ import javax.annotation.PostConstruct
 @Component
 class GameClientManager(
     @Autowired private val kKuTuSetting: KKuTuSetting
-) {
+) : RecordSocketBridge {
     private val gameClientList = ArrayList<GameClient>()
 
     @PostConstruct
@@ -74,5 +75,32 @@ class GameClientManager(
         for (gameClient in gameClientList) {
             gameClient.send("{\"type\":\"notice\",\"value\":\"$value\"}")
         }
+    }
+
+    override fun requestReplayByGameId(gameId: String, includePayload: Boolean): String? {
+        for (client in gameClientList) {
+            if (!client.isConnected()) continue
+            val response = client.requestReplayByGameId(gameId, includePayload)
+            if (response != null) return response
+        }
+        return null
+    }
+
+    override fun requestReplayUserHistory(userId: String, page: Int, pageSize: Int): String? {
+        for (client in gameClientList) {
+            if (!client.isConnected()) continue
+            val response = client.requestReplayUserHistory(userId, page, pageSize)
+            if (response != null) return response
+        }
+        return null
+    }
+
+    override fun requestReplayUserModeStats(userId: String): String? {
+        for (client in gameClientList) {
+            if (!client.isConnected()) continue
+            val response = client.requestReplayUserModeStats(userId)
+            if (response != null) return response
+        }
+        return null
     }
 }

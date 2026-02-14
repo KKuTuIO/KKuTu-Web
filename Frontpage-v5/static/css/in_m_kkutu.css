@@ -1970,3 +1970,10 @@ input[type="text"], input[type="password"], input[type="number"], select {
 .product-body {
     -webkit-overflow-scrolling: touch;
 }
+
+.gpu-accelerated {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: opacity, transform, height, width;
+    backface-visibility: hidden;
+}

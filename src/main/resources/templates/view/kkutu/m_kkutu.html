@@ -1188,7 +1188,8 @@
     <div id="MessageOverlay"></div>
     <div id="ShopCartSidebar" style="display: none;"></div>
     <div id="Scenario" style="display: none;"></div>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer type="text/javascript"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer type="text/javascript"></script>
+    <!-- <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?compat=recaptcha" async defer type="text/javascript"></script> -->
     <script th:src="@{${cdnHost} + '/js/in_game_util.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{${cdnHost} + '/js/kawaiii.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>
     <script th:src="@{${cdnHost} + '/js/in_game_kkutu_security.min.js?rv=' + ${runnerVersion}}" type="text/javascript"></script>

@@ -130,6 +130,7 @@
   let participantNicknameCache = {};
   let gameSearchResult = null;
   let hasResultView = false;
+  let currAbortController = null;
 
   $: hasResultView = (currentStatus === 'user' && !!profile) || (currentStatus === 'game' && !!gameSearchResult);
 
@@ -230,15 +231,16 @@
     return result;
   }
 
-  async function fetchJson(url) {
-    const res = await fetch(url);
-    let body = {};
+  async function fetchJson(url, options = {}) {
     try {
-      body = await res.json();
-    } catch {
-      body = {};
+      const res = await fetch(url, options);
+      let body = {};
+      try { body = await res.json(); } catch { body = {}; }
+      return { ok: res.ok, status: res.status, body };
+    } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      throw error;
     }
-    return { ok: res.ok, status: res.status, body };
   }
 
   function normalizePlayHoursFromMs(value) {
@@ -788,8 +790,8 @@
     }
   }
 
-  async function loadProfile() {
-    const { body } = await fetchJson(`/user/${encodeURIComponent(uid)}`);
+  async function loadProfile(signal) {
+    const { body } = await fetchJson(`/user/${encodeURIComponent(uid)}`, { signal });
     if (body?.error || body?.result !== 200) {
       throw new Error('해당 사용자를 찾을 수 없습니다.');
     }
@@ -809,8 +811,8 @@
     return nextProfile;
   }
 
-  async function loadUserRanking(userId) {
-    const { body } = await fetchJson(`/ranking?id=${encodeURIComponent(userId)}`);
+  async function loadUserRanking(userId, signal) {
+    const { body } = await fetchJson(`/ranking?id=${encodeURIComponent(userId)}`, { signal });
     const rankRows = Array.isArray(body?.data?.data) ? body.data.data : [];
     const current = rankRows.find((row) => row?.id === userId) || rankRows[0];
     if (!current) return null;
@@ -819,8 +821,8 @@
     return rank + 1;
   }
 
-  async function loadModeStats() {
-    const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}/mode-stats`);
+  async function loadModeStats(signal) {
+    const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}/mode-stats`, { signal });
     if (!body?.ok) {
       if (body?.code === 429) throw new Error('모드 통계 조회 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.');
       return [];
@@ -828,9 +830,9 @@
     return Array.isArray(body.stats) ? body.stats : [];
   }
 
-  async function loadHistory(targetPage = page) {
+  async function loadHistory(targetPage = page, signal) {
     loadingHistory = true;
-    const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}?page=${targetPage}&pageSize=${pageSize}`);
+    const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}?page=${targetPage}&pageSize=${pageSize}`, { signal });
     if (!body?.ok) {
       if (body?.code === 429) throw new Error('경기 내역 조회 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.');
       throw new Error('경기 내역 조회 실패입니다: 알 수 없는 오류가 발생했습니다. 고객센터에 문의해 주세요.');
@@ -843,22 +845,28 @@
 
   async function loadAll(resetPage = false) {
     if (!uid) return;
+    if (currAbortController) currAbortController.abort();
+    currAbortController = new AbortController();
+    const signal = currAbortController.signal;
     loading = true;
     showError('');
     currentStatus = 'user';
     if (resetPage) page = 1;
     syncQuery();
     try {
-      const [loadedProfile, , replayModeStats, ranking] = await Promise.all([loadProfile(), loadHistory(page), loadModeStats(), loadUserRanking(uid)]);
+      const [loadedProfile, , replayModeStats, ranking] = await Promise.all([loadProfile(signal), loadHistory(page, signal), loadModeStats(signal), loadUserRanking(uid, signal)]);
       loadedProfile.rank = ranking;
       profile = { ...loadedProfile };
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
       syncQuery();
     } catch (err) {
+      if (err.name === 'AbortError') return;
       showError(err.message || '전적을 불러오지 못했습니다.');
     } finally {
-      loading = false;
-      loadingHistory = false;
+      if (!signal.aborted) {
+        loading = false;
+        loadingHistory = false;
+      }
     }
   }
 

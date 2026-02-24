@@ -1082,6 +1082,18 @@
       (safe.includes('#') ? `<small style="color:#bbb">#${split.slice(1).join('#')}</small>` : '');
   }
 
+  function handleImgErr(e, category, filename) {
+      const img = e.target;
+      const baseURL = "https://cdn.kkutu.io/img/kkutu/moremi";
+      if (img.src.includes('/event/')) {
+          img.src = `${baseURL}/${category}/default.png`;
+          img.onerror = null; 
+      } else {
+          if (!filename || filename === "default.png") img.src = `${baseURL}/${category}/default.png`;
+          else img.src = `${baseURL}/event/${filename}`;
+      }
+  }
+
   onMount(async () => {
     const params = new URLSearchParams(window.location.search);
     const typeParam = normalizeSearchType(params.get('type') || SEARCH_TYPE.nickname);
@@ -1149,18 +1161,18 @@
         <div class="flex flex-col gap-5 bg-gradient-to-br from-emerald-50 to-sky-50 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between dark:from-slate-800 dark:to-slate-900">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
             <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/70 shadow-sm sm:h-28 sm:w-28 dark:border-slate-600 dark:bg-slate-800/70">
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${moremi.Mback || 'default.png'}`} class="absolute h-full w-full object-cover" alt="bg" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${moremi.Mback || 'default.png'}`} class="absolute h-full w-full object-cover" alt="bg" on:error={(e) => handleImgErr(e, 'back', equip.Mback)}/>
               <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body/${moremi.Mbody || 'default.png'}`} class="absolute h-full w-full object-cover" alt="body" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${moremi.Meye || 'default.png'}`} class="absolute h-full w-full object-cover" alt="eye" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${moremi.Mmouth || 'default.png'}`} class="absolute h-full w-full object-cover" alt="mouth" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${moremi.Mclothes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="clothes" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${moremi.Mshoes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="shoes" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${moremi.Mhead || "default.png"}`} class="absolute h-full w-full object-cover" alt="head" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mrhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="rhand" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mlhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="lhand" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${moremi.MheadDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="headdeco" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${moremi.MdressDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="dressdeco" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${moremi.BDG || "default.png"}`} class="absolute h-full w-full object-cover" alt="badge" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${moremi.Meye || 'default.png'}`} class="absolute h-full w-full object-cover" alt="eye" on:error={(e) => handleImgErr(e, 'eye', equip.Meye)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${moremi.Mmouth || 'default.png'}`} class="absolute h-full w-full object-cover" alt="mouth" on:error={(e) => handleImgErr(e, 'mouth', equip.Mmouth)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${moremi.Mclothes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="clothes" on:error={(e) => handleImgErr(e, 'clothes', equip.Mclothes)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${moremi.Mshoes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="shoes" on:error={(e) => handleImgErr(e, 'shoes', equip.Mshoes)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${moremi.Mhead || "default.png"}`} class="absolute h-full w-full object-cover" alt="head" on:error={(e) => handleImgErr(e, 'head', equip.Mhead)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mrhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="rhand" on:error={(e) => handleImgErr(e, 'hand', equip.Mrhand)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mlhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="lhand" on:error={(e) => handleImgErr(e, 'hand', equip.Mlhand)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${moremi.MheadDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="headdeco" on:error={(e) => handleImgErr(e, 'headDeco', equip.MheadDeco)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${moremi.MdressDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="dressdeco" on:error={(e) => handleImgErr(e, 'dressDeco', equip.MdressDeco)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${moremi.BDG || "default.png"}`} class="absolute h-full w-full object-cover" alt="badge" on:error={(e) => handleImgErr(e, 'badge', equip.BDG)} />
             </div>
             <div class="min-w-0">
               <div class="mb-2 flex flex-wrap items-center gap-2">

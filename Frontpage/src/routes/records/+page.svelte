@@ -1147,6 +1147,12 @@
               <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${moremi.Mmouth || 'default.png'}`} class="absolute h-full w-full object-cover" alt="mouth" />
               <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${moremi.Mclothes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="clothes" />
               <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${moremi.Mshoes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="shoes" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${moremi.Mhead || "default.png"}`} class="absolute h-full w-full object-cover" alt="head" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mrhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="rhand" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mlhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="lhand" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${moremi.MheadDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="headdeco" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${moremi.MdressDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="dressdeco" />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${moremi.BDG || "default.png"}`} class="absolute h-full w-full object-cover" alt="badge" />
             </div>
             <div class="min-w-0">
               <div class="mb-2 flex flex-wrap items-center gap-2">

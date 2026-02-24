@@ -169,7 +169,15 @@ class UserService(
     }
 
     fun getIdFromNick(nick: String): String {
+        val nicks = userDao.getNicks()
+        val similaritynicks = userDao.getSimilarityNicks()
+        logger.info("===")
+        logger.info(nicks.size)
+        logger.info(nicks)
+        logger.info(similaritynicks)
+        logger.info("===")
         val similarityNick = similarityRegex.replace(nick, "")
+        logger.info("$nick -> $similarityNick")
         val user = userDao.getUserFromNick(similarityNick) ?: return "{\"error\":405}"
         return "{\"result\":200,\"id\":\"${user.id}\"}"
     }

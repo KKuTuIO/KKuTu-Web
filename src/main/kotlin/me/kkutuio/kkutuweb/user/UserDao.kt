@@ -36,10 +36,10 @@ class UserDao(
         return if (users.isEmpty()) null else users.first()
     }
 
-    fun getUserFromNick(nick: String): User? {
-        val sql = "SELECT * FROM users WHERE \"meanableNick\" = ?"
+    fun getUserFromNick(similarityNick: String, originalNick: String): User? {
+        val sql = "SELECT * FROM users WHERE \"meanableNick\" = ? OR nickname = ?"
 
-        val users = jdbcTemplate.query(sql, userMapper, nick)
+        val users = jdbcTemplate.query(sql, userMapper, similarityNick, originalNick)
         return if (users.isEmpty()) null else users.first()
     }
 

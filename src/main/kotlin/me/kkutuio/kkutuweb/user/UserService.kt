@@ -170,7 +170,7 @@ class UserService(
 
     fun getIdFromNick(nick: String): String {
         val similarityNick = similarityRegex.replace(nick, "").lowercase()
-        val user = userDao.getUserFromNick(similarityNick) ?: return "{\"error\":405}"
+        val user = userDao.getUserFromNick(similarityNick, nick) ?: return "{\"error\":405}"
         return "{\"result\":200,\"id\":\"${user.id}\"}"
     }
 }

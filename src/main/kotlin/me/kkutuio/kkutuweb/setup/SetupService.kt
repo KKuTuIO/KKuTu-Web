@@ -28,6 +28,7 @@ import me.kkutuio.kkutuweb.session.SessionProfile
 import me.kkutuio.kkutuweb.user.UserDao
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
@@ -35,7 +36,8 @@ import javax.servlet.http.HttpSession
 @Service
 class SetupService(
     @Autowired private val loginService: LoginService,
-    @Autowired private val userDao: UserDao
+    @Autowired private val userDao: UserDao,
+    @Autowired private val redisTemplate: StringRedisTemplate
 ) {
     private val logger = LoggerFactory.getLogger(SetupService::class.java)
     private val badWordRegex =
@@ -76,12 +78,23 @@ class SetupService(
 
         val nickname = nick + "#" + sessionProfile.id.split("-")[1]?.take(5)
 
+        try {
+            val isExistInCache = redisTemplate.opsForSet().isMember("nickname_cache", nickname) ?: false
+            if (isExistInCache) {
+                return ActionResult(false, NickChangeResult.ALREADY_USING.errorCode)
+            }
+        } catch (e: Exception) { }
+
         val similarityNick = similarityRegex.replace(nickname, "").lowercase()
         val similarityNicks = userDao.getSimilarityNicks()
 
         if (similarityNicks.contains(similarityNick)) {
             return ActionResult(false, NickChangeResult.ALREADY_USING.errorCode)
         }
+
+        try {
+            redisTemplate.opsForSet().add("nickname_cache", nickname)
+        } catch (e: Exception) { }
 
         if (userDao.getUser(sessionProfile.id) == null) {
             userDao.newUser(sessionProfile.id, nickname, similarityNick)

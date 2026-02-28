@@ -7,7 +7,7 @@ export async function getMoremi(uid){
       if (!res.ok) return {};
 
       const json = await res.json();
-      const equip = json.equip || {};
+      let equip = json.equip || {};
       if (typeof equip === "string") {
         try {
           equip = JSON.parse(equip);

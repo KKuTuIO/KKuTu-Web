@@ -8,6 +8,13 @@ export async function getMoremi(uid){
 
       const json = await res.json();
       const equip = json.equip || {};
+      if (typeof equip === "string") {
+        try {
+          equip = JSON.parse(equip);
+        } catch (e) {
+          equip = {};
+        }
+      }
 
       const proc = {};
       for (const key in equip) {

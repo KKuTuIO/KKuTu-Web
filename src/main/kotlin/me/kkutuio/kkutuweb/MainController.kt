@@ -125,7 +125,11 @@ class MainController(
             val messages = localePropertyLoader.getMessages(locale)
 
             val gameServers = kKuTuSetting.getGameServers()
-            val gameServer = gameServers.getOrNull(server.toInt()) ?: gameServers[0]
+            val gameServer = gameServers.getOrNull(server.toInt())
+            if (gameServer == null) {
+                return "redirect:/game/server/0"
+            }
+
             val webSocketUrl =
                 (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
             val nickname: String = sessionProfile?.title ?: (messages["kkutu.dialog.room.room-title.guest"]

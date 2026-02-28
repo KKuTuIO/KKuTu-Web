@@ -97,8 +97,8 @@ class UserService(
         return objectMapper.writeValueAsString(mapOf(
             "result" to 200,
             "id" to user.id,
-            "data" to user.kkutu.toJson(),
-            "equip" to user.equip.toJson(),
+            "data" to objectMapper.readTree(user.kkutu.toJson()),
+            "equip" to objectMapper.readTree(user.equip.toJson()),
             "exordial" to (user.exordial ?: ""),
             "profile" to mapOf(
                 "authtype" to "offline",

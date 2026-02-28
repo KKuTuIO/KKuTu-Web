@@ -53,6 +53,16 @@ class UserDao(
         return jdbcTemplate.query(sql, SingleColumnRowMapper())
     }
 
+    fun getExistsSimilarityNick(similarityNick: String): Boolean {
+        val sql = "SELECT EXISTS(SELECT 1 FROM users WHERE \"meanableNick\" = ?)"
+        return jdbcTemplate.queryForObject(sql, Boolean::class.java, similarityNick) ?: false
+    }
+
+    fun getExistsNickname(nickname: String): Boolean {
+        val sql = "SELECT EXISTS(SELECT 1 FROM users WHERE nickname = ?)"
+        return jdbcTemplate.queryForObject(sql, Boolean::class.java, nickname) ?: false
+    }
+
     // meanableNick only checked on Unique Nicknames
     fun newUser(id: String, nick: String, similarityNick: String) {
         val sql = "INSERT INTO users(_id, nickname, money, kkutu, flags, \"meanableNick\") VALUES(?, ?, ?, ?, ?, ?)"

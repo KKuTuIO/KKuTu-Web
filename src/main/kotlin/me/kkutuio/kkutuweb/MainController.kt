@@ -125,7 +125,7 @@ class MainController(
             val messages = localePropertyLoader.getMessages(locale)
 
             val gameServers = kKuTuSetting.getGameServers()
-            val gameServer = gameServers[if (gameServers.size <= server) 0 else server.toInt()]
+            val gameServer = gameServers.getOrNull(server.toInt()) ?: gameServers[0]
             val webSocketUrl =
                 (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
             val nickname: String = sessionProfile?.title ?: (messages["kkutu.dialog.room.room-title.guest"]
@@ -144,16 +144,10 @@ class MainController(
             model.addAttribute("gameOptionMap", kKuTuSetting.getGameOptionMap())
             model.addAttribute("gameModes", kKuTuSetting.getGameModes())
 
-            val injeongPickExcepts = kKuTuSetting.getInjeongPickExcepts()
-            val koThemes = ArrayList<String>()
-            koThemes.addAll(kKuTuSetting.getKoThemes())
-            koThemes.addAll(kKuTuSetting.getKoInjeongThemes())
-            koThemes.removeAll(injeongPickExcepts)
+            val injeongPickExcepts = kKuTuSetting.getInjeongPickExcepts().toSet()
 
-            val enThemes = ArrayList<String>()
-            enThemes.addAll(kKuTuSetting.getEnThemes())
-            enThemes.addAll(kKuTuSetting.getEnInjeongThemes())
-            enThemes.removeAll(injeongPickExcepts)
+            val koThemes = kKuTuSetting.getKoThemes() + kKuTuSetting.getKoInjeongThemes() - injeongPickExcepts
+            val enThemes = kKuTuSetting.getEnThemes() + kKuTuSetting.getEnInjeongThemes() - injeongPickExcepts
 
             val calendar = Calendar.getInstance()
             val month = calendar.get(Calendar.MONTH) + 1
@@ -202,9 +196,6 @@ class MainController(
 
     fun generateRandomSid(): String {
         val source = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return Random().ints(32, 0, source.length)
-            .asSequence()
-            .map(source::get)
-            .joinToString("")
+        return (1..32).map { source.random() }.joinToString("")
     }
 }

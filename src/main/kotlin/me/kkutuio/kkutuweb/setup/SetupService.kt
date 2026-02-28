@@ -72,7 +72,7 @@ class SetupService(
             return ActionResult(false, NickChangeResult.HAS_BAD_WORDS.errorCode)
         }
 
-        if (nick.replace(" ", "").replace(" ", "").lowercase().contains(bannedWordRegex)) {
+        if (nick.replace(" ", "").lowercase().contains(bannedWordRegex)) {
             return ActionResult(false, NickChangeResult.HAS_BANNED_WORDS.errorCode)
         }
 
@@ -86,9 +86,8 @@ class SetupService(
         } catch (e: Exception) { }
 
         val similarityNick = similarityRegex.replace(nickname, "").lowercase()
-        val similarityNicks = userDao.getSimilarityNicks()
 
-        if (similarityNicks.contains(similarityNick)) {
+        if (userDao.getExistsSimilarityNick(similarityNick)) {
             return ActionResult(false, NickChangeResult.ALREADY_USING.errorCode)
         }
 

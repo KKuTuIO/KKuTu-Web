@@ -18,7 +18,7 @@
 
     const title = '글자로 놀자! 끄투 온라인';
 
-    var slideData = [
+    let slideData = [
                 {
                     "id": 0,
                     "link": "/",
@@ -32,7 +32,7 @@
                 }
             ];
     
-    var patchNoteData = [
+    let patchNoteData = [
         {
             "title": "2021년 10월 20일 업데이트",
             "link": "/patch/20211020",
@@ -40,7 +40,7 @@
         }
     ]
 
-    var rankData = {
+    let rankData = {
         "data": {
             "page": 0,
             "data": [
@@ -48,10 +48,10 @@
         }
     };
 
-    var blockData = {
+    let blockData = {
     };
     
-    var patchData = "<p>업데이트 내용입니다.</p>";
+    let patchData = "<p>업데이트 내용입니다.</p>";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
     let jsonDataServers = { list: [], max: 9 };
@@ -221,8 +221,9 @@
         if (blockData.blockType !== 'IP') return target;
 
         const ip = blockData.target;
-        const splitIp = ip.split('.');
-        return `${splitIp[0]}.${splitIp[1]}.*.*`;
+        const isIpv6 = ip.includes(':');
+        const splitIp = isIpv6 ? ip.split(':') : ip.split('.');
+        return isIpv6 ? `${splitIp[0]}:${splitIp[1]}:*:*:*:*` : `${splitIp[0]}.${splitIp[1]}.*.*`;
     }
 
     function tsconv(timestamp){

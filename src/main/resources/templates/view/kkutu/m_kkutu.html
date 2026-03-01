@@ -42,7 +42,7 @@
     <span id="OPTIONS" th:text="${gameOptions}"></span>
 
     <div id="Intro">
-        <img id="intro" src="https://cdn.kkutu.io/img/kkutu/intro/m_winter.png" alt="로딩 이미지">
+        <img id="intro" th:src="${mobileIntroImage}" alt="로딩 이미지">
         <img class="game-grade-badge" th:src="@{https://cdn.kkutu.io/img/game_grade_all.svg}" src="" alt="전체이용가"/>
         <!-- img#intro-start(src='https://cdn.kkutu.io/img/kkutu/intro_start.gif')-->
         <div id="version" th:text="${version + ' (모바일)'}"></div>

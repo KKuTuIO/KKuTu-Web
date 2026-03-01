@@ -4,16 +4,15 @@
     import { getLevelImage } from '../lib/getLevelImg.js';
     import { getMoremi } from '../lib/getMoremi.js';
 
-	let user = $state("Guest User");
-    let authVendor = $state("KKuTu");
-    let vendorId = $state("0");
-    let name = $state("Moremi");
-    let profileImage = $state("");
+	let user = "Guest User";
+	let authVendor = "KKuTu";
+	let vendorId = "0";
+	let name = "Moremi";
+	let profileImage = "";
 
-	let ingameName = $state("");
-    let score = $state(0);
-    let server = $state(0);
-    let data = $state("");
+	let ingameName = "";
+	let score = 0;
+	let data = "";
 
     const title = '글자로 놀자! 끄투 온라인';
 
@@ -42,7 +41,8 @@
     let rankData = {
         "data": {
             "page": 0,
-            "data": []
+            "data": [
+            ]
         }
     };
 
@@ -55,13 +55,53 @@
     let jsonDataServers = { list: [], max: 9 };
     let glide;
     let gl;
-    let filteredData = $derived(rankData?.data?.data ? rankData.data.data.slice(0, 10) : []);
-    let slidePage = $state(0);
-    let finalData = $state([]);
+    $: filteredData = rankData.data.data ? rankData.data.data.slice(0, 10) : [];
+    let slidePage = 0;
 
-    async function initGlide() {
-        await tick();
-        if (glide) glide.destroy();
+    let finalData = [];
+
+    function updateSlides() {
+        const slideContainer = document.querySelector('.glide__slides');
+        const glideBullets = document.querySelector('.glide__bullets');
+        slideContainer.innerHTML = ''; // 기존 슬라이드 초기화
+        glideBullets.innerHTML = ''; // 기존 버튼 초기화
+
+        slideData.forEach((slide) => {
+            const slideElement = document.createElement('li');
+            slideElement.className = 'glide__slide pt-[56px] flex justify-center items-center ';
+            slideElement.style.background = slide.color;
+
+            const linkElement = document.createElement('a');
+            if (window.innerWidth < 1000 && slide.m_link) {
+                linkElement.href = slide.m_link;
+            } else{
+                linkElement.href = slide.link;
+            }
+
+            const desktopImage = document.createElement('img');
+            desktopImage.src = slide.slides[0].desktop;
+            desktopImage.className = 'hidden h-[400px] lg:block object-cover';
+            desktopImage.alt = 'Desktop UI';
+
+            const mobileImage = document.createElement('img');
+            mobileImage.src = slide.slides[0].mobile;
+            mobileImage.className = 'h-54 lg:hidden object-cover';
+            mobileImage.alt = 'Mobile UI';
+
+            linkElement.appendChild(desktopImage);
+            linkElement.appendChild(mobileImage);
+            slideElement.appendChild(linkElement);
+            slideContainer.appendChild(slideElement);
+
+            const bulletElement = document.createElement('button');
+            bulletElement.className = 'glide__bullet';
+            bulletElement.setAttribute('data-glide-dir', `=${slide.id}`);
+            glideBullets.appendChild(bulletElement);
+        });
+
+        if (glide) {
+            glide.destroy();
+        }
 
         glide = new Glide('.glide', {
             type: 'carousel',
@@ -74,11 +114,13 @@
             animationTimingFunc: 'ease-in-out'
         });
 
+        gl = glide.mount();
+
+        console.log('Slides updated');
+
         glide.on('run', () => {
             slidePage = glide.index;
         });
-
-        gl = glide.mount();
     }
 
     function goLeft() {
@@ -135,7 +177,7 @@
 
             const slideResponse = await fetch('https://static.kkutu.io/slides.json');
             slideData = await slideResponse.json();
-            initGlide();
+            updateSlides();
 
             const rankResponse = await fetch('/ranking?p=0');
             rankData = await rankResponse.json();
@@ -170,7 +212,7 @@
         return `BLK-${blockData.blockType}-${blockData.id}-${date.getMonth() + 1}.${date.getDate()}.${date.getHours()}.${date.getMinutes()}`;
     }
 
-    function hideIP(target) {
+    function hideIP(target){
         if (blockData.blockType !== 'IP') return target;
 
         const ip = blockData.target;
@@ -179,15 +221,11 @@
         return isIpv6 ? `${splitIp[0]}:${splitIp[1]}:*:*:*:*` : `${splitIp[0]}.${splitIp[1]}.*.*`;
     }
 
-    function tsconv(timestamp) {
+    function tsconv(timestamp){
         const date = new Date(timestamp);
         return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
     }
-
-    async function drawMoremi(uid){
-        return await getMoremi(uid);
-    }
-
+  
     function handleImgErr(e, category, filename) {
         const img = e.target;
         const baseURL = "https://cdn.kkutu.io/img/kkutu/moremi";
@@ -307,20 +345,9 @@
 
         <div class="glide__track" data-glide-el="track">
             <ul class="glide__slides lg:min-h-[456px] min-h-[280px]">
-                {#each slideData as slide}
-                    <li class="glide__slide pt-[56px] flex justify-center items-center" style="background: {slide.color};">
-                        <a href={window.innerWidth < 1000 && slide.m_link ? slide.m_link : slide.link}>
-                            <img src={slide.slides[0].desktop} class="hidden h-[400px] lg:block object-cover" alt="Desktop UI" />
-                            <img src={slide.slides[0].mobile} class="h-54 lg:hidden object-cover" alt="Mobile UI" />
-                        </a>
-                    </li>
-                {/each}
             </ul>
         </div>
-        <div class="hidden glide__bullets opacity-0" data-glide-el="controls[nav]">
-            {#each slideData as slide}
-                <button class="glide__bullet" data-glide-dir="={slide.id}"></button>
-            {/each}
+        <div class="hidden glide__bullets opacity-0 " data-glide-el="controls[nav]">
         </div>
         
         <div class="-mt-[400px] h-[400px] hidden lg:flex items-center min-w-screen-lg max-w-screen-xl mx-auto justify-end pr-4 z-50">
@@ -391,7 +418,7 @@
 
                 <!-- Login status -->
                 <div class="flex justify-center items-center gap-x-4 h-full w-full">
-                    {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
+                    {#await getMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
                         {#if equip}
                             <div class="w-[120px] h-[120px]">
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" on:error={(e) => handleImgErr(e, 'back', equip.Mback)} />

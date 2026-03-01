@@ -8,7 +8,6 @@
   import { getMoremi } from '../../lib/getMoremi.js';
 
   let currentPage = 0;
-  let moremiData = [];
 
   var topRankData = {
     "data": {

@@ -4,6 +4,13 @@
 
   const songs = [
     {
+      title: "끄투리오 2026 봄",
+      url: "https://cdn.kkutu.io/media/LobbyBGM_2026_Spring.mp3",
+      artist: "KKuTuIO",
+      cover: "null",
+      isNew: "false"
+    },
+    {
       title: "끄투리오 2025 겨울",
       url: "https://cdn.kkutu.io/media/LobbyBGM_2025_Winter.mp3",
       artist: "KKuTuIO",

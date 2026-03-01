@@ -162,13 +162,13 @@ class MainController(
 
             // 절기별 PC/모바일 이미지 매핑
             val pcImage = when (month) {
-                in 3..5 -> "$baseUrl/spring.png"
+                in 3..5 -> "$baseUrl2/spring.png"
                 in 6..8 -> "$baseUrl/summer.png"
                 in 9..11 -> "$baseUrl/fall.png"
                 else -> "$baseUrl2/winter.png"
             }
             val mobileImage = when (month) {
-                in 3..5 -> "$baseUrl/spring_m.png"
+                in 3..5 -> "$baseUrl2/m_spring.png"
                 in 6..8 -> "$baseUrl/summer_m.png"
                 in 9..11 -> "$baseUrl/fall_m.png"
                 else -> "$baseUrl2/m_winter.png"

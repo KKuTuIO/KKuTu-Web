@@ -1,178 +1,132 @@
-<!-- @migration-task Error while migrating Svelte code: `<tr>` cannot be a child of `<table>`. `<table>` only allows these children: `<caption>`, `<colgroup>`, `<tbody>`, `<thead>`, `<tfoot>`, `<style>`, `<script>`, `<template>`. The browser will 'repair' the HTML (by moving, removing, or inserting elements) which breaks Svelte's assumptions about the structure of your components.
-https://svelte.dev/e/node_invalid_placement -->
 <script>
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../lib/getLevelImg.js';
     import { getMoremi } from '../lib/getMoremi.js';
-
 	import { showDialog } from './dialogStore';
 
     let yymmdd = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
-	let user = "Guest User";
-	let authVendor = "KKuTu";
-	let vendorId = "0";
-	let name = "Moremi";
-	let profileImage = "";
+	let user = $state("Guest User");
+    let authVendor = $state("KKuTu");
+    let vendorId = $state("0");
+    let name = $state("Moremi");
+    let profileImage = $state("");
 
-	let ingameName = "";
-	let score = 0;
-    let server = 0;
-	let data = "";
+	let ingameName = $state("");
+    let score = $state(0);
+    let server = $state(0);
+    let data = $state("");
 
     const title = '글자로 놀자! 끄투 온라인';
 
-    var slideData = [
+    let slideData = $state([
+        {
+            "id": 0,
+            "link": "/",
+            "color": "#000",
+            "slides": [
                 {
-                    "id": 0,
-                    "link": "/",
-                    "color": "#000",
-                    "slides": [
-                        {
-                            "desktop": "/slide/d.png",
-                            "mobile": "/slide/m.png"
-                        }
-                    ]
+                    "desktop": "/slide/d.png",
+                    "mobile": "/slide/m.png"
                 }
-            ];
+            ]
+        }
+    ]);
     
-    var patchNoteData = [
+    let patchNoteData = $state([
         {
             "title": "2021년 10월 20일 업데이트",
             "link": "/patch/20211020",
             "type": "game"
         }
-    ]
+    ]);
 
-    var maintenanceData = {
+    let maintenanceData = $state({
         "date": "250301",
         "type": "정기 점검",
         "reason": "서비스 안정화",
         "article": "2249"
-    };
+    });
 
-    var rankData = {
+    let rankData = $state({
         "data": {
             "page": 0,
-            "data": [
-            ]
+            "data": []
         }
-    };
+    });
 
-    var blockData = {
-    };
+    let blockData = $state({});
     
-    var patchData = "<p>2021년 10월 20일 업데이트 내용입니다.</p>";
+    const patchData = "<p>2021년 10월 20일 업데이트 내용입니다.</p>";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
-    let jsonDataServers = { list: [], max: 9 };
+    let jsonDataServers = $state({ list: [], max: 9 });
     let glide;
     let gl;
-    let filteredData = [];
-    let slidePage = 0;
+    let filteredData = $derived(rankData?.data?.data ? rankData.data.data.slice(0, 10) : []);
+    let slidePage = $state(0);
 
-    let finalData = [
-    {
-        "articleId": "",
-        "menuId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "articleId": "",
-        "menuId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "articleId": "",
-        "menuId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "articleId": "",
-        "menuId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "bannerName": "",
-        "articleId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "thumbnailUri": "",
-        "articleId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "thumbnailUri": "",
-        "articleId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "thumbnailUri": "",
-        "articleId": "",
-        "subject": "",
-        "content": ""
-    },
-    {
-        "thumbnailUri": "",
-        "articleId": "",
-        "subject": "",
-        "content": ""
-    }
-];
-
-    filteredData = rankData.data.data.slice(0, 10);
-
-    function updateSlides() {
-        const slideContainer = document.querySelector('.glide__slides');
-        const glideBullets = document.querySelector('.glide__bullets');
-        slideContainer.innerHTML = ''; // 기존 슬라이드 초기화
-        glideBullets.innerHTML = ''; // 기존 버튼 초기화
-
-        slideData.forEach((slide) => {
-            const slideElement = document.createElement('li');
-            slideElement.className = 'glide__slide pt-[56px] flex justify-center items-center ';
-            slideElement.style.background = slide.color;
-
-            const linkElement = document.createElement('a');
-            if (window.innerWidth < 1000 && slide.m_link) {
-                linkElement.href = slide.m_link;
-            } else{
-                linkElement.href = slide.link;
-            }
-
-            const desktopImage = document.createElement('img');
-            desktopImage.src = slide.slides[0].desktop;
-            desktopImage.className = 'hidden h-[400px] lg:block object-cover';
-            desktopImage.alt = 'Desktop UI';
-
-            const mobileImage = document.createElement('img');
-            mobileImage.src = slide.slides[0].mobile;
-            mobileImage.className = 'h-54 lg:hidden object-cover';
-            mobileImage.alt = 'Mobile UI';
-
-            linkElement.appendChild(desktopImage);
-            linkElement.appendChild(mobileImage);
-            slideElement.appendChild(linkElement);
-            slideContainer.appendChild(slideElement);
-
-            const bulletElement = document.createElement('button');
-            bulletElement.className = 'glide__bullet';
-            bulletElement.setAttribute('data-glide-dir', `=${slide.id}`);
-            glideBullets.appendChild(bulletElement);
-        });
-
-        if (glide) {
-            glide.destroy();
+    let finalData = $state([
+        {
+            "articleId": "",
+            "menuId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "articleId": "",
+            "menuId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "articleId": "",
+            "menuId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "articleId": "",
+            "menuId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "bannerName": "",
+            "articleId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "thumbnailUri": "",
+            "articleId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "thumbnailUri": "",
+            "articleId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "thumbnailUri": "",
+            "articleId": "",
+            "subject": "",
+            "content": ""
+        },
+        {
+            "thumbnailUri": "",
+            "articleId": "",
+            "subject": "",
+            "content": ""
         }
+    ]);
+
+    async function initGlide() {
+        await tick();
+        if (glide) glide.destroy();
 
         glide = new Glide('.glide', {
             type: 'carousel',
@@ -185,13 +139,11 @@ https://svelte.dev/e/node_invalid_placement -->
             animationTimingFunc: 'ease-in-out'
         });
 
-        gl = glide.mount();
-
-        console.log('Slides updated');
-
         glide.on('run', () => {
             slidePage = glide.index;
         });
+
+        gl = glide.mount();
     }
 
     function goLeft() {
@@ -203,85 +155,68 @@ https://svelte.dev/e/node_invalid_placement -->
     }
     
     onMount(async () => {
-        
-		try {
-			const res = await fetch('/user/oauth');
-			const jsonData = await res.json();
-			data = jsonData;
-		} catch (e) {
-			data = { status: "Guest user" };
-		}
-		
+        try {
+            const res = await fetch('/user/oauth');
+            const jsonData = await res.json();
+            data = jsonData;
+        } catch (e) {
+            data = { status: "Guest user" };
+        }
 
         if (localStorage.getItem('server')) {
             server = localStorage.getItem('server');
-        }
-        else if (data.status !== "Guest user") {
+        } else if (data.status !== "Guest user") {
             server = 2;
-        }
-        else{
+        } else {
             server = 0;
         }
 
-		if (data.status !== "Guest user") {
-			authVendor = data.authVendor;
-			vendorId = data.vendorId;
-			name = data.name;
-			profileImage = data.image;
-			user = name;
+        if (data.status !== "Guest user") {
+            authVendor = data.authVendor;
+            vendorId = data.vendorId;
+            name = data.name;
+            profileImage = data.image;
+            user = name;
 
-			if (authVendor === "DISCORD") {
-				profileImage = profileImage.replace("/avatars/0/", `/avatars/${vendorId}/`);
-				profileImage = profileImage + ".webp";
-			}
+            if (authVendor === "DISCORD") {
+                profileImage = profileImage.replace("/avatars/0/", `/avatars/${vendorId}/`);
+                profileImage = profileImage + ".webp";
+            }
 
-			console.log(`User ${name} is logged in with ${authVendor}`);
+            console.log(`User ${name} is logged in with ${authVendor}`);
 
-			// get user data
-			const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
-			const userData = await userRes.json();
+            const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
+            const userData = await userRes.json();
 
-			ingameName = userData.profile.title;
-			score = userData.data.score;
+            ingameName = userData.profile.title;
+            score = userData.data.score;
+        } else console.log("User is not logged in");
 
+        try {
+            const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
+            finalData = await cafeResponse_events.json();
 
-		} else {
-			console.log("User is not logged in");
-		}
-		
-        // Fetch slide data
-        try{
-        const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
-        finalData = await cafeResponse_events.json();
+            const slideResponse = await fetch('https://static.kkutu.io/slides.json');
+            slideData = await slideResponse.json();
+            initGlide();
 
-        const slideResponse = await fetch('https://static.kkutu.io/slides.json');
-        slideData = await slideResponse.json();
-        updateSlides();
+            const maintenanceResponse = await fetch('https://static.kkutu.io/maintenance.json');
+            maintenanceData = await maintenanceResponse.json();
 
-        const maintenanceResponse = await fetch('https://static.kkutu.io/maintenance.json');
-        maintenanceData = await maintenanceResponse.json();
+            const rankResponse = await fetch('/ranking?p=0');
+            rankData = await rankResponse.json();
 
-        const rankResponse = await fetch('/ranking?p=0');
-        rankData = await rankResponse.json();
-        filteredData = rankData.data.data.slice(0, 10);
-
-        const blockResponse = await fetch('/api/block');
-        blockData = await blockResponse.json();
-        }
-        catch(e){
+            const blockResponse = await fetch('/api/block');
+            blockData = await blockResponse.json();
+        } catch(e) {
             console.error(e);
         }
-    
-        // Fetch server list
+
         const responseServers = await fetch('/servers');
-        
         if (!responseServers.ok) {
           throw new Error('Failed to fetch data');
         }
-
         jsonDataServers = await responseServers.json();
-        
-
     });
 
     function reloadList() { 
@@ -291,6 +226,7 @@ https://svelte.dev/e/node_invalid_placement -->
                 jsonDataServers = data;
             });
     }
+
     function getInquireId() {
         const date = new Date();
         return `BLK-${blockData.blockType}-${blockData.id}-${date.getMonth() + 1}.${date.getDate()}.${date.getHours()}.${date.getMinutes()}`;
@@ -300,18 +236,15 @@ https://svelte.dev/e/node_invalid_placement -->
         if (blockData.blockType !== 'IP') return target;
 
         const ip = blockData.target;
-        const splitIp = ip.split('.');
-        return `${splitIp[0]}.${splitIp[1]}.*.*`;
+        const isIpv6 = ip.includes(':');
+        const splitIp = isIpv6 ? ip.split(':') : ip.split('.');
+        return isIpv6 ? `${splitIp[0]}:${splitIp[1]}:*:*:*:*` : `${splitIp[0]}.${splitIp[1]}.*.*`;
     }
 
     function tsconv(timestamp){
         const date = new Date(timestamp);
         return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
     }
-
-    async function drawMoremi(uid){
-    return await getMoremi(uid);
-  }
 
     function handleImgErr(e, category, filename) {
         const img = e.target;
@@ -486,22 +419,6 @@ https://svelte.dev/e/node_invalid_placement -->
     <!-- PC전용 : 로그인 / 게임시작 영역 -->
     <div class="hidden lg:block bg-gray-800 border-t border-b border-gray-700">
         <div class="max-w-screen-xl mx-auto grid grid-cols-4 py-4 px-8 min-h-[170px]">
-            <!-- Patch Notes-->
-             
-            <div class="col-span-2 w-full">
-                {#each finalData.slice(4, 5) as cafeNotice}
-                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="flex items-center justify-start gap-x-4 w-full h-full">
-                    <img src={`https://cdn.kkutu.io/img/front/notice/${cafeNotice.bannerName}.png`} class="h-32 bg-white aspect-video" alt="Patch note"/>
-                    <div class="flex flex-col">
-                        <h3 class="text-2xl font-bold text-white">{cafeNotice.subject}</h3>
-                        <p class="text-gray-300">{cafeNotice.content}</p>
-                        <p class="text-[#55aa55] hover:text-[#51a351] font-bold">자세히 보기</p>
-                    </div>
-                </a>
-                {/each}
-            </div>
-
-
             <!-- Login -->
              <div class="col-span-2 gap-x-4 w-full">
             {#if user == "Guest User"}
@@ -522,7 +439,7 @@ https://svelte.dev/e/node_invalid_placement -->
                 <!-- Login status -->
                  <div class="flex justify-center items-center gap-x-4 h-full w-full">
                     <div class="w-[120px] h-[120px]">
-                      {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
+                      {#await getMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
                         <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" on:error={(e) => handleImgErr(e, 'back', equip.Mback)} />
                         <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body/${equip.Mbody || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />
                         <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" on:error={(e) => handleImgErr(e, 'eye', equip.Meye)} />

@@ -170,7 +170,7 @@
         return `BLK-${blockData.blockType}-${blockData.id}-${date.getMonth() + 1}.${date.getDate()}.${date.getHours()}.${date.getMinutes()}`;
     }
 
-    function hideIP(target){
+    function hideIP(target) {
         if (blockData.blockType !== 'IP') return target;
 
         const ip = blockData.target;
@@ -179,11 +179,15 @@
         return isIpv6 ? `${splitIp[0]}:${splitIp[1]}:*:*:*:*` : `${splitIp[0]}.${splitIp[1]}.*.*`;
     }
 
-    function tsconv(timestamp){
+    function tsconv(timestamp) {
         const date = new Date(timestamp);
         return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
     }
-  
+
+    async function drawMoremi(uid){
+        return await getMoremi(uid);
+    }
+
     function handleImgErr(e, category, filename) {
         const img = e.target;
         const baseURL = "https://cdn.kkutu.io/img/kkutu/moremi";
@@ -387,7 +391,7 @@
 
                 <!-- Login status -->
                 <div class="flex justify-center items-center gap-x-4 h-full w-full">
-                    {#await getMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
+                    {#await drawMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
                         {#if equip}
                             <div class="w-[120px] h-[120px]">
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" on:error={(e) => handleImgErr(e, 'back', equip.Mback)} />

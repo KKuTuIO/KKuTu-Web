@@ -36,8 +36,8 @@
         <div id="intro-text" th:text="#{kkutu.loading}"></div>
     </div>
     <th:block th:replace="view/kkutu/menu"/>
-    <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,title=#{kkutu.dialog.setting.title})}">
+    <div id="cherry-blossom-container"></div>
+    <th:block layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,title=#{kkutu.dialog.setting.title})}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
                 <h4 th:text="#{kkutu.dialog.setting.bgm-volume}"></h4>

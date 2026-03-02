@@ -1978,35 +1978,3 @@ input[type="text"], input[type="password"], input[type="number"], select {
     will-change: opacity, transform, height, width;
     backface-visibility: hidden;
 }
-
-/* ---- 봄 이벤트 ---- */
-
-#cherry-blossom-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    overflow: hidden;
-    z-index: 9999;
-}
-
-.cherry-petal {
-    position: absolute;
-    background-color: #ffb7c5;
-    border-radius: 15px 0 15px 0;
-    box-shadow: 0 0 5px rgba(255, 183, 197, 0.6);
-    opacity: 0.8;
-    animation: fall linear infinite, sway ease-in-out infinite alternate;
-}
-
-@keyframes fall {
-    0% { top: -10%; transform: rotate(0deg); }
-    100% { top: 110%; transform: rotate(360deg); }
-}
-
-@keyframes sway {
-    0% { margin-left: 0px; }
-    100% { margin-left: 50px; }
-}

@@ -2148,14 +2148,14 @@ td.ranking-name {
 /* ---- 봄 이벤트 ---- */
 
 #cherry-blossom-container {
-    position: absolute;
-    top: 30px;
+    position: fixed;
+    top: 0;
     left: 0;
-    width: 1000px;
-    height: 380px;
+    width: 100vw;
+    height: 100vh;
     pointer-events: none;
     overflow: hidden;
-    z-index: 0;
+    z-index: 9999;
 }
 
 .cherry-petal {

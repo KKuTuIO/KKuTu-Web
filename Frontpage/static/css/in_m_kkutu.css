@@ -1982,14 +1982,14 @@ input[type="text"], input[type="password"], input[type="number"], select {
 /* ---- 봄 이벤트 ---- */
 
 #cherry-blossom-container {
-    position: absolute;
-    top: 50px;
+    position: fixed;
+    top: 0;
     left: 0;
     width: 100vw;
-    height: 60vh;
+    height: 100vh;
     pointer-events: none;
     overflow: hidden;
-    z-index: 0;
+    z-index: 9999;
 }
 
 .cherry-petal {

@@ -71,6 +71,8 @@ enum class WordTheme(val themeCode: String, val themeName: String) {
     THEME_MCR("MCR", "마인크래프트"),
     THEME_MMB("MMB", "모두의마블"),
     THEME_HSR("HSR", "붕괴: 스타레일"),
+    THEME_BOG("BOG", "보드게임"),
+    THEME_YGO("YGO", "유희왕"),
     THEME_e00("e00", "★"),
     THEME_e01("e01", "★"),
     THEME_e02("e02", "★"),

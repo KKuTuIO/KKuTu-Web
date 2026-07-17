@@ -25,7 +25,10 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 class GameClient(
     private val isSecure: Boolean,
@@ -34,9 +37,18 @@ class GameClient(
     private val key: String,
     private val id: Short
 ) : WebSocketAdapter() {
+    companion object {
+        private val reconnectScheduler = Executors.newSingleThreadScheduledExecutor { task ->
+            Thread(task, "kkutu-game-client-reconnect").apply { isDaemon = true }
+        }
+    }
+
     private val logger = LoggerFactory.getLogger(GameClient::class.java)
     private val objectMapper = ObjectMapper()
     private val pendingRequests = ConcurrentHashMap<String, CompletableFuture<String>>()
+    private val reconnectScheduled = AtomicBoolean(false)
+    private val reconnectAttempts = AtomicInteger(0)
+    @Volatile
     private var webSocket: WebSocket? = null
     var players = 0
 
@@ -44,7 +56,9 @@ class GameClient(
         connectWebSocket()
     }
 
+    @Synchronized
     private fun connectWebSocket() {
+        if (webSocket?.isOpen == true) return
         try {
             val protocol = if (isSecure) "wss" else "ws"
             val webSocketUrl = "$protocol://$host:$port/$key:$id"
@@ -53,15 +67,36 @@ class GameClient(
                 .setConnectionTimeout(5000)
                 .setVerifyHostname(false)
                 .createSocket(webSocketUrl, 5000)
+                .setPingInterval(5000)
 
             webSocket!!.addListener(this)
             webSocket!!.connectAsynchronously()
         } catch (e: Exception) {
             logger.warn("$port @ 게임서버 연결에 실패했습니다. ${e.message}")
+            scheduleReconnect()
         }
     }
 
+    private fun scheduleReconnect() {
+        if (!reconnectScheduled.compareAndSet(false, true)) return
+        val attempt = reconnectAttempts.incrementAndGet().coerceAtMost(6)
+        val delaySeconds = (1L shl (attempt - 1)).coerceAtMost(30L)
+        reconnectScheduler.schedule({
+            reconnectScheduled.set(false)
+            if (!isConnected()) connectWebSocket()
+        }, delaySeconds, TimeUnit.SECONDS)
+    }
+
+    private fun invalidateAndReconnect(websocket: WebSocket?) {
+        if (websocket == null || webSocket !== websocket) return
+        webSocket = null
+        runCatching { websocket.disconnect() }
+        scheduleReconnect()
+    }
+
     override fun onConnected(websocket: WebSocket, headers: MutableMap<String, MutableList<String>>) {
+        reconnectAttempts.set(0)
+        reconnectScheduled.set(false)
         logger.info("$port @ 게임서버#${id} 가 연결되었습니다.")
     }
 
@@ -76,12 +111,21 @@ class GameClient(
             future.completeExceptionally(disconnectError)
         }
         pendingRequests.clear()
+        if (webSocket === websocket) webSocket = null
         if (closedByServer) logger.info("서버에 의해 $port @ 게임서버#${id} 의 연결이 끊어졌습니다.")
         else logger.info("$port @ 게임서버#${id} 의 연결이 끊어졌습니다.")
+        scheduleReconnect()
+    }
+
+    override fun onConnectError(websocket: WebSocket, exception: WebSocketException) {
+        if (webSocket === websocket) webSocket = null
+        logger.warn("$port @ 게임서버#${id} 연결 시도에 실패했습니다. 재시도합니다.")
+        scheduleReconnect()
     }
 
     override fun onError(websocket: WebSocket, cause: WebSocketException) {
         logger.error("$port @ 게임서버#${id} 에서 오류가 발생했습니다.", cause)
+        invalidateAndReconnect(websocket)
     }
 
     override fun onTextMessage(websocket: WebSocket, text: String) {
@@ -109,7 +153,9 @@ class GameClient(
     }
 
     fun isConnected(): Boolean {
-        return webSocket != null && webSocket!!.isOpen
+        val connected = webSocket?.isOpen == true
+        if (!connected) scheduleReconnect()
+        return connected
     }
 
     fun requestReplayByGameId(gameId: String, includePayload: Boolean, requesterId: String?): String? {
@@ -151,6 +197,7 @@ class GameClient(
         } catch (e: Exception) {
             pendingRequests.remove(requestId)
             logger.warn("$port @ 게임서버#${id} 리플레이 요청 실패: ${e.message}")
+            invalidateAndReconnect(webSocket)
             null
         }
     }

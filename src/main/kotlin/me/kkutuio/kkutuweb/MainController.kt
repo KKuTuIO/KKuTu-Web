@@ -25,7 +25,7 @@ import me.kkutuio.kkutuweb.ip.IpCheckService
 import me.kkutuio.kkutuweb.locale.LocalePropertyLoader
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.ranking.NicknameCacheService
-import me.kkutuio.kkutuweb.session.SessionDao
+import me.kkutuio.kkutuweb.session.GameSessionTicketStore
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import me.kkutuio.kkutuweb.setup.SetupService
 import me.kkutuio.kkutuweb.view.View
@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.support.RequestContextUtils
 import java.util.*
+import java.security.SecureRandom
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
 import kotlin.streams.asSequence
@@ -52,7 +53,7 @@ class MainController(
     @Autowired private val ipCheckService: IpCheckService,
     @Autowired private val geoService: GeoService,
     @Autowired private val nicknameCacheService: NicknameCacheService,
-    @Autowired private val sessionDao: SessionDao,
+    @Autowired private val gameSessionTicketStore: GameSessionTicketStore,
     @Autowired private val aeS256: AES256,
     @Autowired private val localePropertyLoader: LocalePropertyLoader
 ) {
@@ -116,11 +117,6 @@ class MainController(
                 return "redirect:/"
             }
 
-            val randomSid = generateRandomSid()
-            if (!isGuest) {
-                sessionDao.insert(sessionProfile!!, randomSid)
-            }
-
             val locale = RequestContextUtils.getLocale(request)
             val messages = localePropertyLoader.getMessages(locale)
 
@@ -130,6 +126,8 @@ class MainController(
                 return "redirect:/game/server/0"
             }
 
+            val randomSid = generateRandomSid()
+            gameSessionTicketStore.issue(randomSid, sessionProfile, gameServer.cid.toString())
             val webSocketUrl =
                 (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
             val nickname: String = sessionProfile?.title ?: (messages["kkutu.dialog.room.room-title.guest"]
@@ -199,7 +197,12 @@ class MainController(
     }
 
     fun generateRandomSid(): String {
-        val source = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return (1..32).map { source.random() }.joinToString("")
+        val bytes = ByteArray(32)
+        secureRandom.nextBytes(bytes)
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+    }
+
+    companion object {
+        private val secureRandom = SecureRandom()
     }
 }

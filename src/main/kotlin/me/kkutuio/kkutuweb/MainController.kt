@@ -127,7 +127,9 @@ class MainController(
             }
 
             val randomSid = generateRandomSid()
-            gameSessionTicketStore.issue(randomSid, sessionProfile, gameServer.cid.toString())
+            // The route index selects Game cluster SID. `cid` identifies the
+            // persistent WebServerClient connection and is not a Game SID.
+            gameSessionTicketStore.issue(randomSid, sessionProfile, server.toString())
             val webSocketUrl =
                 (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
             val nickname: String = sessionProfile?.title ?: (messages["kkutu.dialog.room.room-title.guest"]

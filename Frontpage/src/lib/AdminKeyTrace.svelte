@@ -118,7 +118,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <div class="font-semibold">Key 입력 내역</div>
-        <div class="text-xs text-amber-800 dark:text-amber-200">운영자 전용 · 일반 전적 응답에는 포함되지 않습니다.</div>
+        <div class="text-xs text-amber-800 dark:text-amber-200">하기 입력 내역은 단순 참고 용도로만 사용되어야 합니다.</div>
       </div>
       <span class="rounded-full bg-amber-200 px-2 py-1 text-xs font-bold text-amber-900 dark:bg-amber-800 dark:text-amber-100">
         {entries.length}회
@@ -127,7 +127,7 @@
 
     {#if payload?.o === 1}
       <div class="mt-2 rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 dark:bg-red-950/60 dark:text-red-200">
-        비정상적으로 큰 경기여서 서버 메모리 한도 이후 입력은 저장되지 않았습니다.
+        경기 정보를 불러올 수 없습니다
       </div>
     {/if}
 
@@ -159,7 +159,7 @@
             <button
               class="ml-auto shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
               on:click={() => (expandedKey = expandedKey === entry.key ? '' : entry.key)}
-            >{expandedKey === entry.key ? '전이 닫기' : '정확한 전이'}</button>
+            >{expandedKey === entry.key ? '상세내역 닫기' : '상세내역 조회'}</button>
           </div>
 
           <div class="mt-1 break-all rounded bg-slate-100 px-2 py-1 font-mono text-sm leading-5 dark:bg-slate-800">

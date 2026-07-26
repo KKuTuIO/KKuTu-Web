@@ -16,7 +16,7 @@
     'insertLineBreak',
     'insertParagraph'
   ];
-  const STATUS_LABELS = ['승인', '거절', '무시', '시간 초과'];
+  const STATUS_LABELS = ['통과', '단어 오류'];
 
   function decodeEntry(row, index) {
     if (!Array.isArray(row) || !Array.isArray(row[10])) return null;
@@ -78,7 +78,8 @@
       nickname: players[playerIndex]?.nickname || `Player#${playerIndex}`,
       round: Math.max(0, Number(row[1]) || 0),
       elapsedGameMs: Math.max(0, Number(row[2]) || 0),
-      status: STATUS_LABELS[Math.max(0, Math.min(3, Number(row[3]) || 0))],
+      disposition: Math.max(0, Math.min(1, Number(row[3]) || 0)),
+      status: STATUS_LABELS[Math.max(0, Math.min(1, Number(row[3]) || 0))],
       resultCode: String(row[4] || '-'),
       scope: `${String(row[5] || '-')}:${String(row[6] || '-')}`,
       inputMismatch: Number(row[7]) === 1,
@@ -103,6 +104,12 @@
         ? 'border-amber-500 bg-amber-500 text-white'
         : 'border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-950'
     }`;
+  }
+
+  function statusClass(disposition) {
+    return disposition === 0
+      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
+      : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200';
   }
 </script>
 
@@ -137,33 +144,42 @@
       {/each}
     </div>
 
-    <div class="mt-3 space-y-2">
+    <div class="mt-3 divide-y divide-amber-200 overflow-hidden rounded-lg border border-amber-200 bg-white px-3 dark:divide-amber-900 dark:border-amber-800 dark:bg-slate-900">
       {#each visibleEntries as entry}
-        <article class="rounded-lg border border-amber-200 bg-white p-3 text-sm dark:border-amber-800 dark:bg-slate-900">
-          <div class="flex flex-wrap items-center gap-2">
-            <b>{entry.nickname}</b>
-            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-700">{entry.status}</span>
-            <span class="text-xs text-slate-500 dark:text-slate-300">라운드 {entry.round} · +{(entry.elapsedGameMs / 1000).toFixed(2)}초 · {entry.scope}</span>
-            {#if entry.inputMismatch}
-              <span class="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-200">입력 불일치</span>
-            {/if}
-            {#if entry.chainMismatch}
-              <span class="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-200">체인 불일치</span>
-            {/if}
-            {#if !entry.complete}
-              <span class="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-700 dark:bg-orange-950 dark:text-orange-200">trace 일부 유실</span>
-            {/if}
+        <article class="py-2 text-sm">
+          <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <b class="shrink-0">{entry.nickname}</b>
+            <span class={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${statusClass(entry.disposition)}`}>{entry.status}</span>
+            <span class="min-w-0 text-xs text-slate-500 dark:text-slate-300">
+              라운드 {entry.round} · +{(entry.elapsedGameMs / 1000).toFixed(2)}초 · {entry.scope}
+            </span>
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-300">
+              {entry.transitions.length} events · {entry.resultCode}
+            </span>
+            <button
+              class="ml-auto shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              on:click={() => (expandedKey = expandedKey === entry.key ? '' : entry.key)}
+            >{expandedKey === entry.key ? '전이 닫기' : '정확한 전이'}</button>
           </div>
-          <div class="mt-2 break-all rounded bg-slate-100 px-2 py-1.5 font-mono text-sm dark:bg-slate-800">
+
+          <div class="mt-1 break-all rounded bg-slate-100 px-2 py-1 font-mono text-sm leading-5 dark:bg-slate-800">
             {entry.compact || '(표시값 변화 없음)'}
           </div>
-          <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-300">
-            <span>{entry.transitions.length} events · {entry.resultCode}</span>
-            <button
-              class="rounded border border-slate-300 px-2 py-1 font-semibold hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800"
-              on:click={() => (expandedKey = expandedKey === entry.key ? '' : entry.key)}
-            >{expandedKey === entry.key ? '정확한 전이 닫기' : '정확한 전이 보기'}</button>
-          </div>
+
+          {#if entry.inputMismatch || entry.chainMismatch || !entry.complete}
+            <div class="mt-1 flex flex-wrap gap-1">
+              {#if entry.inputMismatch}
+                <span class="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-200">입력 불일치</span>
+              {/if}
+              {#if entry.chainMismatch}
+                <span class="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-200">체인 불일치</span>
+              {/if}
+              {#if !entry.complete}
+                <span class="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-700 dark:bg-orange-950 dark:text-orange-200">trace 일부 유실</span>
+              {/if}
+            </div>
+          {/if}
+
           {#if expandedKey === entry.key}
             <div class="mt-2 max-h-80 overflow-auto rounded border border-slate-200 dark:border-slate-700">
               <table class="w-full min-w-[680px] text-xs">

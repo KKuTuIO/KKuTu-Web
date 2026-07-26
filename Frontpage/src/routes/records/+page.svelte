@@ -304,10 +304,10 @@
     const rows = Object.values(rowsByMode)
       .map((row) => ({
         ...row,
-        halfFinishes: Math.max(0, row.games - row.wins - row.losses),
         playHours: normalizePlayHoursFromMs(row.playTimeMs),
-        winRate: row.games > 0 ? Math.round((row.wins / row.games) * 10000) / 100 : 0,
-        halfRate: row.games > 0 ? Math.round(((row.games - row.wins - row.losses) / row.games) * 10000) / 100 : 0
+        winRate: row.games > 0
+          ? Math.round(((row.wins + Math.max(0, row.games - row.wins - row.losses) * 0.5) / row.games) * 10000) / 100
+          : 0
       }))
       .filter((row) => row.playTimeMs > 0 || row.wins > 0 || row.games > 0 || row.acceptedWords > 0 || row.exp > 0)
       .sort((a, b) => b.exp - a.exp || b.playTimeMs - a.playTimeMs || b.games - a.games);
@@ -1246,7 +1246,7 @@
                   </div>
                   <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">balance</span>반타작</span>
-                    <b>{stat.halfFinishes.toLocaleString()}회</b>
+                    <b>{Math.max(0, stat.games - stat.wins - stat.losses).toLocaleString()}회</b>
                   </div>
                   <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">trending_down</span>패배</span>
@@ -1259,10 +1259,6 @@
                   <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>승률</span>
                     <b>{stat.winRate.toFixed(2)}%</b>
-                  </div>
-                  <div class="mt-2 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>반타작률</span>
-                    <b>{stat.halfRate.toFixed(2)}%</b>
                   </div>
                   <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">spellcheck</span>낱말 입력</span>

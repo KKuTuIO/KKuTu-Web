@@ -28,6 +28,12 @@ data class AdminSetting(
         CONNECTION_LOG,
         SUSPICION_LOG,
         REPORT_LOG,
-        WORD
+        WORD,
+        USER_MODERATION_READ,
+        USER_SANCTION_ISSUE,
+        USER_SANCTION_REVOKE,
+        REPORT_RESOLVE,
+        SANCTION_POLICY_OVERRIDE,
+        SANCTION_COUNTER_RESET
     }
 }

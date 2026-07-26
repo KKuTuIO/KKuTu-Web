@@ -74,10 +74,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.flywaydb:flyway-core")
     implementation("nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect")
 
     implementation("de.codecentric:spring-boot-admin-starter-client:2.6.3")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.networknt:json-schema-validator:1.0.76")
     implementation("com.neovisionaries:nv-websocket-client:2.10")
     implementation("com.github.scribejava:scribejava-apis:7.1.1")
     implementation("org.postgresql:postgresql:42.2.16")

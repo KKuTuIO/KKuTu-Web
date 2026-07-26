@@ -1,0 +1,73 @@
+package me.kkutuio.kkutuweb.moderation.policy
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.boot.DefaultApplicationArguments
+import java.time.Instant
+
+class ModerationPolicyEngineTest {
+    private lateinit var engine: ModerationPolicyEngine
+    private lateinit var loader: ModerationPolicyLoader
+
+    @BeforeEach
+    fun setUp() {
+        loader = ModerationPolicyLoader(
+            DefaultApplicationArguments(),
+            ObjectMapper().registerKotlinModule()
+        )
+        loader.initialize()
+        engine = ModerationPolicyEngine(loader)
+    }
+
+    @Test
+    fun `default policy contains the complete official matrix`() {
+        val policy = loader.current().document
+
+        assertEquals((0..18).map { it.toString().padStart(2, '0') }, policy.categories.map { it.code })
+        assertEquals(67, policy.categories.sumOf { it.steps.size })
+        assertEquals("https://static.kkutu.io/operation", policy.source.url)
+    }
+
+    @Test
+    fun `category 11 is permanently restricted on first offense`() {
+        val preview = engine.preview(listOf("11"), emptyMap(), Instant.parse("2026-07-26T00:00:00Z"))
+
+        assertEquals(1, preview.violations.single().offenseNo)
+        assertTrue(preview.effects.any {
+            it.type == "GAME_RESTRICTION" && it.permanent && it.endsAt == null
+        })
+    }
+
+    @Test
+    fun `all selected categories increment while strongest bundle is applied`() {
+        val preview = engine.preview(
+            listOf("02", "04"),
+            mapOf("02" to 1, "04" to 2),
+            Instant.parse("2026-07-26T00:00:00Z")
+        )
+
+        assertEquals(mapOf("02" to 2, "04" to 3), preview.violations.associate {
+            it.categoryCode to it.offenseNo
+        })
+        assertEquals("02", preview.primaryCategoryCode)
+        assertEquals(
+            Instant.parse("2026-08-09T00:00:00Z"),
+            preview.effects.single { it.type == "GAME_RESTRICTION" }.endsAt
+        )
+    }
+
+    @Test
+    fun `overflow uses the configured last or section 7 rule`() {
+        val repeatLast = engine.preview(listOf("02"), mapOf("02" to 99))
+        val sectionSeven = engine.preview(listOf("01"), mapOf("01" to 99))
+
+        assertEquals(100, repeatLast.violations.single().offenseNo)
+        assertEquals(100, sectionSeven.violations.single().offenseNo)
+        assertTrue(repeatLast.effects.isNotEmpty())
+        assertTrue(sectionSeven.effects.isNotEmpty())
+    }
+}

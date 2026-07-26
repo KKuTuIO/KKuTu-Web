@@ -43,6 +43,16 @@ class UserDao(
         return if (users.isEmpty()) null else users.first()
     }
 
+    fun searchUsers(query: String, limit: Int = 20): List<User> {
+        val sql = """
+            SELECT * FROM users
+            WHERE _id = ? OR nickname ILIKE ?
+            ORDER BY CASE WHEN _id = ? THEN 0 WHEN nickname = ? THEN 1 ELSE 2 END, nickname
+            LIMIT ?
+        """.trimIndent()
+        return jdbcTemplate.query(sql, userMapper, query, "%$query%", query, query, limit.coerceIn(1, 50))
+    }
+
     fun getSimilarityNicks(): List<String> {
         val sql = "SELECT \"meanableNick\" FROM users"
         return jdbcTemplate.query(sql, SingleColumnRowMapper())

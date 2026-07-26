@@ -1,0 +1,420 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://kkutu.io/schemas/moderation-policy.schema.json",
+  "title": "KKuTuIO moderation policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "policyId",
+    "revision",
+    "source",
+    "timeZone",
+    "noticePeriodDays",
+    "appeal",
+    "counterReset",
+    "multipleViolations",
+    "relatedServices",
+    "defaultSection7OverflowEffects",
+    "categories",
+    "guestIpPolicy"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "policyId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,99}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source": {
+      "$ref": "#/definitions/source"
+    },
+    "timeZone": {
+      "const": "Asia/Seoul"
+    },
+    "noticePeriodDays": {
+      "type": "integer",
+      "minimum": 7
+    },
+    "appeal": {
+      "$ref": "#/definitions/appeal"
+    },
+    "counterReset": {
+      "$ref": "#/definitions/counterReset"
+    },
+    "multipleViolations": {
+      "$ref": "#/definitions/multipleViolations"
+    },
+    "relatedServices": {
+      "$ref": "#/definitions/relatedServices"
+    },
+    "defaultSection7OverflowEffects": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/effect"
+      }
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 19,
+      "maxItems": 19,
+      "items": {
+        "$ref": "#/definitions/category"
+      }
+    },
+    "guestIpPolicy": {
+      "$ref": "#/definitions/guestIpPolicy"
+    }
+  },
+  "definitions": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "url",
+        "publishedAt",
+        "effectiveFrom",
+        "retrievedAt"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date"
+        },
+        "effectiveFrom": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrievedAt": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "appeal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "windowDays",
+        "responseDays"
+      ],
+      "properties": {
+        "windowDays": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "responseDays": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "counterReset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eligibleAfter",
+        "mode",
+        "scope"
+      ],
+      "properties": {
+        "eligibleAfter": {
+          "$ref": "#/definitions/duration"
+        },
+        "mode": {
+          "enum": [
+            "DISABLED",
+            "AUTO",
+            "ELIGIBLE_REQUIRES_APPROVAL"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "ALL_CATEGORIES",
+            "PER_CATEGORY"
+          ]
+        }
+      }
+    },
+    "multipleViolations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incrementAllCounters",
+        "bundleSelection",
+        "selectionOrder"
+      ],
+      "properties": {
+        "incrementAllCounters": {
+          "const": true
+        },
+        "bundleSelection": {
+          "const": "SELECT_SINGLE_STRONGEST_STEP"
+        },
+        "selectionOrder": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "PERMANENT_GAME_RESTRICTION",
+              "GAME_RESTRICTION_DURATION",
+              "RESOURCE_DEDUCTION_PERCENT",
+              "CHAT_RESTRICTION_DURATION",
+              "NICKNAME_CHANGE_RESTRICTION",
+              "NICKNAME_RESET"
+            ]
+          }
+        }
+      }
+    },
+    "relatedServices": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "services",
+        "violationHandling",
+        "applicationMode"
+      ],
+      "properties": {
+        "services": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "GAME",
+              "OFFICIAL_CAFE",
+              "OFFICIAL_DISCORD",
+              "RIO_WIKI",
+              "SUPPORT_CENTER"
+            ]
+          }
+        },
+        "violationHandling": {
+          "const": "GAME_AND_SOURCE_SERVICE_SAME_DURATION"
+        },
+        "applicationMode": {
+          "enum": [
+            "CONNECTOR_OR_MANUAL_COMPLETION",
+            "MANUAL_ONLY"
+          ]
+        }
+      }
+    },
+    "category": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "name",
+        "sourceSection",
+        "requiresOverride",
+        "overflowMode",
+        "steps"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^(00|0[1-9]|1[0-8])$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sourceSection": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "requiresOverride": {
+          "type": "boolean"
+        },
+        "overflowMode": {
+          "enum": [
+            "REPEAT_LAST",
+            "USE_DEFAULT_SECTION7_OVERFLOW",
+            "REQUIRES_OVERRIDE"
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        },
+        "allowedOverrides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/effectBundle"
+          }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offense",
+        "effects"
+      ],
+      "properties": {
+        "offense": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requiresApproval": {
+          "type": "boolean"
+        },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/effect"
+          }
+        }
+      }
+    },
+    "effectBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "requiresApproval",
+        "effects"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_]{2,50}$"
+        },
+        "requiresApproval": {
+          "type": "boolean"
+        },
+        "effects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/effect"
+          }
+        }
+      }
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "WARNING",
+            "CHAT_RESTRICTION",
+            "GAME_RESTRICTION",
+            "GUEST_ACCESS_RESTRICTION",
+            "IP_RESTRICTION",
+            "NICKNAME_RESET",
+            "NICKNAME_CHANGE_RESTRICTION",
+            "RESOURCE_ADJUSTMENT",
+            "EXTEND_RELATED_RESTRICTION",
+            "RELATED_SERVICE_RESTRICTION"
+          ]
+        },
+        "duration": {
+          "$ref": "#/definitions/duration"
+        },
+        "permanent": {
+          "type": "boolean"
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "duration": {
+      "type": "string",
+      "pattern": "^P(?=\\d|T\\d)(?:\\d+Y)?(?:\\d+M)?(?:\\d+D)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+S)?)?$"
+    },
+    "guestIpPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "steps",
+        "permanentUserSkipsSecondStep",
+        "guestChatConversion",
+        "publicFacility",
+        "separatelyRestrictableNetworks"
+      ],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        },
+        "permanentUserSkipsSecondStep": {
+          "type": "boolean"
+        },
+        "guestChatConversion": {
+          "const": "GUEST_ACCESS_RESTRICTION_SAME_DURATION"
+        },
+        "publicFacility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "defaultApplyFullIpRestriction",
+            "overrideAfterViolations",
+            "within",
+            "requiresApproval"
+          ],
+          "properties": {
+            "defaultApplyFullIpRestriction": {
+              "type": "boolean"
+            },
+            "overrideAfterViolations": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "within": {
+              "$ref": "#/definitions/duration"
+            },
+            "requiresApproval": {
+              "type": "boolean"
+            }
+          }
+        },
+        "separatelyRestrictableNetworks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "MOBILE_CARRIER",
+              "PUBLIC_INSTITUTION",
+              "OVERSEAS",
+              "PROXY_VPN"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,442 @@
+{
+  "$schema": "moderation-policy.schema.json",
+  "policyId": "kkutu-operation-r9-2024-02-01",
+  "revision": 9,
+  "source": {
+    "title": "끄투리오 운영정책",
+    "url": "https://static.kkutu.io/operation",
+    "publishedAt": "2024-01-20",
+    "effectiveFrom": "2024-02-01T00:00:00+09:00",
+    "retrievedAt": "2026-07-26"
+  },
+  "timeZone": "Asia/Seoul",
+  "noticePeriodDays": 7,
+  "appeal": {
+    "windowDays": 60,
+    "responseDays": 15
+  },
+  "counterReset": {
+    "eligibleAfter": "P12M",
+    "mode": "ELIGIBLE_REQUIRES_APPROVAL",
+    "scope": "ALL_CATEGORIES"
+  },
+  "multipleViolations": {
+    "incrementAllCounters": true,
+    "bundleSelection": "SELECT_SINGLE_STRONGEST_STEP",
+    "selectionOrder": [
+      "PERMANENT_GAME_RESTRICTION",
+      "GAME_RESTRICTION_DURATION",
+      "RESOURCE_DEDUCTION_PERCENT",
+      "CHAT_RESTRICTION_DURATION",
+      "NICKNAME_CHANGE_RESTRICTION",
+      "NICKNAME_RESET"
+    ]
+  },
+  "relatedServices": {
+    "services": [
+      "GAME",
+      "OFFICIAL_CAFE",
+      "OFFICIAL_DISCORD",
+      "RIO_WIKI",
+      "SUPPORT_CENTER"
+    ],
+    "violationHandling": "GAME_AND_SOURCE_SERVICE_SAME_DURATION",
+    "applicationMode": "CONNECTOR_OR_MANUAL_COMPLETION"
+  },
+  "defaultSection7OverflowEffects": [
+    {
+      "type": "GAME_RESTRICTION",
+      "permanent": true
+    }
+  ],
+  "categories": [
+    {
+      "code": "00",
+      "name": "기타 운영정책 위반 행위",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": true,
+      "overflowMode": "REQUIRES_OVERRIDE",
+      "steps": []
+    },
+    {
+      "code": "01",
+      "name": "게임 내 명칭 정책 위반",
+      "sourceSection": "5. 캐릭터 명칭 정책",
+      "requiresOverride": false,
+      "overflowMode": "REPEAT_LAST",
+      "steps": [
+        {
+          "offense": 1,
+          "effects": [
+            {
+              "type": "NICKNAME_RESET"
+            }
+          ]
+        },
+        {
+          "offense": 2,
+          "effects": [
+            {
+              "type": "NICKNAME_RESET"
+            },
+            {
+              "type": "GAME_RESTRICTION",
+              "duration": "P7D"
+            }
+          ]
+        },
+        {
+          "offense": 3,
+          "effects": [
+            {
+              "type": "NICKNAME_RESET"
+            },
+            {
+              "type": "NICKNAME_CHANGE_RESTRICTION",
+              "permanent": true
+            },
+            {
+              "type": "GAME_RESTRICTION",
+              "duration": "P14D"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "02",
+      "name": "다른 회원에게 불쾌감과 모욕감을 주는 행위",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "CHAT_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P180D"}]},
+        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P360D"}]}
+      ]
+    },
+    {
+      "code": "03",
+      "name": "미풍양속을 해치는 행위",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "CHAT_RESTRICTION", "duration": "P3D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
+        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P180D"}]}
+      ]
+    },
+    {
+      "code": "04",
+      "name": "게임 이용 방해",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P1D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]}
+      ]
+    },
+    {
+      "code": "05",
+      "name": "원활한 게임 운영 방해",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "06",
+      "name": "현금거래",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {
+          "offense": 1,
+          "requiresApproval": true,
+          "effects": [
+            {
+              "type": "RESOURCE_ADJUSTMENT",
+              "parameters": {
+                "mode": "DEDUCT_PERCENT",
+                "targets": ["EXPERIENCE", "CYBER_POINT"],
+                "percent": 100
+              }
+            },
+            {
+              "type": "GAME_RESTRICTION",
+              "duration": "P90D"
+            }
+          ]
+        },
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "07",
+      "name": "상업광고",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "08",
+      "name": "사기 및 사칭",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "09",
+      "name": "과도한 친목 행위",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P1D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]}
+      ]
+    },
+    {
+      "code": "10",
+      "name": "비정상적인 플레이(어뷰징)",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 10}}, {"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 2, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 30}}, {"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 3, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 50}}, {"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 4, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 70}}, {"type": "GAME_RESTRICTION", "duration": "P60D"}]},
+        {"offense": 5, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 90}}, {"type": "GAME_RESTRICTION", "duration": "P90D"}]},
+        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "11",
+      "name": "비인가 프로그램 사용·배포 또는 사용 시도",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "12",
+      "name": "시스템 버그 악용",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {
+          "offense": 1,
+          "requiresApproval": true,
+          "effects": [
+            {
+              "type": "RESOURCE_ADJUSTMENT",
+              "parameters": {
+                "mode": "DEDUCT_PERCENT",
+                "targets": ["EXPERIENCE", "CYBER_POINT"],
+                "percent": 100
+              }
+            },
+            {
+              "type": "GAME_RESTRICTION",
+              "duration": "P90D"
+            }
+          ]
+        },
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ],
+      "allowedOverrides": [
+        {
+          "id": "FIRST_OFFENSE_30_DAYS",
+          "requiresApproval": true,
+          "effects": [
+            {
+              "type": "RESOURCE_ADJUSTMENT",
+              "parameters": {
+                "mode": "DEDUCT_PERCENT",
+                "targets": ["EXPERIENCE", "CYBER_POINT"],
+                "percent": 100
+              }
+            },
+            {"type": "GAME_RESTRICTION", "duration": "P30D"}
+          ]
+        },
+        {
+          "id": "FIRST_OFFENSE_PERMANENT",
+          "requiresApproval": true,
+          "effects": [
+            {
+              "type": "RESOURCE_ADJUSTMENT",
+              "parameters": {
+                "mode": "DEDUCT_PERCENT",
+                "targets": ["EXPERIENCE", "CYBER_POINT"],
+                "percent": 100
+              }
+            },
+            {"type": "GAME_RESTRICTION", "permanent": true}
+          ]
+        }
+      ]
+    },
+    {
+      "code": "13",
+      "name": "계정 도용 및 해킹",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "14",
+      "name": "개인정보 유출",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "15",
+      "name": "국내법상 범죄 행위",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "16",
+      "name": "허위 신고",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P1D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]}
+      ]
+    },
+    {
+      "code": "17",
+      "name": "이용제한 우회",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}, {"type": "EXTEND_RELATED_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}, {"type": "EXTEND_RELATED_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}, {"type": "EXTEND_RELATED_RESTRICTION", "permanent": true}]}
+      ]
+    },
+    {
+      "code": "18",
+      "name": "건전한 게임 문화 형성을 방해하는 행위",
+      "sourceSection": "7. 게임 이용 시 주의사항",
+      "requiresOverride": false,
+      "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "steps": [
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
+        {"offense": 2, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 10}}, {"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 3, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 20}}, {"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 4, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 30}}, {"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 5, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 50}}, {"type": "GAME_RESTRICTION", "duration": "P60D"}]},
+        {"offense": 6, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 70}}, {"type": "GAME_RESTRICTION", "duration": "P90D"}]}
+      ]
+    }
+  ],
+  "guestIpPolicy": {
+    "steps": [
+      {
+        "offense": 1,
+        "effects": [
+          {
+            "type": "GUEST_ACCESS_RESTRICTION",
+            "parameters": {
+              "durationSource": "SELECTED_VIOLATION_BUNDLE"
+            }
+          }
+        ]
+      },
+      {
+        "offense": 2,
+        "effects": [
+          {
+            "type": "GUEST_ACCESS_RESTRICTION",
+            "parameters": {
+              "durationSource": "SELECTED_VIOLATION_BUNDLE"
+            }
+          }
+        ]
+      },
+      {
+        "offense": 3,
+        "effects": [
+          {
+            "type": "IP_RESTRICTION",
+            "parameters": {
+              "durationSource": "SELECTED_VIOLATION_BUNDLE",
+              "allowAuthenticatedUsers": false
+            }
+          }
+        ]
+      }
+    ],
+    "permanentUserSkipsSecondStep": true,
+    "guestChatConversion": "GUEST_ACCESS_RESTRICTION_SAME_DURATION",
+    "publicFacility": {
+      "defaultApplyFullIpRestriction": false,
+      "overrideAfterViolations": 2,
+      "within": "P6M",
+      "requiresApproval": true
+    },
+    "separatelyRestrictableNetworks": [
+      "MOBILE_CARRIER",
+      "PUBLIC_INSTITUTION",
+      "OVERSEAS",
+      "PROXY_VPN"
+    ]
+  }
+}

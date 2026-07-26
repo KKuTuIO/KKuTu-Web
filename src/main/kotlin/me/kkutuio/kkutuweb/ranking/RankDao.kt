@@ -51,6 +51,9 @@ class RankDao(
         opsForZSet.remove(REDIS_KEY, id)
     }
 
+    fun getRank(id: String): Long? =
+        redisTemplate.opsForZSet().reverseRank(REDIS_KEY, id)?.plus(1)
+
     fun getSurround(id: String, dataCount: Int): List<Rank> {
         val opsForZSet = redisTemplate.opsForZSet()
         val reverseRank = opsForZSet.reverseRank(REDIS_KEY, id)!!

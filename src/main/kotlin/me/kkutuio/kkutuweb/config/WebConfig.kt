@@ -25,18 +25,26 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver
 import org.springframework.web.servlet.config.annotation.CorsRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry
+import me.kkutuio.kkutuweb.moderation.ModerationMutationInterceptor
 
 @Configuration
 class WebConfig(
     @Value("\${spring.cors.pattern}") private val pathPattern: String,
     @Value("#{'\${spring.cors.methods}'.split(',')}") private val methods: Array<String>,
-    @Value("#{'\${spring.cors.allowed-origins}'.split(',')}") private val allowedOrigins: Array<String>
+    @Value("#{'\${spring.cors.allowed-origins}'.split(',')}") private val allowedOrigins: Array<String>,
+    private val moderationMutationInterceptor: ModerationMutationInterceptor
 ) : WebMvcConfigurer {
     override fun addCorsMappings(registry: CorsRegistry) {
         registry.addMapping(pathPattern)
             .allowCredentials(true)
             .allowedMethods(*methods)
             .allowedOrigins(*allowedOrigins)
+    }
+
+    override fun addInterceptors(registry: InterceptorRegistry) {
+        registry.addInterceptor(moderationMutationInterceptor)
+            .addPathPatterns("/api/admin/moderation/**")
     }
 
     override fun addViewControllers(registry: ViewControllerRegistry) {

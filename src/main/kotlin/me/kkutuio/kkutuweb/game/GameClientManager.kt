@@ -77,10 +77,20 @@ class GameClientManager(
         }
     }
 
-    override fun requestReplayByGameId(gameId: String, includePayload: Boolean, requesterId: String?): String? {
+    override fun requestReplayByGameId(
+        gameId: String,
+        includePayload: Boolean,
+        requesterId: String?,
+        includeAdminKeyTrace: Boolean
+    ): String? {
         for (client in gameClientList) {
             if (!client.isConnected()) continue
-            val response = client.requestReplayByGameId(gameId, includePayload, requesterId)
+            val response = client.requestReplayByGameId(
+                gameId,
+                includePayload,
+                requesterId,
+                includeAdminKeyTrace
+            )
             if (response != null) return response
         }
         return null

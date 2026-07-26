@@ -12,8 +12,18 @@ class RecordDao(
     @Autowired private val recordMapper: RecordMapper,
     @Autowired private val userDao: UserDao
 ) {
-    fun findByGameId(gameId: String, includePayload: Boolean, requesterId: String?): RecordGameLookupResponse? {
-        val raw = recordClientManager.requestReplayByGameId(gameId, includePayload, requesterId) ?: return null
+    fun findByGameId(
+        gameId: String,
+        includePayload: Boolean,
+        requesterId: String?,
+        isAdmin: Boolean
+    ): RecordGameLookupResponse? {
+        val raw = recordClientManager.requestReplayByGameId(
+            gameId,
+            includePayload,
+            requesterId,
+            includePayload && isAdmin
+        ) ?: return null
         return recordMapper.toGameLookupResponse(raw)
     }
 

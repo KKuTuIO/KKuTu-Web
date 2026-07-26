@@ -7,8 +7,18 @@ import org.springframework.stereotype.Component
 class RecordClientManager(
     @Autowired private val recordSocketBridge: RecordSocketBridge
 ) {
-    fun requestReplayByGameId(gameId: String, includePayload: Boolean, requesterId: String?): String? {
-        return recordSocketBridge.requestReplayByGameId(gameId, includePayload, requesterId)
+    fun requestReplayByGameId(
+        gameId: String,
+        includePayload: Boolean,
+        requesterId: String?,
+        includeAdminKeyTrace: Boolean
+    ): String? {
+        return recordSocketBridge.requestReplayByGameId(
+            gameId,
+            includePayload,
+            requesterId,
+            includeAdminKeyTrace
+        )
     }
 
     fun requestReplayUserHistory(userId: String, page: Int, pageSize: Int, canViewAll: Boolean): String? {

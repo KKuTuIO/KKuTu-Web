@@ -3,6 +3,7 @@
   import { fade, fly } from 'svelte/transition';
   import { browser } from '$app/environment';
   import { getLevel } from '../../lib/getLevelImg.js';
+  import AdminKeyTrace from '../../lib/AdminKeyTrace.svelte';
 
   const title = 'Records';
   const ALLOWED_PAGE_SIZES = [10, 30, 50];
@@ -1503,6 +1504,10 @@
                             상세 낱말 내역을 표시하지 못했습니다.
                           </div>
                         {/if}
+                        <AdminKeyTrace
+                          payload={detailMap[row.gameId].keyTraceDecoded}
+                          players={detailMap[row.gameId].replayView?.players || []}
+                        />
                       {/if}
                     </div>
                   {/if}
@@ -1727,6 +1732,10 @@
                   </div>
                 {/if}
               {/if}
+              <AdminKeyTrace
+                payload={detailMap[gameSearchResult.gameId].keyTraceDecoded}
+                players={detailMap[gameSearchResult.gameId].replayView?.players || []}
+              />
             </div>
           {/if}
         </article>

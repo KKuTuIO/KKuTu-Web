@@ -158,11 +158,17 @@ class GameClient(
         return connected
     }
 
-    fun requestReplayByGameId(gameId: String, includePayload: Boolean, requesterId: String?): String? {
+    fun requestReplayByGameId(
+        gameId: String,
+        includePayload: Boolean,
+        requesterId: String?,
+        includeAdminKeyTrace: Boolean
+    ): String? {
         val payload = objectMapper.createObjectNode()
         payload.put("type", "record-find-game")
         payload.put("gameId", gameId)
         payload.put("includePayload", includePayload)
+        payload.put("includeAdminKeyTrace", includeAdminKeyTrace)
         if (!requesterId.isNullOrBlank()) payload.put("requesterId", requesterId)
         return requestReply(payload)
     }

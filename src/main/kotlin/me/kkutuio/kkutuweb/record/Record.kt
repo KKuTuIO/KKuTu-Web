@@ -35,7 +35,8 @@ data class RecordGame(
     val payloadSize: Int,
     val rawSize: Int,
     val payload: String? = null,
-    val payloadDecoded: JsonNode? = null
+    val payloadDecoded: JsonNode? = null,
+    val keyTraceDecoded: JsonNode? = null
 )
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

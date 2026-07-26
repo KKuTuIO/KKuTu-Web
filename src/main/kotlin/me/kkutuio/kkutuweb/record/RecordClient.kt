@@ -86,10 +86,17 @@ class RecordClient(
         return webSocket != null && webSocket!!.isOpen
     }
 
-    fun requestReplayByGameId(gameId: String, includePayload: Boolean): String? {
+    fun requestReplayByGameId(
+        gameId: String,
+        includePayload: Boolean,
+        requesterId: String? = null,
+        includeAdminKeyTrace: Boolean = false
+    ): String? {
         val payload = objectMapper.createObjectNode()
         payload.put("gameId", gameId)
         payload.put("includePayload", includePayload)
+        payload.put("includeAdminKeyTrace", includeAdminKeyTrace)
+        if (!requesterId.isNullOrBlank()) payload.put("requesterId", requesterId)
         return requestReplay("record-find-game", payload)
     }
 

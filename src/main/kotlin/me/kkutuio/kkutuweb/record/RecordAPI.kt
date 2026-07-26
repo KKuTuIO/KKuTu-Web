@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 import javax.servlet.http.HttpSession
 
 @RestController
@@ -34,13 +35,15 @@ class RecordAPI(
         @PathVariable gameId: String,
         @RequestParam(defaultValue = "false") includePayload: Boolean,
         request: HttpServletRequest,
+        response: HttpServletResponse,
         session: HttpSession
     ): RecordGameLookupResponse {
+        response.setHeader("Cache-Control", "private, no-store")
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordGameLookupResponse(ok = false, code = 429, error = "rate-limited")
         }
-        val (requesterId, _) = resolveRequester(session)
-        return recordService.findByGameId(gameId, includePayload, requesterId)
+        val (requesterId, isAdmin) = resolveRequester(session)
+        return recordService.findByGameId(gameId, includePayload, requesterId, isAdmin)
     }
 
     @RateLimiter(name = "recordFindUserHistory", fallbackMethod = "onUserHistoryRateLimited")
@@ -78,6 +81,7 @@ class RecordAPI(
         gameId: String,
         includePayload: Boolean,
         request: HttpServletRequest,
+        response: HttpServletResponse,
         session: HttpSession,
         throwable: RequestNotPermitted
     ): RecordGameLookupResponse {

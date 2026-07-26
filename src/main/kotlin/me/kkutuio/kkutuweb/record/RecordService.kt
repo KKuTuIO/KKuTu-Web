@@ -19,8 +19,13 @@ class RecordService(
         return if (canViewAll) "public" else "public-preview"
     }
 
-    fun findByGameId(gameId: String, includePayload: Boolean, requesterId: String?): RecordGameLookupResponse {
-        return recordDao.findByGameId(gameId, includePayload, requesterId)
+    fun findByGameId(
+        gameId: String,
+        includePayload: Boolean,
+        requesterId: String?,
+        isAdmin: Boolean
+    ): RecordGameLookupResponse {
+        return recordDao.findByGameId(gameId, includePayload, requesterId, isAdmin)
             ?: RecordGameLookupResponse(ok = false, code = 503, error = "game-server-unavailable")
     }
 

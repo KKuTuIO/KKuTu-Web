@@ -25,10 +25,6 @@ spring:
     password: <Password>
   jpa:
     open-in-view: false
-  flyway:
-    baseline-on-migrate: true
-    baseline-version: 1
-    locations: classpath:db/migration
   cache:
     type: simple
   redis:

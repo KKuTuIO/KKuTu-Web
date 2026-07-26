@@ -74,7 +74,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
-    implementation("org.flywaydb:flyway-core")
     implementation("nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect")
 
     implementation("de.codecentric:spring-boot-admin-starter-client:2.6.3")

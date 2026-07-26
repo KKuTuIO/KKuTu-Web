@@ -409,22 +409,22 @@ td.ranking-name {
 }
 
 .profile-field-name {
-    width: 27%;
+    width: 22%;
     text-align: center;
 }
 
 .profile-field-record {
-    width: 26%;
+    width: 35%;
     text-align: center;
 }
 
 .profile-field-win-rate {
-    width: 15%;
+    width: 23%;
     text-align: center;
 }
 
 .profile-field-score {
-    width: 31%;
+    width: 20%;
     text-align: center;
 }
 

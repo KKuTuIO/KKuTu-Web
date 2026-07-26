@@ -262,11 +262,15 @@
 
     for (const key of Object.keys(fromRecord)) {
       const values = Array.isArray(fromRecord[key]) ? fromRecord[key] : [];
+      const games = Math.max(0, Number(values[0] || 0));
+      const wins = Math.min(games, Math.max(0, Number(values[1] || 0)));
+      const losses = Math.min(Math.max(0, games - wins), Math.max(0, Number(values[4] || 0)));
       rowsByMode[key] = {
         key,
         modeName: MODE_LABEL[key] || key,
-        games: Number(values[0] || 0),
-        wins: Number(values[1] || 0),
+        games,
+        wins,
+        losses,
         exp: Number(values[2] || 0),
         playTimeMs: Math.max(0, Number(values[3] || 0)),
         acceptedWords: 0
@@ -281,14 +285,17 @@
           modeName: MODE_LABEL[key] || key,
           games: 0,
           wins: 0,
+          losses: 0,
           exp: 0,
           playTimeMs: 0,
           acceptedWords: 0
         };
-        current.games = Number(row?.games || 0);
-        current.wins = Number(row?.wins || 0);
-        current.exp = Number(row?.exp || 0);
-        current.playTimeMs = Math.max(0, Number(row?.playTime || 0));
+        if (!rowsByMode[key]) {
+          current.games = Math.max(0, Number(row?.games || 0));
+          current.wins = Math.min(current.games, Math.max(0, Number(row?.wins || 0)));
+          current.exp = Number(row?.exp || 0);
+          current.playTimeMs = Math.max(0, Number(row?.playTime || 0));
+        }
         current.acceptedWords = Number(row?.acceptedWords || 0);
         rowsByMode[key] = current;
       }
@@ -297,8 +304,10 @@
     const rows = Object.values(rowsByMode)
       .map((row) => ({
         ...row,
+        halfFinishes: Math.max(0, row.games - row.wins - row.losses),
         playHours: normalizePlayHoursFromMs(row.playTimeMs),
-        winRate: row.games > 0 ? Math.round((row.wins / row.games) * 10000) / 100 : 0
+        winRate: row.games > 0 ? Math.round((row.wins / row.games) * 10000) / 100 : 0,
+        halfRate: row.games > 0 ? Math.round(((row.games - row.wins - row.losses) / row.games) * 10000) / 100 : 0
       }))
       .filter((row) => row.playTimeMs > 0 || row.wins > 0 || row.games > 0 || row.acceptedWords > 0 || row.exp > 0)
       .sort((a, b) => b.exp - a.exp || b.playTimeMs - a.playTimeMs || b.games - a.games);
@@ -1236,12 +1245,24 @@
                     <b>{stat.wins.toLocaleString()}회</b>
                   </div>
                   <div class="mt-2 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">balance</span>반타작</span>
+                    <b>{stat.halfFinishes.toLocaleString()}회</b>
+                  </div>
+                  <div class="mt-2 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">trending_down</span>패배</span>
+                    <b>{stat.losses.toLocaleString()}회</b>
+                  </div>
+                  <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">sports_esports</span>경기</span>
                     <b>{stat.games.toLocaleString()}회</b>
                   </div>
                   <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>승률</span>
                     <b>{stat.winRate.toFixed(2)}%</b>
+                  </div>
+                  <div class="mt-2 text-lg flex justify-between items-center">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>반타작률</span>
+                    <b>{stat.halfRate.toFixed(2)}%</b>
                   </div>
                   <div class="mt-2 text-lg flex justify-between items-center">
                     <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">spellcheck</span>낱말 입력</span>

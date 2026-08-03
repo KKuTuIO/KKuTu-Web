@@ -28,14 +28,15 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
 
 class GameClient(
     private val isSecure: Boolean,
     private val host: String,
     private val port: Int,
     private val key: String,
-    private val id: Short
+    private val id: Short,
+    private val reconnectEnabled: Boolean,
+    private val reconnectRetryIntervalSeconds: Long
 ) : WebSocketAdapter() {
     companion object {
         private val reconnectScheduler = Executors.newSingleThreadScheduledExecutor { task ->
@@ -47,7 +48,6 @@ class GameClient(
     private val objectMapper = ObjectMapper()
     private val pendingRequests = ConcurrentHashMap<String, CompletableFuture<String>>()
     private val reconnectScheduled = AtomicBoolean(false)
-    private val reconnectAttempts = AtomicInteger(0)
     @Volatile
     private var webSocket: WebSocket? = null
     var players = 0
@@ -78,13 +78,15 @@ class GameClient(
     }
 
     private fun scheduleReconnect() {
+        if (!reconnectEnabled) return
         if (!reconnectScheduled.compareAndSet(false, true)) return
-        val attempt = reconnectAttempts.incrementAndGet().coerceAtMost(6)
-        val delaySeconds = (1L shl (attempt - 1)).coerceAtMost(30L)
+        logger.info(
+            "$port @ 게임서버#${id} 에 ${reconnectRetryIntervalSeconds}초 후 재연결을 시도합니다."
+        )
         reconnectScheduler.schedule({
             reconnectScheduled.set(false)
             if (!isConnected()) connectWebSocket()
-        }, delaySeconds, TimeUnit.SECONDS)
+        }, reconnectRetryIntervalSeconds, TimeUnit.SECONDS)
     }
 
     private fun invalidateAndReconnect(websocket: WebSocket?) {
@@ -95,7 +97,6 @@ class GameClient(
     }
 
     override fun onConnected(websocket: WebSocket, headers: MutableMap<String, MutableList<String>>) {
-        reconnectAttempts.set(0)
         reconnectScheduled.set(false)
         logger.info("$port @ 게임서버#${id} 가 연결되었습니다.")
     }
@@ -119,7 +120,7 @@ class GameClient(
 
     override fun onConnectError(websocket: WebSocket, exception: WebSocketException) {
         if (webSocket === websocket) webSocket = null
-        logger.warn("$port @ 게임서버#${id} 연결 시도에 실패했습니다. 재시도합니다.")
+        logger.warn("$port @ 게임서버#${id} 연결 시도에 실패했습니다.")
         scheduleReconnect()
     }
 

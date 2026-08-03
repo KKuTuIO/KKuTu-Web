@@ -25,7 +25,6 @@ import org.springframework.web.server.ResponseStatusException
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
-import java.time.ZoneId
 import java.util.UUID
 import kotlin.math.sqrt
 
@@ -76,6 +75,15 @@ class ModerationService(
 
     fun preview(request: SanctionPreviewRequest): ModerationPolicyPreview {
         requireUser(request.userId)
+        request.custom?.let { custom ->
+            require(request.categoryCodes.isEmpty()) { "정책 제재와 사용자 지정 제재를 동시에 선택할 수 없습니다." }
+            return policyEngine.previewCustom(
+                custom.reason,
+                Instant.now(),
+                custom.endsAt,
+                custom.permanent
+            )
+        }
         return policyEngine.preview(
             request.categoryCodes,
             currentCounters(request.userId),
@@ -88,6 +96,9 @@ class ModerationService(
         require(request.evidenceText.isNotBlank()) { "근거 자료는 필수입니다." }
         require(request.summary.isNotBlank()) { "제재 요약은 필수입니다." }
         requireUser(request.userId)
+        require((request.custom == null) xor request.categoryCodes.isEmpty()) {
+            "정책 제재 또는 사용자 지정 제재 중 하나만 선택해야 합니다."
+        }
         val relatedUserIds = request.relatedUserIds.distinct().filter { it != request.userId }
         if ("17" in request.categoryCodes && relatedUserIds.isEmpty()) {
             throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "이용제한 우회는 연관 계정이 필요합니다.")
@@ -98,7 +109,14 @@ class ModerationService(
             return SanctionIssueResponse(it, previewFromCase(it), true)
         }
 
-        val preview = policyEngine.preview(
+        val preview = request.custom?.let { custom ->
+            policyEngine.previewCustom(
+                custom.reason,
+                Instant.now(),
+                custom.endsAt,
+                custom.permanent
+            )
+        } ?: policyEngine.preview(
             request.categoryCodes,
             currentCounters(request.userId),
             request.occurredAt
@@ -306,69 +324,66 @@ class ModerationService(
     }
 
     @Transactional
-    fun resetCounters(userId: String, request: CounterResetRequest, actorId: String) {
-        require(request.reason.isNotBlank()) { "초기화 승인 사유는 필수입니다." }
+    fun adjustCounter(userId: String, request: CounterAdjustmentRequest, actorId: String) {
+        require(request.reason.isNotBlank()) { "조정 사유는 필수입니다." }
+        require(request.value in 0..999) { "누적 횟수는 0에서 999 사이여야 합니다." }
         requireUser(userId)
+        policyLoader.current().document.category(request.categoryCode)
         val alreadyProcessed = jdbcTemplate.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM moderation_command_requests WHERE request_id = ?)",
             Boolean::class.java,
             request.requestId
         )
         if (alreadyProcessed == true) return
-        val policy = policyLoader.current().document
-        val lastIssuedAt = jdbcTemplate.query(
-            """
-            SELECT MAX(issued_at) FROM moderation_cases
-            WHERE subject_user_id = ? AND revoked_at IS NULL
-            """.trimIndent(),
-            { rs, _ -> rs.getTimestamp(1)?.toInstant() },
+
+        jdbcTemplate.query(
+            "SELECT pg_advisory_xact_lock(hashtext(?))",
+            { _, _ -> Unit },
             userId
-        ).firstOrNull()
-        if (lastIssuedAt == null) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "초기화할 제재 누적 기록이 없습니다.")
-        }
-        val eligibleAt = me.kkutuio.kkutuweb.moderation.policy.PolicyTime.add(
-            lastIssuedAt,
-            policy.counterReset.eligibleAfter,
-            ZoneId.of(policy.timeZone)
         )
-        if (Instant.now().isBefore(eligibleAt)) {
-            throw ResponseStatusException(
-                HttpStatus.CONFLICT,
-                "누적 초기화 가능 시각은 $eligibleAt 입니다."
-            )
+        val previousCounters = currentCounters(userId)
+        val previousValue = previousCounters[request.categoryCode] ?: 0
+        val adjustedCounters = previousCounters.toMutableMap().apply {
+            if (request.value == 0) remove(request.categoryCode)
+            else put(request.categoryCode, request.value)
         }
-        val counters = currentCounters(userId)
         jdbcTemplate.update(
             """
             INSERT INTO moderation_counter_baselines
                 (subject_user_id, counters, last_updated_at, source, reset_at, reset_by)
-            VALUES (?, ?, NOW(), 'ADMIN_APPROVAL', NOW(), ?)
+            VALUES (?, ?, NOW(), 'ADMIN_ADJUSTMENT', NULL, ?)
             ON CONFLICT (subject_user_id) DO UPDATE SET
                 counters = EXCLUDED.counters, last_updated_at = NOW(),
-                source = EXCLUDED.source, reset_at = NOW(), reset_by = EXCLUDED.reset_by
+                source = EXCLUDED.source, reset_at = NULL, reset_by = EXCLUDED.reset_by
             """.trimIndent(),
             userId,
-            json(counters),
+            json(adjustedCounters),
             actorId
         )
         jdbcTemplate.update(
             """
             INSERT INTO moderation_command_requests
                 (request_id, command_type, target_key, actor_id, response_status, response_body)
-            VALUES (?, 'RESET_COUNTERS', ?, ?, 204, ?)
+            VALUES (?, 'ADJUST_COUNTER', ?, ?, 204, ?)
             """.trimIndent(),
             request.requestId,
-            userId,
+            "$userId:${request.categoryCode}",
             actorId,
-            json(mapOf("reason" to request.reason, "previousCounters" to counters))
+            json(
+                mapOf(
+                    "reason" to request.reason.trim(),
+                    "categoryCode" to request.categoryCode,
+                    "previousValue" to previousValue,
+                    "adjustedValue" to request.value
+                )
+            )
         )
     }
 
     @Transactional
     fun resolveReport(reportId: Long, request: ReportResolutionRequest, actorId: String) {
-        require(request.status in setOf("RESOLVED", "REJECTED")) {
-            "신고 상태는 RESOLVED 또는 REJECTED여야 합니다."
+        require(request.status == "REJECTED") {
+            "신고 처리는 제재 사건 발급으로만 완료할 수 있으며, 이 API는 반려만 허용합니다."
         }
         require(request.note.isNotBlank()) { "신고 처리 메모는 필수입니다." }
         val updated = jdbcTemplate.update(
@@ -663,23 +678,48 @@ class ModerationService(
         )
     }
 
-    private fun currentCounters(userId: String): Map<String, Int> =
-        jdbcTemplate.query(
+    private fun currentCounters(userId: String): Map<String, Int> {
+        val baseline = jdbcTemplate.query(
+            """
+            SELECT counters, last_updated_at, source, reset_at
+            FROM moderation_counter_baselines WHERE subject_user_id = ?
+            """.trimIndent(),
+            { rs, _ ->
+                CounterBaseline(
+                    counters = objectMapper.readValue(
+                        rs.getString("counters"),
+                        object : TypeReference<Map<String, Int>>() {}
+                    ),
+                    lastUpdatedAt = rs.getTimestamp("last_updated_at")?.toInstant(),
+                    source = rs.getString("source"),
+                    resetAt = rs.getTimestamp("reset_at")?.toInstant()
+                )
+            },
+            userId
+        ).firstOrNull()
+        val isAdjustment = baseline?.source == "ADMIN_ADJUSTMENT"
+        val since = if (isAdjustment) baseline?.lastUpdatedAt else baseline?.resetAt
+        val arguments = mutableListOf<Any>(userId)
+        val sinceClause = if (since == null) "" else {
+            arguments.add(Timestamp.from(since))
+            " AND c.issued_at > ?"
+        }
+        val issuedCounters = jdbcTemplate.query(
             """
             SELECT v.category_code, COUNT(*) AS count
             FROM moderation_case_violations v
             JOIN moderation_cases c ON c.case_id = v.case_id
             WHERE c.subject_user_id = ? AND c.revoked_at IS NULL
-              AND c.issued_at > COALESCE(
-                  (SELECT reset_at FROM moderation_counter_baselines WHERE subject_user_id = ?),
-                  '-infinity'::TIMESTAMPTZ
-              )
+              AND v.category_code <> '99'$sinceClause
             GROUP BY v.category_code
             """.trimIndent(),
             { rs, _ -> rs.getString("category_code") to rs.getInt("count") },
-            userId,
-            userId
+            *arguments.toTypedArray()
         ).toMap()
+        val result = if (isAdjustment) baseline!!.counters.toMutableMap() else mutableMapOf()
+        issuedCounters.forEach { (code, count) -> result[code] = (result[code] ?: 0) + count }
+        return result.filterValues { it > 0 }
+    }
 
     private fun history(userId: String, limit: Int): List<ModerationCaseSummary> =
         jdbcTemplate.query(
@@ -784,7 +824,7 @@ class ModerationService(
                 val code = rs.getString("category_code")
                 me.kkutuio.kkutuweb.moderation.policy.PolicyViolationPreview(
                     code,
-                    policy.category(code).name,
+                    policy.categories.firstOrNull { it.code == code }?.name ?: "사용자 지정",
                     rs.getInt("offense_no"),
                     rs.getBoolean("selected_as_primary"),
                     objectMapper.readValue(
@@ -870,5 +910,12 @@ class ModerationService(
         val permanent: Boolean,
         val reason: String,
         val actorId: String
+    )
+
+    private data class CounterBaseline(
+        val counters: Map<String, Int>,
+        val lastUpdatedAt: Instant?,
+        val source: String,
+        val resetAt: Instant?
     )
 }

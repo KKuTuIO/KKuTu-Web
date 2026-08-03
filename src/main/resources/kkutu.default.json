@@ -8,7 +8,11 @@
       "key": "<Key>",
       "host": "127.0.0.2",
       "port": 8080,
-      "cid": 1
+      "cid": 1,
+      "reconnect": {
+        "enabled": true,
+        "retryInterval": 86400
+      }
     }
   ],
   "serviceMode": "NORMAL",

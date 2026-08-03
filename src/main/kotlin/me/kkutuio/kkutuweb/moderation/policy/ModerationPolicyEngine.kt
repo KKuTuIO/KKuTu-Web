@@ -54,6 +54,44 @@ class ModerationPolicyEngine(
         )
     }
 
+    fun previewCustom(
+        reason: String,
+        startsAt: Instant,
+        endsAt: Instant?,
+        permanent: Boolean
+    ): ModerationPolicyPreview {
+        require(reason.isNotBlank()) { "사용자 지정 제재 사유는 필수입니다." }
+        require(reason.trim().length <= 500) { "사용자 지정 제재 사유는 500자 이하여야 합니다." }
+        require(permanent.xor(endsAt != null)) { "사용자 지정 제재는 종료 시각 또는 영구 제재 중 하나를 지정해야 합니다." }
+        require(endsAt == null || endsAt.isAfter(startsAt)) { "제재 종료 시각은 시작 시각 이후여야 합니다." }
+
+        val loaded = loader.current()
+        val effect = ResolvedPolicyEffect(
+            type = "GAME_RESTRICTION",
+            startsAt = startsAt,
+            endsAt = endsAt,
+            permanent = permanent,
+            parameters = mapOf("customReason" to reason.trim())
+        )
+        return ModerationPolicyPreview(
+            policyId = loaded.document.policyId,
+            policyDigest = loaded.digest,
+            primaryCategoryCode = "99",
+            selectionReason = "사용자 지정: ${reason.trim()}",
+            violations = listOf(
+                PolicyViolationPreview(
+                    categoryCode = "99",
+                    categoryName = "사용자 지정",
+                    offenseNo = 1,
+                    selectedAsPrimary = true,
+                    candidateEffects = listOf(effect)
+                )
+            ),
+            effects = listOf(effect),
+            requiresApproval = false
+        )
+    }
+
     private fun resolveStep(
         policy: ModerationPolicy,
         category: PolicyCategory,

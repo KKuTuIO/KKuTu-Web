@@ -32,6 +32,16 @@ import javax.annotation.PostConstruct
 import kotlin.collections.HashMap
 import kotlin.collections.LinkedHashMap
 
+internal const val DEFAULT_GAME_SERVER_RECONNECT_INTERVAL_SECONDS = 30L
+
+internal fun parseGameServerReconnectSetting(node: JsonNode?): GameServerReconnectSetting {
+    return GameServerReconnectSetting(
+        enabled = node?.get("enabled")?.booleanValue() ?: true,
+        retryInterval = node?.get("retryInterval")?.longValue()
+            ?: DEFAULT_GAME_SERVER_RECONNECT_INTERVAL_SECONDS
+    )
+}
+
 @Component
 class KKuTuSetting(
     @Autowired private val applicationArguments: ApplicationArguments,
@@ -101,7 +111,8 @@ class KKuTuSetting(
             it["key"].textValue(),
             it["host"].textValue(),
             it["port"].intValue(),
-            it["cid"].shortValue()
+            it["cid"].shortValue(),
+            parseGameServerReconnectSetting(it["reconnect"])
         )
     }
 

@@ -24,5 +24,16 @@ data class GameServerSetting(
     val key: String,
     val host: String,
     val port: Int,
-    val cid: Short
+    val cid: Short,
+    val reconnect: GameServerReconnectSetting
 )
+
+data class GameServerReconnectSetting(
+    val enabled: Boolean,
+    /** Fixed reconnect delay in seconds. */
+    val retryInterval: Long
+) {
+    init {
+        require(retryInterval > 0) { "game server reconnect.retryInterval must be greater than zero" }
+    }
+}

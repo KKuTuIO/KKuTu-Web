@@ -70,4 +70,17 @@ class ModerationPolicyEngineTest {
         assertTrue(repeatLast.effects.isNotEmpty())
         assertTrue(sectionSeven.effects.isNotEmpty())
     }
+
+    @Test
+    fun `custom sanction uses explicit duration without an official counter`() {
+        val startsAt = Instant.parse("2026-08-04T00:00:00Z")
+        val endsAt = Instant.parse("2026-08-05T00:00:00Z")
+
+        val preview = engine.previewCustom("관리자 직접 제재", startsAt, endsAt, false)
+
+        assertEquals("99", preview.primaryCategoryCode)
+        assertEquals("GAME_RESTRICTION", preview.effects.single().type)
+        assertEquals(endsAt, preview.effects.single().endsAt)
+        assertEquals("관리자 직접 제재", preview.effects.single().parameters["customReason"])
+    }
 }

@@ -50,6 +50,9 @@ class AdminModerationApi(
         session: HttpSession
     ): Any {
         authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_ISSUE)
+        if (body.custom != null) {
+            authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
+        }
         return service.preview(body)
     }
 
@@ -61,6 +64,12 @@ class AdminModerationApi(
         session: HttpSession
     ): SanctionIssueResponse {
         val actor = authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_ISSUE)
+        if (body.custom != null) {
+            authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
+        }
+        if (body.reportIds.isNotEmpty()) {
+            authorizer.require(session, AdminSetting.Privilege.REPORT_RESOLVE)
+        }
         return service.issue(body, actor, request.getIp())
     }
 
@@ -76,15 +85,15 @@ class AdminModerationApi(
         service.revoke(caseId, body.reason, actor, request.getIp())
     }
 
-    @PostMapping("/users/{userId}/counters/reset")
+    @PostMapping("/users/{userId}/counters/adjust")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun resetCounters(
+    fun adjustCounter(
         @PathVariable userId: String,
-        @RequestBody body: CounterResetRequest,
+        @RequestBody body: CounterAdjustmentRequest,
         session: HttpSession
     ) {
         val actor = authorizer.require(session, AdminSetting.Privilege.SANCTION_COUNTER_RESET)
-        service.resetCounters(userId, body, actor)
+        service.adjustCounter(userId, body, actor)
     }
 
     @PostMapping("/reports/{reportId}/resolve")

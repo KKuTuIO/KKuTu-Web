@@ -51,19 +51,27 @@ data class ModerationReportSummary(
 
 data class SanctionPreviewRequest(
     val userId: String,
-    val categoryCodes: List<String>,
-    val occurredAt: Instant? = null
+    val categoryCodes: List<String> = emptyList(),
+    val occurredAt: Instant? = null,
+    val custom: CustomSanctionRequest? = null
 )
 
 data class SanctionIssueRequest(
     val requestId: UUID,
     val userId: String,
-    val categoryCodes: List<String>,
+    val categoryCodes: List<String> = emptyList(),
     val occurredAt: Instant,
     val evidenceText: String,
     val summary: String,
     val reportIds: List<Long> = emptyList(),
-    val relatedUserIds: List<String> = emptyList()
+    val relatedUserIds: List<String> = emptyList(),
+    val custom: CustomSanctionRequest? = null
+)
+
+data class CustomSanctionRequest(
+    val reason: String,
+    val endsAt: Instant? = null,
+    val permanent: Boolean = false
 )
 
 data class SanctionIssueResponse(
@@ -74,7 +82,12 @@ data class SanctionIssueResponse(
 
 data class RevokeSanctionRequest(val reason: String)
 
-data class CounterResetRequest(val requestId: UUID, val reason: String)
+data class CounterAdjustmentRequest(
+    val requestId: UUID,
+    val categoryCode: String,
+    val value: Int,
+    val reason: String
+)
 
 data class ReportResolutionRequest(val status: String, val note: String)
 

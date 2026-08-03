@@ -40,7 +40,9 @@ class GameClientManager(
                     gameServer.host,
                     gameServer.port,
                     gameServer.key,
-                    gameServer.cid
+                    gameServer.cid,
+                    gameServer.reconnect.enabled,
+                    gameServer.reconnect.retryInterval
                 )
             )
         }

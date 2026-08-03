@@ -22,7 +22,7 @@
   },
   "multipleViolations": {
     "incrementAllCounters": true,
-    "bundleSelection": "SELECT_SINGLE_STRONGEST_STEP",
+    "bundleSelection": "MERGE_STRONGEST_PER_EFFECT_TYPE",
     "selectionOrder": [
       "PERMANENT_GAME_RESTRICTION",
       "GAME_RESTRICTION_DURATION",
@@ -30,6 +30,12 @@
       "CHAT_RESTRICTION_DURATION",
       "NICKNAME_CHANGE_RESTRICTION",
       "NICKNAME_RESET"
+    ],
+    "durationStacking": [
+      {
+        "effectType": "CHAT_RESTRICTION",
+        "afterEffectType": "GAME_RESTRICTION"
+      }
     ]
   },
   "relatedServices": {

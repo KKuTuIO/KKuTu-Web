@@ -43,7 +43,7 @@ class ModerationPolicyEngineTest {
     }
 
     @Test
-    fun `all selected categories increment while strongest bundle is applied`() {
+    fun `all selected categories increment while strongest effect of the same type is applied`() {
         val preview = engine.preview(
             listOf("02", "04"),
             mapOf("02" to 1, "04" to 2),
@@ -58,6 +58,36 @@ class ModerationPolicyEngineTest {
             Instant.parse("2026-08-09T00:00:00Z"),
             preview.effects.single { it.type == "GAME_RESTRICTION" }.endsAt
         )
+    }
+
+    @Test
+    fun `different effect types are merged and chat restriction follows game restriction`() {
+        val startsAt = Instant.parse("2026-07-26T00:00:00Z")
+        val preview = engine.preview(listOf("01", "03", "10"), emptyMap(), startsAt)
+
+        assertEquals("10", preview.primaryCategoryCode)
+        assertEquals(
+            "비정상적인 플레이(어뷰징)",
+            preview.violations.single { it.selectedAsPrimary }.categoryName
+        )
+        assertEquals(
+            setOf("NICKNAME_RESET", "CHAT_RESTRICTION", "RESOURCE_ADJUSTMENT", "GAME_RESTRICTION"),
+            preview.effects.map { it.type }.toSet()
+        )
+        assertEquals(
+            Instant.parse("2026-08-02T00:00:00Z"),
+            preview.effects.single { it.type == "GAME_RESTRICTION" }.endsAt
+        )
+        assertEquals(
+            Instant.parse("2026-08-05T00:00:00Z"),
+            preview.effects.single { it.type == "CHAT_RESTRICTION" }.endsAt
+        )
+        assertEquals(
+            "GAME_RESTRICTION",
+            preview.effects.single { it.type == "CHAT_RESTRICTION" }
+                .parameters["durationStackedAfter"]
+        )
+        assertTrue(preview.requiresApproval)
     }
 
     @Test

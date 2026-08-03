@@ -49,6 +49,64 @@ data class ModerationReportSummary(
     val time: Instant
 )
 
+data class ModerationReportParty(
+    val id: String,
+    val reportedNickname: String?,
+    val currentNickname: String?,
+    val exists: Boolean
+)
+
+data class ModerationReportGameReference(
+    val gameId: String,
+    val roomId: Int,
+    val roomTitle: String,
+    val rule: String,
+    val startedAt: Instant,
+    val endedAt: Instant,
+    val logFileName: String,
+    val relation: String
+)
+
+data class ModerationSuspicionReference(
+    val caseId: Long,
+    val time: Instant,
+    val action: String,
+    val doubt: String,
+    val extraInfo: String?,
+    val reference: String?,
+    val relation: String = "TIME_NEARBY"
+)
+
+data class ModerationReportDetail(
+    val reportId: Long,
+    val time: Instant,
+    val status: String,
+    val targetType: String,
+    val categoryCode: String?,
+    val categoryName: String?,
+    val reason: String,
+    val detail: String?,
+    val reportedChat: String?,
+    val fileName: String?,
+    val roomId: Int?,
+    val gameId: String?,
+    val gameContextSource: String,
+    val reporter: ModerationReportParty,
+    val target: ModerationReportParty,
+    val resolvedAt: Instant?,
+    val resolvedBy: String?,
+    val resolutionNote: String?,
+    val linkedSanctionCaseId: Long?,
+    val gameReferences: List<ModerationReportGameReference>,
+    val suspicionReferences: List<ModerationSuspicionReference>
+)
+
+data class ReportGameContextLinkRequest(
+    val requestId: UUID,
+    val gameId: String,
+    val reason: String
+)
+
 data class SanctionPreviewRequest(
     val userId: String,
     val categoryCodes: List<String> = emptyList(),

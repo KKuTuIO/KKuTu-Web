@@ -156,14 +156,15 @@
       "required": [
         "incrementAllCounters",
         "bundleSelection",
-        "selectionOrder"
+        "selectionOrder",
+        "durationStacking"
       ],
       "properties": {
         "incrementAllCounters": {
           "const": true
         },
         "bundleSelection": {
-          "const": "SELECT_SINGLE_STRONGEST_STEP"
+          "const": "MERGE_STRONGEST_PER_EFFECT_TYPE"
         },
         "selectionOrder": {
           "type": "array",
@@ -178,6 +179,42 @@
               "NICKNAME_CHANGE_RESTRICTION",
               "NICKNAME_RESET"
             ]
+          }
+        },
+        "durationStacking": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "effectType",
+              "afterEffectType"
+            ],
+            "properties": {
+              "effectType": {
+                "enum": [
+                  "CHAT_RESTRICTION",
+                  "GAME_RESTRICTION",
+                  "GUEST_ACCESS_RESTRICTION",
+                  "IP_RESTRICTION",
+                  "NICKNAME_CHANGE_RESTRICTION",
+                  "EXTEND_RELATED_RESTRICTION",
+                  "RELATED_SERVICE_RESTRICTION"
+                ]
+              },
+              "afterEffectType": {
+                "enum": [
+                  "CHAT_RESTRICTION",
+                  "GAME_RESTRICTION",
+                  "GUEST_ACCESS_RESTRICTION",
+                  "IP_RESTRICTION",
+                  "NICKNAME_CHANGE_RESTRICTION",
+                  "EXTEND_RELATED_RESTRICTION",
+                  "RELATED_SERVICE_RESTRICTION"
+                ]
+              }
+            }
           }
         }
       }

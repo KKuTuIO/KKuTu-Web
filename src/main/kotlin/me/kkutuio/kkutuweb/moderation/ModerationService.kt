@@ -25,6 +25,8 @@ import org.springframework.web.server.ResponseStatusException
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.math.sqrt
 
@@ -39,6 +41,10 @@ class ModerationService(
     private val policyRegistry: ModerationPolicyRegistry,
     private val gameClientManager: GameClientManager
 ) {
+    private val gameLogFileFormatter = DateTimeFormatter
+        .ofPattern("'game-'yyyy-MM-dd HH'.log.gz'")
+        .withZone(ZoneId.of("Asia/Seoul"))
+
     fun policySummary(): ModerationPolicySummary {
         val loaded = policyLoader.current()
         return ModerationPolicySummary(
@@ -73,6 +79,156 @@ class ModerationService(
         )
     }
 
+    fun getReportDetail(reportId: Long): ModerationReportDetail {
+        val report = jdbcTemplate.query(
+            """
+            SELECT report_id, time, reporter_id, reporter_nick, target_id, target_type,
+                   category_code, reason, detail, reported_chat, file_name, room_id,
+                   game_id, game_context_source, status, resolved_at, resolved_by,
+                   resolution_note
+            FROM report_log WHERE report_id = ?
+            """.trimIndent(),
+            { rs, _ ->
+                ReportDetailRow(
+                    reportId = rs.getLong("report_id"),
+                    time = rs.instant("time")!!,
+                    reporterId = rs.getString("reporter_id"),
+                    reporterNick = rs.getString("reporter_nick"),
+                    targetId = rs.getString("target_id"),
+                    targetType = rs.getString("target_type") ?: "UNKNOWN",
+                    categoryCode = rs.getString("category_code"),
+                    reason = rs.getString("reason"),
+                    detail = rs.getString("detail"),
+                    reportedChat = rs.getString("reported_chat"),
+                    fileName = rs.getString("file_name"),
+                    roomId = rs.getInt("room_id").let { if (rs.wasNull()) null else it },
+                    gameId = rs.getString("game_id"),
+                    gameContextSource = rs.getString("game_context_source") ?: "NONE",
+                    status = rs.getString("status"),
+                    resolvedAt = rs.instant("resolved_at"),
+                    resolvedBy = rs.getString("resolved_by"),
+                    resolutionNote = rs.getString("resolution_note")
+                )
+            },
+            reportId
+        ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "신고를 찾을 수 없습니다.")
+
+        val linkedCaseId = jdbcTemplate.query(
+            "SELECT case_id FROM moderation_case_reports WHERE report_id = ? ORDER BY case_id DESC LIMIT 1",
+            { rs, _ -> rs.getLong("case_id") },
+            reportId
+        ).firstOrNull()
+        val currentReporter = userDao.getUser(report.reporterId)
+        val currentTarget = if (report.targetType in setOf("USER", "CHAT")) userDao.getUser(report.targetId) else null
+        val categoryName = policyLoader.current().document.categories
+            .firstOrNull { it.code == report.categoryCode }?.name
+
+        return ModerationReportDetail(
+            reportId = report.reportId,
+            time = report.time,
+            status = report.status,
+            targetType = report.targetType,
+            categoryCode = report.categoryCode,
+            categoryName = categoryName,
+            reason = report.reason,
+            detail = report.detail,
+            reportedChat = report.reportedChat,
+            fileName = report.fileName,
+            roomId = report.roomId,
+            gameId = report.gameId,
+            gameContextSource = report.gameContextSource,
+            reporter = ModerationReportParty(
+                report.reporterId,
+                report.reporterNick,
+                currentReporter?.nickname,
+                currentReporter != null
+            ),
+            target = ModerationReportParty(
+                report.targetId,
+                null,
+                currentTarget?.nickname,
+                currentTarget != null
+            ),
+            resolvedAt = report.resolvedAt,
+            resolvedBy = report.resolvedBy,
+            resolutionNote = report.resolutionNote,
+            linkedSanctionCaseId = linkedCaseId,
+            gameReferences = reportGameReferences(report),
+            suspicionReferences = reportSuspicionReferences(report)
+        )
+    }
+
+    @Transactional
+    fun linkReportGameContext(reportId: Long, request: ReportGameContextLinkRequest, actorId: String) {
+        require(request.gameId.isNotBlank() && request.gameId.length <= 64) { "올바른 경기 ID가 필요합니다." }
+        require(request.reason.isNotBlank()) { "경기 연결 사유는 필수입니다." }
+        jdbcTemplate.query(
+            "SELECT pg_advisory_xact_lock(hashtext(?))",
+            { _, _ -> Unit },
+            "request:${request.requestId}"
+        )
+        val existingCommand = jdbcTemplate.query(
+            "SELECT command_type, target_key FROM moderation_command_requests WHERE request_id = ?",
+            { rs, _ -> rs.getString("command_type") to rs.getString("target_key") },
+            request.requestId
+        ).firstOrNull()
+        if (existingCommand != null) {
+            if (existingCommand.first == "LINK_REPORT_GAME" && existingCommand.second == reportId.toString()) return
+            throw ResponseStatusException(HttpStatus.CONFLICT, "이미 다른 작업에 사용된 요청 ID입니다.")
+        }
+        jdbcTemplate.query(
+            "SELECT pg_advisory_xact_lock(hashtext(?))",
+            { _, _ -> Unit },
+            "report:$reportId"
+        )
+        val report = jdbcTemplate.query(
+            "SELECT reporter_id, target_id, target_type FROM report_log WHERE report_id = ?",
+            { rs, _ -> Triple(rs.getString("reporter_id"), rs.getString("target_id"), rs.getString("target_type")) },
+            reportId
+        ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "신고를 찾을 수 없습니다.")
+
+        val replay = if (report.third == "ROOM") {
+            val targetRoomId = report.second.toIntOrNull()
+                ?: throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "방 신고의 대상 방 번호가 올바르지 않습니다.")
+            jdbcTemplate.query(
+                """
+                SELECT game_id, room_id FROM game_replay
+                WHERE game_id = ? AND room_id = ? AND user_ids @> ARRAY[?]::TEXT[] LIMIT 1
+                """.trimIndent(),
+                { rs, _ -> rs.getString("game_id") to rs.getInt("room_id") },
+                request.gameId.trim(), targetRoomId, report.first
+            ).firstOrNull()
+        } else {
+            jdbcTemplate.query(
+                """
+                SELECT game_id, room_id FROM game_replay
+                WHERE game_id = ? AND user_ids @> ARRAY[?, ?]::TEXT[] LIMIT 1
+                """.trimIndent(),
+                { rs, _ -> rs.getString("game_id") to rs.getInt("room_id") },
+                request.gameId.trim(), report.first, report.second
+            ).firstOrNull()
+        } ?: throw ResponseStatusException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "신고자와 대상(또는 대상 방)이 함께 확인되는 경기 기록이 아닙니다."
+        )
+
+        jdbcTemplate.update(
+            "UPDATE report_log SET game_id = ?, room_id = ?, game_context_source = 'ADMIN_LINKED' WHERE report_id = ?",
+            replay.first, replay.second, reportId
+        )
+        jdbcTemplate.update(
+            """
+            INSERT INTO moderation_command_requests
+                (request_id, command_type, target_key, actor_id, response_status, response_body)
+            VALUES (?, 'LINK_REPORT_GAME', ?, ?, 204, ?)
+            """.trimIndent(),
+            request.requestId,
+            reportId.toString(),
+            actorId,
+            json(mapOf("gameId" to replay.first, "reason" to request.reason.trim()))
+        )
+    }
+
     fun preview(request: SanctionPreviewRequest): ModerationPolicyPreview {
         requireUser(request.userId)
         request.custom?.let { custom ->
@@ -94,7 +250,6 @@ class ModerationService(
     @Transactional
     fun issue(request: SanctionIssueRequest, actorId: String, requestIpHash: String?): SanctionIssueResponse {
         require(request.evidenceText.isNotBlank()) { "근거 자료는 필수입니다." }
-        require(request.summary.isNotBlank()) { "제재 요약은 필수입니다." }
         requireUser(request.userId)
         require((request.custom == null) xor request.categoryCodes.isEmpty()) {
             "정책 제재 또는 사용자 지정 제재 중 하나만 선택해야 합니다."
@@ -124,11 +279,17 @@ class ModerationService(
         if (preview.requiresApproval) {
             throw ResponseStatusException(HttpStatus.CONFLICT, "이 단계는 별도 승인 절차가 필요합니다.")
         }
+        val displayReason = request.custom?.reason?.trim()
+            ?: preview.violations
+                .firstOrNull { it.selectedAsPrimary }
+                ?.categoryName
+            ?: request.summary.trim()
+        require(displayReason.isNotBlank()) { "표시할 제재 사유를 결정할 수 없습니다." }
         policyRegistry.register(policyLoader.current())
         validateReports(request.reportIds, request.userId)
 
         val caseId = try {
-            insertCase(request, actorId, preview)
+            insertCase(request, actorId, preview, displayReason)
         } catch (e: DuplicateKeyException) {
             val existing = existingCase(request.requestId) ?: throw e
             return SanctionIssueResponse(existing, previewFromCase(existing), true)
@@ -171,12 +332,12 @@ class ModerationService(
                     val effectId = insertEffect(caseId, relatedUserId, extended)
                     applyLegacyBlock(
                         "block_user", "USER", caseId, effectId, relatedUserId,
-                        request.summary, actorId, extended
+                        displayReason, actorId, extended
                     )
                 }
             } else {
                 val effectId = insertEffect(caseId, request.userId, effect)
-                applyEffect(caseId, effectId, request.userId, request.summary, actorId, effect)
+                applyEffect(caseId, effectId, request.userId, displayReason, actorId, effect)
             }
         }
 
@@ -405,7 +566,8 @@ class ModerationService(
     private fun insertCase(
         request: SanctionIssueRequest,
         actorId: String,
-        preview: ModerationPolicyPreview
+        preview: ModerationPolicyPreview,
+        displayReason: String
     ): Long {
         val keyHolder: KeyHolder = GeneratedKeyHolder()
         jdbcTemplate.update({ connection ->
@@ -427,7 +589,7 @@ class ModerationService(
                 setTimestamp(6, Timestamp.from(request.occurredAt))
                 setString(7, actorId)
                 setString(8, request.evidenceText)
-                setString(9, request.summary)
+                setString(9, displayReason)
             }
         }, keyHolder)
         return keyHolder.key!!.toLong()
@@ -799,6 +961,84 @@ class ModerationService(
         require(count == ids.size) { "대상과 일치하지 않는 신고가 포함되어 있습니다." }
     }
 
+    private fun reportGameReferences(report: ReportDetailRow): List<ModerationReportGameReference> {
+        val reportMillis = report.time.toEpochMilli()
+        val from = reportMillis - 60L * 24 * 60 * 60 * 1000
+        val to = reportMillis + 60L * 60 * 1000
+        val rows = if (report.targetType == "ROOM") {
+            val roomId = report.roomId ?: report.targetId.toIntOrNull() ?: return emptyList()
+            jdbcTemplate.query(
+                """
+                SELECT game_id, room_id, room_title, rule, started_at, ended_at
+                FROM game_replay
+                WHERE (CAST(? AS TEXT) IS NOT NULL AND game_id = ?)
+                   OR (room_id = ? AND user_ids @> ARRAY[?]::TEXT[] AND ended_at BETWEEN ? AND ?)
+                ORDER BY CASE WHEN game_id = ? THEN 0 ELSE 1 END, ended_at DESC
+                LIMIT 5
+                """.trimIndent(),
+                ::mapReportGameReference,
+                report.gameId, report.gameId, roomId, report.reporterId, from, to, report.gameId
+            )
+        } else {
+            jdbcTemplate.query(
+                """
+                SELECT game_id, room_id, room_title, rule, started_at, ended_at
+                FROM game_replay
+                WHERE (CAST(? AS TEXT) IS NOT NULL AND game_id = ?)
+                   OR (user_ids @> ARRAY[?, ?]::TEXT[] AND ended_at BETWEEN ? AND ?)
+                ORDER BY CASE WHEN game_id = ? THEN 0 ELSE 1 END, ended_at DESC
+                LIMIT 5
+                """.trimIndent(),
+                ::mapReportGameReference,
+                report.gameId, report.gameId, report.reporterId, report.targetId,
+                from, to, report.gameId
+            )
+        }
+        return rows.map {
+            it.copy(relation = if (it.gameId == report.gameId) "LINKED" else "SHARED_PARTICIPANTS_CANDIDATE")
+        }
+    }
+
+    private fun mapReportGameReference(rs: ResultSet, @Suppress("UNUSED_PARAMETER") rowNum: Int) =
+        Instant.ofEpochMilli(rs.getLong("started_at")).let { startedAt ->
+            ModerationReportGameReference(
+                gameId = rs.getString("game_id"),
+                roomId = rs.getInt("room_id"),
+                roomTitle = rs.getString("room_title"),
+                rule = rs.getString("rule"),
+                startedAt = startedAt,
+                endedAt = Instant.ofEpochMilli(rs.getLong("ended_at")),
+                logFileName = gameLogFileFormatter.format(startedAt),
+                relation = "SHARED_PARTICIPANTS_CANDIDATE"
+            )
+        }
+
+    private fun reportSuspicionReferences(report: ReportDetailRow): List<ModerationSuspicionReference> {
+        if (report.targetType == "ROOM") return emptyList()
+        val from = Timestamp.from(report.time.minusSeconds(15 * 60L))
+        val to = Timestamp.from(report.time.plusSeconds(15 * 60L))
+        return jdbcTemplate.query(
+            """
+            SELECT case_id, time, action, doubt, extra_info, reference
+            FROM suspicion_log
+            WHERE user_id = ? AND time BETWEEN ? AND ?
+            ORDER BY ABS(EXTRACT(EPOCH FROM (time - ?))) ASC
+            LIMIT 10
+            """.trimIndent(),
+            { rs, _ ->
+                ModerationSuspicionReference(
+                    caseId = rs.getLong("case_id"),
+                    time = rs.instant("time")!!,
+                    action = rs.getString("action"),
+                    doubt = rs.getString("doubt"),
+                    extraInfo = rs.getString("extra_info"),
+                    reference = rs.getString("reference")
+                )
+            },
+            report.targetId, from, to, Timestamp.from(report.time)
+        )
+    }
+
     private fun existingCase(requestId: UUID): Long? =
         jdbcTemplate.query(
             "SELECT case_id FROM moderation_cases WHERE request_id = ?",
@@ -910,6 +1150,27 @@ class ModerationService(
         val permanent: Boolean,
         val reason: String,
         val actorId: String
+    )
+
+    private data class ReportDetailRow(
+        val reportId: Long,
+        val time: Instant,
+        val reporterId: String,
+        val reporterNick: String?,
+        val targetId: String,
+        val targetType: String,
+        val categoryCode: String?,
+        val reason: String,
+        val detail: String?,
+        val reportedChat: String?,
+        val fileName: String?,
+        val roomId: Int?,
+        val gameId: String?,
+        val gameContextSource: String,
+        val status: String,
+        val resolvedAt: Instant?,
+        val resolvedBy: String?,
+        val resolutionNote: String?
     )
 
     private data class CounterBaseline(

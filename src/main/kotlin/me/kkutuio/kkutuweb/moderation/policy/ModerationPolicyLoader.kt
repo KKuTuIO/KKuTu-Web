@@ -106,6 +106,25 @@ class ModerationPolicyLoader(
         require(actualCodes.toSet() == expectedCodes && actualCodes.size == expectedCodes.size) {
             "Moderation categories must contain each code from 00 to 18 exactly once"
         }
+        require(policy.multipleViolations.bundleSelection == "MERGE_STRONGEST_PER_EFFECT_TYPE") {
+            "Multiple violations must merge the strongest effect of each type"
+        }
+        require(policy.multipleViolations.durationStacking.map { it.effectType }.distinct().size ==
+            policy.multipleViolations.durationStacking.size) {
+            "Each effect type may have only one duration stacking rule"
+        }
+        require(policy.multipleViolations.durationStacking.none { it.effectType == it.afterEffectType }) {
+            "An effect duration cannot be stacked after itself"
+        }
+        val stackingByEffect = policy.multipleViolations.durationStacking.associateBy { it.effectType }
+        stackingByEffect.keys.forEach { firstEffect ->
+            val visited = mutableSetOf<String>()
+            var effect: String? = firstEffect
+            while (effect != null) {
+                require(visited.add(effect)) { "Duration stacking rules must not contain a cycle" }
+                effect = stackingByEffect[effect]?.afterEffectType
+            }
+        }
 
         policy.categories.forEach { category ->
             category.steps.forEachIndexed { index, step ->

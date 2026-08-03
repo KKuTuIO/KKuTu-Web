@@ -49,7 +49,13 @@ data class CounterResetPolicy(
 data class MultipleViolationPolicy(
     val incrementAllCounters: Boolean,
     val bundleSelection: String,
-    val selectionOrder: List<String>
+    val selectionOrder: List<String>,
+    val durationStacking: List<DurationStackingRule> = emptyList()
+)
+
+data class DurationStackingRule(
+    val effectType: String,
+    val afterEffectType: String
 )
 
 data class RelatedServicesPolicy(

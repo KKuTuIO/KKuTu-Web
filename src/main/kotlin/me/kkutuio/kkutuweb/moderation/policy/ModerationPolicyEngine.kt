@@ -1,6 +1,7 @@
 package me.kkutuio.kkutuweb.moderation.policy
 
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
@@ -32,8 +33,11 @@ class ModerationPolicyEngine(
             )
         }
 
-        val selected = candidates.maxWithOrNull(candidateComparator(zoneId))
+        val selected = candidates.maxWithOrNull(
+            candidateComparator(policy.multipleViolations.selectionOrder)
+        )
             ?: throw IllegalStateException("No moderation candidate was selected")
+        val mergedEffects = mergeEffects(candidates, policy.multipleViolations)
 
         return ModerationPolicyPreview(
             policyId = policy.policyId,
@@ -49,8 +53,8 @@ class ModerationPolicyEngine(
                     candidateEffects = candidate.effects
                 )
             },
-            effects = selected.effects,
-            requiresApproval = selected.requiresApproval
+            effects = mergedEffects,
+            requiresApproval = candidates.any { it.requiresApproval }
         )
     }
 
@@ -126,16 +130,76 @@ class ModerationPolicyEngine(
         }
     }
 
-    private fun candidateComparator(zoneId: ZoneId): Comparator<Candidate> {
-        return compareBy<Candidate>(
-            { candidate -> if (candidate.effects.any { it.type == "GAME_RESTRICTION" && it.permanent }) 1 else 0 },
-            { candidate -> maxDuration(candidate.effects, "GAME_RESTRICTION") },
-            { candidate -> resourcePercent(candidate.effects) },
-            { candidate -> maxDuration(candidate.effects, "CHAT_RESTRICTION") },
-            { candidate -> if (candidate.effects.any { it.type == "NICKNAME_CHANGE_RESTRICTION" }) 1 else 0 },
-            { candidate -> if (candidate.effects.any { it.type == "NICKNAME_RESET" }) 1 else 0 },
-            { candidate -> candidate.category.code }
+    private fun mergeEffects(
+        candidates: List<Candidate>,
+        policy: MultipleViolationPolicy
+    ): List<ResolvedPolicyEffect> {
+        val merged = candidates
+            .flatMap { it.effects }
+            .groupBy { it.type }
+            .mapValues { (_, effects) -> effects.maxWithOrNull(effectComparator())!! }
+        val stackingRules = policy.durationStacking.associateBy { it.effectType }
+        val resolved = mutableMapOf<String, ResolvedPolicyEffect>()
+
+        fun resolveStacked(type: String, path: Set<String>): ResolvedPolicyEffect {
+            resolved[type]?.let { return it }
+            val effect = merged.getValue(type)
+            val rule = stackingRules[type]
+            val preceding = rule?.afterEffectType?.let { precedingType ->
+                if (precedingType in merged && precedingType !in path) {
+                    resolveStacked(precedingType, path + type)
+                } else null
+            }
+            val stacked = if (
+                preceding != null && !effect.permanent && !preceding.permanent &&
+                effect.endsAt != null && preceding.endsAt != null
+            ) {
+                val ownDuration = Duration.between(effect.startsAt, effect.endsAt)
+                effect.copy(
+                    endsAt = maxOf(effect.endsAt, preceding.endsAt.plus(ownDuration)),
+                    parameters = effect.parameters + mapOf("durationStackedAfter" to rule.afterEffectType)
+                )
+            } else effect
+            resolved[type] = stacked
+            return stacked
+        }
+
+        return merged.keys.map { resolveStacked(it, emptySet()) }
+    }
+
+    private fun effectComparator(): Comparator<ResolvedPolicyEffect> {
+        return compareBy<ResolvedPolicyEffect>(
+            { effect -> if (effect.permanent) 1 else 0 },
+            { effect -> effect.endsAt?.epochSecond?.minus(effect.startsAt.epochSecond) ?: 0 },
+            { effect -> (effect.parameters["percent"] as? Number)?.toInt() ?: 0 }
         )
+    }
+
+    private fun candidateComparator(selectionOrder: List<String>): Comparator<Candidate> {
+        return Comparator { left, right ->
+            selectionOrder.forEach { criterion ->
+                val comparison = candidateStrength(left, criterion)
+                    .compareTo(candidateStrength(right, criterion))
+                if (comparison != 0) return@Comparator comparison
+            }
+            left.category.code.compareTo(right.category.code)
+        }
+    }
+
+    private fun candidateStrength(candidate: Candidate, criterion: String): Long {
+        return when (criterion) {
+            "PERMANENT_GAME_RESTRICTION" -> if (candidate.effects.any {
+                it.type == "GAME_RESTRICTION" && it.permanent
+            }) 1 else 0
+            "GAME_RESTRICTION_DURATION" -> maxDuration(candidate.effects, "GAME_RESTRICTION")
+            "RESOURCE_DEDUCTION_PERCENT" -> resourcePercent(candidate.effects).toLong()
+            "CHAT_RESTRICTION_DURATION" -> maxDuration(candidate.effects, "CHAT_RESTRICTION")
+            "NICKNAME_CHANGE_RESTRICTION" -> if (candidate.effects.any {
+                it.type == "NICKNAME_CHANGE_RESTRICTION"
+            }) 1 else 0
+            "NICKNAME_RESET" -> if (candidate.effects.any { it.type == "NICKNAME_RESET" }) 1 else 0
+            else -> throw IllegalArgumentException("Unknown multiple-violation criterion: $criterion")
+        }
     }
 
     private fun maxDuration(effects: List<ResolvedPolicyEffect>, type: String): Long {

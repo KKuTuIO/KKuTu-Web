@@ -106,4 +106,24 @@ class AdminModerationApi(
         val actor = authorizer.require(session, AdminSetting.Privilege.REPORT_RESOLVE)
         service.resolveReport(reportId, body, actor)
     }
+
+    @GetMapping("/reports/{reportId}")
+    fun reportDetail(
+        @PathVariable reportId: Long,
+        session: HttpSession
+    ): ModerationReportDetail {
+        authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        return service.getReportDetail(reportId)
+    }
+
+    @PostMapping("/reports/{reportId}/game-context")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun linkReportGameContext(
+        @PathVariable reportId: Long,
+        @RequestBody body: ReportGameContextLinkRequest,
+        session: HttpSession
+    ) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.REPORT_RESOLVE)
+        service.linkReportGameContext(reportId, body, actor)
+    }
 }

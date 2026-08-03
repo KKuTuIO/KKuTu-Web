@@ -71,12 +71,23 @@ class ModerationService(
     fun getUserDetail(userId: String): ModerationUserDetail {
         val user = userDao.getUser(userId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
+        val reportsAnchor = Instant.now()
+        val reportPage = reports(userId, 0, reportsAnchor)
         return ModerationUserDetail(
             user = toSummary(user),
             counters = currentCounters(userId),
             history = history(userId, 50),
-            reports = reports(userId, 20)
+            reports = reportPage.reports,
+            reportsHasMore = reportPage.hasMore,
+            reportsAnchor = reportsAnchor
         )
+    }
+
+    fun getUserReports(userId: String, window: Int, anchorMillis: Long?): ModerationReportPage {
+        requireUser(userId)
+        require(anchorMillis == null || anchorMillis > 0) { "올바른 신고 조회 기준 시각이 필요합니다." }
+        val anchor = anchorMillis?.let(Instant::ofEpochMilli) ?: Instant.now()
+        return reports(userId, window, anchor)
     }
 
     fun getReportDetail(reportId: Long): ModerationReportDetail {
@@ -928,12 +939,18 @@ class ModerationService(
             caseId
         )
 
-    private fun reports(userId: String, limit: Int): List<ModerationReportSummary> =
-        jdbcTemplate.query(
+    private fun reports(userId: String, window: Int, anchor: Instant): ModerationReportPage {
+        require(window in 0..100) { "신고 조회 구간은 0에서 100 사이여야 합니다." }
+        val fromDays = window * 90
+        val toDays = (window + 1) * 90
+        val items = jdbcTemplate.query(
             """
             SELECT report_id, category_code, reason, detail, status, time
-            FROM report_log WHERE target_id = ?
-            ORDER BY time DESC, report_id DESC LIMIT ?
+            FROM report_log
+            WHERE target_id = ?
+              AND time >= CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
+              AND time < CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
+            ORDER BY time DESC, report_id DESC
             """.trimIndent(),
             { rs, _ ->
                 ModerationReportSummary(
@@ -946,8 +963,20 @@ class ModerationService(
                 )
             },
             userId,
-            limit
+            Timestamp.from(anchor),
+            toDays,
+            Timestamp.from(anchor),
+            fromDays
         )
+        val hasMore = jdbcTemplate.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM report_log WHERE target_id = ? AND time < CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day'))",
+            Boolean::class.java,
+            userId,
+            Timestamp.from(anchor),
+            toDays
+        ) == true
+        return ModerationReportPage(window, fromDays, toDays, items, hasMore, anchor)
+    }
 
     private fun validateReports(reportIds: List<Long>, userId: String) {
         if (reportIds.isEmpty()) return

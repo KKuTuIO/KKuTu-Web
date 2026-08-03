@@ -18,7 +18,9 @@ data class ModerationUserDetail(
     val user: ModerationUserSummary,
     val counters: Map<String, Int>,
     val history: List<ModerationCaseSummary>,
-    val reports: List<ModerationReportSummary>
+    val reports: List<ModerationReportSummary>,
+    val reportsHasMore: Boolean,
+    val reportsAnchor: Instant
 )
 
 data class ModerationCaseSummary(
@@ -47,6 +49,15 @@ data class ModerationReportSummary(
     val detail: String?,
     val status: String,
     val time: Instant
+)
+
+data class ModerationReportPage(
+    val window: Int,
+    val fromDays: Int,
+    val toDays: Int,
+    val reports: List<ModerationReportSummary>,
+    val hasMore: Boolean,
+    val anchor: Instant
 )
 
 data class ModerationReportParty(

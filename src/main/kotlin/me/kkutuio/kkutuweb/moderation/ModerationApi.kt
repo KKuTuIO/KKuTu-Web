@@ -44,6 +44,17 @@ class AdminModerationApi(
         return service.getUserDetail(userId)
     }
 
+    @GetMapping("/users/{userId}/reports")
+    fun reports(
+        @PathVariable userId: String,
+        @RequestParam(defaultValue = "0") window: Int,
+        @RequestParam(required = false) anchorMillis: Long?,
+        session: HttpSession
+    ): ModerationReportPage {
+        authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        return service.getUserReports(userId, window, anchorMillis)
+    }
+
     @PostMapping("/sanctions/preview")
     fun preview(
         @RequestBody body: SanctionPreviewRequest,

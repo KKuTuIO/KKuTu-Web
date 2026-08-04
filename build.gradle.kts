@@ -30,6 +30,10 @@ version = "v4"
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
+springBoot {
+    mainClass.set("me.kkutuio.kkutuweb.KkutuWebApplicationKt")
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
 }

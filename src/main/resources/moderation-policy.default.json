@@ -1,7 +1,7 @@
 {
   "$schema": "moderation-policy.schema.json",
-  "policyId": "kkutu-operation-r9-2024-02-01",
-  "revision": 9,
+  "policyId": "kkutu-operation-r10-2024-02-01",
+  "revision": 10,
   "source": {
     "title": "끄투리오 운영정책",
     "url": "https://static.kkutu.io/operation",

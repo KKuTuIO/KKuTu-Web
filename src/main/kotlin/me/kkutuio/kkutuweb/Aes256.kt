@@ -26,6 +26,7 @@ import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import kotlin.text.Charsets.UTF_8
 
 private const val IV_LENGTH = 16
 
@@ -48,8 +49,27 @@ class AES256(
 
         val cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING")
         cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivParameterSpec)
-        val encrypted = cipher.doFinal(data.toByteArray())
+        val encrypted = cipher.doFinal(data.toByteArray(UTF_8))
 
         return iv.toHexString() + ":" + encrypted.toHexString()
+    }
+
+    fun decrypt(data: String): String {
+        val parts = data.split(':', limit = 2)
+        require(parts.size == 2) { "Invalid encrypted value" }
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING")
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            secretKeySpec,
+            IvParameterSpec(parts[0].hexToBytes())
+        )
+        return String(cipher.doFinal(parts[1].hexToBytes()), UTF_8)
+    }
+
+    private fun String.hexToBytes(): ByteArray {
+        require(length % 2 == 0) { "Invalid hexadecimal value" }
+        return ByteArray(length / 2) { index ->
+            substring(index * 2, index * 2 + 2).toInt(16).toByte()
+        }
     }
 }

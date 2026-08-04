@@ -28,6 +28,15 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class GeoIpInfo(
+    val countryCode: String?,
+    val countryName: String?,
+    val asn: String?,
+    val asName: String?,
+    val isp: String?,
+    val network: String?
+)
+
 @Service
 class GeoService(
     @Value("\${geo.api-key}") private val apiKey: String,
@@ -35,13 +44,31 @@ class GeoService(
     @Autowired private val objectMapper: ObjectMapper
 ) {
     @Cacheable(value = ["ipGeoInfoCache"], key = "#ip")
-    fun getGeoCountry(ip: String): String? {
+    fun getGeoInfo(ip: String): GeoIpInfo {
         val response = requestHttp("${apiDomain}/lookup/${ip}?key=${apiKey}")
         val jsonNode = objectMapper.readTree(response)
-
-        val geoLocation = jsonNode["geoLocation"]
-        return if (geoLocation != null) geoLocation["country"].textValue() else null
+        fun text(vararg paths: String): String? = paths.asSequence()
+            .map { jsonNode.at(it) }
+            .firstOrNull { !it.isMissingNode && !it.isNull && it.asText().isNotBlank() }
+            ?.asText()
+        return GeoIpInfo(
+            countryCode = text("/geoLocation/country", "/countryCode", "/country_code"),
+            countryName = text("/geoLocation/countryName", "/countryName", "/country_name"),
+            asn = text(
+                "/network/asn", "/asn", "/traits/autonomous_system_number",
+                "/connection/asn"
+            )?.removePrefix("AS"),
+            asName = text(
+                "/network/asName", "/network/organization", "/asName", "/org",
+                "/traits/autonomous_system_organization", "/connection/org"
+            ),
+            isp = text("/network/isp", "/isp", "/connection/isp"),
+            network = text("/network/cidr", "/network/network", "/cidr")
+        )
     }
+
+    @Cacheable(value = ["ipGeoCountryCache"], key = "#ip")
+    fun getGeoCountry(ip: String): String? = getGeoInfo(ip).countryCode
 
     fun requestHttp(url: String): String {
         val conn = URL(url).openConnection() as HttpURLConnection

@@ -113,4 +113,39 @@ class ModerationPolicyEngineTest {
         assertEquals(endsAt, preview.effects.single().endsAt)
         assertEquals("관리자 직접 제재", preview.effects.single().parameters["customReason"])
     }
+
+    @Test
+    fun `guest policy allows members for first two sanctions and blocks the ip on third`() {
+        val startsAt = Instant.parse("2026-08-04T00:00:00Z")
+
+        val first = engine.previewGuestIp(listOf("10"), emptyMap(), 0, startsAt)
+        val second = engine.previewGuestIp(listOf("10"), mapOf("10" to 1), 1, startsAt)
+        val third = engine.previewGuestIp(listOf("10"), mapOf("10" to 2), 2, startsAt)
+
+        assertEquals("GUEST_ACCESS_RESTRICTION", first.effects.single().type)
+        assertEquals("GUEST_ACCESS_RESTRICTION", second.effects.single().type)
+        assertEquals("IP_RESTRICTION", third.effects.single().type)
+        assertEquals(3, third.effects.single().parameters["guestIpOffenseNo"])
+    }
+
+    @Test
+    fun `guest restriction keeps the selected violation bundle duration`() {
+        val startsAt = Instant.parse("2026-08-04T00:00:00Z")
+        val preview = engine.previewGuestIp(listOf("10"), emptyMap(), 0, startsAt)
+
+        assertEquals(
+            Instant.parse("2026-08-11T00:00:00Z"),
+            preview.effects.single().endsAt
+        )
+        assertEquals("GAME_RESTRICTION", preview.effects.single().parameters["durationSourceEffect"])
+    }
+
+    @Test
+    fun `permanent guest sanction skips the second guest-only step`() {
+        val preview = engine.previewGuestIp(listOf("11"), mapOf("11" to 1), 1)
+
+        assertEquals("IP_RESTRICTION", preview.effects.single().type)
+        assertTrue(preview.effects.single().permanent)
+        assertEquals(3, preview.effects.single().parameters["guestIpOffenseNo"])
+    }
 }

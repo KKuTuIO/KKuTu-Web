@@ -23,6 +23,57 @@ data class ModerationUserDetail(
     val reportsAnchor: Instant
 )
 
+data class ModerationIpGeoInfo(
+    val countryCode: String?,
+    val countryName: String?,
+    val asn: String?,
+    val asName: String?,
+    val isp: String?
+)
+
+data class ModerationIpIdentity(
+    val id: String,
+    val nickname: String?,
+    val guest: Boolean,
+    val lastSeenAt: Instant,
+    val connectionCount: Int
+)
+
+data class ModerationNetworkBlockedIp(
+    val ip: String,
+    val onlyGuest: Boolean,
+    val startsAt: Instant,
+    val endsAt: Instant?,
+    val permanent: Boolean,
+    val reason: String
+)
+
+data class ModerationCurrentIpBlock(
+    val caseId: Long?,
+    val onlyGuest: Boolean,
+    val startsAt: Instant,
+    val endsAt: Instant?,
+    val permanent: Boolean,
+    val reason: String
+)
+
+data class ModerationIpDetail(
+    val ip: String,
+    val sourceGuestId: String?,
+    val lastSeenAt: Instant?,
+    val network: String,
+    val geo: ModerationIpGeoInfo?,
+    val currentBlock: ModerationCurrentIpBlock?,
+    val guestIpOffenseCount: Int,
+    val counters: Map<String, Int>,
+    val identities: List<ModerationIpIdentity>,
+    val blockedIpsInNetwork: List<ModerationNetworkBlockedIp>,
+    val history: List<ModerationCaseSummary>,
+    val reports: List<ModerationReportSummary>,
+    val reportsHasMore: Boolean,
+    val reportsAnchor: Instant
+)
+
 data class ModerationCaseSummary(
     val caseId: Long,
     val primaryCategoryCode: String,
@@ -48,7 +99,8 @@ data class ModerationReportSummary(
     val reason: String,
     val detail: String?,
     val status: String,
-    val time: Instant
+    val time: Instant,
+    val targetId: String? = null
 )
 
 data class ModerationReportPage(
@@ -147,6 +199,22 @@ data class SanctionIssueResponse(
     val caseId: Long,
     val preview: ModerationPolicyPreview,
     val duplicated: Boolean
+)
+
+data class IpSanctionPreviewRequest(
+    val subject: String,
+    val categoryCodes: List<String>,
+    val occurredAt: Instant? = null
+)
+
+data class IpSanctionIssueRequest(
+    val requestId: UUID,
+    val subject: String,
+    val categoryCodes: List<String>,
+    val occurredAt: Instant,
+    val evidenceText: String,
+    val summary: String,
+    val reportIds: List<Long> = emptyList()
 )
 
 data class RevokeSanctionRequest(val reason: String)

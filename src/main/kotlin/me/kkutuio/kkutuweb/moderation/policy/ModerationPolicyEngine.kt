@@ -58,6 +58,52 @@ class ModerationPolicyEngine(
         )
     }
 
+    fun previewGuestIp(
+        categoryCodes: List<String>,
+        currentCounters: Map<String, Int>,
+        previousGuestIpSanctions: Int,
+        startsAt: Instant = Instant.now()
+    ): ModerationPolicyPreview {
+        require(previousGuestIpSanctions >= 0) { "Guest/IP offense count cannot be negative" }
+        val base = preview(categoryCodes, currentCounters, startsAt)
+        val policy = loader.current().document
+        val primary = base.violations.first { it.selectedAsPrimary }
+        val durationSource = primary.candidateEffects
+            .filter { it.type in RESTRICTION_EFFECT_TYPES }
+            .maxWithOrNull(effectComparator())
+            ?: throw IllegalArgumentException("선택한 위반 사유의 현재 차수에는 손님 이용 제한 기간이 없습니다.")
+        var guestIpOffense = previousGuestIpSanctions + 1
+        if (
+            durationSource.permanent &&
+            policy.guestIpPolicy.permanentUserSkipsSecondStep &&
+            guestIpOffense == 2
+        ) {
+            guestIpOffense = 3
+        }
+        val guestStep = policy.guestIpPolicy.steps
+            .firstOrNull { it.offense == guestIpOffense }
+            ?: policy.guestIpPolicy.steps.maxByOrNull { it.offense }
+            ?: throw IllegalStateException("guestIpPolicy.steps is empty")
+        val guestEffectDefinition = guestStep.effects.firstOrNull()
+            ?: throw IllegalStateException("Guest/IP policy step has no effect")
+        val guestEffect = ResolvedPolicyEffect(
+            type = guestEffectDefinition.type,
+            startsAt = startsAt,
+            endsAt = durationSource.endsAt,
+            permanent = durationSource.permanent,
+            parameters = guestEffectDefinition.parameters + mapOf(
+                "guestIpOffenseNo" to guestIpOffense,
+                "durationSourceCategory" to primary.categoryCode,
+                "durationSourceEffect" to durationSource.type
+            )
+        )
+        return base.copy(
+            selectionReason = "${base.selectionReason} / 손님·IP ${guestIpOffense}차",
+            effects = listOf(guestEffect),
+            requiresApproval = base.requiresApproval || guestStep.requiresApproval
+        )
+    }
+
     fun previewCustom(
         reason: String,
         startsAt: Instant,
@@ -232,4 +278,10 @@ class ModerationPolicyEngine(
         val effects: List<ResolvedPolicyEffect>,
         val requiresApproval: Boolean
     )
+
+    companion object {
+        private val RESTRICTION_EFFECT_TYPES = setOf(
+            "GAME_RESTRICTION", "CHAT_RESTRICTION", "RELATED_SERVICE_RESTRICTION"
+        )
+    }
 }

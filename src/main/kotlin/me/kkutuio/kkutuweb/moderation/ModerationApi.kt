@@ -55,6 +55,25 @@ class AdminModerationApi(
         return service.getUserReports(userId, window, anchorMillis)
     }
 
+    @GetMapping("/ip-subject")
+    fun ipDetail(@RequestParam query: String, session: HttpSession): ModerationIpDetail {
+        authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        return service.getIpDetail(query)
+    }
+
+    @GetMapping("/ip-subject/reports")
+    fun ipReports(
+        @RequestParam query: String,
+        @RequestParam(defaultValue = "0") window: Int,
+        @RequestParam(required = false) anchorMillis: Long?,
+        session: HttpSession
+    ): ModerationReportPage {
+        authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        return service.getIpReports(query, window, anchorMillis)
+    }
+
     @PostMapping("/sanctions/preview")
     fun preview(
         @RequestBody body: SanctionPreviewRequest,
@@ -84,6 +103,29 @@ class AdminModerationApi(
         return service.issue(body, actor, request.getIp())
     }
 
+    @PostMapping("/ip-sanctions/preview")
+    fun previewIp(
+        @RequestBody body: IpSanctionPreviewRequest,
+        session: HttpSession
+    ): Any {
+        authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_ISSUE)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        return service.previewIp(body)
+    }
+
+    @PostMapping("/ip-sanctions")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun issueIp(
+        @RequestBody body: IpSanctionIssueRequest,
+        request: HttpServletRequest,
+        session: HttpSession
+    ): SanctionIssueResponse {
+        val actor = authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_ISSUE)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        if (body.reportIds.isNotEmpty()) authorizer.require(session, AdminSetting.Privilege.REPORT_RESOLVE)
+        return service.issueIp(body, actor, request.getIp())
+    }
+
     @PostMapping("/sanctions/{caseId}/revoke")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun revoke(
@@ -93,7 +135,20 @@ class AdminModerationApi(
         session: HttpSession
     ) {
         val actor = authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_REVOKE)
-        service.revoke(caseId, body.reason, actor, request.getIp())
+        service.revoke(caseId, body.reason, actor, request.getIp(), "USER")
+    }
+
+    @PostMapping("/ip-sanctions/{caseId}/revoke")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun revokeIp(
+        @PathVariable caseId: Long,
+        @RequestBody body: RevokeSanctionRequest,
+        request: HttpServletRequest,
+        session: HttpSession
+    ) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_REVOKE)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        service.revoke(caseId, body.reason, actor, request.getIp(), "IP")
     }
 
     @PostMapping("/users/{userId}/counters/adjust")

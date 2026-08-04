@@ -20,43 +20,70 @@ package me.kkutuio.kkutuweb.ranking
 
 import me.kkutuio.kkutuweb.ranking.response.RankResponse
 import me.kkutuio.kkutuweb.ranking.response.ResponseRank
+import me.kkutuio.kkutuweb.user.UserDao
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 @Service
 class RankingService(
     @Autowired private val rankDao: RankDao,
-    @Autowired private val nicknameCacheService: NicknameCacheService
+    @Autowired private val userDao: UserDao
 ) {
     fun getRanking(p: Long?, id: String?): RankResponse {
         val pageIndex = if (id == null) p ?: 0L else 0L
-
-        val currentRanks: List<Rank> = if (id == null) {
-            rankDao.getPage(pageIndex, 15)
-        } else {
-            try {
-                rankDao.getSurround(id, 15)
-            } catch (e: NullPointerException) {
-                emptyList()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                emptyList()
-            }
-        }
+        val currentRanks = getValidRanks(pageIndex, id)
 
         if (currentRanks.isEmpty()) return RankResponse(pageIndex, emptyList())
 
-        val ids = currentRanks.map { it.id }
+        val ids = currentRanks.map { it.rank.id }
         val prevRanks = rankDao.getSnapshotRanks(ids)
 
-        val responseData = currentRanks.mapIndexed { index, rankObj ->
+        val responseData = currentRanks.mapIndexed { index, resolvedRank ->
             ResponseRank.fromRank(
-                current = rankObj,
-                nickname = nicknameCacheService.getNickname(rankObj.id),
+                current = resolvedRank.rank,
+                nickname = resolvedRank.nickname,
                 prevRank = prevRanks.getOrNull(index)
             )
         }
 
         return RankResponse(pageIndex, responseData)
+    }
+
+    private fun getValidRanks(pageIndex: Long, id: String?): List<ResolvedRank> {
+        while (true) {
+            val ranks = getRanks(pageIndex, id)
+            if (ranks.isEmpty()) return emptyList()
+
+            val nicknames = userDao.getNicknames(ranks.map { it.id })
+            val deletedIds = ranks.map { it.id }.filterNot { nicknames.containsKey(it) }
+            val validRanks = ranks.mapNotNull { rank ->
+                if (nicknames.containsKey(rank.id)) ResolvedRank(rank, nicknames[rank.id]) else null
+            }
+
+            if (deletedIds.isEmpty()) return validRanks
+
+            // Re-read the same page after compaction so a deleted account does not
+            // leave a short page or stale rank numbers behind.
+            if (rankDao.removeDeleted(deletedIds) == 0L) return validRanks
+        }
+    }
+
+    private fun getRanks(pageIndex: Long, id: String?): List<Rank> = if (id == null) {
+        rankDao.getPage(pageIndex, PAGE_SIZE)
+    } else {
+        try {
+            rankDao.getSurround(id, PAGE_SIZE.toInt())
+        } catch (e: NullPointerException) {
+            emptyList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    private data class ResolvedRank(val rank: Rank, val nickname: String?)
+
+    companion object {
+        private const val PAGE_SIZE = 15L
     }
 }

@@ -51,6 +51,16 @@ class RankDao(
         opsForZSet.remove(REDIS_KEY, id)
     }
 
+    fun removeDeleted(ids: List<String>): Long {
+        if (ids.isEmpty()) return 0
+
+        val opsForZSet = redisTemplate.opsForZSet()
+        val values = ids.toTypedArray()
+        val removed = opsForZSet.remove(REDIS_KEY, *values) ?: 0
+        opsForZSet.remove(REDIS_KEY_SNAPSHOT, *values)
+        return removed
+    }
+
     fun getRank(id: String): Long? =
         redisTemplate.opsForZSet().reverseRank(REDIS_KEY, id)?.plus(1)
 

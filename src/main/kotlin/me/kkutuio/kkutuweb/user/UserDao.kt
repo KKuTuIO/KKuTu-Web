@@ -36,6 +36,19 @@ class UserDao(
         return if (users.isEmpty()) null else users.first()
     }
 
+    fun getNicknames(ids: List<String>): Map<String, String?> {
+        if (ids.isEmpty()) return emptyMap()
+
+        val placeholders = ids.joinToString(",") { "?" }
+        val sql = "SELECT _id, nickname FROM users WHERE _id IN ($placeholders)"
+
+        return jdbcTemplate.query(
+            sql,
+            { rs, _ -> rs.getString("_id") to rs.getString("nickname") },
+            *ids.toTypedArray()
+        ).toMap()
+    }
+
     fun getUserFromNick(similarityNick: String, originalNick: String): User? {
         val sql = "SELECT * FROM users WHERE \"meanableNick\" = ? OR nickname = ?"
 

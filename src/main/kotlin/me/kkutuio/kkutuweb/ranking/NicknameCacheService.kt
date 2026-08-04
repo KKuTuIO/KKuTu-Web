@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service
 class NicknameCacheService(
     @Autowired private val userDao: UserDao
 ) {
-    @Cacheable(value = ["RankingService.nicknameCache"], key = "#id")
+    @Cacheable(value = ["RankingService.nicknameCache"], key = "#id", unless = "#result == null")
     fun getNickname(id: String): String? {
         val user = userDao.getUser(id) ?: return null
         return user.nickname

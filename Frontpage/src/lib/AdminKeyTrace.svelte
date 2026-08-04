@@ -85,6 +85,7 @@
       inputMismatch: Number(row[7]) === 1,
       chainMismatch: Number(row[8]) === 1,
       complete: Number(row[9]) === 1,
+      transitionOverflowCount: Math.max(0, Number(row[11]) || 0),
       compact: compact.join('').replace(/\++/g, '+').replace(/\+$/, ''),
       transitions
     };
@@ -166,7 +167,7 @@
             {entry.compact || '(표시값 변화 없음)'}
           </div>
 
-          {#if entry.inputMismatch || entry.chainMismatch || !entry.complete}
+          {#if entry.inputMismatch || entry.chainMismatch || !entry.complete || entry.transitionOverflowCount > 0}
             <div class="mt-1 flex flex-wrap gap-1">
               {#if entry.inputMismatch}
                 <span class="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-200">입력 불일치</span>
@@ -176,6 +177,9 @@
               {/if}
               {#if !entry.complete}
                 <span class="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-bold text-orange-700 dark:bg-orange-950 dark:text-orange-200">trace 일부 유실</span>
+              {/if}
+              {#if entry.transitionOverflowCount > 0}
+                <span class="rounded bg-slate-200 px-1.5 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-100">상세 전이 {entry.transitionOverflowCount}개 생략</span>
               {/if}
             </div>
           {/if}

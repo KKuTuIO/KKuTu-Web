@@ -171,7 +171,7 @@ data class ModerationReportDetail(
 data class ReportGameContextLinkRequest(
     val requestId: UUID,
     val gameId: String,
-    val reason: String
+    val reason: String = ""
 )
 
 data class SanctionPreviewRequest(
@@ -225,24 +225,30 @@ data class IpSanctionIssueRequest(
     val overrideCaseId: Long? = null
 )
 
-data class RevokeSanctionRequest(val reason: String)
+data class RevokeSanctionRequest(val reason: String = "")
 
 data class CounterAdjustmentRequest(
     val requestId: UUID,
     val categoryCode: String,
     val value: Int,
-    val reason: String
+    val reason: String = ""
 )
 
 data class ModerationNicknameChangeRequest(
     val requestId: UUID,
     val nickname: String? = null,
-    val reason: String
+    val reason: String = ""
 )
 
 data class ModerationDisconnectRequest(
     val requestId: UUID,
-    val reason: String
+    val reason: String = ""
+)
+
+data class ModerationNotificationRequest(
+    val requestId: UUID,
+    val message: String,
+    val reason: String = ""
 )
 
 data class ModerationFlagEntryRequest(
@@ -255,10 +261,10 @@ data class ModerationFlagEntryRequest(
 data class ModerationFlagsUpdateRequest(
     val requestId: UUID,
     val flags: List<ModerationFlagEntryRequest>,
-    val reason: String
+    val reason: String = ""
 )
 
-data class ReportResolutionRequest(val status: String, val note: String)
+data class ReportResolutionRequest(val status: String, val note: String = "")
 
 data class ModerationPolicySummary(
     val policyId: String,

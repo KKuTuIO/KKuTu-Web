@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.core.type.TypeReference
 import me.kkutuio.kkutuweb.game.GameClientManager
-import me.kkutuio.kkutuweb.geo.GeoService
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyEngine
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyLoader
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyPreview
@@ -47,7 +46,6 @@ class ModerationService(
     private val policyEngine: ModerationPolicyEngine,
     private val policyRegistry: ModerationPolicyRegistry,
     private val gameClientManager: GameClientManager,
-    private val geoService: GeoService,
     private val ipSubjectCodec: IpSubjectCodec
 ) {
     private val gameLogFileFormatter = DateTimeFormatter
@@ -110,29 +108,7 @@ class ModerationService(
             { rs, _ -> rs.instant("last_seen_at") },
             resolved.ip
         ).firstOrNull()
-        val storedGeo = jdbcTemplate.query(
-            """
-            SELECT geo_country, geo_asn, geo_as_name FROM connection_log
-            WHERE user_ip = ? AND (geo_country IS NOT NULL OR geo_asn IS NOT NULL)
-            ORDER BY time DESC, id DESC LIMIT 1
-            """.trimIndent(),
-            { rs, _ -> StoredIpGeo(rs.getString("geo_country"), rs.getString("geo_asn"), rs.getString("geo_as_name")) },
-            resolved.ip
-        ).firstOrNull()
-        val externalGeo = try {
-            geoService.getGeoInfo(resolved.ip)
-        } catch (_: Exception) {
-            null
-        }
-        val geo = if (storedGeo != null || externalGeo != null) {
-            ModerationIpGeoInfo(
-                storedGeo?.countryCode ?: externalGeo?.countryCode,
-                externalGeo?.countryName,
-                storedGeo?.asn ?: externalGeo?.asn,
-                storedGeo?.asName ?: externalGeo?.asName,
-                externalGeo?.isp
-            )
-        } else null
+        val geo = gameClientManager.requestIpGeo(resolved.ip)?.let(::parseIpGeoResponse)
         val network = networkOf(resolved.ip)
         return ModerationIpDetail(
             ip = resolved.ip,
@@ -157,6 +133,22 @@ class ModerationService(
         val resolved = resolveIpSubject(subject)
         return ipReports(resolved.ip, window, anchorMillis?.let(Instant::ofEpochMilli) ?: Instant.now())
     }
+
+    private fun parseIpGeoResponse(response: String): ModerationIpGeoInfo? = runCatching {
+        val root = objectMapper.readTree(response)
+        if (!root.path("ok").asBoolean(false)) return@runCatching null
+        val node = root.path("geo")
+        if (!node.isObject) return@runCatching null
+        fun value(name: String): String? = node.path(name).takeUnless { it.isMissingNode || it.isNull }
+            ?.asText()?.trim()?.takeIf { it.isNotEmpty() }
+        ModerationIpGeoInfo(
+            countryCode = value("countryCode"),
+            countryName = value("countryName"),
+            asn = value("asn"),
+            asName = value("asName"),
+            isp = value("isp")
+        )
+    }.getOrNull()
 
     fun getReportDetail(reportId: Long): ModerationReportDetail {
         val report = jdbcTemplate.query(
@@ -251,7 +243,6 @@ class ModerationService(
     @Transactional
     fun linkReportGameContext(reportId: Long, request: ReportGameContextLinkRequest, actorId: String) {
         require(request.gameId.isNotBlank() && request.gameId.length <= 64) { "올바른 경기 ID가 필요합니다." }
-        require(request.reason.isNotBlank()) { "경기 연결 사유는 필수입니다." }
         jdbcTemplate.query(
             "SELECT pg_advisory_xact_lock(hashtext(?))",
             { _, _ -> Unit },
@@ -633,7 +624,6 @@ class ModerationService(
         requestIpHash: String?,
         expectedSubjectType: String
     ) {
-        require(reason.isNotBlank()) { "철회 사유는 필수입니다." }
         val subject = jdbcTemplate.query(
             "SELECT subject_type, subject_user_id, subject_ip_encrypted FROM moderation_cases WHERE case_id = ?",
             { rs, _ ->
@@ -747,7 +737,6 @@ class ModerationService(
 
     @Transactional
     fun adjustCounter(userId: String, request: CounterAdjustmentRequest, actorId: String) {
-        require(request.reason.isNotBlank()) { "조정 사유는 필수입니다." }
         require(request.value in 0..999) { "누적 횟수는 0에서 999 사이여야 합니다." }
         requireUser(userId)
         policyLoader.current().document.category(request.categoryCode)
@@ -804,7 +793,6 @@ class ModerationService(
 
     @Transactional
     fun changeNickname(userId: String, request: ModerationNicknameChangeRequest, actorId: String) {
-        require(request.reason.isNotBlank()) { "작업 사유는 필수입니다." }
         requireUser(userId)
         if (commandAlreadyProcessed(request.requestId)) return
         val nickname = request.nickname?.trim().takeUnless { it.isNullOrBlank() }
@@ -843,7 +831,6 @@ class ModerationService(
 
     @Transactional
     fun disconnectUser(userId: String, request: ModerationDisconnectRequest, actorId: String) {
-        require(request.reason.isNotBlank()) { "작업 사유는 필수입니다." }
         requireUser(userId)
         if (commandAlreadyProcessed(request.requestId)) return
         recordCommand(
@@ -857,8 +844,63 @@ class ModerationService(
     }
 
     @Transactional
+    fun queueNotification(userId: String, request: ModerationNotificationRequest, actorId: String) {
+        requireUser(userId)
+        if (commandAlreadyProcessed(request.requestId)) return
+        val message = request.message.trim()
+        require(message.isNotEmpty() && message.length <= 2000 && message.none { it == '\u0000' }) {
+            "안내 내용은 1자 이상 2,000자 이하로 입력해 주세요."
+        }
+        val rawFlags = jdbcTemplate.queryForObject(
+            "SELECT flags::TEXT FROM users WHERE _id = ? FOR UPDATE",
+            String::class.java,
+            userId
+        )
+        val flags = objectMapper.readTree(rawFlags)
+            .takeIf { it.isObject }?.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+            ?: objectMapper.createObjectNode()
+        val currentEntry = flags.get("notifications")
+        val currentValue = if (currentEntry?.isObject == true && currentEntry.has("value")) {
+            currentEntry.get("value")
+        } else currentEntry
+        val queue = objectMapper.createArrayNode()
+        when {
+            currentValue == null || currentValue.isNull || currentValue.isMissingNode -> Unit
+            currentValue.isArray -> currentValue.forEach { queue.add(it) }
+            else -> queue.add(currentValue)
+        }
+        require(queue.size() < 50) { "예약된 안내가 너무 많습니다. 기존 안내가 전달된 후 다시 시도해 주세요." }
+
+        val notificationId = request.requestId.toString()
+        queue.add(objectMapper.createObjectNode().apply {
+            put("id", notificationId)
+            put("message", message)
+            put("createdAt", Instant.now().epochSecond)
+        })
+        flags.set<JsonNode>("notifications", objectMapper.createObjectNode().apply {
+            set<JsonNode>("value", queue)
+            put("time", Instant.now().epochSecond)
+        })
+        jdbcTemplate.update(
+            "UPDATE users SET flags = CAST(? AS jsonb)::json WHERE _id = ?",
+            objectMapper.writeValueAsString(flags),
+            userId
+        )
+        recordCommand(
+            request.requestId,
+            "SEND_USER_NOTIFICATION",
+            userId,
+            actorId,
+            mapOf(
+                "reason" to request.reason.trim(),
+                "notificationId" to notificationId,
+                "message" to message
+            )
+        )
+    }
+
+    @Transactional
     fun updateFlags(userId: String, request: ModerationFlagsUpdateRequest, actorId: String) {
-        require(request.reason.isNotBlank()) { "작업 사유는 필수입니다." }
         requireUser(userId)
         if (commandAlreadyProcessed(request.requestId)) return
         require(request.flags.size <= 500) { "플래그는 최대 500개까지 관리할 수 있습니다." }
@@ -930,7 +972,6 @@ class ModerationService(
         require(request.status == "REJECTED") {
             "신고 처리는 제재 사건 발급으로만 완료할 수 있으며, 이 API는 반려만 허용합니다."
         }
-        require(request.note.isNotBlank()) { "신고 처리 메모는 필수입니다." }
         val updated = jdbcTemplate.update(
             """
             UPDATE report_log SET status = ?, resolved_at = NOW(),
@@ -1653,10 +1694,11 @@ class ModerationService(
         val fromDays = window * 90
         val toDays = (window + 1) * 90
         val relation = """
-            EXISTS(
+            (report_log.target_ip = CAST(? AS inet)
+            OR EXISTS(
                 SELECT 1 FROM connection_log cl
                 WHERE cl.user_id = report_log.target_id AND cl.user_ip = ?
-            )
+            ))
         """.trimIndent()
         val items = jdbcTemplate.query(
             """
@@ -1668,6 +1710,7 @@ class ModerationService(
             ORDER BY time DESC, report_id DESC
             """.trimIndent(),
             { rs, _ -> mapReportSummary(rs) },
+            ip,
             ip,
             Timestamp.from(anchor),
             toDays,
@@ -1683,6 +1726,7 @@ class ModerationService(
             )
             """.trimIndent(),
             Boolean::class.java,
+            ip,
             ip,
             Timestamp.from(anchor),
             toDays
@@ -1754,15 +1798,16 @@ class ModerationService(
         val arguments = mutableListOf<Any>().apply {
             addAll(ids)
             add(ip)
+            add(ip)
         }
         val count = jdbcTemplate.queryForObject(
             """
             SELECT COUNT(*) FROM report_log r
             WHERE r.report_id IN ($placeholders)
-              AND EXISTS(
+              AND (r.target_ip = CAST(? AS inet) OR EXISTS(
                   SELECT 1 FROM connection_log cl
                   WHERE cl.user_id = r.target_id AND cl.user_ip = ?
-              )
+              ))
             """.trimIndent(),
             Int::class.java,
             *arguments.toTypedArray()
@@ -1786,10 +1831,17 @@ class ModerationService(
             require(value.length in 8..200) { "올바른 손님 식별번호가 필요합니다." }
             val ip = jdbcTemplate.query(
                 """
-                SELECT user_ip FROM connection_log
-                WHERE user_id = ? ORDER BY time DESC, id DESC LIMIT 1
+                SELECT ip FROM (
+                    SELECT user_ip AS ip, time, id::BIGINT AS ordering FROM connection_log
+                    WHERE user_id = ?
+                    UNION ALL
+                    SELECT target_ip::TEXT AS ip, time, report_id AS ordering FROM report_log
+                    WHERE target_id = ? AND target_ip IS NOT NULL
+                ) sources
+                ORDER BY time DESC, ordering DESC LIMIT 1
                 """.trimIndent(),
-                { rs, _ -> rs.getString("user_ip") },
+                { rs, _ -> rs.getString("ip") },
+                value,
                 value
             ).firstOrNull() ?: throw ResponseStatusException(
                 HttpStatus.NOT_FOUND,
@@ -2113,8 +2165,6 @@ class ModerationService(
     )
 
     private data class ResolvedIpSubject(val ip: String, val guestId: String?)
-
-    private data class StoredIpGeo(val countryCode: String?, val asn: String?, val asName: String?)
 
     private data class LinkedSanction(val caseId: Long, val subjectType: String, val revoked: Boolean)
 

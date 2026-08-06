@@ -48,12 +48,11 @@ class ModerationAuditService(
                'USER',
                regexp_replace(cr.target_key, ':[^:]+$', ''),
                NULL::BYTEA,
-               concat(
+               concat_ws(' · ', concat(
                    '위반 항목 ', cr.response_body ->> 'categoryCode', ' 누적 ',
                    cr.response_body ->> 'previousValue', '회 → ',
-                   cr.response_body ->> 'adjustedValue', '회 · ',
-                   cr.response_body ->> 'reason'
-               ),
+                   cr.response_body ->> 'adjustedValue', '회'
+               ), NULLIF(cr.response_body ->> 'reason', '')),
                cr.actor_id,
                NULL::BIGINT,
                NULL::BIGINT
@@ -67,27 +66,32 @@ class ModerationAuditService(
                CASE cr.command_type
                    WHEN 'CHANGE_NICKNAME' THEN 'NICKNAME_CHANGED'
                    WHEN 'DISCONNECT_USER' THEN 'USER_DISCONNECTED'
+                   WHEN 'SEND_USER_NOTIFICATION' THEN 'USER_NOTIFICATION_QUEUED'
                    ELSE 'FLAGS_UPDATED'
                END,
                'USER',
                cr.target_key,
                NULL::BYTEA,
                CASE cr.command_type
-                   WHEN 'CHANGE_NICKNAME' THEN concat(
+                   WHEN 'CHANGE_NICKNAME' THEN concat_ws(' · ', concat(
                        COALESCE(cr.response_body ->> 'oldNickname', '(없음)'), ' → ',
-                       cr.response_body ->> 'nickname', ' · ', cr.response_body ->> 'reason'
-                   )
-                   WHEN 'DISCONNECT_USER' THEN cr.response_body ->> 'reason'
-                   ELSE concat(
-                       cr.response_body ->> 'flagCount', '개 플래그 저장 · ',
-                       cr.response_body ->> 'reason'
-                   )
+                       cr.response_body ->> 'nickname'
+                   ), NULLIF(cr.response_body ->> 'reason', ''))
+                   WHEN 'DISCONNECT_USER' THEN COALESCE(cr.response_body ->> 'reason', '')
+                   WHEN 'SEND_USER_NOTIFICATION' THEN concat_ws(' · ', concat(
+                       '다음 접속 안내: ', cr.response_body ->> 'message'
+                   ), NULLIF(cr.response_body ->> 'reason', ''))
+                   ELSE concat_ws(' · ', concat(
+                       cr.response_body ->> 'flagCount', '개 플래그 저장'
+                   ), NULLIF(cr.response_body ->> 'reason', ''))
                END,
                cr.actor_id,
                NULL::BIGINT,
                NULL::BIGINT
         FROM moderation_command_requests cr
-        WHERE cr.command_type IN ('CHANGE_NICKNAME', 'DISCONNECT_USER', 'UPDATE_USER_FLAGS')
+        WHERE cr.command_type IN (
+            'CHANGE_NICKNAME', 'DISCONNECT_USER', 'SEND_USER_NOTIFICATION', 'UPDATE_USER_FLAGS'
+        )
 
         UNION ALL
 
@@ -129,10 +133,10 @@ class ModerationAuditService(
                END,
                r.target_id,
                NULL::BYTEA,
-               concat(
+               concat_ws(' · ', concat(
                    '신고 #', cr.target_key, ' · 경기 ', cr.response_body ->> 'gameId',
-                   ' 연결 · ', cr.response_body ->> 'reason'
-               ),
+                   ' 연결'
+               ), NULLIF(cr.response_body ->> 'reason', '')),
                cr.actor_id,
                NULL::BIGINT,
                r.report_id

@@ -220,6 +220,17 @@ class AdminModerationApi(
         service.disconnectUser(userId, body, actor)
     }
 
+    @PostMapping("/users/{userId}/notifications")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun queueNotification(
+        @PathVariable userId: String,
+        @RequestBody body: ModerationNotificationRequest,
+        session: HttpSession
+    ) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
+        service.queueNotification(userId, body, actor)
+    }
+
     @PostMapping("/users/{userId}/flags")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun updateFlags(

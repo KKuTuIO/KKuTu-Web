@@ -79,6 +79,15 @@ class GameClientManager(
         }
     }
 
+    fun requestIpGeo(ip: String): String? {
+        for (client in gameClientList) {
+            if (!client.isConnected()) continue
+            val response = client.requestIpGeo(ip)
+            if (response != null) return response
+        }
+        return null
+    }
+
     override fun requestReplayByGameId(
         gameId: String,
         includePayload: Boolean,

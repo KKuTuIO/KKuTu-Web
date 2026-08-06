@@ -135,7 +135,8 @@ class GameClient(
 
         if (type == "record-find-game-result" ||
             type == "record-find-user-history-result" ||
-            type == "record-find-user-mode-stats-result"
+            type == "record-find-user-mode-stats-result" ||
+            type == "ip-geo-lookup-result"
         ) {
             val requestId = jsonNode["requestId"]?.textValue() ?: return
             val future = pendingRequests.remove(requestId) ?: return
@@ -192,6 +193,13 @@ class GameClient(
         return requestReply(payload)
     }
 
+    fun requestIpGeo(ip: String): String? {
+        val payload = objectMapper.createObjectNode()
+        payload.put("type", "ip-geo-lookup")
+        payload.put("ip", ip)
+        return requestReply(payload)
+    }
+
     private fun requestReply(payload: ObjectNode, timeoutMs: Long = 2500): String? {
         if (!isConnected()) return null
         val requestId = UUID.randomUUID().toString()
@@ -203,7 +211,7 @@ class GameClient(
             future.get(timeoutMs, TimeUnit.MILLISECONDS)
         } catch (e: Exception) {
             pendingRequests.remove(requestId)
-            logger.warn("$port @ 게임서버#${id} 리플레이 요청 실패: ${e.message}")
+            logger.warn("$port @ 게임서버#${id} 요청 실패: ${e.message}")
             invalidateAndReconnect(webSocket)
             null
         }

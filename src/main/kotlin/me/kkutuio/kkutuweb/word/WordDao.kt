@@ -23,6 +23,7 @@ import me.kkutuio.kkutuweb.admin.mapper.SingleNumberMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Component
+import java.sql.PreparedStatement
 
 @Component
 class WordDao(
@@ -33,6 +34,14 @@ class WordDao(
     fun getWords(tableName: String, id: String): List<Word> {
         val sql = "SELECT * FROM $tableName WHERE _id = ?"
         return jdbcTemplate.query(sql, wordMapper, id)
+    }
+
+    fun getWords(tableName: String, ids: Collection<String>): List<Word> {
+        if (ids.isEmpty()) return emptyList()
+
+        val placeholders = ids.joinToString(",") { "?" }
+        val sql = "SELECT * FROM $tableName WHERE _id IN ($placeholders)"
+        return jdbcTemplate.query(sql, wordMapper, *ids.toTypedArray())
     }
 
     fun getWordsFromChar(tableName: String, startChar: String, mission: String?): List<Word> {
@@ -107,6 +116,20 @@ class WordDao(
         )
     }
 
+    fun insertAll(tableName: String, words: List<Word>) {
+        if (words.isEmpty()) return
+
+        val sql = "INSERT INTO $tableName (_id, type, mean, hit, flag, theme) VALUES (?, ?, ?, ?, ?, ?)"
+        jdbcTemplate.batchUpdate(sql, words, words.size) { statement: PreparedStatement, word: Word ->
+            statement.setString(1, word.id)
+            statement.setString(2, word.type)
+            statement.setString(3, word.mean)
+            statement.setInt(4, word.hit)
+            statement.setInt(5, word.flag)
+            statement.setString(6, word.theme)
+        }
+    }
+
     fun update(tableName: String, wordName: String, values: Map<String, Any?>) {
         val setString = values.entries.joinToString(",") {
             "${it.key}=?"
@@ -119,9 +142,31 @@ class WordDao(
         jdbcTemplate.update(sql, *valueString.toTypedArray())
     }
 
+    fun updateAll(tableName: String, words: List<Word>) {
+        if (words.isEmpty()) return
+
+        val sql = "UPDATE $tableName SET type = ?, mean = ?, flag = ?, theme = ? WHERE _id = ?"
+        jdbcTemplate.batchUpdate(sql, words, words.size) { statement: PreparedStatement, word: Word ->
+            statement.setString(1, word.type)
+            statement.setString(2, word.mean)
+            statement.setInt(3, word.flag)
+            statement.setString(4, word.theme)
+            statement.setString(5, word.id)
+        }
+    }
+
     fun remove(tableName: String, wordName: String) {
         val sql = "DELETE FROM $tableName WHERE _id = ?;"
         jdbcTemplate.update(sql, wordName)
+    }
+
+    fun removeAll(tableName: String, wordNames: List<String>) {
+        if (wordNames.isEmpty()) return
+
+        val sql = "DELETE FROM $tableName WHERE _id = ?"
+        jdbcTemplate.batchUpdate(sql, wordNames, wordNames.size) { statement: PreparedStatement, wordName: String ->
+            statement.setString(1, wordName)
+        }
     }
 
     fun isDuplicate(tableName: String, wordName: String): Boolean {

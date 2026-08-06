@@ -20,8 +20,16 @@ package me.kkutuio.kkutuweb.admin.service
 
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.api.request.UpdateLogRequest
+import me.kkutuio.kkutuweb.admin.api.request.BulkWordAddRequest
+import me.kkutuio.kkutuweb.admin.api.request.BulkWordDeleteRequest
 import me.kkutuio.kkutuweb.admin.api.request.WordEditRequest
 import me.kkutuio.kkutuweb.admin.api.response.ActionResponse
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordAddPreview
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordDeleteItem
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordDeletePreview
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordFailure
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordResult
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordThemeGroup
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.api.response.RestResult
 import me.kkutuio.kkutuweb.admin.api.response.WordResult
@@ -30,9 +38,11 @@ import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import me.kkutuio.kkutuweb.admin.vo.WordVO
 import me.kkutuio.kkutuweb.word.Word
 import me.kkutuio.kkutuweb.word.WordDao
+import me.kkutuio.kkutuweb.word.WordTheme
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
@@ -41,6 +51,10 @@ class AdminWordService(
     @Autowired private val wordAuditLogDAO: WordAuditLogDAO
 ) {
     private val logger = LoggerFactory.getLogger(AdminWordService::class.java)
+
+    companion object {
+        private const val MAX_BULK_WORDS = 5000
+    }
 
     fun getWordListRes(
         lang: String,
@@ -233,6 +247,286 @@ class AdminWordService(
 
         return ActionResponse.success()
     }
+
+    fun previewBulkAdd(lang: String, request: BulkWordAddRequest): ActionResponse {
+        val tableName = getTableName(lang)
+        if (tableName.isEmpty() || !isValidBulkRequest(request.words) || request.details.isEmpty()) {
+            return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        }
+
+        val (words, duplicateInputWords) = normalizeWords(request.words)
+        val groupedExistingWords = wordDao.getWords(tableName, words).groupBy { it.id }
+        val additions = ArrayList<String>()
+        val meaningAdditions = ArrayList<String>()
+        val duplicates = ArrayList<String>()
+        val failures = ArrayList<BulkWordFailure>()
+
+        words.forEach { wordName ->
+            if (!isValidWord(lang, wordName)) {
+                failures.add(invalidWordFailure(wordName))
+                return@forEach
+            }
+
+            val existingWords = groupedExistingWords[wordName].orEmpty()
+            when {
+                existingWords.size > 1 -> failures.add(nonUniqueFailure(wordName))
+                existingWords.isEmpty() -> additions.add(wordName)
+                BulkWordDefinition.missingDetails(existingWords[0], request.details).isEmpty() -> duplicates.add(wordName)
+                else -> meaningAdditions.add(wordName)
+            }
+        }
+
+        return ActionResponse.success(
+            BulkWordAddPreview(
+                totalCount = words.size,
+                additions = additions,
+                meaningAdditions = meaningAdditions,
+                duplicates = duplicates,
+                duplicateInputWords = duplicateInputWords,
+                failures = failures,
+                details = request.details
+            )
+        )
+    }
+
+    @Transactional
+    fun bulkAdd(adminId: String, lang: String, request: BulkWordAddRequest): ActionResponse {
+        val tableName = getTableName(lang)
+        if (tableName.isEmpty() || !isValidBulkRequest(request.words) || request.details.isEmpty()) {
+            return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        }
+
+        val (words, _) = normalizeWords(request.words)
+        val meaningAdditionWords = request.meaningAdditionWords.toSet()
+        val groupedExistingWords = wordDao.getWords(tableName, words).groupBy { it.id }
+        val newWords = ArrayList<Word>()
+        val updatedWords = ArrayList<Pair<Word, Word>>()
+        val failures = ArrayList<BulkWordFailure>()
+        var skippedCount = 0
+
+        words.forEach { wordName ->
+            if (!isValidWord(lang, wordName)) {
+                failures.add(invalidWordFailure(wordName))
+                return@forEach
+            }
+
+            val existingWords = groupedExistingWords[wordName].orEmpty()
+            if (existingWords.size > 1) {
+                failures.add(nonUniqueFailure(wordName))
+                return@forEach
+            }
+
+            if (existingWords.isEmpty()) {
+                newWords.add(newWord(wordName, request))
+                return@forEach
+            }
+
+            val oldWord = existingWords[0]
+            val missingDetails = BulkWordDefinition.missingDetails(oldWord, request.details)
+            if (wordName !in meaningAdditionWords || missingDetails.isEmpty()) {
+                skippedCount++
+                return@forEach
+            }
+
+            updatedWords.add(oldWord to BulkWordDefinition.appendDetails(oldWord, request.flags, missingDetails))
+        }
+
+        wordDao.insertAll(tableName, newWords)
+        wordDao.updateAll(tableName, updatedWords.map { it.second })
+
+        val now = LocalDateTime.now()
+        val auditLogs = newWords.map { newWord ->
+            WordAuditLog(
+                time = now,
+                word = newWord.id,
+                type = WordAuditLog.WordAuditLogType.CREATE,
+                newType = newWord.type,
+                newMean = newWord.mean,
+                newFlag = newWord.flag,
+                newTheme = newWord.theme,
+                updateLogIgnore = request.updateLogIgnore,
+                updateLogIncludeDetail = request.updateLogIncludeDetail,
+                admin = adminId
+            )
+        } + updatedWords.map { (oldWord, newWord) ->
+            WordAuditLog(
+                time = now,
+                word = newWord.id,
+                type = WordAuditLog.WordAuditLogType.UPDATE,
+                oldType = oldWord.type,
+                oldMean = oldWord.mean,
+                oldFlag = oldWord.flag,
+                oldTheme = oldWord.theme,
+                newType = newWord.type,
+                newMean = newWord.mean,
+                newFlag = newWord.flag,
+                newTheme = newWord.theme,
+                updateLogIgnore = request.updateLogIgnore,
+                updateLogIncludeDetail = request.updateLogIncludeDetail,
+                admin = adminId
+            )
+        }
+        wordAuditLogDAO.insertAll(lang, auditLogs)
+
+        val successCount = newWords.size + updatedWords.size
+        return ActionResponse.success(
+            BulkWordResult(
+                requestedCount = words.size,
+                successCount = successCount,
+                createdCount = newWords.size,
+                meaningAddedCount = updatedWords.size,
+                skippedCount = skippedCount,
+                failures = failures
+            )
+        )
+    }
+
+    fun previewBulkDelete(lang: String, request: BulkWordDeleteRequest): ActionResponse {
+        val tableName = getTableName(lang)
+        if (tableName.isEmpty() || !isValidBulkRequest(request.words)) {
+            return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        }
+
+        val (words, duplicateInputWords) = normalizeWords(request.words)
+        val groupedExistingWords = wordDao.getWords(tableName, words).groupBy { it.id }
+        val multiThemeWords = ArrayList<BulkWordDeleteItem>()
+        val themeGroups = LinkedHashMap<String, MutableList<String>>()
+        val noThemeWords = ArrayList<String>()
+        val failures = ArrayList<BulkWordFailure>()
+
+        words.forEach { wordName ->
+            if (!isValidWord(lang, wordName)) {
+                failures.add(invalidWordFailure(wordName))
+                return@forEach
+            }
+
+            val existingWords = groupedExistingWords[wordName].orEmpty()
+            if (existingWords.isEmpty()) {
+                failures.add(BulkWordFailure(wordName, "NOT_FOUND", "존재하지 않는 단어입니다."))
+                return@forEach
+            }
+            if (existingWords.size > 1) {
+                failures.add(nonUniqueFailure(wordName))
+                return@forEach
+            }
+
+            val themeCodes = existingWords[0].theme.split(",")
+                .filter { it.isNotBlank() && it != "0" }
+                .distinct()
+            when {
+                themeCodes.size >= 2 -> multiThemeWords.add(
+                    BulkWordDeleteItem(wordName, themeCodes.map(::themeName))
+                )
+                themeCodes.size == 1 -> themeGroups.getOrPut(themeCodes[0]) { ArrayList() }.add(wordName)
+                else -> noThemeWords.add(wordName)
+            }
+        }
+
+        val groups = themeGroups.map { (themeCode, groupWords) ->
+            BulkWordThemeGroup(themeCode, themeName(themeCode), groupWords)
+        }
+        val totalCount = multiThemeWords.size + groups.sumOf { it.words.size } + noThemeWords.size
+        return ActionResponse.success(
+            BulkWordDeletePreview(
+                totalCount = totalCount,
+                multiThemeWords = multiThemeWords,
+                themeGroups = groups,
+                noThemeWords = noThemeWords,
+                duplicateInputWords = duplicateInputWords,
+                failures = failures
+            )
+        )
+    }
+
+    @Transactional
+    fun bulkDelete(adminId: String, lang: String, request: BulkWordDeleteRequest): ActionResponse {
+        val tableName = getTableName(lang)
+        if (tableName.isEmpty() || !isValidBulkRequest(request.words)) {
+            return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        }
+
+        val (words, _) = normalizeWords(request.words)
+        val groupedExistingWords = wordDao.getWords(tableName, words).groupBy { it.id }
+        val deletingWords = ArrayList<Word>()
+        val failures = ArrayList<BulkWordFailure>()
+
+        words.forEach { wordName ->
+            if (!isValidWord(lang, wordName)) {
+                failures.add(invalidWordFailure(wordName))
+                return@forEach
+            }
+
+            val existingWords = groupedExistingWords[wordName].orEmpty()
+            when {
+                existingWords.isEmpty() -> failures.add(BulkWordFailure(wordName, "NOT_FOUND", "존재하지 않는 단어입니다."))
+                existingWords.size > 1 -> failures.add(nonUniqueFailure(wordName))
+                else -> deletingWords.add(existingWords[0])
+            }
+        }
+
+        wordDao.removeAll(tableName, deletingWords.map { it.id })
+        val now = LocalDateTime.now()
+        wordAuditLogDAO.insertAll(lang, deletingWords.map { oldWord ->
+            WordAuditLog(
+                time = now,
+                word = oldWord.id,
+                type = WordAuditLog.WordAuditLogType.DELETE,
+                oldType = oldWord.type,
+                oldMean = oldWord.mean,
+                oldFlag = oldWord.flag,
+                oldTheme = oldWord.theme,
+                updateLogIgnore = request.updateLogIgnore,
+                updateLogIncludeDetail = request.updateLogIncludeDetail,
+                admin = adminId
+            )
+        })
+
+        return ActionResponse.success(
+            BulkWordResult(
+                requestedCount = words.size,
+                successCount = deletingWords.size,
+                deletedCount = deletingWords.size,
+                failures = failures
+            )
+        )
+    }
+
+    private fun isValidBulkRequest(words: List<String>): Boolean =
+        words.isNotEmpty() && words.size <= MAX_BULK_WORDS && words.any { it.isNotBlank() }
+
+    private fun normalizeWords(words: List<String>): Pair<List<String>, List<String>> {
+        val uniqueWords = LinkedHashSet<String>()
+        val duplicateWords = LinkedHashSet<String>()
+        words.map { it.trim() }.filter { it.isNotEmpty() }.forEach {
+            if (!uniqueWords.add(it)) duplicateWords.add(it)
+        }
+        return uniqueWords.toList() to duplicateWords.toList()
+    }
+
+    private fun isValidWord(lang: String, word: String): Boolean = when (lang) {
+        "ko" -> word.matches("^[ㄱ-ㅎ가-힣0-9]+$".toRegex())
+        "en" -> word.matches("^[A-Za-z0-9][A-Za-z0-9 ']*$".toRegex())
+        else -> false
+    }
+
+    private fun invalidWordFailure(word: String) = BulkWordFailure(
+        word,
+        "INVALID_WORD",
+        "언어별 단어 입력 규칙에 맞지 않습니다."
+    )
+
+    private fun nonUniqueFailure(word: String) = BulkWordFailure(
+        word,
+        WordResult.NON_UNIQUE.name,
+        WordResult.NON_UNIQUE.message
+    )
+
+    private fun newWord(wordName: String, request: BulkWordAddRequest): Word = Word.convertFrom(
+        WordVO(wordName, 0, request.flags, request.details)
+    )
+
+    private fun themeName(themeCode: String): String =
+        WordTheme.findByCode(themeCode)?.themeName ?: themeCode
 
     private fun getTableName(lang: String): String {
         return when (lang) {

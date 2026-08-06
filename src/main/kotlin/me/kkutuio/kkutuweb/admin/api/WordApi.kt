@@ -19,6 +19,8 @@
 package me.kkutuio.kkutuweb.admin.api
 
 import me.kkutuio.kkutuweb.admin.api.request.UpdateLogRequest
+import me.kkutuio.kkutuweb.admin.api.request.BulkWordAddRequest
+import me.kkutuio.kkutuweb.admin.api.request.BulkWordDeleteRequest
 import me.kkutuio.kkutuweb.admin.api.request.WordEditRequest
 import me.kkutuio.kkutuweb.admin.api.response.ActionResponse
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
@@ -203,5 +205,87 @@ class WordApi(
         logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어를 추가했습니다. 언어: $lang / 단어: $word")
 
         return actionResponse
+    }
+
+    @PostMapping("/{lang}/bulk/preview")
+    fun previewBulkAdd(
+        @PathVariable lang: String,
+        @RequestBody bulkWordAddRequest: BulkWordAddRequest,
+        request: HttpServletRequest, session: HttpSession
+    ): ActionResponse {
+        val adminId = authorizedAdminId(session, "단어 대량 추가 사전 확인")
+            ?: return unauthorizedResponse(session)
+
+        val actionResponse = adminWordService.previewBulkAdd(lang, bulkWordAddRequest)
+        logger.info("[${request.getIp()}] $adminId 님이 단어 대량 추가 사전 확인을 요청했습니다. 언어: $lang / 입력 개수: ${bulkWordAddRequest.words.size}")
+        return actionResponse
+    }
+
+    @PostMapping("/{lang}/bulk")
+    fun bulkAdd(
+        @PathVariable lang: String,
+        @RequestBody bulkWordAddRequest: BulkWordAddRequest,
+        request: HttpServletRequest, session: HttpSession
+    ): ActionResponse {
+        val adminId = authorizedAdminId(session, "단어 대량 추가")
+            ?: return unauthorizedResponse(session)
+
+        val actionResponse = adminWordService.bulkAdd(adminId, lang, bulkWordAddRequest)
+        logger.info("[${request.getIp()}] $adminId 님이 단어 대량 추가를 요청했습니다. 언어: $lang / 입력 개수: ${bulkWordAddRequest.words.size}")
+        return actionResponse
+    }
+
+    @PostMapping("/{lang}/bulk-delete/preview")
+    fun previewBulkDelete(
+        @PathVariable lang: String,
+        @RequestBody bulkWordDeleteRequest: BulkWordDeleteRequest,
+        request: HttpServletRequest, session: HttpSession
+    ): ActionResponse {
+        val adminId = authorizedAdminId(session, "단어 대량 삭제 사전 확인")
+            ?: return unauthorizedResponse(session)
+
+        val actionResponse = adminWordService.previewBulkDelete(lang, bulkWordDeleteRequest)
+        logger.info("[${request.getIp()}] $adminId 님이 단어 대량 삭제 사전 확인을 요청했습니다. 언어: $lang / 입력 개수: ${bulkWordDeleteRequest.words.size}")
+        return actionResponse
+    }
+
+    @PostMapping("/{lang}/bulk-delete")
+    fun bulkDelete(
+        @PathVariable lang: String,
+        @RequestBody bulkWordDeleteRequest: BulkWordDeleteRequest,
+        request: HttpServletRequest, session: HttpSession
+    ): ActionResponse {
+        val adminId = authorizedAdminId(session, "단어 대량 삭제")
+            ?: return unauthorizedResponse(session)
+
+        val actionResponse = adminWordService.bulkDelete(adminId, lang, bulkWordDeleteRequest)
+        logger.info("[${request.getIp()}] $adminId 님이 단어 대량 삭제를 요청했습니다. 언어: $lang / 입력 개수: ${bulkWordDeleteRequest.words.size}")
+        return actionResponse
+    }
+
+    private fun authorizedAdminId(session: HttpSession, action: String): String? {
+        val sessionProfile = loginService.getSessionProfile(session)
+        if (sessionProfile == null) {
+            logger.warn("인증되지 않은 회원으로부터 $action 요청이 차단되었습니다.")
+            return null
+        }
+        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+            logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 $action 요청이 차단되었습니다.")
+            return null
+        }
+        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id } ?: return null
+        if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
+            logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 $action 요청이 차단되었습니다.")
+            return null
+        }
+        return sessionProfile.id
+    }
+
+    private fun unauthorizedResponse(session: HttpSession): ActionResponse {
+        return if (loginService.getSessionProfile(session) == null) {
+            ActionResponse.rest(success = false, restResult = RestResult.UNAUTHENTICATED)
+        } else {
+            ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
+        }
     }
 }

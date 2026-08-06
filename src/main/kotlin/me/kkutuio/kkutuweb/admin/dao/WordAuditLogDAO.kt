@@ -26,6 +26,7 @@ import me.kkutuio.kkutuweb.extension.toTimestamp
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.sql.PreparedStatement
 
 @Repository
 class WordAuditLogDAO(
@@ -81,6 +82,30 @@ class WordAuditLogDAO(
             wordAuditLog.updateLogIncludeDetail,
             wordAuditLog.admin
         )
+    }
+
+    fun insertAll(lang: String, wordAuditLogs: List<WordAuditLog>) {
+        if (wordAuditLogs.isEmpty()) return
+
+        val sql =
+            "INSERT INTO kkutu_${lang}_audit_log (log_time, log_type, word, old_type, old_mean, old_flag, old_theme, new_type, new_mean, new_flag, new_theme, update_log_ignore, update_log_include_detail, admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+
+        jdbcTemplate.batchUpdate(sql, wordAuditLogs, wordAuditLogs.size) { statement: PreparedStatement, log: WordAuditLog ->
+            statement.setTimestamp(1, log.time.toTimestamp())
+            statement.setString(2, log.type.name)
+            statement.setString(3, log.word)
+            statement.setString(4, log.oldType)
+            statement.setString(5, log.oldMean)
+            if (log.oldFlag == null) statement.setObject(6, null) else statement.setInt(6, log.oldFlag)
+            statement.setString(7, log.oldTheme)
+            statement.setString(8, log.newType)
+            statement.setString(9, log.newMean)
+            if (log.newFlag == null) statement.setObject(10, null) else statement.setInt(10, log.newFlag)
+            statement.setString(11, log.newTheme)
+            statement.setBoolean(12, log.updateLogIgnore)
+            statement.setBoolean(13, log.updateLogIncludeDetail)
+            statement.setString(14, log.admin)
+        }
     }
 
     private fun whereQuery(searchFilters: Map<String, String>): String {

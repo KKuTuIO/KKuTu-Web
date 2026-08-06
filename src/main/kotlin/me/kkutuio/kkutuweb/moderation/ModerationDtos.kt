@@ -250,5 +250,17 @@ data class ModerationAuditEntry(
     val detail: String,
     val admin: String,
     val caseId: Long?,
-    val reportId: Long?
+    val reportId: Long?,
+    val reports: List<ModerationAuditReportReference> = emptyList()
+)
+
+data class ModerationAuditReportReference(
+    val reportId: Long,
+    val time: String,
+    val status: String,
+    val categoryCode: String?,
+    val reason: String,
+    val reporterId: String,
+    val targetId: String,
+    val targetType: String?
 )

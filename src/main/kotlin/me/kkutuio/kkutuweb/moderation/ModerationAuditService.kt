@@ -190,6 +190,65 @@ class ModerationAuditService(
             *pageParameters
         )
 
-        return ListResponse(total, rows)
+        val sanctionCaseIds = rows
+            .filter { it.logType == "SANCTION_ISSUED" || it.logType == "SANCTION_REVOKED" }
+            .mapNotNull { it.caseId }
+            .distinct()
+        val reportsByCase = loadReportsByCase(sanctionCaseIds)
+        val reportsById = loadReportsById(rows.mapNotNull { it.reportId }.distinct())
+        val enrichedRows = rows.map { entry ->
+            val reports = buildList {
+                if (entry.logType == "SANCTION_ISSUED" || entry.logType == "SANCTION_REVOKED") {
+                    entry.caseId?.let { addAll(reportsByCase[it].orEmpty()) }
+                }
+                entry.reportId?.let { reportsById[it]?.let(::add) }
+            }.distinctBy { it.reportId }
+            entry.copy(reports = reports)
+        }
+
+        return ListResponse(total, enrichedRows)
     }
+
+    private fun loadReportsByCase(caseIds: List<Long>): Map<Long, List<ModerationAuditReportReference>> {
+        if (caseIds.isEmpty()) return emptyMap()
+        val placeholders = caseIds.joinToString(",") { "?" }
+        return jdbcTemplate.query(
+            """
+            SELECT mcr.case_id, r.report_id, r.time, r.status, r.category_code,
+                   r.reason, r.reporter_id, r.target_id, r.target_type
+            FROM moderation_case_reports mcr
+            JOIN report_log r ON r.report_id = mcr.report_id
+            WHERE mcr.case_id IN ($placeholders)
+            ORDER BY r.report_id
+            """.trimIndent(),
+            { rs, _ -> rs.getLong("case_id") to mapReportReference(rs) },
+            *caseIds.toTypedArray<Any>()
+        ).groupBy({ it.first }, { it.second })
+    }
+
+    private fun loadReportsById(reportIds: List<Long>): Map<Long, ModerationAuditReportReference> {
+        if (reportIds.isEmpty()) return emptyMap()
+        val placeholders = reportIds.joinToString(",") { "?" }
+        return jdbcTemplate.query(
+            """
+            SELECT report_id, time, status, category_code, reason,
+                   reporter_id, target_id, target_type
+            FROM report_log
+            WHERE report_id IN ($placeholders)
+            """.trimIndent(),
+            { rs, _ -> mapReportReference(rs) },
+            *reportIds.toTypedArray<Any>()
+        ).associateBy { it.reportId }
+    }
+
+    private fun mapReportReference(rs: java.sql.ResultSet) = ModerationAuditReportReference(
+        reportId = rs.getLong("report_id"),
+        time = DateFactory.DATABASE_FORMAT.format(rs.getTimestamp("time").toLocalDateTime()),
+        status = rs.getString("status") ?: "PENDING",
+        categoryCode = rs.getString("category_code"),
+        reason = rs.getString("reason") ?: "",
+        reporterId = rs.getString("reporter_id") ?: "",
+        targetId = rs.getString("target_id") ?: "",
+        targetType = rs.getString("target_type")
+    )
 }

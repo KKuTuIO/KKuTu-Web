@@ -240,3 +240,15 @@ data class ModerationCategorySummary(
     val name: String,
     val requiresOverride: Boolean
 )
+
+data class ModerationAuditEntry(
+    val id: String,
+    val logTime: String,
+    val logType: String,
+    val targetType: String,
+    val targetId: String?,
+    val detail: String,
+    val admin: String,
+    val caseId: Long?,
+    val reportId: Long?
+)

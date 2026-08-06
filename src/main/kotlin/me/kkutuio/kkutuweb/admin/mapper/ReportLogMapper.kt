@@ -31,6 +31,7 @@ class ReportLogMapper : RowMapper<ReportLog> {
         val reporterId = rs.getString("reporter_id")
         val reporterNick = rs.getString("reporter_nick")
         val targetId = rs.getString("target_id")
+        val targetType = rs.getString("target_type")
         val reason = rs.getString("reason")
         val fileName = rs.getString("file_name")
 
@@ -40,6 +41,7 @@ class ReportLogMapper : RowMapper<ReportLog> {
             reporterId,
             reporterNick,
             targetId,
+            targetType,
             reason,
             fileName
         )

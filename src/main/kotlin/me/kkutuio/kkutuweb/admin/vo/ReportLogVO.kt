@@ -28,6 +28,7 @@ data class ReportLogVO(
     @JsonProperty("reporter_id") val reporterId: String,
     @JsonProperty("reporter_nick") val reporterNick: String,
     @JsonProperty("target_id") val targetId: String,
+    @JsonProperty("target_type") val targetType: String,
     @JsonProperty("reason") val reason: String,
     @JsonProperty("file_name") val fileName: String
 ) {
@@ -39,6 +40,7 @@ data class ReportLogVO(
                 reporterId = reportLog.reporterId,
                 reporterNick = reportLog.reporterNick ?: "",
                 targetId = reportLog.targetId,
+                targetType = reportLog.targetType ?: "USER",
                 reason = reportLog.reason,
                 fileName = reportLog.fileName
             )

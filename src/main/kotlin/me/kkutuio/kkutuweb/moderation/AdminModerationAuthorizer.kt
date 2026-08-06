@@ -23,4 +23,10 @@ class AdminModerationAuthorizer(
         }
         return profile.id
     }
+
+    fun hasPrivilege(session: HttpSession, privilege: AdminSetting.Privilege): Boolean {
+        val profile = loginService.getSessionProfile(session) ?: return false
+        val admin = setting.getAdmins().firstOrNull { it.id == profile.id } ?: return false
+        return privilege in admin.privileges
+    }
 }

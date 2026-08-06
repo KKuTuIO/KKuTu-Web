@@ -1,5 +1,6 @@
 package me.kkutuio.kkutuweb.moderation
 
+import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.setting.AdminSetting
 import org.springframework.http.HttpStatus
@@ -18,12 +19,39 @@ import javax.servlet.http.HttpSession
 @RequestMapping("/api/admin/moderation")
 class AdminModerationApi(
     private val authorizer: AdminModerationAuthorizer,
-    private val service: ModerationService
+    private val service: ModerationService,
+    private val auditService: ModerationAuditService
 ) {
     @GetMapping("/policy")
     fun policy(session: HttpSession): ModerationPolicySummary {
         authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
         return service.policySummary()
+    }
+
+    @GetMapping("/audits")
+    fun audits(
+        @RequestParam page: Int,
+        @RequestParam(name = "size") pageSize: Int,
+        @RequestParam sort: String,
+        @RequestParam(name = "log_type", defaultValue = "") logType: String,
+        @RequestParam(name = "target_id", defaultValue = "") targetId: String,
+        @RequestParam(defaultValue = "") detail: String,
+        @RequestParam(defaultValue = "") admin: String,
+        session: HttpSession
+    ): ListResponse<ModerationAuditEntry> {
+        authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        return auditService.getAudits(
+            page = page,
+            pageSize = pageSize,
+            sortData = sort,
+            filters = mapOf(
+                "log_type" to logType,
+                "target_id" to targetId,
+                "detail" to detail,
+                "admin" to admin
+            ),
+            includeIpAddress = authorizer.hasPrivilege(session, AdminSetting.Privilege.CONNECTION_LOG)
+        )
     }
 
     @PostMapping("/policy/reload")

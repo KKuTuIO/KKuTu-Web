@@ -111,6 +111,9 @@ class AdminModerationApi(
         if (body.custom != null) {
             authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
         }
+        if (body.overrideCaseId != null) {
+            authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_REVOKE)
+        }
         return service.preview(body)
     }
 
@@ -128,6 +131,9 @@ class AdminModerationApi(
         if (body.reportIds.isNotEmpty()) {
             authorizer.require(session, AdminSetting.Privilege.REPORT_RESOLVE)
         }
+        if (body.overrideCaseId != null) {
+            authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_REVOKE)
+        }
         return service.issue(body, actor, request.getIp())
     }
 
@@ -138,6 +144,7 @@ class AdminModerationApi(
     ): Any {
         authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_ISSUE)
         authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        if (body.overrideCaseId != null) authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_REVOKE)
         return service.previewIp(body)
     }
 
@@ -151,6 +158,7 @@ class AdminModerationApi(
         val actor = authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_ISSUE)
         authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
         if (body.reportIds.isNotEmpty()) authorizer.require(session, AdminSetting.Privilege.REPORT_RESOLVE)
+        if (body.overrideCaseId != null) authorizer.require(session, AdminSetting.Privilege.USER_SANCTION_REVOKE)
         return service.issueIp(body, actor, request.getIp())
     }
 
@@ -188,6 +196,39 @@ class AdminModerationApi(
     ) {
         val actor = authorizer.require(session, AdminSetting.Privilege.SANCTION_COUNTER_RESET)
         service.adjustCounter(userId, body, actor)
+    }
+
+    @PostMapping("/users/{userId}/nickname")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun changeNickname(
+        @PathVariable userId: String,
+        @RequestBody body: ModerationNicknameChangeRequest,
+        session: HttpSession
+    ) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
+        service.changeNickname(userId, body, actor)
+    }
+
+    @PostMapping("/users/{userId}/disconnect")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun disconnectUser(
+        @PathVariable userId: String,
+        @RequestBody body: ModerationDisconnectRequest,
+        session: HttpSession
+    ) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
+        service.disconnectUser(userId, body, actor)
+    }
+
+    @PostMapping("/users/{userId}/flags")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun updateFlags(
+        @PathVariable userId: String,
+        @RequestBody body: ModerationFlagsUpdateRequest,
+        session: HttpSession
+    ) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
+        service.updateFlags(userId, body, actor)
     }
 
     @PostMapping("/reports/{reportId}/resolve")

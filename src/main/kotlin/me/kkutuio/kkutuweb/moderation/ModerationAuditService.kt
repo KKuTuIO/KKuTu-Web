@@ -62,9 +62,42 @@ class ModerationAuditService(
 
         UNION ALL
 
+        SELECT 'COMMAND:' || cr.request_id,
+               cr.created_at,
+               CASE cr.command_type
+                   WHEN 'CHANGE_NICKNAME' THEN 'NICKNAME_CHANGED'
+                   WHEN 'DISCONNECT_USER' THEN 'USER_DISCONNECTED'
+                   ELSE 'FLAGS_UPDATED'
+               END,
+               'USER',
+               cr.target_key,
+               NULL::BYTEA,
+               CASE cr.command_type
+                   WHEN 'CHANGE_NICKNAME' THEN concat(
+                       COALESCE(cr.response_body ->> 'oldNickname', '(없음)'), ' → ',
+                       cr.response_body ->> 'nickname', ' · ', cr.response_body ->> 'reason'
+                   )
+                   WHEN 'DISCONNECT_USER' THEN cr.response_body ->> 'reason'
+                   ELSE concat(
+                       cr.response_body ->> 'flagCount', '개 플래그 저장 · ',
+                       cr.response_body ->> 'reason'
+                   )
+               END,
+               cr.actor_id,
+               NULL::BIGINT,
+               NULL::BIGINT
+        FROM moderation_command_requests cr
+        WHERE cr.command_type IN ('CHANGE_NICKNAME', 'DISCONNECT_USER', 'UPDATE_USER_FLAGS')
+
+        UNION ALL
+
         SELECT 'REPORT_RESOLVED:' || r.report_id,
                r.resolved_at,
-               CASE WHEN r.status = 'ACTIONED' THEN 'REPORT_ACTIONED' ELSE 'REPORT_REJECTED' END,
+               CASE r.status
+                   WHEN 'RESOLVED' THEN 'REPORT_RESOLVED'
+                   WHEN 'OVERRIDDEN' THEN 'REPORT_OVERRIDDEN'
+                   ELSE 'REPORT_REJECTED'
+               END,
                CASE
                    WHEN r.target_id LIKE 'guest\_\_%' ESCAPE '\' THEN 'GUEST'
                    WHEN r.target_type IN ('ROOM', 'UGC') THEN r.target_type
@@ -77,7 +110,11 @@ class ModerationAuditService(
                mcr.case_id,
                r.report_id
         FROM report_log r
-        LEFT JOIN moderation_case_reports mcr ON mcr.report_id = r.report_id
+        LEFT JOIN LATERAL (
+            SELECT case_id FROM moderation_case_reports
+            WHERE report_id = r.report_id
+            ORDER BY case_id DESC LIMIT 1
+        ) mcr ON TRUE
         WHERE r.resolved_at IS NOT NULL AND r.resolved_by IS NOT NULL
 
         UNION ALL

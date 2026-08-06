@@ -1,6 +1,7 @@
 package me.kkutuio.kkutuweb.moderation
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.core.type.TypeReference
 import me.kkutuio.kkutuweb.game.GameClientManager
 import me.kkutuio.kkutuweb.geo.GeoService
@@ -32,6 +33,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.math.sqrt
 
 @Service
@@ -81,6 +84,7 @@ class ModerationService(
         val reportPage = reports(userId, 0, reportsAnchor)
         return ModerationUserDetail(
             user = toSummary(user),
+            flags = user.flags,
             counters = currentCounters(userId),
             history = history(userId, 50),
             reports = reportPage.reports,
@@ -188,9 +192,18 @@ class ModerationService(
             reportId
         ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "신고를 찾을 수 없습니다.")
 
-        val linkedCaseId = jdbcTemplate.query(
-            "SELECT case_id FROM moderation_case_reports WHERE report_id = ? ORDER BY case_id DESC LIMIT 1",
-            { rs, _ -> rs.getLong("case_id") },
+        val linkedSanction = jdbcTemplate.query(
+            """
+            SELECT c.case_id, c.subject_type, c.revoked_at
+            FROM moderation_case_reports cr
+            JOIN moderation_cases c ON c.case_id = cr.case_id
+            WHERE cr.report_id = ? ORDER BY c.case_id DESC LIMIT 1
+            """.trimIndent(),
+            { rs, _ -> LinkedSanction(
+                rs.getLong("case_id"),
+                rs.getString("subject_type"),
+                rs.getTimestamp("revoked_at") != null
+            ) },
             reportId
         ).firstOrNull()
         val currentReporter = userDao.getUser(report.reporterId)
@@ -227,7 +240,9 @@ class ModerationService(
             resolvedAt = report.resolvedAt,
             resolvedBy = report.resolvedBy,
             resolutionNote = report.resolutionNote,
-            linkedSanctionCaseId = linkedCaseId,
+            linkedSanctionCaseId = linkedSanction?.caseId,
+            linkedSanctionSubjectType = linkedSanction?.subjectType,
+            linkedSanctionRevoked = linkedSanction?.revoked ?: false,
             gameReferences = reportGameReferences(report),
             suspicionReferences = reportSuspicionReferences(report)
         )
@@ -306,6 +321,7 @@ class ModerationService(
 
     fun preview(request: SanctionPreviewRequest): ModerationPolicyPreview {
         requireUser(request.userId)
+        request.overrideCaseId?.let { requireOverrideSubject(it, "USER", request.userId) }
         request.custom?.let { custom ->
             require(request.categoryCodes.isEmpty()) { "정책 제재와 사용자 지정 제재를 동시에 선택할 수 없습니다." }
             return policyEngine.previewCustom(
@@ -317,7 +333,7 @@ class ModerationService(
         }
         return policyEngine.preview(
             request.categoryCodes,
-            currentCounters(request.userId),
+            currentCounters(request.userId, request.overrideCaseId),
             request.occurredAt ?: Instant.now()
         )
     }
@@ -325,10 +341,11 @@ class ModerationService(
     fun previewIp(request: IpSanctionPreviewRequest): ModerationPolicyPreview {
         val resolved = resolveIpSubject(request.subject)
         val hash = ipSubjectCodec.hash(resolved.ip)
+        request.overrideCaseId?.let { requireOverrideSubject(it, "IP", hash) }
         return policyEngine.previewGuestIp(
             request.categoryCodes,
-            currentIpCounters(hash),
-            ipOffenseCount(hash),
+            currentIpCounters(hash, request.overrideCaseId),
+            ipOffenseCount(hash, request.overrideCaseId),
             request.occurredAt ?: Instant.now()
         )
     }
@@ -349,8 +366,8 @@ class ModerationService(
         )
         val preview = policyEngine.previewGuestIp(
             request.categoryCodes,
-            currentIpCounters(hash),
-            ipOffenseCount(hash),
+            currentIpCounters(hash, request.overrideCaseId),
+            ipOffenseCount(hash, request.overrideCaseId),
             request.occurredAt
         )
         if (preview.requiresApproval) {
@@ -360,6 +377,10 @@ class ModerationService(
             ?: request.summary.trim()
         require(displayReason.isNotBlank()) { "표시할 제재 사유를 결정할 수 없습니다." }
         validateIpReports(request.reportIds, resolved.ip)
+        request.overrideCaseId?.let {
+            validateOverrideCase(it, "IP", hash, request.reportIds)
+            revoke(it, "제재 #$it 변경", actorId, requestIpHash, "IP")
+        }
         policyRegistry.register(policyLoader.current())
 
         val caseId = try {
@@ -392,13 +413,16 @@ class ModerationService(
                 caseId,
                 reportId
             )
+            val overridden = request.overrideCaseId != null
             jdbcTemplate.update(
                 """
-                UPDATE report_log SET status = 'ACTIONED', resolved_at = NOW(),
+                UPDATE report_log SET status = ?, resolved_at = NOW(),
                     resolved_by = ?, resolution_note = ? WHERE report_id = ?
                 """.trimIndent(),
+                if (overridden) "OVERRIDDEN" else "RESOLVED",
                 actorId,
-                "IP 제재 #$caseId 연결",
+                if (overridden) "IP 제재 #$caseId 로 변경 (기존 #${request.overrideCaseId})"
+                else "IP 제재 #$caseId 연결",
                 reportId
             )
         }
@@ -463,7 +487,7 @@ class ModerationService(
             )
         } ?: policyEngine.preview(
             request.categoryCodes,
-            currentCounters(request.userId),
+            currentCounters(request.userId, request.overrideCaseId),
             request.occurredAt
         )
         if (preview.requiresApproval) {
@@ -477,6 +501,10 @@ class ModerationService(
         require(displayReason.isNotBlank()) { "표시할 제재 사유를 결정할 수 없습니다." }
         policyRegistry.register(policyLoader.current())
         validateReports(request.reportIds, request.userId)
+        request.overrideCaseId?.let {
+            validateOverrideCase(it, "USER", request.userId, request.reportIds)
+            revoke(it, "제재 #$it 변경", actorId, requestIpHash, "USER")
+        }
 
         val caseId = try {
             insertCase(request, actorId, preview, displayReason)
@@ -537,14 +565,17 @@ class ModerationService(
                 caseId,
                 reportId
             )
+            val overridden = request.overrideCaseId != null
             jdbcTemplate.update(
                 """
-                UPDATE report_log SET status = 'ACTIONED', resolved_at = NOW(),
+                UPDATE report_log SET status = ?, resolved_at = NOW(),
                     resolved_by = ?, resolution_note = ?
                 WHERE report_id = ?
                 """.trimIndent(),
+                if (overridden) "OVERRIDDEN" else "RESOLVED",
                 actorId,
-                "제재 #$caseId 연결",
+                if (overridden) "제재 #$caseId 로 변경 (기존 #${request.overrideCaseId})"
+                else "제재 #$caseId 연결",
                 reportId
             )
         }
@@ -635,7 +666,8 @@ class ModerationService(
 
         jdbcTemplate.query(
             """
-            SELECT effect_id, legacy_block_type, legacy_block_id
+            SELECT effect_id, effect_type, subject_user_id, parameters,
+                   legacy_block_type, legacy_block_id
             FROM moderation_effects WHERE case_id = ? AND revoked_at IS NULL
             """.trimIndent(),
             { rs ->
@@ -649,6 +681,12 @@ class ModerationService(
                 if (table != null && legacyId != null) {
                     jdbcTemplate.update("DELETE FROM $table WHERE id = ?", legacyId)
                 }
+                reverseEffect(
+                    rs.getLong("effect_id"),
+                    rs.getString("effect_type"),
+                    rs.getString("subject_user_id"),
+                    objectMapper.readTree(rs.getString("parameters"))
+                )
             },
             caseId
         )
@@ -696,6 +734,15 @@ class ModerationService(
             json(mapOf("reason" to reason)),
             auditRequestIpHash(requestIpHash)
         )
+        val disconnectedUsers = affectedUserIds.toMutableSet()
+        subject.userId?.let(disconnectedUsers::add)
+        if (disconnectedUsers.isNotEmpty()) {
+            TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
+                override fun afterCommit() {
+                    disconnectedUsers.forEach { gameClientManager.kick(it, "") }
+                }
+            })
+        }
     }
 
     @Transactional
@@ -756,6 +803,129 @@ class ModerationService(
     }
 
     @Transactional
+    fun changeNickname(userId: String, request: ModerationNicknameChangeRequest, actorId: String) {
+        require(request.reason.isNotBlank()) { "작업 사유는 필수입니다." }
+        requireUser(userId)
+        if (commandAlreadyProcessed(request.requestId)) return
+        val nickname = request.nickname?.trim().takeUnless { it.isNullOrBlank() }
+            ?: "바른별명#${userId.substringAfter('-', userId).take(5)}"
+        require(nickname.isNotBlank() && nickname.length in 2..16 && nickname.none(Char::isISOControl)) {
+            "별명은 제어 문자를 제외한 2~16자로 입력해 주세요."
+        }
+        val meanable = nickname.replace(Regex("[-_ ]*"), "").lowercase()
+        val duplicated = jdbcTemplate.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE _id <> ? AND \"meanableNick\" = ?)",
+            Boolean::class.java,
+            userId,
+            meanable
+        ) == true
+        require(!duplicated) { "이미 사용 중인 별명입니다." }
+        val oldNickname = jdbcTemplate.queryForObject(
+            "SELECT nickname FROM users WHERE _id = ? FOR UPDATE",
+            String::class.java,
+            userId
+        )
+        jdbcTemplate.update(
+            "UPDATE users SET nickname = ?, \"meanableNick\" = ?, exordial = '' WHERE _id = ?",
+            nickname,
+            meanable,
+            userId
+        )
+        recordCommand(
+            request.requestId,
+            "CHANGE_NICKNAME",
+            userId,
+            actorId,
+            mapOf("reason" to request.reason.trim(), "oldNickname" to oldNickname, "nickname" to nickname)
+        )
+        disconnectAfterCommit(setOf(userId))
+    }
+
+    @Transactional
+    fun disconnectUser(userId: String, request: ModerationDisconnectRequest, actorId: String) {
+        require(request.reason.isNotBlank()) { "작업 사유는 필수입니다." }
+        requireUser(userId)
+        if (commandAlreadyProcessed(request.requestId)) return
+        recordCommand(
+            request.requestId,
+            "DISCONNECT_USER",
+            userId,
+            actorId,
+            mapOf("reason" to request.reason.trim())
+        )
+        disconnectAfterCommit(setOf(userId))
+    }
+
+    @Transactional
+    fun updateFlags(userId: String, request: ModerationFlagsUpdateRequest, actorId: String) {
+        require(request.reason.isNotBlank()) { "작업 사유는 필수입니다." }
+        requireUser(userId)
+        if (commandAlreadyProcessed(request.requestId)) return
+        require(request.flags.size <= 500) { "플래그는 최대 500개까지 관리할 수 있습니다." }
+        val keys = request.flags.map { it.key.trim() }
+        require(keys.all { it.isNotEmpty() && it.length <= 100 && it.none(Char::isISOControl) }) {
+            "플래그 키는 제어 문자를 제외한 1~100자로 입력해 주세요."
+        }
+        require(keys.distinct().size == keys.size) { "중복된 플래그 키가 있습니다." }
+        val flags = objectMapper.createObjectNode()
+        request.flags.forEachIndexed { index, entry ->
+            val item = objectMapper.createObjectNode()
+            item.set<JsonNode>("value", entry.value)
+            if (entry.timed) item.put("time", entry.time ?: Instant.now().epochSecond)
+            flags.set<JsonNode>(keys[index], item)
+        }
+        jdbcTemplate.update(
+            "UPDATE users SET flags = CAST(? AS jsonb)::json WHERE _id = ?",
+            objectMapper.writeValueAsString(flags),
+            userId
+        )
+        recordCommand(
+            request.requestId,
+            "UPDATE_USER_FLAGS",
+            userId,
+            actorId,
+            mapOf("reason" to request.reason.trim(), "flagCount" to flags.size(), "keys" to keys)
+        )
+        disconnectAfterCommit(setOf(userId))
+    }
+
+    private fun commandAlreadyProcessed(requestId: UUID): Boolean = jdbcTemplate.queryForObject(
+        "SELECT EXISTS(SELECT 1 FROM moderation_command_requests WHERE request_id = ?)",
+        Boolean::class.java,
+        requestId
+    ) == true
+
+    private fun recordCommand(
+        requestId: UUID,
+        commandType: String,
+        targetKey: String,
+        actorId: String,
+        responseBody: Any
+    ) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO moderation_command_requests
+                (request_id, command_type, target_key, actor_id, response_status, response_body)
+            VALUES (?, ?, ?, ?, 204, ?)
+            """.trimIndent(),
+            requestId,
+            commandType,
+            targetKey,
+            actorId,
+            json(responseBody)
+        )
+    }
+
+    private fun disconnectAfterCommit(userIds: Set<String>) {
+        if (userIds.isEmpty()) return
+        TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
+            override fun afterCommit() {
+                userIds.forEach { gameClientManager.kick(it, "") }
+            }
+        })
+    }
+
+    @Transactional
     fun resolveReport(reportId: Long, request: ReportResolutionRequest, actorId: String) {
         require(request.status == "REJECTED") {
             "신고 처리는 제재 사건 발급으로만 완료할 수 있으며, 이 API는 반려만 허용합니다."
@@ -790,8 +960,8 @@ class ModerationService(
                 INSERT INTO moderation_cases
                     (request_id, subject_type, subject_user_id, primary_category_code,
                      policy_id, policy_digest, source_service, occurred_at, issued_by,
-                     evidence_text, summary)
-                VALUES (?, 'USER', ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?)
+                     evidence_text, summary, overrides_case_id)
+                VALUES (?, 'USER', ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 arrayOf("case_id")
             ).apply {
@@ -804,6 +974,7 @@ class ModerationService(
                 setString(7, actorId)
                 setString(8, request.evidenceText)
                 setString(9, displayReason)
+                setObject(10, request.overrideCaseId)
             }
         }, keyHolder)
         return keyHolder.key!!.toLong()
@@ -824,8 +995,8 @@ class ModerationService(
                 INSERT INTO moderation_cases
                     (request_id, subject_type, subject_ip_encrypted, subject_ip_hash,
                      primary_category_code, policy_id, policy_digest, source_service,
-                     occurred_at, issued_by, evidence_text, summary)
-                VALUES (?, 'IP', ?, ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?)
+                     occurred_at, issued_by, evidence_text, summary, overrides_case_id)
+                VALUES (?, 'IP', ?, ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 arrayOf("case_id")
             ).apply {
@@ -839,6 +1010,7 @@ class ModerationService(
                 setString(8, actorId)
                 setString(9, request.evidenceText)
                 setString(10, displayReason)
+                setObject(11, request.overrideCaseId)
             }
         }, keyHolder)
         return keyHolder.key!!.toLong()
@@ -902,24 +1074,49 @@ class ModerationService(
             "CHAT_RESTRICTION" -> applyLegacyBlock("block_chat", "CHAT", caseId, effectId, userId, reason, actorId, effect)
             "RESOURCE_ADJUSTMENT" -> {
                 val percent = (effect.parameters["percent"] as Number).toInt().coerceIn(0, 100)
+                val before = jdbcTemplate.query(
+                    """
+                    SELECT money, COALESCE((kkutu->>'score')::bigint, 0) AS score
+                    FROM users WHERE _id = ? FOR UPDATE
+                    """.trimIndent(),
+                    { rs, _ -> rs.getLong("money") to rs.getLong("score") },
+                    userId
+                ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
+                val newMoney = BigDecimal.valueOf(before.first)
+                    .multiply(BigDecimal.valueOf((100 - percent).toLong()))
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
+                val newScore = BigDecimal.valueOf(before.second)
+                    .multiply(BigDecimal.valueOf((100 - percent).toLong()))
+                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
                 jdbcTemplate.update(
                     """
                     UPDATE users SET
-                        money = FLOOR(money * (100 - ?) / 100.0),
-                        kkutu = jsonb_set(
-                            kkutu::jsonb, '{score}',
-                            to_jsonb(FLOOR(COALESCE((kkutu->>'score')::numeric, 0) * (100 - ?) / 100.0)::bigint)
-                        )::json
+                        money = ?,
+                        kkutu = jsonb_set(kkutu::jsonb, '{score}', to_jsonb(?::bigint))::json
                     WHERE _id = ?
                     """.trimIndent(),
-                    percent,
-                    percent,
+                    newMoney,
+                    newScore,
                     userId
                 )
+                storeEffectRollback(effectId, mapOf(
+                    "moneyDelta" to before.first - newMoney,
+                    "scoreDelta" to before.second - newScore
+                ))
                 markApplied(effectId)
             }
             "NICKNAME_RESET" -> {
                 val policyNickname = "이름없음#${userId.substringAfter('-', userId).take(5)}"
+                val before = jdbcTemplate.query(
+                    "SELECT nickname, \"meanableNick\", exordial FROM users WHERE _id = ? FOR UPDATE",
+                    { rs, _ -> mapOf(
+                        "nickname" to rs.getString("nickname"),
+                        "meanableNick" to rs.getString("meanableNick"),
+                        "exordial" to rs.getString("exordial"),
+                        "appliedNickname" to policyNickname
+                    ) },
+                    userId
+                ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
                 jdbcTemplate.update(
                     """
                     UPDATE users SET nickname = ?, "meanableNick" = LOWER(REPLACE(?, ' ', '')),
@@ -930,6 +1127,7 @@ class ModerationService(
                     policyNickname,
                     userId
                 )
+                storeEffectRollback(effectId, before)
                 markApplied(effectId)
             }
             "NICKNAME_CHANGE_RESTRICTION" -> {
@@ -1197,7 +1395,66 @@ class ModerationService(
         )
     }
 
-    private fun currentCounters(userId: String): Map<String, Int> {
+    private fun storeEffectRollback(effectId: Long, rollback: Any) {
+        jdbcTemplate.update(
+            "UPDATE moderation_effects SET parameters = parameters || ? WHERE effect_id = ?",
+            json(mapOf("_rollback" to rollback)),
+            effectId
+        )
+    }
+
+    private fun reverseEffect(effectId: Long, effectType: String, userId: String?, parameters: JsonNode) {
+        val rollback = parameters.path("_rollback")
+        if (rollback.isMissingNode || rollback.isNull || userId == null) return
+        when (effectType) {
+            "RESOURCE_ADJUSTMENT" -> {
+                val moneyDelta = rollback.path("moneyDelta").asLong(0)
+                val scoreDelta = rollback.path("scoreDelta").asLong(0)
+                jdbcTemplate.update(
+                    """
+                    UPDATE users SET money = money + ?,
+                        kkutu = jsonb_set(
+                            kkutu::jsonb, '{score}',
+                            to_jsonb(COALESCE((kkutu->>'score')::bigint, 0) + ?)
+                        )::json
+                    WHERE _id = ?
+                    """.trimIndent(),
+                    moneyDelta,
+                    scoreDelta,
+                    userId
+                )
+            }
+            "NICKNAME_RESET" -> {
+                val appliedNickname = rollback.path("appliedNickname").asText("")
+                if (appliedNickname.isBlank()) return
+                fun nullableText(field: String): String? = rollback.get(field)
+                    ?.takeUnless { it.isNull }
+                    ?.asText()
+                jdbcTemplate.update(
+                    """
+                    UPDATE users SET nickname = ?, "meanableNick" = ?, exordial = ?
+                    WHERE _id = ? AND nickname IS NOT DISTINCT FROM ?
+                    """.trimIndent(),
+                    nullableText("nickname"),
+                    nullableText("meanableNick"),
+                    nullableText("exordial"),
+                    userId,
+                    appliedNickname
+                )
+            }
+        }
+        jdbcTemplate.update(
+            """
+            INSERT INTO moderation_case_events
+                (case_id, event_type, actor_type, payload)
+            SELECT case_id, 'EFFECT_REVERSED', 'SYSTEM', ? FROM moderation_effects WHERE effect_id = ?
+            """.trimIndent(),
+            json(mapOf("effectId" to effectId, "effectType" to effectType)),
+            effectId
+        )
+    }
+
+    private fun currentCounters(userId: String, excludeCaseId: Long? = null): Map<String, Int> {
         val baseline = jdbcTemplate.query(
             """
             SELECT counters, last_updated_at, source, reset_at
@@ -1219,6 +1476,10 @@ class ModerationService(
         val isAdjustment = baseline?.source == "ADMIN_ADJUSTMENT"
         val since = if (isAdjustment) baseline?.lastUpdatedAt else baseline?.resetAt
         val arguments = mutableListOf<Any>(userId)
+        val excludeClause = if (excludeCaseId == null) "" else {
+            arguments.add(excludeCaseId)
+            " AND c.case_id <> ?"
+        }
         val sinceClause = if (since == null) "" else {
             arguments.add(Timestamp.from(since))
             " AND c.issued_at > ?"
@@ -1229,7 +1490,7 @@ class ModerationService(
             FROM moderation_case_violations v
             JOIN moderation_cases c ON c.case_id = v.case_id
             WHERE c.subject_user_id = ? AND c.revoked_at IS NULL
-              AND v.category_code <> '99'$sinceClause
+              AND v.category_code <> '99'$excludeClause$sinceClause
             GROUP BY v.category_code
             """.trimIndent(),
             { rs, _ -> rs.getString("category_code") to rs.getInt("count") },
@@ -1240,27 +1501,41 @@ class ModerationService(
         return result.filterValues { it > 0 }
     }
 
-    private fun currentIpCounters(ipHash: String): Map<String, Int> = jdbcTemplate.query(
+    private fun currentIpCounters(ipHash: String, excludeCaseId: Long? = null): Map<String, Int> {
+        val arguments = mutableListOf<Any>(ipHash)
+        val excludeClause = if (excludeCaseId == null) "" else {
+            arguments.add(excludeCaseId)
+            " AND c.case_id <> ?"
+        }
+        return jdbcTemplate.query(
         """
         SELECT v.category_code, COUNT(*) AS count
         FROM moderation_case_violations v
         JOIN moderation_cases c ON c.case_id = v.case_id
         WHERE c.subject_type = 'IP' AND c.subject_ip_hash = ?
-          AND c.revoked_at IS NULL AND v.category_code <> '99'
+          AND c.revoked_at IS NULL AND v.category_code <> '99'$excludeClause
         GROUP BY v.category_code
         """.trimIndent(),
         { rs, _ -> rs.getString("category_code") to rs.getInt("count") },
-        ipHash
-    ).toMap()
+        *arguments.toTypedArray()
+        ).toMap()
+    }
 
-    private fun ipOffenseCount(ipHash: String): Int = jdbcTemplate.queryForObject(
-        """
-        SELECT COUNT(*) FROM moderation_cases
-        WHERE subject_type = 'IP' AND subject_ip_hash = ? AND revoked_at IS NULL
-        """.trimIndent(),
-        Int::class.java,
-        ipHash
-    )
+    private fun ipOffenseCount(ipHash: String, excludeCaseId: Long? = null): Int {
+        val arguments = mutableListOf<Any>(ipHash)
+        val excludeClause = if (excludeCaseId == null) "" else {
+            arguments.add(excludeCaseId)
+            " AND case_id <> ?"
+        }
+        return jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*) FROM moderation_cases
+            WHERE subject_type = 'IP' AND subject_ip_hash = ? AND revoked_at IS NULL$excludeClause
+            """.trimIndent(),
+            Int::class.java,
+            *arguments.toTypedArray()
+        )
+    }
 
     private fun history(userId: String, limit: Int): List<ModerationCaseSummary> =
         jdbcTemplate.query(
@@ -1425,6 +1700,51 @@ class ModerationService(
             *(listOf<Any>(userId) + ids).toTypedArray()
         )
         require(count == ids.size) { "대상과 일치하지 않는 신고가 포함되어 있습니다." }
+    }
+
+    private fun validateOverrideCase(
+        caseId: Long,
+        subjectType: String,
+        subjectKey: String,
+        reportIds: List<Long>
+    ) {
+        require(reportIds.isNotEmpty()) { "제재 변경에는 연결된 신고가 필요합니다." }
+        requireOverrideSubject(caseId, subjectType, subjectKey)
+
+        val ids = reportIds.distinct()
+        val placeholders = ids.joinToString(",") { "?" }
+        val count = jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*) FROM report_log r
+            WHERE r.report_id IN ($placeholders)
+              AND r.status IN ('RESOLVED', 'OVERRIDDEN')
+              AND (SELECT cr.case_id FROM moderation_case_reports cr
+                   WHERE cr.report_id = r.report_id
+                   ORDER BY cr.case_id DESC LIMIT 1) = ?
+            """.trimIndent(),
+            Int::class.java,
+            *ids.toMutableList<Any>().apply { add(caseId) }.toTypedArray()
+        )
+        require(count == ids.size) { "현재 제재와 연결되지 않은 신고가 포함되어 있습니다." }
+    }
+
+    private fun requireOverrideSubject(caseId: Long, subjectType: String, subjectKey: String) {
+        val matches = jdbcTemplate.queryForObject(
+            """
+            SELECT EXISTS(
+                SELECT 1 FROM moderation_cases
+                WHERE case_id = ? AND subject_type = ? AND revoked_at IS NULL
+                  AND CASE WHEN subject_type = 'USER' THEN subject_user_id = ?
+                           ELSE subject_ip_hash = ? END
+            )
+            """.trimIndent(),
+            Boolean::class.java,
+            caseId,
+            subjectType,
+            subjectKey,
+            subjectKey
+        ) == true
+        require(matches) { "변경하려는 기존 제재가 대상과 일치하지 않거나 이미 해제되었습니다." }
     }
 
     private fun validateIpReports(reportIds: List<Long>, ip: String) {
@@ -1795,6 +2115,8 @@ class ModerationService(
     private data class ResolvedIpSubject(val ip: String, val guestId: String?)
 
     private data class StoredIpGeo(val countryCode: String?, val asn: String?, val asName: String?)
+
+    private data class LinkedSanction(val caseId: Long, val subjectType: String, val revoked: Boolean)
 
     private data class ReportDetailRow(
         val reportId: Long,

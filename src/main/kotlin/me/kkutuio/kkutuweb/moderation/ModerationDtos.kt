@@ -1,5 +1,6 @@
 package me.kkutuio.kkutuweb.moderation
 
+import com.fasterxml.jackson.databind.JsonNode
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyPreview
 import java.time.Instant
 import java.util.UUID
@@ -16,6 +17,7 @@ data class ModerationUserSummary(
 
 data class ModerationUserDetail(
     val user: ModerationUserSummary,
+    val flags: JsonNode,
     val counters: Map<String, Int>,
     val history: List<ModerationCaseSummary>,
     val reports: List<ModerationReportSummary>,
@@ -160,6 +162,8 @@ data class ModerationReportDetail(
     val resolvedBy: String?,
     val resolutionNote: String?,
     val linkedSanctionCaseId: Long?,
+    val linkedSanctionSubjectType: String?,
+    val linkedSanctionRevoked: Boolean,
     val gameReferences: List<ModerationReportGameReference>,
     val suspicionReferences: List<ModerationSuspicionReference>
 )
@@ -174,7 +178,8 @@ data class SanctionPreviewRequest(
     val userId: String,
     val categoryCodes: List<String> = emptyList(),
     val occurredAt: Instant? = null,
-    val custom: CustomSanctionRequest? = null
+    val custom: CustomSanctionRequest? = null,
+    val overrideCaseId: Long? = null
 )
 
 data class SanctionIssueRequest(
@@ -186,7 +191,8 @@ data class SanctionIssueRequest(
     val summary: String,
     val reportIds: List<Long> = emptyList(),
     val relatedUserIds: List<String> = emptyList(),
-    val custom: CustomSanctionRequest? = null
+    val custom: CustomSanctionRequest? = null,
+    val overrideCaseId: Long? = null
 )
 
 data class CustomSanctionRequest(
@@ -204,7 +210,8 @@ data class SanctionIssueResponse(
 data class IpSanctionPreviewRequest(
     val subject: String,
     val categoryCodes: List<String>,
-    val occurredAt: Instant? = null
+    val occurredAt: Instant? = null,
+    val overrideCaseId: Long? = null
 )
 
 data class IpSanctionIssueRequest(
@@ -214,7 +221,8 @@ data class IpSanctionIssueRequest(
     val occurredAt: Instant,
     val evidenceText: String,
     val summary: String,
-    val reportIds: List<Long> = emptyList()
+    val reportIds: List<Long> = emptyList(),
+    val overrideCaseId: Long? = null
 )
 
 data class RevokeSanctionRequest(val reason: String)
@@ -223,6 +231,30 @@ data class CounterAdjustmentRequest(
     val requestId: UUID,
     val categoryCode: String,
     val value: Int,
+    val reason: String
+)
+
+data class ModerationNicknameChangeRequest(
+    val requestId: UUID,
+    val nickname: String? = null,
+    val reason: String
+)
+
+data class ModerationDisconnectRequest(
+    val requestId: UUID,
+    val reason: String
+)
+
+data class ModerationFlagEntryRequest(
+    val key: String,
+    val value: JsonNode,
+    val timed: Boolean = false,
+    val time: Long? = null
+)
+
+data class ModerationFlagsUpdateRequest(
+    val requestId: UUID,
+    val flags: List<ModerationFlagEntryRequest>,
     val reason: String
 )
 

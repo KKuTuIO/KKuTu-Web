@@ -52,6 +52,7 @@ class ReportLogApi(
         @RequestParam(required = false, name = "reporter_id", defaultValue = "") reporterId: String,
         @RequestParam(required = false, name = "reporter_nick", defaultValue = "") reporterNick: String,
         @RequestParam(required = false, name = "target_id", defaultValue = "") targetId: String,
+        @RequestParam(required = false, name = "status", defaultValue = "") status: String,
         @RequestParam(required = false, name = "reason", defaultValue = "") reason: String,
         @RequestParam(required = false, name = "file_name", defaultValue = "") fileName: String,
         request: HttpServletRequest, session: HttpSession
@@ -78,6 +79,7 @@ class ReportLogApi(
             "reporter_id" to reporterId,
             "reporter_nick" to reporterNick,
             "target_id" to targetId,
+            "status" to status,
             "reason" to reason,
             "file_name" to fileName
         )

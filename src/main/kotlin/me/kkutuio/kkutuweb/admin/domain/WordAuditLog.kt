@@ -40,7 +40,6 @@ data class WordAuditLog(
     enum class WordAuditLogType {
         CREATE,
         UPDATE,
-        DELETE,
-        ERROR_DUPLICATE
+        DELETE
     }
 }

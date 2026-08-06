@@ -207,16 +207,6 @@ class AdminWordService(
         val isDuplicate = wordDao.isDuplicate(tableName, wordName)
         if (isDuplicate) {
             logger.warn("중복된 단어를 추가하려 했습니다. 언어: $lang 단어: $wordName")
-            wordAuditLogDAO.insert(
-                lang, WordAuditLog(
-                    time = LocalDateTime.now(),
-                    word = wordName,
-                    type = WordAuditLog.WordAuditLogType.ERROR_DUPLICATE,
-                    updateLogIgnore = wordEditRequest.updateLogIgnore,
-                    updateLogIncludeDetail = wordEditRequest.updateLogIncludeDetail,
-                    admin = adminId
-                )
-            )
             return ActionResponse.word(success = false, wordResult = WordResult.DUPLICATED)
         }
 
@@ -366,7 +356,9 @@ class AdminWordService(
                 admin = adminId
             )
         }
-        wordAuditLogDAO.insertAll(lang, auditLogs)
+        if (auditLogs.isNotEmpty()) {
+            wordAuditLogDAO.insertAll(lang, auditLogs)
+        }
 
         val successCount = newWords.size + updatedWords.size
         return ActionResponse.success(
@@ -466,7 +458,7 @@ class AdminWordService(
 
         wordDao.removeAll(tableName, deletingWords.map { it.id })
         val now = LocalDateTime.now()
-        wordAuditLogDAO.insertAll(lang, deletingWords.map { oldWord ->
+        val auditLogs = deletingWords.map { oldWord ->
             WordAuditLog(
                 time = now,
                 word = oldWord.id,
@@ -479,7 +471,10 @@ class AdminWordService(
                 updateLogIncludeDetail = request.updateLogIncludeDetail,
                 admin = adminId
             )
-        })
+        }
+        if (auditLogs.isNotEmpty()) {
+            wordAuditLogDAO.insertAll(lang, auditLogs)
+        }
 
         return ActionResponse.success(
             BulkWordResult(

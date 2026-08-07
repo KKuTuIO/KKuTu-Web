@@ -831,10 +831,19 @@
     return rank + 1;
   }
 
+  function throwKnownReplayFailure(body, label) {
+    if (body?.code === 429) {
+      throw new Error(`${label} 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.`);
+    }
+    if (body?.code === 761) {
+      throw new Error(`${label} 실패입니다: 게임 서버에서 요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.`);
+    }
+  }
+
   async function loadModeStats(signal) {
     const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}/mode-stats`, { signal });
     if (!body?.ok) {
-      if (body?.code === 429) throw new Error('모드 통계 조회 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.');
+      throwKnownReplayFailure(body, '모드 통계 조회');
       return [];
     }
     return Array.isArray(body.stats) ? body.stats : [];
@@ -844,7 +853,7 @@
     loadingHistory = true;
     const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}?page=${targetPage}&pageSize=${pageSize}`, { signal });
     if (!body?.ok) {
-      if (body?.code === 429) throw new Error('경기 내역 조회 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.');
+      throwKnownReplayFailure(body, '경기 내역 조회');
       throw new Error('경기 내역 조회 실패입니다: 알 수 없는 오류가 발생했습니다. 고객센터에 문의해 주세요.');
     }
     historyRows = body.history || [];
@@ -905,7 +914,7 @@
     try {
       const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(keyword)}?includePayload=true`);
       if (!body?.ok || !body?.game) {
-        if (body?.code === 429) throw new Error('경기 조회 실패입니다: 과도한 요청으로 인해 일시적으로 차단되었습니다. 잠시 후 다시 시도해주세요.');
+        throwKnownReplayFailure(body, '경기 조회');
         throw new Error('경기 조회 실패입니다: 입력한 경기번호를 찾을 수 없습니다.');
       }
       const game = body.game;

@@ -79,7 +79,9 @@
       round: Math.max(0, Number(row[1]) || 0),
       elapsedGameMs: Math.max(0, Number(row[2]) || 0),
       disposition: Math.max(0, Math.min(1, Number(row[3]) || 0)),
-      status: STATUS_LABELS[Math.max(0, Math.min(1, Number(row[3]) || 0))],
+      status: String(row[4] || '') === 'UNSUBMITTED_AT_GAME_END'
+        ? '미제출 종료'
+        : STATUS_LABELS[Math.max(0, Math.min(1, Number(row[3]) || 0))],
       resultCode: String(row[4] || '-'),
       scope: `${String(row[5] || '-')}:${String(row[6] || '-')}`,
       inputMismatch: Number(row[7]) === 1,

@@ -26,7 +26,7 @@ class RecordService(
         isAdmin: Boolean
     ): RecordGameLookupResponse {
         return recordDao.findByGameId(gameId, includePayload, requesterId, isAdmin)
-            ?: RecordGameLookupResponse(ok = false, code = 503, error = "game-server-unavailable")
+            ?: RecordGameLookupResponse(ok = false, code = 761, error = "game-server-unavailable")
     }
 
     fun findUserHistory(
@@ -44,7 +44,7 @@ class RecordService(
         val canViewAll = canViewAllHistory(userId, requesterId, isAdmin)
         val visibilityScope = visibilityScope(userId, requesterId, isAdmin, canViewAll)
         return recordDao.findUserHistory(userId, safePage, safePageSize, canViewAll, isAdmin, visibilityScope)
-            ?: RecordUserHistoryResponse(ok = false, code = 503, error = "game-server-unavailable")
+            ?: RecordUserHistoryResponse(ok = false, code = 761, error = "game-server-unavailable")
     }
 
     fun findUserModeStats(
@@ -55,6 +55,6 @@ class RecordService(
         val canViewAll = canViewAllHistory(userId, requesterId, isAdmin)
         val visibilityScope = visibilityScope(userId, requesterId, isAdmin, canViewAll)
         return recordDao.findUserModeStats(userId, canViewAll, isAdmin, visibilityScope)
-            ?: RecordUserModeStatsResponse(ok = false, code = 503, error = "game-server-unavailable")
+            ?: RecordUserModeStatsResponse(ok = false, code = 761, error = "game-server-unavailable")
     }
 }

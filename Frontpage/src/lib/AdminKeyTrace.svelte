@@ -81,6 +81,8 @@
       disposition: Math.max(0, Math.min(1, Number(row[3]) || 0)),
       status: String(row[4] || '') === 'UNSUBMITTED_AT_GAME_END'
         ? '미제출 종료'
+        : String(row[4] || '') === 'UNSUBMITTED_TRACE_DIAGNOSTIC'
+          ? '미제출 패킷'
         : STATUS_LABELS[Math.max(0, Math.min(1, Number(row[3]) || 0))],
       resultCode: String(row[4] || '-'),
       scope: `${String(row[5] || '-')}:${String(row[6] || '-')}`,
@@ -88,6 +90,9 @@
       chainMismatch: Number(row[8]) === 1,
       complete: Number(row[9]) === 1,
       transitionOverflowCount: Math.max(0, Number(row[11]) || 0),
+      packetRejections: Array.isArray(row[12])
+        ? row[12].slice(0, 8).map((reason) => String(reason || '')).filter(Boolean)
+        : [],
       compact: compact.join('').replace(/\++/g, '+').replace(/\+$/, ''),
       transitions
     };
@@ -169,8 +174,13 @@
             {entry.compact || '(표시값 변화 없음)'}
           </div>
 
-          {#if entry.inputMismatch || entry.chainMismatch || !entry.complete || entry.transitionOverflowCount > 0}
+          {#if entry.packetRejections.length || entry.inputMismatch || entry.chainMismatch || !entry.complete || entry.transitionOverflowCount > 0}
             <div class="mt-1 flex flex-wrap gap-1">
+              {#each entry.packetRejections as reason}
+                <span class="rounded bg-violet-100 px-1.5 py-0.5 text-xs font-bold text-violet-700 dark:bg-violet-950 dark:text-violet-200">
+                  패킷 거부: {reason}
+                </span>
+              {/each}
               {#if entry.inputMismatch}
                 <span class="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-200">입력 불일치</span>
               {/if}

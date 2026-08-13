@@ -79,6 +79,7 @@ data class ModerationIpDetail(
 data class ModerationCaseSummary(
     val caseId: Long,
     val primaryCategoryCode: String,
+    val categoryCodes: List<String>,
     val summary: String,
     val occurredAt: Instant,
     val issuedAt: Instant,

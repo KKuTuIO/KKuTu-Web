@@ -270,8 +270,8 @@ class ModerationService(
 
     fun issueManualLogAccess(requestedFileName: String, actorId: String): ModerationLogAccess {
         val fileName = requestedFileName.trim()
-        if (!GAME_LOG_FILE_REGEX.matches(fileName)) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "올바른 시간별 게임 로그 파일명이 필요합니다.")
+        if (!GAME_LOG_FILE_REGEX.matches(fileName) && !SUSPICION_LOG_FILE_REGEX.matches(fileName)) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "올바른 게임 로그 시간 또는 정책 위반 파일명이 필요합니다.")
         }
         logger.info("관리자 {}에게 직접 로그 접근 권한을 발급했습니다. file={}", actorId, fileName)
         return createLogAccess(0, fileName)
@@ -1780,6 +1780,7 @@ class ModerationService(
                 ModerationCaseSummary(
                     caseId,
                     rs.getString("primary_category_code"),
+                    caseCategoryCodes(caseId),
                     rs.getString("summary"),
                     rs.instant("occurred_at")!!,
                     rs.instant("issued_at")!!,
@@ -1806,6 +1807,7 @@ class ModerationService(
                 ModerationCaseSummary(
                     caseId,
                     rs.getString("primary_category_code"),
+                    caseCategoryCodes(caseId),
                     rs.getString("summary"),
                     rs.instant("occurred_at")!!,
                     rs.instant("issued_at")!!,
@@ -1833,6 +1835,13 @@ class ModerationService(
                     rs.getString("apply_status")
                 )
             },
+            caseId
+        )
+
+    private fun caseCategoryCodes(caseId: Long): List<String> =
+        jdbcTemplate.query(
+            "SELECT category_code FROM moderation_case_violations WHERE case_id = ? ORDER BY category_code",
+            { rs, _ -> rs.getString("category_code") },
             caseId
         )
 
@@ -2408,5 +2417,8 @@ class ModerationService(
         private val IPV4_REGEX = Regex("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$")
         private val IPV6_CHAR_REGEX = Regex("^[0-9A-Fa-f:.]+$")
         private val GAME_LOG_FILE_REGEX = Regex("^game-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.log(?:\\.gz)?$")
+        private val SUSPICION_LOG_FILE_REGEX = Regex(
+            "^(?:guest__[A-Za-z0-9]+|[a-z]+-[0-9]+)-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.\\d{2}\\.\\d{2}\\.txt$"
+        )
     }
 }

@@ -439,6 +439,9 @@ class ModerationService(
             actorId,
             json(mapOf("caseId" to caseId))
         )
+        if (request.overrideCaseId == null) {
+            queueReportResolutionNotifications(caseId, request.reportIds, null, null)
+        }
         val connectedGuestIds = ipIdentities(resolved.ip).filter { it.guest }.map { it.id }
         val fullIpRestriction = preview.effects.any { it.type == "IP_RESTRICTION" }
         if (fullIpRestriction || connectedGuestIds.isNotEmpty()) {
@@ -455,7 +458,7 @@ class ModerationService(
     @Transactional
     fun issue(request: SanctionIssueRequest, actorId: String, requestIpHash: String?): SanctionIssueResponse {
         require(request.evidenceText.isNotBlank()) { "근거 자료는 필수입니다." }
-        requireUser(request.userId)
+        val subjectUser = requireUser(request.userId)
         require((request.custom == null) xor request.categoryCodes.isEmpty()) {
             "정책 제재 또는 사용자 지정 제재 중 하나만 선택해야 합니다."
         }
@@ -592,6 +595,14 @@ class ModerationService(
             actorId,
             json(mapOf("caseId" to caseId))
         )
+        if (request.overrideCaseId == null) {
+            queueReportResolutionNotifications(
+                caseId,
+                request.reportIds,
+                request.userId,
+                subjectUser.nickname
+            )
+        }
         val kickUserIds = linkedSetOf<String>()
         if (preview.effects.any {
             it.type in setOf(
@@ -899,6 +910,124 @@ class ModerationService(
         )
     }
 
+    private fun queueReportResolutionNotifications(
+        caseId: Long,
+        reportIds: List<Long>,
+        fallbackTargetId: String?,
+        fallbackTargetNickname: String?
+    ) {
+        val ids = reportIds.distinct()
+        if (ids.isEmpty()) return
+        val placeholders = ids.joinToString(",") { "?" }
+        val rows = jdbcTemplate.query(
+            """
+            SELECT r.report_id, r.reporter_id, r.target_id, r.reason,
+                   COALESCE(CASE WHEN r.target_id = ? THEN ? END, u.nickname) AS target_nickname
+            FROM report_log r
+            JOIN users reporter ON reporter._id = r.reporter_id
+            LEFT JOIN users u ON u._id = r.target_id
+            WHERE r.report_id IN ($placeholders)
+            ORDER BY r.report_id
+            """.trimIndent(),
+            { rs, _ ->
+                ReportNotificationTarget(
+                    reportId = rs.getLong("report_id"),
+                    reporterId = rs.getString("reporter_id"),
+                    targetId = rs.getString("target_id"),
+                    targetNickname = rs.getString("target_nickname"),
+                    reportReason = rs.getString("reason")
+                )
+            },
+            *(listOf<Any?>(fallbackTargetId, fallbackTargetNickname) + ids).toTypedArray()
+        )
+        rows.filterNot { it.reporterId.startsWith("guest__") }
+            .groupBy { it.reporterId }
+            .forEach { (reporterId, targets) ->
+                val sortedTargets = targets.sortedBy { it.reportId }
+                val notificationId = UUID.nameUUIDFromBytes(
+                    "moderation-report-resolution:${sortedTargets.joinToString(",") { it.reportId.toString() }}"
+                        .toByteArray(Charsets.UTF_8)
+                )
+                val appended = appendUserNotification(
+                    reporterId,
+                    notificationId,
+                    sortedTargets.joinToString("\n\n") { target ->
+                        reportResolutionNotification(
+                            target.reportReason,
+                            maskedReportTarget(target.targetNickname, target.targetId)
+                        )
+                    }
+                )
+                if (!appended) return@forEach
+                recordCommand(
+                    notificationId,
+                    "SEND_REPORT_RESOLUTION_NOTIFICATION",
+                    reporterId,
+                    "SYSTEM",
+                    mapOf(
+                        "caseId" to caseId,
+                        "reportIds" to sortedTargets.map { it.reportId },
+                        "items" to sortedTargets.map { target ->
+                            mapOf(
+                                "reportId" to target.reportId,
+                                "reason" to target.reportReason,
+                                "target" to maskedReportTarget(target.targetNickname, target.targetId)
+                            )
+                        }
+                    )
+                )
+            }
+    }
+
+    private fun appendUserNotification(userId: String, notificationId: UUID, message: String): Boolean {
+        if (commandAlreadyProcessed(notificationId)) return false
+        val rawFlags = jdbcTemplate.queryForObject(
+            "SELECT flags::TEXT FROM users WHERE _id = ? FOR UPDATE",
+            String::class.java,
+            userId
+        )
+        val flags = objectMapper.readTree(rawFlags)
+            .takeIf { it.isObject }?.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+            ?: objectMapper.createObjectNode()
+        val currentEntry = flags.get("notifications")
+        val currentValue = if (currentEntry?.isObject == true && currentEntry.has("value")) {
+            currentEntry.get("value")
+        } else currentEntry
+        val queue = objectMapper.createArrayNode()
+        when {
+            currentValue == null || currentValue.isNull || currentValue.isMissingNode -> Unit
+            currentValue.isArray -> currentValue.forEach { queue.add(it) }
+            else -> queue.add(currentValue)
+        }
+        if (queue.size() >= 50) return false
+        queue.add(objectMapper.createObjectNode().apply {
+            put("id", notificationId.toString())
+            put("message", message)
+            put("createdAt", Instant.now().epochSecond)
+        })
+        flags.set<JsonNode>("notifications", objectMapper.createObjectNode().apply {
+            set<JsonNode>("value", queue)
+            put("time", Instant.now().epochSecond)
+        })
+        jdbcTemplate.update(
+            "UPDATE users SET flags = CAST(? AS jsonb)::json WHERE _id = ?",
+            objectMapper.writeValueAsString(flags),
+            userId
+        )
+        return true
+    }
+
+    private fun reportResolutionNotification(reason: String, maskedTarget: String) =
+        "최근 '$reason'(으)로 신고한 사용자($maskedTarget)를 확인한 결과 이용 제한 조치가 완료되었습니다.\n" +
+            "앞으로도 적극적인 신고로 건전한 게임 문화 양성에 많은 참여를 부탁드립니다. 감사합니다."
+
+    private fun maskedReportTarget(nickname: String?, targetId: String): String {
+        val value = nickname?.trim().takeUnless { it.isNullOrEmpty() }
+            ?: if (targetId.startsWith("guest__")) "손님" else "사용자"
+        val first = value.codePoints().findFirst().orElse('*'.code)
+        return String(Character.toChars(first)) + "****"
+    }
+
     @Transactional
     fun updateFlags(userId: String, request: ModerationFlagsUpdateRequest, actorId: String) {
         requireUser(userId)
@@ -1147,7 +1276,7 @@ class ModerationService(
                 markApplied(effectId)
             }
             "NICKNAME_RESET" -> {
-                val policyNickname = "이름없음#${userId.substringAfter('-', userId).take(5)}"
+                val policyNickname = "바른별명#${userId.substringAfter('-', userId).take(5)}"
                 val before = jdbcTemplate.query(
                     "SELECT nickname, \"meanableNick\", exordial FROM users WHERE _id = ? FOR UPDATE",
                     { rs, _ -> mapOf(
@@ -2187,6 +2316,14 @@ class ModerationService(
         val resolvedAt: Instant?,
         val resolvedBy: String?,
         val resolutionNote: String?
+    )
+
+    private data class ReportNotificationTarget(
+        val reportId: Long,
+        val reporterId: String,
+        val targetId: String,
+        val targetNickname: String?,
+        val reportReason: String
     )
 
     private data class CounterBaseline(

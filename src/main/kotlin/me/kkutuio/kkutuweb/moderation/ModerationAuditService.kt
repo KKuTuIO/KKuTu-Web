@@ -67,6 +67,7 @@ class ModerationAuditService(
                    WHEN 'CHANGE_NICKNAME' THEN 'NICKNAME_CHANGED'
                    WHEN 'DISCONNECT_USER' THEN 'USER_DISCONNECTED'
                    WHEN 'SEND_USER_NOTIFICATION' THEN 'USER_NOTIFICATION_QUEUED'
+                   WHEN 'SEND_REPORT_RESOLUTION_NOTIFICATION' THEN 'REPORT_NOTIFICATION_QUEUED'
                    ELSE 'FLAGS_UPDATED'
                END,
                'USER',
@@ -81,6 +82,9 @@ class ModerationAuditService(
                    WHEN 'SEND_USER_NOTIFICATION' THEN concat_ws(' · ', concat(
                        '다음 접속 안내: ', cr.response_body ->> 'message'
                    ), NULLIF(cr.response_body ->> 'reason', ''))
+                   WHEN 'SEND_REPORT_RESOLUTION_NOTIFICATION' THEN concat(
+                       '신고 ', cr.response_body ->> 'reportIds', ' 처리 알림 예약'
+                   )
                    ELSE concat_ws(' · ', concat(
                        cr.response_body ->> 'flagCount', '개 플래그 저장'
                    ), NULLIF(cr.response_body ->> 'reason', ''))
@@ -90,7 +94,8 @@ class ModerationAuditService(
                NULL::BIGINT
         FROM moderation_command_requests cr
         WHERE cr.command_type IN (
-            'CHANGE_NICKNAME', 'DISCONNECT_USER', 'SEND_USER_NOTIFICATION', 'UPDATE_USER_FLAGS'
+            'CHANGE_NICKNAME', 'DISCONNECT_USER', 'SEND_USER_NOTIFICATION',
+            'SEND_REPORT_RESOLUTION_NOTIFICATION', 'UPDATE_USER_FLAGS'
         )
 
         UNION ALL

@@ -230,10 +230,23 @@ class WordDao(
 
         filter.minHit?.let { clauses.add("hit >= ?"); values.add(it) }
         filter.maxHit?.let { clauses.add("hit <= ?"); values.add(it) }
+        filter.minLength?.let { clauses.add("CHAR_LENGTH(_id) >= ?"); values.add(it) }
+        filter.maxLength?.let { clauses.add("CHAR_LENGTH(_id) <= ?"); values.add(it) }
         filter.hasTheme?.let { clauses.add(if (it) "COALESCE(NULLIF(theme, ''), '0') <> '0'" else "COALESCE(NULLIF(theme, ''), '0') = '0'") }
         filter.hasMeaning?.let {
             val meaningfulText = "BTRIM(regexp_replace(COALESCE(mean, ''), '＂[0-9]+＂', '', 'g'))"
             clauses.add(if (it) "$meaningfulText <> ''" else "$meaningfulText = ''")
+        }
+        if (filter.onlyInjeongWithMeaning) {
+            clauses.add(
+                """EXISTS (
+                    SELECT 1
+                    FROM generate_subscripts(string_to_array(COALESCE(type, ''), ','), 1) AS definition_index
+                    WHERE (string_to_array(COALESCE(type, ''), ','))[definition_index] = 'INJEONG'
+                      AND BTRIM(COALESCE((regexp_split_to_array(COALESCE(mean, ''), '＂[0-9]+＂'))[definition_index + 1], '')) <> ''
+                      AND COALESCE((regexp_split_to_array(COALESCE(mean, ''), '＂[0-9]+＂'))[definition_index + 1], '') NOT LIKE '%［%'
+                )""".trimIndent()
+            )
         }
 
         return (if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}") to values

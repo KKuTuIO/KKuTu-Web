@@ -65,8 +65,11 @@ class WordApi(
         @RequestParam(required = false, defaultValue = "false") flagMatchAll: Boolean,
         @RequestParam(required = false) minHit: Int?,
         @RequestParam(required = false) maxHit: Int?,
+        @RequestParam(required = false) minLength: Int?,
+        @RequestParam(required = false) maxLength: Int?,
         @RequestParam(required = false) hasTheme: Boolean?,
         @RequestParam(required = false) hasMeaning: Boolean?,
+        @RequestParam(required = false, defaultValue = "false") onlyInjeongWithMeaning: Boolean,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<WordVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -97,8 +100,11 @@ class WordApi(
             flagMatchAll = flagMatchAll,
             minHit = minHit,
             maxHit = maxHit,
+            minLength = minLength,
+            maxLength = maxLength,
             hasTheme = hasTheme,
-            hasMeaning = hasMeaning
+            hasMeaning = hasMeaning,
+            onlyInjeongWithMeaning = onlyInjeongWithMeaning
         )
 
         val wordListRes = adminWordService.getWordListRes(lang, page, pageSize, sortData, searchFilter)

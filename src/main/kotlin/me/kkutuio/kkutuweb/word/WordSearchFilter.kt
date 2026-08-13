@@ -10,8 +10,11 @@ data class WordSearchFilter(
     val flagMatchAll: Boolean = false,
     val minHit: Int? = null,
     val maxHit: Int? = null,
+    val minLength: Int? = null,
+    val maxLength: Int? = null,
     val hasTheme: Boolean? = null,
-    val hasMeaning: Boolean? = null
+    val hasMeaning: Boolean? = null,
+    val onlyInjeongWithMeaning: Boolean = false
 )
 
 enum class WordMatch {

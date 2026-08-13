@@ -88,6 +88,16 @@ class ReportLogDAO(
         pageSize: Int,
         page: Int
     ): String {
-        return "SELECT * FROM report_log $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
+        return """
+            SELECT report_log.*,
+                   COALESCE(report_log.room_title, (
+                       SELECT replay.room_title FROM game_replay replay
+                       WHERE replay.game_id = report_log.game_id LIMIT 1
+                   )) AS resolved_room_title
+            FROM report_log
+            $whereQuery
+            ORDER BY $sortField ${sortType.name}
+            LIMIT $pageSize OFFSET ${page * pageSize}
+        """.trimIndent()
     }
 }

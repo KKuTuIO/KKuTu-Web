@@ -33,6 +33,8 @@ class ReportLogMapper : RowMapper<ReportLog> {
         val targetId = rs.getString("target_id")
         val targetIp = rs.getString("target_ip")?.substringBefore('/')
         val targetType = rs.getString("target_type")
+        val roomTitle = rs.getString("resolved_room_title")
+        val roomOwnerId = rs.getString("room_owner_id")
         val status = rs.getString("status") ?: "PENDING"
         val reason = rs.getString("reason")
         val fileName = rs.getString("file_name")
@@ -45,6 +47,8 @@ class ReportLogMapper : RowMapper<ReportLog> {
             targetId,
             targetIp,
             targetType,
+            roomTitle,
+            roomOwnerId,
             status,
             reason,
             fileName

@@ -28,6 +28,8 @@ data class ReportLog(
     val targetId: String,
     val targetIp: String?,
     val targetType: String?,
+    val roomTitle: String?,
+    val roomOwnerId: String?,
     val status: String,
     val reason: String,
     val fileName: String

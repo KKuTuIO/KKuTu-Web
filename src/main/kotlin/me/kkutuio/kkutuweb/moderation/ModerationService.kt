@@ -162,7 +162,7 @@ class ModerationService(
             """
             SELECT report_id, time, reporter_id, reporter_nick, target_id, target_type,
                    category_code, reason, detail, reported_chat, file_name, room_id,
-                   game_id, game_context_source, status, resolved_at, resolved_by,
+                   room_title, room_owner_id, game_id, game_context_source, status, resolved_at, resolved_by,
                    resolution_note
             FROM report_log WHERE report_id = ?
             """.trimIndent(),
@@ -180,6 +180,8 @@ class ModerationService(
                     reportedChat = rs.getString("reported_chat"),
                     fileName = rs.getString("file_name"),
                     roomId = rs.getInt("room_id").let { if (rs.wasNull()) null else it },
+                    roomTitle = rs.getString("room_title"),
+                    roomOwnerId = rs.getString("room_owner_id"),
                     gameId = rs.getString("game_id"),
                     gameContextSource = rs.getString("game_context_source") ?: "NONE",
                     status = rs.getString("status"),
@@ -207,6 +209,11 @@ class ModerationService(
         ).firstOrNull()
         val currentReporter = userDao.getUser(report.reporterId)
         val currentTarget = if (report.targetType in setOf("USER", "CHAT")) userDao.getUser(report.targetId) else null
+        val currentRoomOwner = report.roomOwnerId?.let(userDao::getUser)
+        val gameReferences = reportGameReferences(report)
+        val roomTitle = report.roomTitle
+            ?: gameReferences.firstOrNull { it.relation == "LINKED" }?.roomTitle
+            ?: gameReferences.firstOrNull()?.roomTitle
         val categoryName = policyLoader.current().document.categories
             .firstOrNull { it.code == report.categoryCode }?.name
 
@@ -222,6 +229,15 @@ class ModerationService(
             reportedChat = report.reportedChat,
             fileName = report.fileName,
             roomId = report.roomId,
+            roomTitle = roomTitle,
+            roomOwner = report.roomOwnerId?.let { ownerId ->
+                ModerationReportParty(
+                    ownerId,
+                    null,
+                    currentRoomOwner?.nickname,
+                    currentRoomOwner != null
+                )
+            },
             gameId = report.gameId,
             gameContextSource = report.gameContextSource,
             reporter = ModerationReportParty(
@@ -242,7 +258,7 @@ class ModerationService(
             linkedSanctionCaseId = linkedSanction?.caseId,
             linkedSanctionSubjectType = linkedSanction?.subjectType,
             linkedSanctionRevoked = linkedSanction?.revoked ?: false,
-            gameReferences = reportGameReferences(report),
+            gameReferences = gameReferences,
             suspicionReferences = reportSuspicionReferences(report)
         )
     }
@@ -275,6 +291,20 @@ class ModerationService(
         }
         logger.info("관리자 {}에게 직접 로그 접근 권한을 발급했습니다. file={}", actorId, fileName)
         return createLogAccess(0, fileName)
+    }
+
+    fun issueSuspicionLogAccess(caseId: Long, actorId: String): ModerationLogAccess {
+        val fileName = jdbcTemplate.query(
+            "SELECT reference FROM suspicion_log WHERE case_id = ?",
+            { rs, _ -> rs.getString("reference") },
+            caseId
+        ).firstOrNull()?.trim()
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "정책 위반 내역을 찾을 수 없습니다.")
+        if (!SUSPICION_LOG_FILE_REGEX.matches(fileName)) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "연결된 정책 위반 파일을 찾을 수 없습니다.")
+        }
+        logger.info("관리자 {}에게 정책 위반 #{} 파일 접근 권한을 발급했습니다. file={}", actorId, caseId, fileName)
+        return createLogAccess(caseId, fileName)
     }
 
     private fun createLogAccess(reportId: Long, fileName: String): ModerationLogAccess {
@@ -2390,6 +2420,8 @@ class ModerationService(
         val reportedChat: String?,
         val fileName: String?,
         val roomId: Int?,
+        val roomTitle: String?,
+        val roomOwnerId: String?,
         val gameId: String?,
         val gameContextSource: String,
         val status: String,

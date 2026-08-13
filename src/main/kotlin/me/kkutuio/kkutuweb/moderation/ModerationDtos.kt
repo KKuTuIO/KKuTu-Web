@@ -156,6 +156,8 @@ data class ModerationReportDetail(
     val reportedChat: String?,
     val fileName: String?,
     val roomId: Int?,
+    val roomTitle: String?,
+    val roomOwner: ModerationReportParty?,
     val gameId: String?,
     val gameContextSource: String,
     val reporter: ModerationReportParty,

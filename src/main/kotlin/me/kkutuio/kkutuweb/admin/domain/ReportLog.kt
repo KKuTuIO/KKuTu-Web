@@ -26,6 +26,7 @@ data class ReportLog(
     val reporterId: String,
     val reporterNick: String?,
     val targetId: String,
+    val targetIp: String?,
     val targetType: String?,
     val status: String,
     val reason: String,

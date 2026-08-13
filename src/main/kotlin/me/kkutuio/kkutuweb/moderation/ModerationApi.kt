@@ -273,6 +273,16 @@ class AdminModerationApi(
         return service.issueReportLogAccess(reportId, fileName, actor)
     }
 
+    @PostMapping("/log-access")
+    fun manualLogAccess(
+        @RequestParam fileName: String,
+        session: HttpSession
+    ): ModerationLogAccess {
+        val actor = authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        return service.issueManualLogAccess(fileName, actor)
+    }
+
     @PostMapping("/reports/{reportId}/game-context")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun linkReportGameContext(

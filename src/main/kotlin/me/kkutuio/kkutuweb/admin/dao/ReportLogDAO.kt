@@ -60,14 +60,21 @@ class ReportLogDAO(
     private fun whereQuery(searchFilters: Map<String, String>): String {
         val whereQueryParts = ArrayList<String>()
         for (key in searchFilters.keys) {
-            whereQueryParts.add("CAST($key AS TEXT) ILIKE ?")
+            whereQueryParts.add(if (key == "target_id") {
+                "(CAST(target_id AS TEXT) ILIKE ? OR host(target_ip) ILIKE ?)"
+            } else {
+                "CAST($key AS TEXT) ILIKE ?"
+            })
         }
 
         return if (whereQueryParts.isEmpty()) "" else "WHERE " + whereQueryParts.joinToString(" AND ")
     }
 
     private fun whereValues(searchFilters: Map<String, String>): Array<String> {
-        return searchFilters.values.map { "%${it}%" }.toTypedArray()
+        return searchFilters.flatMap { (key, value) ->
+            val parameter = "%$value%"
+            if (key == "target_id") listOf(parameter, parameter) else listOf(parameter)
+        }.toTypedArray()
     }
 
     private fun countQuery(whereQuery: String): String {

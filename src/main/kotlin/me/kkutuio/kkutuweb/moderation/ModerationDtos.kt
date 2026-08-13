@@ -102,7 +102,8 @@ data class ModerationReportSummary(
     val detail: String?,
     val status: String,
     val time: Instant,
-    val targetId: String? = null
+    val targetId: String? = null,
+    val targetIp: String? = null
 )
 
 data class ModerationReportPage(

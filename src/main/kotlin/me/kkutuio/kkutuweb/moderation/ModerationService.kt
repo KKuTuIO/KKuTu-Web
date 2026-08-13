@@ -260,10 +260,24 @@ class ModerationService(
         if (fileName !in allowedFiles) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "이 신고와 연결되지 않은 로그 파일입니다.")
         }
-        if (!Regex("^game-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.log(?:\\.gz)?$").matches(fileName)) {
+        if (!GAME_LOG_FILE_REGEX.matches(fileName)) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "신고에 연결된 게임 로그가 없습니다.")
         }
 
+        logger.info("관리자 {}에게 신고 #{} 로그 접근 권한을 발급했습니다. file={}", actorId, reportId, fileName)
+        return createLogAccess(reportId, fileName)
+    }
+
+    fun issueManualLogAccess(requestedFileName: String, actorId: String): ModerationLogAccess {
+        val fileName = requestedFileName.trim()
+        if (!GAME_LOG_FILE_REGEX.matches(fileName)) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "올바른 시간별 게임 로그 파일명이 필요합니다.")
+        }
+        logger.info("관리자 {}에게 직접 로그 접근 권한을 발급했습니다. file={}", actorId, fileName)
+        return createLogAccess(0, fileName)
+    }
+
+    private fun createLogAccess(reportId: Long, fileName: String): ModerationLogAccess {
         val logServiceSetting = kKuTuSetting.getModerationLogService()
         val publicBaseUrl = logServiceSetting.publicUrl.takeIf { it.isNotEmpty() }
             ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "로그 열람 서비스 주소가 설정되지 않았습니다.")
@@ -275,7 +289,6 @@ class ModerationService(
         mac.init(SecretKeySpec(secret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
         val signature = mac.doFinal(canonical.toByteArray(StandardCharsets.UTF_8))
             .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-        logger.info("관리자 {}에게 신고 #{} 로그 접근 권한을 발급했습니다. file={}", actorId, reportId, fileName)
         return ModerationLogAccess(
             endpoint = "$publicBaseUrl/api/moderation/log-file",
             fileName = fileName,
@@ -1829,7 +1842,8 @@ class ModerationService(
         val toDays = (window + 1) * 90
         val items = jdbcTemplate.query(
             """
-            SELECT report_id, target_id, category_code, reason, detail, status, time
+            SELECT report_id, target_id, host(target_ip) AS target_ip,
+                   category_code, reason, detail, status, time
             FROM report_log
             WHERE target_id = ?
               AND time >= CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
@@ -1844,7 +1858,8 @@ class ModerationService(
                     rs.getString("detail"),
                     rs.getString("status"),
                     rs.getTimestamp("time").toInstant(),
-                    rs.getString("target_id")
+                    rs.getString("target_id"),
+                    rs.getString("target_ip")
                 )
             },
             userId,
@@ -1876,7 +1891,8 @@ class ModerationService(
         """.trimIndent()
         val items = jdbcTemplate.query(
             """
-            SELECT report_id, target_id, category_code, reason, detail, status, time
+            SELECT report_id, target_id, host(target_ip) AS target_ip,
+                   category_code, reason, detail, status, time
             FROM report_log
             WHERE $relation
               AND time >= CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
@@ -1996,7 +2012,8 @@ class ModerationService(
         rs.getString("detail"),
         rs.getString("status"),
         rs.getTimestamp("time").toInstant(),
-        rs.getString("target_id")
+        rs.getString("target_id"),
+        rs.getString("target_ip")
     )
 
     private fun resolveIpSubject(subject: String): ResolvedIpSubject {
@@ -2006,10 +2023,12 @@ class ModerationService(
             val ip = jdbcTemplate.query(
                 """
                 SELECT ip FROM (
-                    SELECT user_ip AS ip, time, id::BIGINT AS ordering FROM connection_log
-                    WHERE user_id = ?
+                    SELECT regexp_replace(user_ip, '^::ffff:', '') AS ip,
+                           time, id::BIGINT AS ordering
+                    FROM connection_log
+                    WHERE user_id = ? AND user_ip ~ '^[0-9A-Fa-f:.]+$'
                     UNION ALL
-                    SELECT target_ip::TEXT AS ip, time, report_id AS ordering FROM report_log
+                    SELECT host(target_ip) AS ip, time, report_id AS ordering FROM report_log
                     WHERE target_id = ? AND target_ip IS NOT NULL
                 ) sources
                 ORDER BY time DESC, ordering DESC LIMIT 1
@@ -2027,7 +2046,14 @@ class ModerationService(
     }
 
     private fun canonicalIp(value: String): String {
-        val trimmed = value.trim()
+        var trimmed = value.trim().substringBefore('/')
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            trimmed = trimmed.substring(1, trimmed.length - 1)
+        }
+        if (trimmed.startsWith("::ffff:", ignoreCase = true)
+            && IPV4_REGEX.matches(trimmed.substring(7))) {
+            trimmed = trimmed.substring(7)
+        }
         val address = when {
             IPV4_REGEX.matches(trimmed) -> {
                 val parts = trimmed.split('.').map { it.toIntOrNull() }
@@ -2381,5 +2407,6 @@ class ModerationService(
     companion object {
         private val IPV4_REGEX = Regex("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$")
         private val IPV6_CHAR_REGEX = Regex("^[0-9A-Fa-f:.]+$")
+        private val GAME_LOG_FILE_REGEX = Regex("^game-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.log(?:\\.gz)?$")
     }
 }

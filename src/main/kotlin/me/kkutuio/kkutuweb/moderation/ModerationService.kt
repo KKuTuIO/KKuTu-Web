@@ -293,20 +293,6 @@ class ModerationService(
         return createLogAccess(0, fileName)
     }
 
-    fun issueSuspicionLogAccess(caseId: Long, actorId: String): ModerationLogAccess {
-        val fileName = jdbcTemplate.query(
-            "SELECT reference FROM suspicion_log WHERE case_id = ?",
-            { rs, _ -> rs.getString("reference") },
-            caseId
-        ).firstOrNull()?.trim()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "정책 위반 내역을 찾을 수 없습니다.")
-        if (!SUSPICION_LOG_FILE_REGEX.matches(fileName)) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "연결된 정책 위반 파일을 찾을 수 없습니다.")
-        }
-        logger.info("관리자 {}에게 정책 위반 #{} 파일 접근 권한을 발급했습니다. file={}", actorId, caseId, fileName)
-        return createLogAccess(caseId, fileName)
-    }
-
     private fun createLogAccess(reportId: Long, fileName: String): ModerationLogAccess {
         val logServiceSetting = kKuTuSetting.getModerationLogService()
         val publicBaseUrl = logServiceSetting.publicUrl.takeIf { it.isNotEmpty() }
@@ -2450,7 +2436,7 @@ class ModerationService(
         private val IPV6_CHAR_REGEX = Regex("^[0-9A-Fa-f:.]+$")
         private val GAME_LOG_FILE_REGEX = Regex("^game-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.log(?:\\.gz)?$")
         private val SUSPICION_LOG_FILE_REGEX = Regex(
-            "^(?:guest__[A-Za-z0-9]+|[a-z]+-[0-9]+)-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.\\d{2}\\.\\d{2}\\.txt$"
+            "^[A-Za-z0-9_-]+-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.\\d{2}\\.\\d{2}\\.txt$"
         )
     }
 }

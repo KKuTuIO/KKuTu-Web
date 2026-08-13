@@ -283,15 +283,6 @@ class AdminModerationApi(
         return service.issueManualLogAccess(fileName, actor)
     }
 
-    @PostMapping("/suspicion-logs/{caseId}/log-access")
-    fun suspicionLogAccess(
-        @PathVariable caseId: Long,
-        session: HttpSession
-    ): ModerationLogAccess {
-        val actor = authorizer.require(session, AdminSetting.Privilege.SUSPICION_LOG)
-        return service.issueSuspicionLogAccess(caseId, actor)
-    }
-
     @PostMapping("/reports/{reportId}/game-context")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun linkReportGameContext(

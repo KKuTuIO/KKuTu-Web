@@ -293,6 +293,14 @@ class ModerationService(
         return createLogAccess(0, fileName)
     }
 
+    fun logFilesUrl(actorId: String): String {
+        val logServiceSetting = kKuTuSetting.getModerationLogService()
+        val publicBaseUrl = logServiceSetting.publicUrl.takeIf { it.isNotEmpty() }
+            ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "로그 열람 서비스 주소가 설정되지 않았습니다.")
+        logger.info("관리자 {}가 로그 목록을 열었습니다.", actorId)
+        return "$publicBaseUrl/log-list"
+    }
+
     fun issueSuspicionLogAccess(caseId: Long, actorId: String): ModerationLogAccess {
         val fileName = jdbcTemplate.query(
             "SELECT reference FROM suspicion_log WHERE case_id = ?",

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
+import javax.servlet.http.HttpServletResponse
 
 @RestController
 @RequestMapping("/api/admin/moderation")
@@ -281,6 +282,13 @@ class AdminModerationApi(
         val actor = authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
         authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
         return service.issueManualLogAccess(fileName, actor)
+    }
+
+    @GetMapping("/log-files")
+    fun logFiles(session: HttpSession, response: HttpServletResponse) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        response.sendRedirect(service.logFilesUrl(actor))
     }
 
     @PostMapping("/suspicion-logs/{caseId}/log-access")

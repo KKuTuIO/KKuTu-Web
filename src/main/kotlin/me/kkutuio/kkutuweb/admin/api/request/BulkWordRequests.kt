@@ -32,10 +32,9 @@ data class BulkWordDeleteRequest(
 
 data class BulkWordModifyRequest(
     val words: List<String>,
-    val flagOperation: String = "KEEP",
+    val mode: String = "SETTINGS",
     val flags: List<WordFlag> = emptyList(),
-    val addThemes: List<WordTheme> = emptyList(),
-    val removeThemes: List<WordTheme> = emptyList(),
+    val details: List<WordDetailVO> = emptyList(),
     val replaceThemeFrom: WordTheme? = null,
     val replaceThemeTo: WordTheme? = null,
     val replaceTypeFrom: WordType? = null,

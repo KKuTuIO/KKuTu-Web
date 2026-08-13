@@ -3,22 +3,17 @@ package me.kkutuio.kkutuweb.admin.service
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordModifyRequest
 import me.kkutuio.kkutuweb.utils.WordUtils
 import me.kkutuio.kkutuweb.word.Word
+import me.kkutuio.kkutuweb.admin.vo.WordVO
 
 internal object BulkWordMutation {
     fun apply(word: Word, request: BulkWordModifyRequest): Word {
-        val requestedMask = request.flags.fold(0) { value, flag -> value.or(flag.flag) }
-        val newFlag = when (request.flagOperation.uppercase()) {
-            "ADD" -> word.flag.or(requestedMask)
-            "REMOVE" -> word.flag.and(requestedMask.inv())
-            "REPLACE" -> requestedMask
-            else -> word.flag
+        if (request.mode.uppercase() == "SETTINGS") {
+            return Word.convertFrom(WordVO(word.id, word.hit, request.flags, request.details)).copy(hit = word.hit)
         }
 
-        val removeThemeCodes = request.removeThemes.map { it.themeCode }.toSet()
         val existingDetails = details(word).map { detail ->
             var type = detail.type
             var theme = detail.theme
-            if (theme in removeThemeCodes) theme = "0"
             if (request.replaceThemeFrom != null && request.replaceThemeTo != null &&
                 theme == request.replaceThemeFrom.themeCode) {
                 theme = request.replaceThemeTo.themeCode
@@ -28,27 +23,21 @@ internal object BulkWordMutation {
                 type = request.replaceTypeTo.typeCode
             }
             Detail(type, theme, detail.mean)
-        }.toMutableList()
-
-        val existingThemeCodes = existingDetails.map { it.theme }.toMutableSet()
-        request.addThemes.forEach { theme ->
-            if (existingThemeCodes.add(theme.themeCode)) existingDetails.add(Detail("0", theme.themeCode, ""))
         }
 
-        val normalizedDetails = existingDetails.distinct().ifEmpty { listOf(Detail("0", "0", "")) }
+        val normalizedDetails = existingDetails.ifEmpty { listOf(Detail("0", "0", "")) }
         return word.copy(
             type = normalizedDetails.joinToString(",") { it.type },
-            theme = normalizedDetails.joinToString(",") { it.theme },
-            mean = WordUtils.serializeMean(normalizedDetails.map { it.mean }),
-            flag = newFlag
+            theme = normalizedDetails.joinToString(",") { it.theme }
         )
     }
 
-    fun hasMutation(request: BulkWordModifyRequest): Boolean =
-        request.flagOperation.uppercase() != "KEEP" || request.addThemes.isNotEmpty() ||
-            request.removeThemes.isNotEmpty() ||
-            (request.replaceThemeFrom != null && request.replaceThemeTo != null) ||
+    fun hasMutation(request: BulkWordModifyRequest): Boolean = when (request.mode.uppercase()) {
+        "SETTINGS" -> request.details.isNotEmpty()
+        "REPLACE" -> (request.replaceThemeFrom != null && request.replaceThemeTo != null) ||
             (request.replaceTypeFrom != null && request.replaceTypeTo != null)
+        else -> false
+    }
 
     private fun details(word: Word): List<Detail> {
         val types = word.type.split(",")

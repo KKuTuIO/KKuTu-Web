@@ -66,7 +66,9 @@ data class BulkWordModifyItem(
     val oldThemes: List<String>,
     val newThemes: List<String>,
     val oldTypes: List<String>,
-    val newTypes: List<String>
+    val newTypes: List<String>,
+    val oldDefinitions: List<String>,
+    val newDefinitions: List<String>
 )
 
 data class BulkWordModifyPreview(

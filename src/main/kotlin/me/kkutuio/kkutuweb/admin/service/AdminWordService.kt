@@ -592,11 +592,15 @@ class AdminWordService(
         words.isNotEmpty() && words.size <= MAX_BULK_WORDS && words.any { it.isNotBlank() }
 
     private fun isValidModifyRequest(request: BulkWordModifyRequest): Boolean {
-        val flagOperation = request.flagOperation.uppercase()
-        if (flagOperation !in setOf("KEEP", "ADD", "REMOVE", "REPLACE")) return false
-        if (flagOperation != "KEEP" && request.flags.isEmpty() && flagOperation != "REPLACE") return false
+        val mode = request.mode.uppercase()
+        if (mode !in setOf("SETTINGS", "REPLACE")) return false
         if ((request.replaceThemeFrom == null) != (request.replaceThemeTo == null)) return false
         if ((request.replaceTypeFrom == null) != (request.replaceTypeTo == null)) return false
+        if (mode == "SETTINGS") {
+            if (request.details.isEmpty()) return false
+            if (request.replaceThemeFrom != null || request.replaceTypeFrom != null) return false
+        }
+        if (mode == "REPLACE" && (request.details.isNotEmpty() || request.flags.isNotEmpty())) return false
         return BulkWordMutation.hasMutation(request)
     }
 
@@ -607,8 +611,14 @@ class AdminWordService(
         oldThemes = codeNames(oldWord.theme, { WordTheme.findByCode(it) }) { it.themeName },
         newThemes = codeNames(newWord.theme, { WordTheme.findByCode(it) }) { it.themeName },
         oldTypes = codeNames(oldWord.type, { WordType.findByCode(it) }) { it.typeName },
-        newTypes = codeNames(newWord.type, { WordType.findByCode(it) }) { it.typeName }
+        newTypes = codeNames(newWord.type, { WordType.findByCode(it) }) { it.typeName },
+        oldDefinitions = definitionNames(oldWord),
+        newDefinitions = definitionNames(newWord)
     )
+
+    private fun definitionNames(word: Word): List<String> = WordVO.convertFrom(word).details.map {
+        "[${it.type.typeName}] (${it.theme.themeName}) ${it.mean.ifBlank { "(뜻 없음)" }}"
+    }
 
     private fun flagNames(mask: Int): List<String> {
         val names = WordFlag.values().filter { it.flag > 0 && mask.and(it.flag) != 0 }.map { it.flagName }

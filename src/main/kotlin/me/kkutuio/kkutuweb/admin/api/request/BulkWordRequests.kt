@@ -12,6 +12,8 @@ package me.kkutuio.kkutuweb.admin.api.request
 
 import me.kkutuio.kkutuweb.admin.vo.WordDetailVO
 import me.kkutuio.kkutuweb.word.WordFlag
+import me.kkutuio.kkutuweb.word.WordTheme
+import me.kkutuio.kkutuweb.word.WordType
 
 data class BulkWordAddRequest(
     val words: List<String>,
@@ -24,6 +26,20 @@ data class BulkWordAddRequest(
 
 data class BulkWordDeleteRequest(
     val words: List<String>,
+    val updateLogIgnore: Boolean,
+    val updateLogIncludeDetail: Boolean
+)
+
+data class BulkWordModifyRequest(
+    val words: List<String>,
+    val flagOperation: String = "KEEP",
+    val flags: List<WordFlag> = emptyList(),
+    val addThemes: List<WordTheme> = emptyList(),
+    val removeThemes: List<WordTheme> = emptyList(),
+    val replaceThemeFrom: WordTheme? = null,
+    val replaceThemeTo: WordTheme? = null,
+    val replaceTypeFrom: WordType? = null,
+    val replaceTypeTo: WordType? = null,
     val updateLogIgnore: Boolean,
     val updateLogIncludeDetail: Boolean
 )

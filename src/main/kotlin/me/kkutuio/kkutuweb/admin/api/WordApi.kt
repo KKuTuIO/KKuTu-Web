@@ -21,6 +21,7 @@ package me.kkutuio.kkutuweb.admin.api
 import me.kkutuio.kkutuweb.admin.api.request.UpdateLogRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordAddRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordDeleteRequest
+import me.kkutuio.kkutuweb.admin.api.request.BulkWordModifyRequest
 import me.kkutuio.kkutuweb.admin.api.request.WordEditRequest
 import me.kkutuio.kkutuweb.admin.api.response.ActionResponse
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
@@ -31,6 +32,8 @@ import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.AdminSetting
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
+import me.kkutuio.kkutuweb.word.WordMatch
+import me.kkutuio.kkutuweb.word.WordSearchFilter
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
@@ -54,6 +57,16 @@ class WordApi(
         @RequestParam(required = true, name = "sort") sortData: String,
         @RequestParam(required = false, defaultValue = "") word: String,
         @RequestParam(required = false, defaultValue = "") theme: String,
+        @RequestParam(required = false, defaultValue = "LEGACY") wordMatch: String,
+        @RequestParam(required = false, defaultValue = "") themes: String,
+        @RequestParam(required = false, defaultValue = "false") themeMatchAll: Boolean,
+        @RequestParam(required = false, defaultValue = "") types: String,
+        @RequestParam(required = false, defaultValue = "") flags: String,
+        @RequestParam(required = false, defaultValue = "false") flagMatchAll: Boolean,
+        @RequestParam(required = false) minHit: Int?,
+        @RequestParam(required = false) maxHit: Int?,
+        @RequestParam(required = false) hasTheme: Boolean?,
+        @RequestParam(required = false) hasMeaning: Boolean?,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<WordVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -73,13 +86,23 @@ class WordApi(
             return ListResponse(0, emptyList())
         }
 
-        val searchFilters = mapOf(
-            "_id" to word,
-            "theme" to theme
+        val selectedThemes = csv(themes.ifBlank { theme })
+        val searchFilter = WordSearchFilter(
+            word = word,
+            wordMatch = WordMatch.parse(wordMatch),
+            themes = selectedThemes,
+            themeMatchAll = themeMatchAll,
+            types = csv(types),
+            flags = csv(flags).mapNotNull { it.toIntOrNull() },
+            flagMatchAll = flagMatchAll,
+            minHit = minHit,
+            maxHit = maxHit,
+            hasTheme = hasTheme,
+            hasMeaning = hasMeaning
         )
 
-        val wordListRes = adminWordService.getWordListRes(lang, page, pageSize, sortData, searchFilters)
-        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 목록을 요청했습니다. 언어: $lang / 검색어: $word / 테마: $theme / 총 개수: ${wordListRes.totalElements}")
+        val wordListRes = adminWordService.getWordListRes(lang, page, pageSize, sortData, searchFilter)
+        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 목록을 요청했습니다. 언어: $lang / 검색어: $word / 테마: ${selectedThemes.joinToString()} / 총 개수: ${wordListRes.totalElements}")
 
         return wordListRes
     }
@@ -262,6 +285,36 @@ class WordApi(
         logger.info("[${request.getIp()}] $adminId 님이 단어 대량 삭제를 요청했습니다. 언어: $lang / 입력 개수: ${bulkWordDeleteRequest.words.size}")
         return actionResponse
     }
+
+    @PostMapping("/{lang}/bulk-modify/preview")
+    fun previewBulkModify(
+        @PathVariable lang: String,
+        @RequestBody bulkWordModifyRequest: BulkWordModifyRequest,
+        request: HttpServletRequest, session: HttpSession
+    ): ActionResponse {
+        val adminId = authorizedAdminId(session, "단어 대량 수정 사전 확인")
+            ?: return unauthorizedResponse(session)
+
+        val actionResponse = adminWordService.previewBulkModify(lang, bulkWordModifyRequest)
+        logger.info("[${request.getIp()}] $adminId 님이 단어 대량 수정 사전 확인을 요청했습니다. 언어: $lang / 입력 개수: ${bulkWordModifyRequest.words.size}")
+        return actionResponse
+    }
+
+    @PostMapping("/{lang}/bulk-modify")
+    fun bulkModify(
+        @PathVariable lang: String,
+        @RequestBody bulkWordModifyRequest: BulkWordModifyRequest,
+        request: HttpServletRequest, session: HttpSession
+    ): ActionResponse {
+        val adminId = authorizedAdminId(session, "단어 대량 수정")
+            ?: return unauthorizedResponse(session)
+
+        val actionResponse = adminWordService.bulkModify(adminId, lang, bulkWordModifyRequest)
+        logger.info("[${request.getIp()}] $adminId 님이 단어 대량 수정을 요청했습니다. 언어: $lang / 입력 개수: ${bulkWordModifyRequest.words.size}")
+        return actionResponse
+    }
+
+    private fun csv(value: String): List<String> = value.split(",").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 
     private fun authorizedAdminId(session: HttpSession, action: String): String? {
         val sessionProfile = loginService.getSessionProfile(session)

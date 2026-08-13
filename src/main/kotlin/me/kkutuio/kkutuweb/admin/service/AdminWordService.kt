@@ -22,6 +22,7 @@ import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.api.request.UpdateLogRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordAddRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordDeleteRequest
+import me.kkutuio.kkutuweb.admin.api.request.BulkWordModifyRequest
 import me.kkutuio.kkutuweb.admin.api.request.WordEditRequest
 import me.kkutuio.kkutuweb.admin.api.response.ActionResponse
 import me.kkutuio.kkutuweb.admin.api.response.BulkWordAddPreview
@@ -29,6 +30,8 @@ import me.kkutuio.kkutuweb.admin.api.response.BulkWordDeleteItem
 import me.kkutuio.kkutuweb.admin.api.response.BulkWordDeletePreview
 import me.kkutuio.kkutuweb.admin.api.response.BulkWordFailure
 import me.kkutuio.kkutuweb.admin.api.response.BulkWordResult
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordModifyItem
+import me.kkutuio.kkutuweb.admin.api.response.BulkWordModifyPreview
 import me.kkutuio.kkutuweb.admin.api.response.BulkWordThemeGroup
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.api.response.RestResult
@@ -39,6 +42,9 @@ import me.kkutuio.kkutuweb.admin.vo.WordVO
 import me.kkutuio.kkutuweb.word.Word
 import me.kkutuio.kkutuweb.word.WordDao
 import me.kkutuio.kkutuweb.word.WordTheme
+import me.kkutuio.kkutuweb.word.WordFlag
+import me.kkutuio.kkutuweb.word.WordSearchFilter
+import me.kkutuio.kkutuweb.word.WordType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -61,7 +67,7 @@ class AdminWordService(
         page: Int,
         pageSize: Int,
         sortData: String,
-        searchFilters: Map<String, String>
+        searchFilter: WordSearchFilter
     ): ListResponse<WordVO> {
         val tableName = getTableName(lang)
         if (tableName.isEmpty()) {
@@ -77,10 +83,8 @@ class AdminWordService(
         }
         val sortType = SortType.valueOf(split[1])
 
-        val dbSearchFilters = searchFilters.filterValues { it.isNotEmpty() }
-
-        val dataCount = wordDao.getDataCount(tableName, dbSearchFilters)
-        val pageData = wordDao.getPageData(tableName, page, pageSize, sortField, sortType, dbSearchFilters).map {
+        val dataCount = wordDao.getDataCount(tableName, searchFilter)
+        val pageData = wordDao.getPageData(tableName, page, pageSize, sortField, sortType, searchFilter).map {
             WordVO.convertFrom(it)
         }
 
@@ -491,8 +495,128 @@ class AdminWordService(
         )
     }
 
+    fun previewBulkModify(lang: String, request: BulkWordModifyRequest): ActionResponse {
+        val tableName = getTableName(lang)
+        if (tableName.isEmpty() || !isValidBulkRequest(request.words) || !isValidModifyRequest(request)) {
+            return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        }
+
+        val (words, duplicateInputWords) = normalizeWords(request.words)
+        val groupedExistingWords = wordDao.getWords(tableName, words).groupBy { it.id }
+        val changedItems = ArrayList<BulkWordModifyItem>()
+        val unchangedWords = ArrayList<String>()
+        val failures = ArrayList<BulkWordFailure>()
+
+        words.forEach { wordName ->
+            val existingWords = groupedExistingWords[wordName].orEmpty()
+            when {
+                !isValidWord(lang, wordName) -> failures.add(invalidWordFailure(wordName))
+                existingWords.isEmpty() -> failures.add(BulkWordFailure(wordName, "NOT_FOUND", "존재하지 않는 단어입니다."))
+                existingWords.size > 1 -> failures.add(nonUniqueFailure(wordName))
+                else -> {
+                    val oldWord = existingWords[0]
+                    val newWord = BulkWordMutation.apply(oldWord, request)
+                    if (oldWord == newWord) unchangedWords.add(wordName)
+                    else changedItems.add(modifyPreviewItem(oldWord, newWord))
+                }
+            }
+        }
+
+        return ActionResponse.success(BulkWordModifyPreview(
+            totalCount = words.size,
+            changedItems = changedItems,
+            unchangedWords = unchangedWords,
+            duplicateInputWords = duplicateInputWords,
+            failures = failures
+        ))
+    }
+
+    @Transactional
+    fun bulkModify(adminId: String, lang: String, request: BulkWordModifyRequest): ActionResponse {
+        val tableName = getTableName(lang)
+        if (tableName.isEmpty() || !isValidBulkRequest(request.words) || !isValidModifyRequest(request)) {
+            return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        }
+
+        val (words, _) = normalizeWords(request.words)
+        val groupedExistingWords = wordDao.getWords(tableName, words).groupBy { it.id }
+        val changedWords = ArrayList<Pair<Word, Word>>()
+        val failures = ArrayList<BulkWordFailure>()
+        var skippedCount = 0
+
+        words.forEach { wordName ->
+            val existingWords = groupedExistingWords[wordName].orEmpty()
+            when {
+                !isValidWord(lang, wordName) -> failures.add(invalidWordFailure(wordName))
+                existingWords.isEmpty() -> failures.add(BulkWordFailure(wordName, "NOT_FOUND", "존재하지 않는 단어입니다."))
+                existingWords.size > 1 -> failures.add(nonUniqueFailure(wordName))
+                else -> {
+                    val oldWord = existingWords[0]
+                    val newWord = BulkWordMutation.apply(oldWord, request)
+                    if (oldWord == newWord) skippedCount++ else changedWords.add(oldWord to newWord)
+                }
+            }
+        }
+
+        wordDao.updateAll(tableName, changedWords.map { it.second })
+        val now = LocalDateTime.now()
+        wordAuditLogDAO.insertAll(lang, changedWords.map { (oldWord, newWord) ->
+            WordAuditLog(
+                time = now,
+                word = newWord.id,
+                type = WordAuditLog.WordAuditLogType.UPDATE,
+                oldType = oldWord.type,
+                oldMean = oldWord.mean,
+                oldFlag = oldWord.flag,
+                oldTheme = oldWord.theme,
+                newType = newWord.type,
+                newMean = newWord.mean,
+                newFlag = newWord.flag,
+                newTheme = newWord.theme,
+                updateLogIgnore = request.updateLogIgnore,
+                updateLogIncludeDetail = request.updateLogIncludeDetail,
+                admin = adminId
+            )
+        })
+
+        return ActionResponse.success(BulkWordResult(
+            requestedCount = words.size,
+            successCount = changedWords.size,
+            updatedCount = changedWords.size,
+            skippedCount = skippedCount,
+            failures = failures
+        ))
+    }
+
     private fun isValidBulkRequest(words: List<String>): Boolean =
         words.isNotEmpty() && words.size <= MAX_BULK_WORDS && words.any { it.isNotBlank() }
+
+    private fun isValidModifyRequest(request: BulkWordModifyRequest): Boolean {
+        val flagOperation = request.flagOperation.uppercase()
+        if (flagOperation !in setOf("KEEP", "ADD", "REMOVE", "REPLACE")) return false
+        if (flagOperation != "KEEP" && request.flags.isEmpty() && flagOperation != "REPLACE") return false
+        if ((request.replaceThemeFrom == null) != (request.replaceThemeTo == null)) return false
+        if ((request.replaceTypeFrom == null) != (request.replaceTypeTo == null)) return false
+        return BulkWordMutation.hasMutation(request)
+    }
+
+    private fun modifyPreviewItem(oldWord: Word, newWord: Word) = BulkWordModifyItem(
+        word = oldWord.id,
+        oldFlags = flagNames(oldWord.flag),
+        newFlags = flagNames(newWord.flag),
+        oldThemes = codeNames(oldWord.theme, { WordTheme.findByCode(it) }) { it.themeName },
+        newThemes = codeNames(newWord.theme, { WordTheme.findByCode(it) }) { it.themeName },
+        oldTypes = codeNames(oldWord.type, { WordType.findByCode(it) }) { it.typeName },
+        newTypes = codeNames(newWord.type, { WordType.findByCode(it) }) { it.typeName }
+    )
+
+    private fun flagNames(mask: Int): List<String> {
+        val names = WordFlag.values().filter { it.flag > 0 && mask.and(it.flag) != 0 }.map { it.flagName }
+        return if (names.isEmpty()) listOf("일반") else names
+    }
+
+    private fun <T> codeNames(codes: String, find: (String) -> T?, name: (T) -> String): List<String> =
+        codes.split(",").filter { it.isNotBlank() }.distinct().map { code -> find(code)?.let(name) ?: code }
 
     private fun normalizeWords(words: List<String>): Pair<List<String>, List<String>> {
         val uniqueWords = LinkedHashSet<String>()

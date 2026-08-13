@@ -53,7 +53,26 @@ data class BulkWordResult(
     val successCount: Int,
     val createdCount: Int = 0,
     val meaningAddedCount: Int = 0,
+    val updatedCount: Int = 0,
     val deletedCount: Int = 0,
     val skippedCount: Int = 0,
+    val failures: List<BulkWordFailure>
+)
+
+data class BulkWordModifyItem(
+    val word: String,
+    val oldFlags: List<String>,
+    val newFlags: List<String>,
+    val oldThemes: List<String>,
+    val newThemes: List<String>,
+    val oldTypes: List<String>,
+    val newTypes: List<String>
+)
+
+data class BulkWordModifyPreview(
+    val totalCount: Int,
+    val changedItems: List<BulkWordModifyItem>,
+    val unchangedWords: List<String>,
+    val duplicateInputWords: List<String>,
     val failures: List<BulkWordFailure>
 )

@@ -77,13 +77,12 @@ class WordDao(
 
     fun getDataCount(
         tableName: String,
-        searchFilters: Map<String, String>
+        searchFilter: WordSearchFilter
     ): Int {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
+        val (whereQuery, whereValues) = buildWhere(searchFilter)
 
         val sql = countQuery(tableName, whereQuery)
-        val list = jdbcTemplate.query(sql, singleNumberMapper, *whereValues)
+        val list = jdbcTemplate.query(sql, singleNumberMapper, *whereValues.toTypedArray())
         return list[0]
     }
 
@@ -93,13 +92,12 @@ class WordDao(
         pageSize: Int,
         sortField: String,
         sortType: SortType,
-        searchFilters: Map<String, String>
+        searchFilter: WordSearchFilter
     ): List<Word> {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
+        val (whereQuery, whereValues) = buildWhere(searchFilter)
 
         val sql = selectQuery(tableName, whereQuery, sortField, sortType, pageSize, page)
-        return jdbcTemplate.query(sql, wordMapper, *whereValues)
+        return jdbcTemplate.query(sql, wordMapper, *whereValues.toTypedArray())
     }
 
     fun insert(tableName: String, word: Word) {
@@ -175,24 +173,73 @@ class WordDao(
         return list.isNotEmpty()
     }
 
-    private fun whereQuery(searchFilters: Map<String, String>): String {
-        val whereQueryParts = ArrayList<String>()
-        for (key in searchFilters.keys) {
-            whereQueryParts.add("CAST($key AS TEXT) ILIKE ?")
+    private fun buildWhere(filter: WordSearchFilter): Pair<String, List<Any>> {
+        val clauses = ArrayList<String>()
+        val values = ArrayList<Any>()
+
+        if (filter.word.isNotBlank()) {
+            val escaped = escapeLike(filter.word.trim())
+            val pattern = when (filter.wordMatch) {
+                WordMatch.EXACT -> escaped
+                WordMatch.STARTS_WITH -> "$escaped%"
+                WordMatch.ENDS_WITH -> "%$escaped"
+                WordMatch.CONTAINS -> "%$escaped%"
+                WordMatch.LEGACY -> if (filter.word.startsWith("%") || filter.word.endsWith("%")) filter.word else "%${filter.word}%"
+            }
+            clauses.add("_id ILIKE ?${if (filter.wordMatch == WordMatch.LEGACY) "" else " ESCAPE '\\'"}")
+            values.add(pattern)
         }
 
-        return if (whereQueryParts.isEmpty()) "" else "WHERE " + whereQueryParts.joinToString(" AND ")
+        if (filter.themes.isNotEmpty()) {
+            val themeClauses = filter.themes.distinct().map {
+                values.add("%,${escapeLike(it)},%")
+                "(',' || COALESCE(theme, '') || ',') ILIKE ? ESCAPE '\\'"
+            }
+            clauses.add(if (filter.themeMatchAll) themeClauses.joinToString(" AND ", "(", ")") else themeClauses.joinToString(" OR ", "(", ")"))
+        }
+
+        if (filter.types.isNotEmpty()) {
+            val typeClauses = filter.types.distinct().map {
+                values.add("%,${escapeLike(it)},%")
+                "(',' || COALESCE(type, '') || ',') ILIKE ? ESCAPE '\\'"
+            }
+            clauses.add(typeClauses.joinToString(" OR ", "(", ")"))
+        }
+
+        if (filter.flags.isNotEmpty()) {
+            val wantsNoFlag = filter.flags.contains(0)
+            val mask = filter.flags.filter { it > 0 }.fold(0) { total, flag -> total.or(flag) }
+            when {
+                wantsNoFlag && mask == 0 -> clauses.add("flag = 0")
+                wantsNoFlag -> {
+                    clauses.add("(flag = 0 OR (flag & ?) ${if (filter.flagMatchAll) "= ?" else "<> 0"})")
+                    values.add(mask)
+                    if (filter.flagMatchAll) values.add(mask)
+                }
+                filter.flagMatchAll -> {
+                    clauses.add("(flag & ?) = ?")
+                    values.add(mask)
+                    values.add(mask)
+                }
+                else -> {
+                    clauses.add("(flag & ?) <> 0")
+                    values.add(mask)
+                }
+            }
+        }
+
+        filter.minHit?.let { clauses.add("hit >= ?"); values.add(it) }
+        filter.maxHit?.let { clauses.add("hit <= ?"); values.add(it) }
+        filter.hasTheme?.let { clauses.add(if (it) "COALESCE(NULLIF(theme, ''), '0') <> '0'" else "COALESCE(NULLIF(theme, ''), '0') = '0'") }
+        filter.hasMeaning?.let {
+            val meaningfulText = "BTRIM(regexp_replace(COALESCE(mean, ''), '＂[0-9]+＂', '', 'g'))"
+            clauses.add(if (it) "$meaningfulText <> ''" else "$meaningfulText = ''")
+        }
+
+        return (if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}") to values
     }
 
-    private fun whereValues(searchFilters: Map<String, String>): Array<String> {
-        return searchFilters.values.map {
-            if (it.startsWith("%") || it.endsWith("%")) {
-                it
-            } else {
-                "%$it%"
-            }
-        }.toTypedArray()
-    }
+    private fun escapeLike(value: String): String = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
     private fun countQuery(tableName: String, whereQuery: String): String {
         return "SELECT COUNT(*) FROM $tableName $whereQuery"

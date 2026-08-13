@@ -262,6 +262,17 @@ class AdminModerationApi(
         return service.getReportDetail(reportId)
     }
 
+    @PostMapping("/reports/{reportId}/log-access")
+    fun reportLogAccess(
+        @PathVariable reportId: Long,
+        @RequestParam(required = false) fileName: String?,
+        session: HttpSession
+    ): ModerationLogAccess {
+        val actor = authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        return service.issueReportLogAccess(reportId, fileName, actor)
+    }
+
     @PostMapping("/reports/{reportId}/game-context")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun linkReportGameContext(

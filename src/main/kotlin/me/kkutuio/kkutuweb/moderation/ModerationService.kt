@@ -10,6 +10,7 @@ import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyPreview
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyRegistry
 import me.kkutuio.kkutuweb.moderation.policy.ResolvedPolicyEffect
 import me.kkutuio.kkutuweb.ranking.RankDao
+import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import me.kkutuio.kkutuweb.user.User
 import me.kkutuio.kkutuweb.user.UserDao
 import org.postgresql.util.PGobject
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException
+import org.slf4j.LoggerFactory
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.net.Inet4Address
@@ -35,6 +37,9 @@ import java.util.UUID
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.sqrt
+import java.nio.charset.StandardCharsets
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 @Service
 class ModerationService(
@@ -46,8 +51,10 @@ class ModerationService(
     private val policyEngine: ModerationPolicyEngine,
     private val policyRegistry: ModerationPolicyRegistry,
     private val gameClientManager: GameClientManager,
-    private val ipSubjectCodec: IpSubjectCodec
+    private val ipSubjectCodec: IpSubjectCodec,
+    private val kKuTuSetting: KKuTuSetting
 ) {
+    private val logger = LoggerFactory.getLogger(ModerationService::class.java)
     private val gameLogFileFormatter = DateTimeFormatter
         .ofPattern("'game-'yyyy-MM-dd HH'.log.gz'")
         .withZone(ZoneId.of("Asia/Seoul"))
@@ -237,6 +244,44 @@ class ModerationService(
             linkedSanctionRevoked = linkedSanction?.revoked ?: false,
             gameReferences = reportGameReferences(report),
             suspicionReferences = reportSuspicionReferences(report)
+        )
+    }
+
+    fun issueReportLogAccess(reportId: Long, requestedFileName: String?, actorId: String): ModerationLogAccess {
+        val report = getReportDetail(reportId)
+        val allowedFiles = buildSet {
+            report.fileName?.let(::add)
+            report.gameReferences.mapTo(this) { it.logFileName }
+        }
+        val fileName = requestedFileName?.trim()?.takeIf { it.isNotEmpty() }
+            ?: report.gameReferences.firstOrNull { it.relation == "LINKED" }?.logFileName
+            ?: report.fileName
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "신고에 연결된 게임 로그가 없습니다.")
+        if (fileName !in allowedFiles) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "이 신고와 연결되지 않은 로그 파일입니다.")
+        }
+        if (!Regex("^game-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.log(?:\\.gz)?$").matches(fileName)) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "신고에 연결된 게임 로그가 없습니다.")
+        }
+
+        val logServiceSetting = kKuTuSetting.getModerationLogService()
+        val publicBaseUrl = logServiceSetting.publicUrl.takeIf { it.isNotEmpty() }
+            ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "로그 열람 서비스 주소가 설정되지 않았습니다.")
+        val secret = logServiceSetting.signingSecret.takeIf { it.length >= 32 }
+            ?: throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "로그 열람 서비스 서명 키가 설정되지 않았습니다.")
+        val expires = Instant.now().epochSecond + 60
+        val canonical = "$reportId\n$fileName\n$expires"
+        val mac = Mac.getInstance("HmacSHA256")
+        mac.init(SecretKeySpec(secret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256"))
+        val signature = mac.doFinal(canonical.toByteArray(StandardCharsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        logger.info("관리자 {}에게 신고 #{} 로그 접근 권한을 발급했습니다. file={}", actorId, reportId, fileName)
+        return ModerationLogAccess(
+            endpoint = "$publicBaseUrl/api/moderation/log-file",
+            fileName = fileName,
+            reportId = reportId,
+            expires = expires,
+            signature = signature
         )
     }
 

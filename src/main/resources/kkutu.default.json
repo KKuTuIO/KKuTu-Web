@@ -43,5 +43,9 @@
   ],
   "cdnHost": "<CDN Host>",
   "apiKey": "<API Key>",
-  "cryptoKey": "<32-Bit Secret Key>"
+  "cryptoKey": "<32-Bit Secret Key>",
+  "moderationLogService": {
+    "publicUrl": "https://logs-admin.kkutu.io",
+    "signingSecret": "<32-Bit or Longer Secret Key>"
+  }
 }

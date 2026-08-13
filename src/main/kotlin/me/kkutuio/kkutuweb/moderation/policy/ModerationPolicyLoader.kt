@@ -47,11 +47,6 @@ class ModerationPolicyLoader(
     }
 
     private fun resolvePolicySource(): PolicySourceContent {
-        val explicitPath = System.getenv("MODERATION_POLICY_PATH")?.trim()?.takeIf { it.isNotEmpty() }
-        if (explicitPath != null) {
-            return readFile(Paths.get(explicitPath))
-        }
-
         val settingDir = applicationArguments.getOptionValues("SETTING_DIR")?.firstOrNull()
         if (settingDir != null) {
             val settingPolicy = Paths.get(settingDir, "moderation-policy.json")

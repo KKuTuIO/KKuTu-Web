@@ -168,6 +168,14 @@ data class ModerationReportDetail(
     val suspicionReferences: List<ModerationSuspicionReference>
 )
 
+data class ModerationLogAccess(
+    val endpoint: String,
+    val fileName: String,
+    val reportId: Long,
+    val expires: Long,
+    val signature: String
+)
+
 data class ReportGameContextLinkRequest(
     val requestId: UUID,
     val gameId: String,

@@ -135,6 +135,14 @@ class KKuTuSetting(
 
     fun getCryptoKey() = kkutu["cryptoKey"].textValue()!!
 
+    fun getModerationLogService(): ModerationLogServiceSetting {
+        val setting = kkutu["moderationLogService"]
+        return ModerationLogServiceSetting(
+            publicUrl = setting?.get("publicUrl")?.textValue()?.trim()?.trimEnd('/') ?: "",
+            signingSecret = setting?.get("signingSecret")?.textValue() ?: ""
+        )
+    }
+
     fun getKoThemes() = themes["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::textValue)
 
     fun getKoInjeongThemes() = themes["word"]["themes"]["injeong"]["ko"].toList().map(JsonNode::textValue)

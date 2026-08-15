@@ -2,12 +2,19 @@ package me.kkutuio.kkutuweb.crossword
 
 import kotlin.math.max
 import kotlin.math.ln
+import java.util.PriorityQueue
 import kotlin.random.Random
 
 /** Generates connected crosswords in the legacy x,y,dir,length,word format. */
 internal class CrosswordGenerator(private val random: Random = Random.Default) {
     private data class Cell(val char: Char, val directions: MutableSet<Int>)
     private data class Placement(val word: String, val x: Int, val y: Int, val dir: Int, val crossings: Int)
+    private data class WeightedCandidate(val order: Double, val candidate: CrosswordCandidate)
+
+    private val weightedCandidateOrder = compareBy<WeightedCandidate>(
+        { it.order },
+        { it.candidate.word }
+    )
 
     fun generate(
         candidates: List<CrosswordCandidate>,
@@ -65,11 +72,10 @@ internal class CrosswordGenerator(private val random: Random = Random.Default) {
         var bestScore = Int.MIN_VALUE
 
         for ((point, cell) in cells.take(30)) {
-            val matching = candidates.asSequence()
+            val matching = weightedSample(
+                candidates.asSequence()
                 .filter { it.word !in used && cell.char in it.word }
-                .toList()
-                .sortedBy { weightedOrder(it.selectionWeight) }
-                .take(80)
+            )
             for (candidate in matching) {
                 candidate.word.forEachIndexed { index, char ->
                     if (char != cell.char) return@forEachIndexed
@@ -90,6 +96,26 @@ internal class CrosswordGenerator(private val random: Random = Random.Default) {
             if (bestScore >= 200) break
         }
         return best
+    }
+
+    /**
+     * Takes the best exponential-race keys without invoking Random from a
+     * Comparator. A random key selector inside sortedBy is not stable between
+     * comparisons and can make Java TimSort throw
+     * "Comparison method violates its general contract".
+     */
+    private fun weightedSample(candidates: Sequence<CrosswordCandidate>, limit: Int = 80): List<CrosswordCandidate> {
+        val worstFirst = PriorityQueue(limit, weightedCandidateOrder.reversed())
+        for (candidate in candidates) {
+            val weighted = WeightedCandidate(weightedOrder(candidate.selectionWeight), candidate)
+            if (worstFirst.size < limit) {
+                worstFirst.add(weighted)
+            } else if (weightedCandidateOrder.compare(weighted, worstFirst.peek()) < 0) {
+                worstFirst.poll()
+                worstFirst.add(weighted)
+            }
+        }
+        return worstFirst.sortedWith(weightedCandidateOrder).map { it.candidate }
     }
 
     private fun weightedOrder(weight: Double): Double =

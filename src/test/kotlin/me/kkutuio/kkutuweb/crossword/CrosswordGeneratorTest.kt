@@ -57,4 +57,31 @@ class CrosswordGeneratorTest {
         assertEquals(1.0, filtered.filter { "FOOD" in it.themes }.sumOf { it.selectionWeight })
         assertEquals(1.0, filtered.filter { "SPORT" in it.themes }.sumOf { it.selectionWeight })
     }
+
+    @Test
+    fun `large weighted English candidate pools do not violate the comparator contract`() {
+        val words = buildList {
+            for (first in 'a'..'z') {
+                for (second in 'a'..'z') {
+                    add("a${first}${second}a")
+                }
+            }
+        }.mapIndexed { index, word ->
+            CrosswordCandidate(word, hit = index, selectionWeight = 1.0 + index / 100.0)
+        }
+        val request = CrosswordGenerateRequest(
+            count = 1,
+            width = 8,
+            height = 8,
+            minWords = 2,
+            maxWords = 8,
+            minWordLength = 2,
+            maxWordLength = 6,
+            popularityBias = 0.35
+        )
+
+        repeat(25) {
+            CrosswordGenerator(Random(it)).generate(words, request)
+        }
+    }
 }

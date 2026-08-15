@@ -84,6 +84,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.networknt:json-schema-validator:1.0.76")
     implementation("com.neovisionaries:nv-websocket-client:2.10")
+    implementation("com.ip2location:ip2location-java:8.13.0")
     implementation("com.github.scribejava:scribejava-apis:7.1.1")
     implementation("org.postgresql:postgresql:42.2.16")
     implementation("com.googlecode.htmlcompressor:htmlcompressor:1.5.2")

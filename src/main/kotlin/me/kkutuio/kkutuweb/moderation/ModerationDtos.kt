@@ -28,9 +28,16 @@ data class ModerationUserDetail(
 data class ModerationIpGeoInfo(
     val countryCode: String?,
     val countryName: String?,
+    val regionName: String?,
+    val cityName: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    val zipCode: String?,
+    val timeZone: String?,
     val asn: String?,
     val asName: String?,
-    val isp: String?
+    val asCidr: String?,
+    val domesticExempt: Boolean
 )
 
 data class ModerationIpIdentity(

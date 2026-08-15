@@ -19,6 +19,7 @@
 package me.kkutuio.kkutuweb.game
 
 import me.kkutuio.kkutuweb.record.RecordSocketBridge
+import me.kkutuio.kkutuweb.geo.GeoService
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
@@ -27,7 +28,8 @@ import javax.annotation.PostConstruct
 
 @Component
 class GameClientManager(
-    @Autowired private val kKuTuSetting: KKuTuSetting
+    @Autowired private val kKuTuSetting: KKuTuSetting,
+    @Autowired private val geoService: GeoService
 ) : RecordSocketBridge {
     private val gameClientList = ArrayList<GameClient>()
 
@@ -42,7 +44,8 @@ class GameClientManager(
                     gameServer.key,
                     gameServer.cid,
                     gameServer.reconnect.enabled,
-                    gameServer.reconnect.retryInterval
+                    gameServer.reconnect.retryInterval,
+                    geoService
                 )
             )
         }
@@ -77,15 +80,6 @@ class GameClientManager(
         for (gameClient in gameClientList) {
             gameClient.send("{\"type\":\"notice\",\"value\":\"$value\"}")
         }
-    }
-
-    fun requestIpGeo(ip: String): String? {
-        for (client in gameClientList) {
-            if (!client.isConnected()) continue
-            val response = client.requestIpGeo(ip)
-            if (response != null) return response
-        }
-        return null
     }
 
     override fun requestReplayByGameId(

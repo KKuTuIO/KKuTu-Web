@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.core.type.TypeReference
 import me.kkutuio.kkutuweb.game.GameClientManager
+import me.kkutuio.kkutuweb.geo.GeoService
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyEngine
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyLoader
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyPreview
@@ -51,6 +52,7 @@ class ModerationService(
     private val policyEngine: ModerationPolicyEngine,
     private val policyRegistry: ModerationPolicyRegistry,
     private val gameClientManager: GameClientManager,
+    private val geoService: GeoService,
     private val ipSubjectCodec: IpSubjectCodec,
     private val kKuTuSetting: KKuTuSetting
 ) {
@@ -181,7 +183,22 @@ class ModerationService(
             { rs, _ -> rs.instant("last_seen_at") },
             resolved.ip
         ).firstOrNull()
-        val geo = gameClientManager.requestIpGeo(resolved.ip)?.let(::parseIpGeoResponse)
+        val geo = geoService.getGeoInfo(resolved.ip)?.let {
+            ModerationIpGeoInfo(
+                countryCode = it.countryCode,
+                countryName = it.countryName,
+                regionName = it.regionName,
+                cityName = it.cityName,
+                latitude = it.latitude,
+                longitude = it.longitude,
+                zipCode = it.zipCode,
+                timeZone = it.timeZone,
+                asn = it.asn,
+                asName = it.asName,
+                asCidr = it.asCidr,
+                domesticExempt = it.domesticExempt
+            )
+        }
         val network = networkOf(resolved.ip)
         return ModerationIpDetail(
             ip = resolved.ip,
@@ -206,22 +223,6 @@ class ModerationService(
         val resolved = resolveIpSubject(subject)
         return ipReports(resolved.ip, window, anchorMillis?.let(Instant::ofEpochMilli) ?: Instant.now())
     }
-
-    private fun parseIpGeoResponse(response: String): ModerationIpGeoInfo? = runCatching {
-        val root = objectMapper.readTree(response)
-        if (!root.path("ok").asBoolean(false)) return@runCatching null
-        val node = root.path("geo")
-        if (!node.isObject) return@runCatching null
-        fun value(name: String): String? = node.path(name).takeUnless { it.isMissingNode || it.isNull }
-            ?.asText()?.trim()?.takeIf { it.isNotEmpty() }
-        ModerationIpGeoInfo(
-            countryCode = value("countryCode"),
-            countryName = value("countryName"),
-            asn = value("asn"),
-            asName = value("asName"),
-            isp = value("isp")
-        )
-    }.getOrNull()
 
     fun getReportDetail(reportId: Long): ModerationReportDetail {
         val report = jdbcTemplate.query(

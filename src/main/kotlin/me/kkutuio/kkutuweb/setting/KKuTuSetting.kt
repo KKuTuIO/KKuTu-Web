@@ -143,6 +143,17 @@ class KKuTuSetting(
         )
     }
 
+    fun getGeoIpDb11Path(): String = kkutu["geoIp"]?.get("db11Path")?.textValue()?.trim() ?: ""
+
+    fun getGeoIpAsnPath(): String = kkutu["geoIp"]?.get("asnPath")?.textValue()?.trim() ?: ""
+
+    fun getGeoIpDomesticExemptCidrs(): List<String> = kkutu["geoIp"]
+        ?.get("domesticExemptCidrs")
+        ?.takeIf(JsonNode::isArray)
+        ?.toList()
+        ?.mapNotNull { it.textValue()?.trim()?.takeIf(String::isNotEmpty) }
+        ?: emptyList()
+
     fun getKoThemes() = themes["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::textValue)
 
     fun getKoInjeongThemes() = themes["word"]["themes"]["injeong"]["ko"].toList().map(JsonNode::textValue)

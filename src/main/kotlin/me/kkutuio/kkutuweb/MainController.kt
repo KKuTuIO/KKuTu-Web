@@ -101,10 +101,10 @@ class MainController(
                     return "redirect:/login"
                 }
                 try {
-                    val geoCountry = geoService.getGeoCountry(ip)
-                    if (geoCountry != null && geoCountry != "KR") {
+                    val geo = geoService.getGeoInfo(ip)
+                    if (geo != null && !geo.domesticExempt && geo.countryCode != null && geo.countryCode != "KR") {
                         session.setAttribute("loginReason", "해외 이용자는 로그인 후 게임 이용이 가능합니다.")
-                        logger.info("[$ip] 해외에서 접속하여 로그인 페이지로 이동합니다. 국가: $geoCountry")
+                        logger.info("[$ip] 해외에서 접속하여 로그인 페이지로 이동합니다. 국가: ${geo.countryCode}")
                         return "redirect:/login"
                     }
                 } catch (e: Exception) {

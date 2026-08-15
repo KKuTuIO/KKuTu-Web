@@ -19,8 +19,10 @@
 package me.kkutuio.kkutuweb.game
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.neovisionaries.ws.client.*
+import me.kkutuio.kkutuweb.geo.GeoService
 import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -36,7 +38,8 @@ class GameClient(
     private val key: String,
     private val id: Short,
     private val reconnectEnabled: Boolean,
-    private val reconnectRetryIntervalSeconds: Long
+    private val reconnectRetryIntervalSeconds: Long,
+    private val geoService: GeoService
 ) : WebSocketAdapter() {
     companion object {
         private val reconnectScheduler = Executors.newSingleThreadScheduledExecutor { task ->
@@ -133,10 +136,14 @@ class GameClient(
         val jsonNode = objectMapper.readTree(text)
         val type = jsonNode["type"]?.textValue() ?: return
 
+        if (type == "ip-geo-lookup") {
+            handleIpGeoLookup(jsonNode)
+            return
+        }
+
         if (type == "record-find-game-result" ||
             type == "record-find-user-history-result" ||
-            type == "record-find-user-mode-stats-result" ||
-            type == "ip-geo-lookup-result"
+            type == "record-find-user-mode-stats-result"
         ) {
             val requestId = jsonNode["requestId"]?.textValue() ?: return
             val future = pendingRequests.remove(requestId) ?: return
@@ -193,11 +200,28 @@ class GameClient(
         return requestReply(payload)
     }
 
-    fun requestIpGeo(ip: String): String? {
-        val payload = objectMapper.createObjectNode()
-        payload.put("type", "ip-geo-lookup")
-        payload.put("ip", ip)
-        return requestReply(payload)
+    private fun handleIpGeoLookup(request: JsonNode) {
+        val response = objectMapper.createObjectNode()
+        response.put("type", "ip-geo-lookup-result")
+        request["requestId"]?.textValue()?.let { response.put("requestId", it) }
+        val ip = request["ip"]?.textValue()?.trim()
+        if (ip.isNullOrEmpty() || ip.length > 45) {
+            response.put("ok", false)
+            response.put("code", 400)
+            response.put("error", "invalid-ip")
+        } else {
+            val geo = runCatching { geoService.getGeoInfo(ip) }.getOrNull()
+            if (geo == null) {
+                response.put("ok", false)
+                response.put("code", 503)
+                response.put("error", "geo-unavailable")
+            } else {
+                response.put("ok", true)
+                response.put("code", 200)
+                response.set<JsonNode>("geo", objectMapper.valueToTree(geo))
+            }
+        }
+        send(objectMapper.writeValueAsString(response))
     }
 
     private fun requestReply(payload: ObjectNode, timeoutMs: Long = 2500): String? {

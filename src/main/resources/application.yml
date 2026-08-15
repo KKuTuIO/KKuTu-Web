@@ -64,9 +64,6 @@ management:
       exposure:
         include: "*"
 
-geo:
-  api-key: <Api Key>
-
 resilience4j:
   ratelimiter:
     instances:

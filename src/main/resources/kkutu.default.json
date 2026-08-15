@@ -32,7 +32,9 @@
       "privileges": [
         "CONNECTION_LOG",
         "WORD",
+        "CROSSWORD",
         "MAILBOX",
+        "SHOP",
         "USER_MODERATION_READ",
         "USER_SANCTION_ISSUE",
         "USER_SANCTION_REVOKE",

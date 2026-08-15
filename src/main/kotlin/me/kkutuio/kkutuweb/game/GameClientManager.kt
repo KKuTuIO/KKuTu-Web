@@ -82,6 +82,16 @@ class GameClientManager(
         }
     }
 
+    fun refreshShop(): Int {
+        var connectedServers = 0
+        for (gameClient in gameClientList) {
+            if (!gameClient.isConnected()) continue
+            gameClient.send("{\"type\":\"refresh-shop\"}")
+            connectedServers += 1
+        }
+        return connectedServers
+    }
+
     override fun requestReplayByGameId(
         gameId: String,
         includePayload: Boolean,

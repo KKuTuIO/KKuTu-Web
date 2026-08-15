@@ -255,6 +255,15 @@
       "ai": false,
       "big": false,
       "ewq": false
+    },
+    "ECW": {
+      "lang": "en",
+      "rule": "Crossword",
+      "opts": ["beg", "rnk", "asy", "etq", "nob"],
+      "time": 2,
+      "ai": false,
+      "big": true,
+      "ewq": false
     }
   }
 }

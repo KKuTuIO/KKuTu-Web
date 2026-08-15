@@ -19,6 +19,7 @@ class ModerationAuditService(
                c.subject_type AS target_type,
                c.subject_user_id AS target_id,
                c.subject_ip_encrypted AS target_ip_encrypted,
+               host(c.subject_ip_address) AS target_ip_address,
                c.summary AS detail,
                c.issued_by AS admin,
                c.case_id,
@@ -33,6 +34,7 @@ class ModerationAuditService(
                c.subject_type,
                c.subject_user_id,
                c.subject_ip_encrypted,
+               host(c.subject_ip_address),
                c.revoke_reason,
                c.revoked_by,
                c.case_id,
@@ -48,6 +50,7 @@ class ModerationAuditService(
                'USER',
                regexp_replace(cr.target_key, ':[^:]+$', ''),
                NULL::BYTEA,
+               NULL::TEXT,
                concat_ws(' · ', concat(
                    '위반 항목 ', cr.response_body ->> 'categoryCode', ' 누적 ',
                    cr.response_body ->> 'previousValue', '회 → ',
@@ -72,6 +75,7 @@ class ModerationAuditService(
                'USER',
                cr.target_key,
                NULL::BYTEA,
+               NULL::TEXT,
                CASE cr.command_type
                    WHEN 'CHANGE_NICKNAME' THEN concat_ws(' · ', concat(
                        COALESCE(cr.response_body ->> 'oldNickname', '(없음)'), ' → ',
@@ -110,6 +114,7 @@ class ModerationAuditService(
                END,
                r.target_id,
                NULL::BYTEA,
+               NULL::TEXT,
                r.resolution_note,
                r.resolved_by,
                mcr.case_id,
@@ -134,6 +139,7 @@ class ModerationAuditService(
                END,
                r.target_id,
                NULL::BYTEA,
+               NULL::TEXT,
                concat_ws(' · ', concat(
                    '신고 #', cr.target_key, ' · 경기 ', cr.response_body ->> 'gameId',
                    ' 연결'
@@ -211,7 +217,11 @@ class ModerationAuditService(
             { rs, _ ->
                 val targetType = rs.getString("target_type")
                 val targetId = if (targetType == "IP") {
-                    if (includeIpAddress) rs.getBytes("target_ip_encrypted")?.let(ipSubjectCodec::decrypt) else null
+                    if (includeIpAddress) {
+                        rs.getString("target_ip_address")
+                            ?: rs.getBytes("target_ip_encrypted")
+                                ?.let { runCatching { ipSubjectCodec.decrypt(it) }.getOrNull() }
+                    } else null
                 } else {
                     rs.getString("target_id")
                 }

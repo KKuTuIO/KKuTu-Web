@@ -19,14 +19,13 @@
 package me.kkutuio.kkutuweb.block
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import me.kkutuio.kkutuiodiscordbot.domain.BlockType
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class BlockStatus(
     val blocked: Boolean = false,
     val blockType: BlockType? = null,
     val target: String? = null,
-    val id: Int? = null,
+    val id: Long? = null,
     val inquiryId: String? = null,
     val time: String? = null,
     val onlyGuestPunish: Boolean? = false,

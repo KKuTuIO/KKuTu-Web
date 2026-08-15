@@ -1,35 +1,17 @@
 /*
  * KKuTu-Web (https://github.com/KKuTuIO/KKuTu-Web)
  * Copyright (C) 2021 KKuTuIO <admin@kkutu.io>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package me.kkutuio.kkutuweb.block
 
-import me.kkutuio.kkutuiodiscordbot.domain.BlockType
-import me.kkutuio.kkutuiodiscordbot.domain.LogType
-import me.kkutuio.kkutuweb.block.database.dao.BlockIpDAO
-import me.kkutuio.kkutuweb.block.database.dao.BlockLogDAO
-import me.kkutuio.kkutuweb.block.database.dao.BlockUserDAO
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toTimestamp
 import me.kkutuio.kkutuweb.factory.DateFactory
 import me.kkutuio.kkutuweb.utils.TimeUtils
-import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 import java.sql.Timestamp
 import java.time.LocalDateTime
@@ -37,96 +19,112 @@ import javax.servlet.http.HttpServletRequest
 
 @Service
 class BlockService(
-    @Autowired private val blockUserDAO: BlockUserDAO,
-    @Autowired private val blockIpDAO: BlockIpDAO,
-    @Autowired private val blockLogDAO: BlockLogDAO
+    private val jdbcTemplate: JdbcTemplate
 ) {
     fun getBlockStatus(request: HttpServletRequest): BlockStatus {
         val session = request.session
         val ip = request.getIp()
-
-        val blockIp = getBlockIp(ip)
-        var blockIpOnlyGuest = false
-
-        if (blockIp != null) {
-            blockIpOnlyGuest = blockIp.onlyGuestPunish == true
-        }
-
-        if (blockIpOnlyGuest && (session.isGuest() && (blockIp != null)) || (!blockIpOnlyGuest && (blockIp != null))) {
-            return BlockStatus(
-                blocked = true,
-                blockType = BlockType.IP,
-                target = ip,
-                id = blockIp.id,
-                inquiryId = blockIp.inquiryId,
-                time = DateFactory.PRETTY_FORMAT.format(blockIp.time.toLocalDateTime()),
-                onlyGuestPunish = blockIpOnlyGuest,
-                pardonTime = if (blockIp.pardonTime == null) null else DateFactory.PRETTY_FORMAT.format(blockIp.pardonTime.toLocalDateTime()),
-                duration = if (blockIp.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
-                    getDurationSeconds(blockIp.pardonTime, blockIp.time)
-                ),
-                remain = if (blockIp.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
-                    getDurationSeconds(blockIp.pardonTime, LocalDateTime.now().toTimestamp())
-                ),
-                reason = blockIp.reason
-            )
+        val ipBlock = findIpBlock(ip)
+        if (ipBlock != null && (!ipBlock.onlyGuest || session.isGuest())) {
+            return ipBlock.toStatus(BlockType.IP, ip)
         }
 
         if (!session.isGuest()) {
-            val oAuthUser = session.getOAuthUser()
-            val userId = oAuthUser.getUserId()
-
-            val blockUser = getBlockUser(userId)
-            if (blockUser != null) {
-                return BlockStatus(
-                    blocked = true,
-                    blockType = BlockType.USER,
-                    target = userId,
-                    id = blockUser.id,
-                    inquiryId = blockUser.inquiryId,
-                    time = DateFactory.PRETTY_FORMAT.format(blockUser.time.toLocalDateTime()),
-                    onlyGuestPunish = false,
-                    pardonTime = if (blockUser.pardonTime == null) null else DateFactory.PRETTY_FORMAT.format(blockUser.pardonTime.toLocalDateTime()),
-                    duration = if (blockUser.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
-                        getDurationSeconds(blockUser.pardonTime, blockUser.time)
-                    ),
-                    remain = if (blockUser.pardonTime == null) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
-                        getDurationSeconds(blockUser.pardonTime, LocalDateTime.now().toTimestamp())
-                    ),
-                    reason = blockUser.reason
-                )
-            }
+            val userId = session.getOAuthUser().getUserId()
+            findUserBlock(userId)?.let { return it.toStatus(BlockType.USER, userId) }
         }
-
         return BlockStatus()
     }
 
-    private fun getDurationSeconds(big: Timestamp, small: Timestamp): Long {
-        return (big.time - small.time) / 1000
-    }
+    private fun findUserBlock(userId: String): ActiveBlock? = jdbcTemplate.query(
+        """
+        SELECT effects.effect_id, effects.starts_at, effects.ends_at,
+               effects.permanent, cases.inquiry_id, cases.summary
+        FROM moderation_effects effects
+        JOIN moderation_cases cases ON cases.case_id = effects.case_id
+        WHERE effects.subject_user_id = ?
+          AND effects.effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
+          AND effects.apply_status = 'APPLIED'
+          AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL
+          AND effects.starts_at <= NOW()
+          AND (effects.permanent OR effects.ends_at > NOW())
+        ORDER BY effects.permanent DESC, effects.ends_at DESC NULLS FIRST,
+                 effects.effect_id DESC
+        LIMIT 1
+        """.trimIndent(),
+        { rs, _ ->
+            ActiveBlock(
+                id = rs.getLong("effect_id"),
+                inquiryId = rs.getString("inquiry_id"),
+                startsAt = rs.getTimestamp("starts_at"),
+                endsAt = rs.getTimestamp("ends_at"),
+                permanent = rs.getBoolean("permanent"),
+                reason = rs.getString("summary"),
+                onlyGuest = false
+            )
+        },
+        userId
+    ).firstOrNull()
 
-    private fun getBlockUser(id: String): BlockUser? {
-        val blockUser = blockUserDAO.get(id) ?: return null
-        if (blockUser.pardonTime == null) return blockUser
+    private fun findIpBlock(ip: String): ActiveBlock? = jdbcTemplate.query(
+        """
+        SELECT effects.effect_id, effects.effect_type, effects.starts_at,
+               effects.ends_at, effects.permanent, cases.inquiry_id, cases.summary
+        FROM moderation_effects effects
+        JOIN moderation_cases cases ON cases.case_id = effects.case_id
+        WHERE cases.subject_type = 'IP' AND cases.subject_ip_address = CAST(? AS INET)
+          AND effects.effect_type IN ('GUEST_ACCESS_RESTRICTION', 'IP_RESTRICTION')
+          AND effects.apply_status = 'APPLIED'
+          AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL
+          AND effects.starts_at <= NOW()
+          AND (effects.permanent OR effects.ends_at > NOW())
+        ORDER BY CASE WHEN effects.effect_type = 'IP_RESTRICTION' THEN 1 ELSE 0 END DESC,
+                 effects.permanent DESC, effects.ends_at DESC NULLS FIRST,
+                 effects.effect_id DESC
+        LIMIT 1
+        """.trimIndent(),
+        { rs, _ ->
+            ActiveBlock(
+                id = rs.getLong("effect_id"),
+                inquiryId = rs.getString("inquiry_id"),
+                startsAt = rs.getTimestamp("starts_at"),
+                endsAt = rs.getTimestamp("ends_at"),
+                permanent = rs.getBoolean("permanent"),
+                reason = rs.getString("summary"),
+                onlyGuest = rs.getString("effect_type") == "GUEST_ACCESS_RESTRICTION"
+            )
+        },
+        ip
+    ).firstOrNull()
 
-        if (blockUser.pardonTime.before(LocalDateTime.now().toTimestamp())) {
-            blockUserDAO.remove(blockUser.id)
-            blockLogDAO.insert(BlockLog.fromAddOf(blockUser, LogType.AUTO_REMOVE))
-            return null
-        }
+    private fun ActiveBlock.toStatus(type: BlockType, target: String): BlockStatus = BlockStatus(
+        blocked = true,
+        blockType = type,
+        target = target,
+        id = id,
+        inquiryId = inquiryId,
+        time = DateFactory.PRETTY_FORMAT.format(startsAt.toLocalDateTime()),
+        onlyGuestPunish = onlyGuest,
+        pardonTime = endsAt?.let { DateFactory.PRETTY_FORMAT.format(it.toLocalDateTime()) },
+        duration = if (permanent) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
+            durationSeconds(endsAt!!, startsAt)
+        ),
+        remain = if (permanent) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
+            durationSeconds(endsAt!!, LocalDateTime.now().toTimestamp())
+        ),
+        reason = reason
+    )
 
-        return blockUser
-    }
+    private fun durationSeconds(later: Timestamp, earlier: Timestamp): Long =
+        (later.time - earlier.time).coerceAtLeast(0) / 1000
 
-    private fun getBlockIp(ip: String): BlockIp? {
-        val blockIp = blockIpDAO.get(ip) ?: return null
-        if (blockIp.pardonTime == null) return blockIp
-        if (blockIp.pardonTime.before(LocalDateTime.now().toTimestamp())) {
-            blockIpDAO.remove(blockIp.id)
-            blockLogDAO.insert(BlockLog.fromAddOf(blockIp, LogType.AUTO_REMOVE))
-            return null
-        }
-
-        return blockIp
-    }
+    private data class ActiveBlock(
+        val id: Long,
+        val inquiryId: String,
+        val startsAt: Timestamp,
+        val endsAt: Timestamp?,
+        val permanent: Boolean,
+        val reason: String,
+        val onlyGuest: Boolean
+    )
 }

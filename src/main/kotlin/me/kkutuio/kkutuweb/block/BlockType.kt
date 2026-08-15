@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package me.kkutuio.kkutuiodiscordbot.domain
+package me.kkutuio.kkutuweb.block
 
 enum class BlockType {
     USER,

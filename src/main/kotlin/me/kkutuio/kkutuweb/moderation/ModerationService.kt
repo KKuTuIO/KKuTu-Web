@@ -86,68 +86,31 @@ class ModerationService(
 
     fun findByInquiryId(value: String): ModerationInquiryLookup {
         val inquiryId = ModerationInquiryId.normalize(value)
-        jdbcTemplate.query(
+        return jdbcTemplate.query(
             """
             SELECT case_id, inquiry_id, subject_type, subject_user_id,
+                   host(subject_ip_address) AS subject_ip_address,
                    subject_ip_encrypted, revoked_at
             FROM moderation_cases WHERE inquiry_id = ?
             """.trimIndent(),
             { rs, _ ->
                 val subjectType = rs.getString("subject_type")
+                val encryptedIp = rs.getBytes("subject_ip_encrypted")
                 ModerationInquiryLookup(
                     inquiryId = rs.getString("inquiry_id"),
                     caseId = rs.getLong("case_id"),
                     subjectType = subjectType,
                     userId = rs.getString("subject_user_id"),
-                    ip = if (subjectType == "IP") ipSubjectCodec.decrypt(rs.getBytes("subject_ip_encrypted")) else null,
+                    ip = if (subjectType == "IP") {
+                        rs.getString("subject_ip_address")
+                            ?: encryptedIp?.let { runCatching { ipSubjectCodec.decrypt(it) }.getOrNull() }
+                    } else null,
                     revoked = rs.getTimestamp("revoked_at") != null
                 )
             },
             inquiryId
-        ).firstOrNull()?.let { return it }
-
-        jdbcTemplate.query(
-            """
-            SELECT 'USER' AS subject_type, user_id, NULL::TEXT AS ip_address
-            FROM block_user WHERE inquiry_id = ?
-            UNION ALL
-            SELECT 'USER', user_id, NULL::TEXT
-            FROM block_chat WHERE inquiry_id = ?
-            UNION ALL
-            SELECT 'IP', NULL::TEXT, ip_address
-            FROM block_ip WHERE inquiry_id = ?
-            LIMIT 1
-            """.trimIndent(),
-            { rs, _ -> ModerationInquiryLookup(
-                inquiryId = inquiryId,
-                caseId = null,
-                subjectType = rs.getString("subject_type"),
-                userId = rs.getString("user_id"),
-                ip = rs.getString("ip_address"),
-                revoked = false
-            ) },
-            inquiryId,
-            inquiryId,
-            inquiryId
-        ).firstOrNull()?.let { return it }
-
-        val logged = jdbcTemplate.query(
-            """
-            SELECT block_type, user_id, ip_address
-            FROM block_log WHERE inquiry_id = ?
-            ORDER BY log_time DESC LIMIT 1
-            """.trimIndent(),
-            { rs, _ -> ModerationInquiryLookup(
-                inquiryId = inquiryId,
-                caseId = null,
-                subjectType = if (rs.getString("block_type") == "IP") "IP" else "USER",
-                userId = rs.getString("user_id"),
-                ip = rs.getString("ip_address"),
-                revoked = true
-            ) },
-            inquiryId
         ).firstOrNull()
-        return logged ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "문의번호에 해당하는 제재를 찾을 수 없습니다.")
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "문의번호에 해당하는 제재를 찾을 수 없습니다.")
     }
 
     fun getUserDetail(userId: String): ModerationUserDetail {
@@ -177,7 +140,6 @@ class ModerationService(
         val resolved = resolveIpSubject(subject)
         val reportsAnchor = Instant.now()
         val reportPage = ipReports(resolved.ip, 0, reportsAnchor)
-        val hash = ipSubjectCodec.hash(resolved.ip)
         val lastSeenAt = jdbcTemplate.query(
             "SELECT MAX(time) AS last_seen_at FROM connection_log WHERE user_ip = ?",
             { rs, _ -> rs.instant("last_seen_at") },
@@ -207,11 +169,11 @@ class ModerationService(
             network = network,
             geo = geo,
             currentBlock = currentIpBlock(resolved.ip),
-            guestIpOffenseCount = ipOffenseCount(hash),
-            counters = currentIpCounters(hash),
+            guestIpOffenseCount = ipOffenseCount(resolved.ip),
+            counters = currentIpCounters(resolved.ip),
             identities = ipIdentities(resolved.ip),
             blockedIpsInNetwork = blockedIpsInNetwork(resolved.ip, network),
-            history = ipHistory(hash, 50),
+            history = ipHistory(resolved.ip, 50),
             reports = reportPage.reports,
             reportsHasMore = reportPage.hasMore,
             reportsAnchor = reportsAnchor
@@ -496,12 +458,11 @@ class ModerationService(
 
     fun previewIp(request: IpSanctionPreviewRequest): ModerationPolicyPreview {
         val resolved = resolveIpSubject(request.subject)
-        val hash = ipSubjectCodec.hash(resolved.ip)
-        request.overrideCaseId?.let { requireOverrideSubject(it, "IP", hash) }
+        request.overrideCaseId?.let { requireOverrideSubject(it, "IP", resolved.ip) }
         return policyEngine.previewGuestIp(
             request.categoryCodes,
-            currentIpCounters(hash, request.overrideCaseId),
-            ipOffenseCount(hash, request.overrideCaseId),
+            currentIpCounters(resolved.ip, request.overrideCaseId),
+            ipOffenseCount(resolved.ip, request.overrideCaseId),
             request.occurredAt ?: Instant.now()
         )
     }
@@ -522,8 +483,8 @@ class ModerationService(
         )
         val preview = policyEngine.previewGuestIp(
             request.categoryCodes,
-            currentIpCounters(hash, request.overrideCaseId),
-            ipOffenseCount(hash, request.overrideCaseId),
+            currentIpCounters(resolved.ip, request.overrideCaseId),
+            ipOffenseCount(resolved.ip, request.overrideCaseId),
             request.occurredAt
         )
         if (preview.requiresApproval) {
@@ -535,7 +496,7 @@ class ModerationService(
         validateIpReports(request.reportIds, resolved.ip)
         val overriddenInquiryId = request.overrideCaseId?.let(::caseInquiryId)
         request.overrideCaseId?.let {
-            validateOverrideCase(it, "IP", hash, request.reportIds)
+            validateOverrideCase(it, "IP", resolved.ip, request.reportIds)
             revoke(it, "관리자 제재 변경", actorId, requestIpHash, "IP")
         }
         policyRegistry.register(policyLoader.current())
@@ -563,7 +524,7 @@ class ModerationService(
         }
         preview.effects.forEach { effect ->
             val effectId = insertIpEffect(caseId, effect)
-            applyLegacyIpBlock(caseId, effectId, resolved.ip, displayReason, actorId, effect)
+            markApplied(effectId)
         }
         request.reportIds.distinct().forEach { reportId ->
             jdbcTemplate.update(
@@ -711,14 +672,11 @@ class ModerationService(
                 relatedUserIds.forEach { relatedUserId ->
                     val extended = resolveRelatedExtension(relatedUserId, effect)
                     val effectId = insertEffect(caseId, relatedUserId, extended)
-                    applyLegacyBlock(
-                        "block_user", "USER", caseId, effectId, relatedUserId,
-                        displayReason, actorId, extended
-                    )
+                    markApplied(effectId)
                 }
             } else {
                 val effectId = insertEffect(caseId, request.userId, effect)
-                applyEffect(caseId, effectId, request.userId, displayReason, actorId, effect)
+                applyEffect(effectId, request.userId, effect)
             }
         }
 
@@ -805,12 +763,11 @@ class ModerationService(
         expectedSubjectType: String
     ) {
         val subject = jdbcTemplate.query(
-            "SELECT subject_type, subject_user_id, subject_ip_encrypted FROM moderation_cases WHERE case_id = ?",
+            "SELECT subject_type, subject_user_id FROM moderation_cases WHERE case_id = ?",
             { rs, _ ->
                 RevocationSubject(
                     rs.getString("subject_type"),
-                    rs.getString("subject_user_id"),
-                    rs.getBytes("subject_ip_encrypted")
+                    rs.getString("subject_user_id")
                 )
             },
             caseId
@@ -836,21 +793,10 @@ class ModerationService(
 
         jdbcTemplate.query(
             """
-            SELECT effect_id, effect_type, subject_user_id, parameters,
-                   legacy_block_type, legacy_block_id
+            SELECT effect_id, effect_type, subject_user_id, parameters
             FROM moderation_effects WHERE case_id = ? AND revoked_at IS NULL
             """.trimIndent(),
             { rs ->
-                val table = when (rs.getString("legacy_block_type")) {
-                    "USER" -> "block_user"
-                    "CHAT" -> "block_chat"
-                    "IP" -> "block_ip"
-                    else -> null
-                }
-                val legacyId = rs.getLong("legacy_block_id").takeUnless { rs.wasNull() }
-                if (table != null && legacyId != null) {
-                    jdbcTemplate.update("DELETE FROM $table WHERE id = ?", legacyId)
-                }
                 reverseEffect(
                     rs.getLong("effect_id"),
                     rs.getString("effect_type"),
@@ -864,15 +810,7 @@ class ModerationService(
             "UPDATE moderation_effects SET revoked_at = NOW(), apply_status = 'REVOKED' WHERE case_id = ? AND revoked_at IS NULL",
             caseId
         )
-        affectedUserIds.forEach {
-            rebuildLegacyUserBlock(it)
-            rebuildLegacyChatBlock(it)
-        }
-        if (subject.type == "IP") {
-            val encryptedIp = subject.encryptedIp
-                ?: throw IllegalStateException("IP 제재에 암호화된 대상 IP가 없습니다.")
-            rebuildLegacyIpBlock(ipSubjectCodec.decrypt(encryptedIp))
-        } else {
+        if (subject.type != "IP") {
             val subjectId = subject.userId
                 ?: throw IllegalStateException("사용자 제재에 대상 ID가 없습니다.")
             val hasActiveNicknameLimit = jdbcTemplate.queryForObject(
@@ -1336,9 +1274,10 @@ class ModerationService(
                 """
                 INSERT INTO moderation_cases
                     (request_id, inquiry_id, subject_type, subject_ip_encrypted, subject_ip_hash,
+                     subject_ip_address,
                      primary_category_code, policy_id, policy_digest, source_service,
                      occurred_at, issued_by, evidence_text, summary, overrides_case_id)
-                VALUES (?, ?, 'IP', ?, ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
+                VALUES (?, ?, 'IP', ?, ?, CAST(? AS INET), ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 arrayOf("case_id")
             ).apply {
@@ -1346,14 +1285,15 @@ class ModerationService(
                 setString(2, inquiryId)
                 setBytes(3, ipSubjectCodec.encrypt(ip))
                 setString(4, ipHash)
-                setString(5, preview.primaryCategoryCode)
-                setString(6, preview.policyId)
-                setString(7, preview.policyDigest)
-                setTimestamp(8, Timestamp.from(request.occurredAt))
-                setString(9, actorId)
-                setString(10, request.evidenceText)
-                setString(11, displayReason)
-                setObject(12, request.overrideCaseId)
+                setString(5, ip)
+                setString(6, preview.primaryCategoryCode)
+                setString(7, preview.policyId)
+                setString(8, preview.policyDigest)
+                setTimestamp(9, Timestamp.from(request.occurredAt))
+                setString(10, actorId)
+                setString(11, request.evidenceText)
+                setString(12, displayReason)
+                setObject(13, request.overrideCaseId)
             }
         }, keyHolder)
         return keyHolder.key!!.toLong()
@@ -1405,16 +1345,12 @@ class ModerationService(
     }
 
     private fun applyEffect(
-        caseId: Long,
         effectId: Long,
         userId: String,
-        reason: String,
-        actorId: String,
         effect: ResolvedPolicyEffect
     ) {
         when (effect.type) {
-            "GAME_RESTRICTION" -> applyLegacyBlock("block_user", "USER", caseId, effectId, userId, reason, actorId, effect)
-            "CHAT_RESTRICTION" -> applyLegacyBlock("block_chat", "CHAT", caseId, effectId, userId, reason, actorId, effect)
+            "GAME_RESTRICTION", "CHAT_RESTRICTION" -> markApplied(effectId)
             "RESOURCE_ADJUSTMENT" -> {
                 val percent = (effect.parameters["percent"] as Number).toInt().coerceIn(0, 100)
                 val before = jdbcTemplate.query(
@@ -1494,13 +1430,21 @@ class ModerationService(
     ): ResolvedPolicyEffect {
         val current = jdbcTemplate.query(
             """
-            SELECT pardon_time FROM block_user WHERE user_id = ?
-            ORDER BY CASE WHEN pardon_time IS NULL THEN 0 ELSE 1 END, pardon_time DESC
+            SELECT effects.ends_at, effects.permanent
+            FROM moderation_effects effects
+            JOIN moderation_cases cases ON cases.case_id = effects.case_id
+            WHERE effects.subject_user_id = ?
+              AND effects.effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
+              AND effects.apply_status = 'APPLIED'
+              AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL
+              AND effects.starts_at <= NOW()
+              AND (effects.permanent OR effects.ends_at > NOW())
+            ORDER BY effects.permanent DESC, effects.ends_at DESC NULLS FIRST,
+                     effects.effect_id DESC
             LIMIT 1
             """.trimIndent(),
             { rs, _ ->
-                val timestamp = rs.getTimestamp("pardon_time")
-                if (timestamp == null) Pair(true, null) else Pair(false, timestamp.toInstant())
+                Pair(rs.getBoolean("permanent"), rs.getTimestamp("ends_at")?.toInstant())
             },
             relatedUserId
         ).firstOrNull()
@@ -1511,228 +1455,6 @@ class ModerationService(
             effect.startsAt.epochSecond
         val base = listOfNotNull(effect.startsAt, current?.second).maxOrNull() ?: effect.startsAt
         return effect.copy(endsAt = base.plusSeconds(durationSeconds), permanent = false)
-    }
-
-    private fun applyLegacyBlock(
-        table: String,
-        type: String,
-        caseId: Long,
-        effectId: Long,
-        userId: String,
-        reason: String,
-        actorId: String,
-        effect: ResolvedPolicyEffect
-    ) {
-        jdbcTemplate.update("DELETE FROM $table WHERE user_id = ?", userId)
-        val inquiryId = caseInquiryId(caseId)
-        val keyHolder = GeneratedKeyHolder()
-        jdbcTemplate.update({ connection ->
-            connection.prepareStatement(
-                """
-                INSERT INTO $table(user_id, time, pardon_time, reason, punish_from, admin, inquiry_id)
-                VALUES (?, ?, ?, ?, 'DISCORD', ?, ?)
-                """.trimIndent(),
-                arrayOf("id")
-            ).apply {
-                setString(1, userId)
-                setTimestamp(2, Timestamp.from(effect.startsAt))
-                setTimestamp(3, effect.endsAt?.let(Timestamp::from))
-                setString(4, reason)
-                setString(5, actorId)
-                setString(6, inquiryId)
-            }
-        }, keyHolder)
-        jdbcTemplate.update(
-            """
-            UPDATE moderation_effects SET apply_status = 'APPLIED', applied_at = NOW(),
-                legacy_block_type = ?, legacy_block_id = ?
-            WHERE effect_id = ?
-            """.trimIndent(),
-            type,
-            keyHolder.key!!.toLong(),
-            effectId
-        )
-    }
-
-    private fun applyLegacyIpBlock(
-        caseId: Long,
-        effectId: Long,
-        ip: String,
-        reason: String,
-        actorId: String,
-        effect: ResolvedPolicyEffect
-    ) {
-        require(effect.type in setOf("GUEST_ACCESS_RESTRICTION", "IP_RESTRICTION")) {
-            "지원하지 않는 IP 제재 효과입니다: ${effect.type}"
-        }
-        jdbcTemplate.update("DELETE FROM block_ip WHERE ip_address = ?", ip)
-        val inquiryId = caseInquiryId(caseId)
-        val keyHolder = GeneratedKeyHolder()
-        jdbcTemplate.update({ connection ->
-            connection.prepareStatement(
-                """
-                INSERT INTO block_ip
-                    (ip_address, time, pardon_time, reason, punish_from, admin, only_guest_punish, inquiry_id)
-                VALUES (?, ?, ?, ?, 'DISCORD', ?, ?, ?)
-                """.trimIndent(),
-                arrayOf("id")
-            ).apply {
-                setString(1, ip)
-                setTimestamp(2, Timestamp.from(effect.startsAt))
-                setTimestamp(3, effect.endsAt?.let(Timestamp::from))
-                setString(4, reason)
-                setString(5, actorId)
-                setBoolean(6, effect.type == "GUEST_ACCESS_RESTRICTION")
-                setString(7, inquiryId)
-            }
-        }, keyHolder)
-        jdbcTemplate.update(
-            """
-            UPDATE moderation_effects SET apply_status = 'APPLIED', applied_at = NOW(),
-                legacy_block_type = 'IP', legacy_block_id = ? WHERE effect_id = ?
-            """.trimIndent(),
-            keyHolder.key!!.toLong(),
-            effectId
-        )
-    }
-
-    private fun rebuildLegacyUserBlock(userId: String) {
-        jdbcTemplate.update("DELETE FROM block_user WHERE user_id = ?", userId)
-        val active = jdbcTemplate.query(
-            """
-            SELECT e.effect_id, e.case_id, e.starts_at, e.ends_at, e.permanent,
-                   c.summary, c.issued_by
-            FROM moderation_effects e
-            JOIN moderation_cases c ON c.case_id = e.case_id
-            WHERE e.subject_user_id = ?
-              AND e.effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
-              AND e.revoked_at IS NULL AND c.revoked_at IS NULL
-              AND e.starts_at <= NOW() AND (e.permanent OR e.ends_at > NOW())
-            ORDER BY e.permanent DESC, e.ends_at DESC NULLS FIRST, e.effect_id DESC
-            LIMIT 1
-            """.trimIndent(),
-            { rs, _ ->
-                RebuildBlock(
-                    rs.getLong("effect_id"),
-                    rs.getLong("case_id"),
-                    rs.getTimestamp("starts_at").toInstant(),
-                    rs.getTimestamp("ends_at")?.toInstant(),
-                    rs.getBoolean("permanent"),
-                    rs.getString("summary"),
-                    rs.getString("issued_by")
-                )
-            },
-            userId
-        ).firstOrNull() ?: return
-
-        val resolved = ResolvedPolicyEffect(
-            type = "GAME_RESTRICTION",
-            startsAt = active.startsAt,
-            endsAt = active.endsAt,
-            permanent = active.permanent,
-            parameters = emptyMap()
-        )
-        applyLegacyBlock(
-            "block_user",
-            "USER",
-            active.caseId,
-            active.effectId,
-            userId,
-            active.reason,
-            active.actorId,
-            resolved
-        )
-    }
-
-    private fun rebuildLegacyChatBlock(userId: String) {
-        jdbcTemplate.update("DELETE FROM block_chat WHERE user_id = ?", userId)
-        val active = jdbcTemplate.query(
-            """
-            SELECT e.effect_id, e.case_id, e.starts_at, e.ends_at, e.permanent,
-                   c.summary, c.issued_by
-            FROM moderation_effects e
-            JOIN moderation_cases c ON c.case_id = e.case_id
-            WHERE e.subject_user_id = ? AND e.effect_type = 'CHAT_RESTRICTION'
-              AND e.revoked_at IS NULL AND c.revoked_at IS NULL
-              AND e.starts_at <= NOW() AND (e.permanent OR e.ends_at > NOW())
-            ORDER BY e.permanent DESC, e.ends_at DESC NULLS FIRST, e.effect_id DESC
-            LIMIT 1
-            """.trimIndent(),
-            { rs, _ ->
-                RebuildBlock(
-                    rs.getLong("effect_id"),
-                    rs.getLong("case_id"),
-                    rs.getTimestamp("starts_at").toInstant(),
-                    rs.getTimestamp("ends_at")?.toInstant(),
-                    rs.getBoolean("permanent"),
-                    rs.getString("summary"),
-                    rs.getString("issued_by")
-                )
-            },
-            userId
-        ).firstOrNull() ?: return
-        applyLegacyBlock(
-            "block_chat",
-            "CHAT",
-            active.caseId,
-            active.effectId,
-            userId,
-            active.reason,
-            active.actorId,
-            ResolvedPolicyEffect(
-                "CHAT_RESTRICTION",
-                active.startsAt,
-                active.endsAt,
-                active.permanent,
-                emptyMap()
-            )
-        )
-    }
-
-    private fun rebuildLegacyIpBlock(ip: String) {
-        jdbcTemplate.update("DELETE FROM block_ip WHERE ip_address = ?", ip)
-        val active = jdbcTemplate.query(
-            """
-            SELECT e.effect_id, e.case_id, e.effect_type, e.starts_at, e.ends_at,
-                   e.permanent, c.summary, c.issued_by
-            FROM moderation_effects e
-            JOIN moderation_cases c ON c.case_id = e.case_id
-            WHERE c.subject_type = 'IP' AND c.subject_ip_hash = ?
-              AND e.effect_type IN ('GUEST_ACCESS_RESTRICTION', 'IP_RESTRICTION')
-              AND e.revoked_at IS NULL AND c.revoked_at IS NULL
-              AND e.starts_at <= NOW() AND (e.permanent OR e.ends_at > NOW())
-            ORDER BY CASE WHEN e.effect_type = 'IP_RESTRICTION' THEN 1 ELSE 0 END DESC,
-                     e.permanent DESC, e.ends_at DESC NULLS FIRST, e.effect_id DESC
-            LIMIT 1
-            """.trimIndent(),
-            { rs, _ ->
-                RebuildIpBlock(
-                    rs.getLong("effect_id"),
-                    rs.getLong("case_id"),
-                    rs.getString("effect_type"),
-                    rs.instant("starts_at")!!,
-                    rs.instant("ends_at"),
-                    rs.getBoolean("permanent"),
-                    rs.getString("summary"),
-                    rs.getString("issued_by")
-                )
-            },
-            ipSubjectCodec.hash(ip)
-        ).firstOrNull() ?: return
-        applyLegacyIpBlock(
-            active.caseId,
-            active.effectId,
-            ip,
-            active.reason,
-            active.actorId,
-            ResolvedPolicyEffect(
-                active.effectType,
-                active.startsAt,
-                active.endsAt,
-                active.permanent,
-                emptyMap()
-            )
-        )
     }
 
     private fun markApplied(effectId: Long) {
@@ -1848,8 +1570,8 @@ class ModerationService(
         return result.filterValues { it > 0 }
     }
 
-    private fun currentIpCounters(ipHash: String, excludeCaseId: Long? = null): Map<String, Int> {
-        val arguments = mutableListOf<Any>(ipHash)
+    private fun currentIpCounters(ip: String, excludeCaseId: Long? = null): Map<String, Int> {
+        val arguments = mutableListOf<Any>(ip)
         val excludeClause = if (excludeCaseId == null) "" else {
             arguments.add(excludeCaseId)
             " AND c.case_id <> ?"
@@ -1859,7 +1581,7 @@ class ModerationService(
         SELECT v.category_code, COUNT(*) AS count
         FROM moderation_case_violations v
         JOIN moderation_cases c ON c.case_id = v.case_id
-        WHERE c.subject_type = 'IP' AND c.subject_ip_hash = ?
+        WHERE c.subject_type = 'IP' AND c.subject_ip_address = CAST(? AS INET)
           AND c.revoked_at IS NULL AND v.category_code <> '99'$excludeClause
         GROUP BY v.category_code
         """.trimIndent(),
@@ -1868,8 +1590,8 @@ class ModerationService(
         ).toMap()
     }
 
-    private fun ipOffenseCount(ipHash: String, excludeCaseId: Long? = null): Int {
-        val arguments = mutableListOf<Any>(ipHash)
+    private fun ipOffenseCount(ip: String, excludeCaseId: Long? = null): Int {
+        val arguments = mutableListOf<Any>(ip)
         val excludeClause = if (excludeCaseId == null) "" else {
             arguments.add(excludeCaseId)
             " AND case_id <> ?"
@@ -1877,7 +1599,8 @@ class ModerationService(
         return jdbcTemplate.queryForObject(
             """
             SELECT COUNT(*) FROM moderation_cases
-            WHERE subject_type = 'IP' AND subject_ip_hash = ? AND revoked_at IS NULL$excludeClause
+            WHERE subject_type = 'IP' AND subject_ip_address = CAST(? AS INET)
+              AND revoked_at IS NULL$excludeClause
             """.trimIndent(),
             Int::class.java,
             *arguments.toTypedArray()
@@ -1913,13 +1636,13 @@ class ModerationService(
             limit
         )
 
-    private fun ipHistory(ipHash: String, limit: Int): List<ModerationCaseSummary> =
+    private fun ipHistory(ip: String, limit: Int): List<ModerationCaseSummary> =
         jdbcTemplate.query(
             """
             SELECT case_id, inquiry_id, primary_category_code, summary, occurred_at,
                    issued_at, issued_by, revoked_at
             FROM moderation_cases
-            WHERE subject_type = 'IP' AND subject_ip_hash = ?
+            WHERE subject_type = 'IP' AND subject_ip_address = CAST(? AS INET)
             ORDER BY issued_at DESC, case_id DESC LIMIT ?
             """.trimIndent(),
             { rs, _ ->
@@ -1937,7 +1660,7 @@ class ModerationService(
                     effects(caseId)
                 )
             },
-            ipHash,
+            ip,
             limit
         )
 
@@ -2093,19 +1816,22 @@ class ModerationService(
     }
 
     private fun requireOverrideSubject(caseId: Long, subjectType: String, subjectKey: String) {
+        val subjectPredicate = when (subjectType) {
+            "USER" -> "subject_user_id = ?"
+            "IP" -> "subject_ip_address = CAST(? AS INET)"
+            else -> throw IllegalArgumentException("지원하지 않는 제재 대상 종류입니다.")
+        }
         val matches = jdbcTemplate.queryForObject(
             """
             SELECT EXISTS(
                 SELECT 1 FROM moderation_cases
                 WHERE case_id = ? AND subject_type = ? AND revoked_at IS NULL
-                  AND CASE WHEN subject_type = 'USER' THEN subject_user_id = ?
-                           ELSE subject_ip_hash = ? END
+                  AND $subjectPredicate
             )
             """.trimIndent(),
             Boolean::class.java,
             caseId,
             subjectType,
-            subjectKey,
             subjectKey
         ) == true
         require(matches) { "변경하려는 기존 제재가 대상과 일치하지 않거나 이미 해제되었습니다." }
@@ -2235,23 +1961,30 @@ class ModerationService(
 
     private fun currentIpBlock(ip: String): ModerationCurrentIpBlock? = jdbcTemplate.query(
         """
-        SELECT b.id, b.inquiry_id, b.time, b.pardon_time, b.reason, b.only_guest_punish,
-               (SELECT e.case_id FROM moderation_effects e
-                WHERE e.legacy_block_type = 'IP' AND e.legacy_block_id = b.id
-                ORDER BY e.effect_id DESC LIMIT 1) AS moderation_case_id
-        FROM block_ip b
-        WHERE b.ip_address = ? AND (b.pardon_time IS NULL OR b.pardon_time > NOW())
-        ORDER BY b.id DESC LIMIT 1
+        SELECT cases.case_id, cases.inquiry_id, cases.summary,
+               effects.effect_type, effects.starts_at, effects.ends_at, effects.permanent
+        FROM moderation_effects effects
+        JOIN moderation_cases cases ON cases.case_id = effects.case_id
+        WHERE cases.subject_type = 'IP' AND cases.subject_ip_address = CAST(? AS INET)
+          AND effects.effect_type IN ('GUEST_ACCESS_RESTRICTION', 'IP_RESTRICTION')
+          AND effects.apply_status = 'APPLIED'
+          AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL
+          AND effects.starts_at <= NOW()
+          AND (effects.permanent OR effects.ends_at > NOW())
+        ORDER BY CASE WHEN effects.effect_type = 'IP_RESTRICTION' THEN 1 ELSE 0 END DESC,
+                 effects.permanent DESC, effects.ends_at DESC NULLS FIRST,
+                 effects.effect_id DESC
+        LIMIT 1
         """.trimIndent(),
         { rs, _ ->
             ModerationCurrentIpBlock(
-                rs.getLong("moderation_case_id").let { if (rs.wasNull()) null else it },
+                rs.getLong("case_id"),
                 rs.getString("inquiry_id"),
-                rs.getBoolean("only_guest_punish"),
-                rs.instant("time")!!,
-                rs.instant("pardon_time"),
-                rs.getTimestamp("pardon_time") == null,
-                rs.getString("reason")
+                rs.getString("effect_type") == "GUEST_ACCESS_RESTRICTION",
+                rs.instant("starts_at")!!,
+                rs.instant("ends_at"),
+                rs.getBoolean("permanent"),
+                rs.getString("summary")
             )
         },
         ip
@@ -2260,22 +1993,29 @@ class ModerationService(
     private fun blockedIpsInNetwork(ip: String, network: String): List<ModerationNetworkBlockedIp> =
         jdbcTemplate.query(
             """
-            SELECT ip_address, time, pardon_time, reason, only_guest_punish
-            FROM block_ip
-            WHERE ip_address <> ?
-              AND CASE WHEN ip_address ~ '^[0-9A-Fa-f:.]+$'
-                       THEN ip_address::inet <<= ?::cidr ELSE FALSE END
-              AND (pardon_time IS NULL OR pardon_time > NOW())
-            ORDER BY time DESC LIMIT 100
+            SELECT host(cases.subject_ip_address) AS ip_address,
+                   effects.effect_type, effects.starts_at, effects.ends_at,
+                   effects.permanent, cases.summary
+            FROM moderation_effects effects
+            JOIN moderation_cases cases ON cases.case_id = effects.case_id
+            WHERE cases.subject_type = 'IP'
+              AND cases.subject_ip_address <> CAST(? AS INET)
+              AND cases.subject_ip_address <<= CAST(? AS CIDR)
+              AND effects.effect_type IN ('GUEST_ACCESS_RESTRICTION', 'IP_RESTRICTION')
+              AND effects.apply_status = 'APPLIED'
+              AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL
+              AND effects.starts_at <= NOW()
+              AND (effects.permanent OR effects.ends_at > NOW())
+            ORDER BY effects.starts_at DESC LIMIT 100
             """.trimIndent(),
             { rs, _ ->
                 ModerationNetworkBlockedIp(
                     rs.getString("ip_address"),
-                    rs.getBoolean("only_guest_punish"),
-                    rs.instant("time")!!,
-                    rs.instant("pardon_time"),
-                    rs.getTimestamp("pardon_time") == null,
-                    rs.getString("reason")
+                    rs.getString("effect_type") == "GUEST_ACCESS_RESTRICTION",
+                    rs.instant("starts_at")!!,
+                    rs.instant("ends_at"),
+                    rs.getBoolean("permanent"),
+                    rs.getString("summary")
                 )
             },
             ip,
@@ -2377,19 +2117,8 @@ class ModerationService(
         repeat(20) {
             val candidate = ModerationInquiryId.generate()
             val exists = jdbcTemplate.queryForObject(
-                """
-                SELECT
-                    EXISTS(SELECT 1 FROM moderation_cases WHERE inquiry_id = ?)
-                    OR EXISTS(SELECT 1 FROM block_user WHERE inquiry_id = ?)
-                    OR EXISTS(SELECT 1 FROM block_chat WHERE inquiry_id = ?)
-                    OR EXISTS(SELECT 1 FROM block_ip WHERE inquiry_id = ?)
-                    OR EXISTS(SELECT 1 FROM block_log WHERE inquiry_id = ?)
-                """.trimIndent(),
+                "SELECT EXISTS(SELECT 1 FROM moderation_cases WHERE inquiry_id = ?)",
                 Boolean::class.java,
-                candidate,
-                candidate,
-                candidate,
-                candidate,
                 candidate
             ) == true
             if (!exists) return candidate
@@ -2498,31 +2227,9 @@ class ModerationService(
 
     private fun ResultSet.instant(column: String): Instant? = getTimestamp(column)?.toInstant()
 
-    private data class RebuildBlock(
-        val effectId: Long,
-        val caseId: Long,
-        val startsAt: Instant,
-        val endsAt: Instant?,
-        val permanent: Boolean,
-        val reason: String,
-        val actorId: String
-    )
-
-    private data class RebuildIpBlock(
-        val effectId: Long,
-        val caseId: Long,
-        val effectType: String,
-        val startsAt: Instant,
-        val endsAt: Instant?,
-        val permanent: Boolean,
-        val reason: String,
-        val actorId: String
-    )
-
     private data class RevocationSubject(
         val type: String,
-        val userId: String?,
-        val encryptedIp: ByteArray?
+        val userId: String?
     )
 
     private data class ResolvedIpSubject(val ip: String, val guestId: String?)

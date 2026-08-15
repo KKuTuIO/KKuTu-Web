@@ -29,6 +29,7 @@ data class AdminSetting(
         SUSPICION_LOG,
         REPORT_LOG,
         WORD,
+        MAILBOX,
         USER_MODERATION_READ,
         USER_SANCTION_ISSUE,
         USER_SANCTION_REVOKE,

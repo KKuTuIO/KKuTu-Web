@@ -56,6 +56,7 @@ class ModerationService(
     private val ipSubjectCodec: IpSubjectCodec,
     private val kKuTuSetting: KKuTuSetting
 ) {
+    private val notificationLimit = 20
     private val logger = LoggerFactory.getLogger(ModerationService::class.java)
     private val gameLogFileFormatter = DateTimeFormatter
         .ofPattern("'game-'yyyy-MM-dd HH'.log.gz'")
@@ -987,7 +988,7 @@ class ModerationService(
             currentValue.isArray -> currentValue.forEach { queue.add(it) }
             else -> queue.add(currentValue)
         }
-        require(queue.size() < 50) { "예약된 안내가 너무 많습니다. 기존 안내가 전달된 후 다시 시도해 주세요." }
+        while (queue.size() >= notificationLimit) queue.remove(0)
 
         val notificationId = request.requestId.toString()
         queue.add(objectMapper.createObjectNode().apply {
@@ -1106,7 +1107,7 @@ class ModerationService(
             currentValue.isArray -> currentValue.forEach { queue.add(it) }
             else -> queue.add(currentValue)
         }
-        if (queue.size() >= 50) return false
+        while (queue.size() >= notificationLimit) queue.remove(0)
         queue.add(objectMapper.createObjectNode().apply {
             put("id", notificationId.toString())
             put("message", message)

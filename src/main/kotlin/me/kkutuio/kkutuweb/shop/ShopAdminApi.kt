@@ -24,11 +24,29 @@ class ShopAdminApi(
 ) {
     @GetMapping("/shop")
     fun list(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "25") size: Int,
+        @RequestParam(defaultValue = "updatedAt,DESC") sort: String,
         @RequestParam(defaultValue = "") query: String,
+        @RequestParam(defaultValue = "ALL") queryTarget: String,
+        @RequestParam(defaultValue = "CONTAINS") queryMatch: String,
+        @RequestParam(defaultValue = "") groups: String,
+        @RequestParam(defaultValue = "ALL") saleStatus: String,
+        @RequestParam(defaultValue = "ALL") itemStatus: String,
+        @RequestParam(defaultValue = "") flags: String,
+        @RequestParam(required = false) minCost: Long?,
+        @RequestParam(required = false) maxCost: Long?,
+        @RequestParam(required = false) minHit: Int?,
+        @RequestParam(required = false) maxHit: Int?,
+        @RequestParam(required = false) minTerm: Int?,
+        @RequestParam(required = false) maxTerm: Int?,
         session: HttpSession
-    ): List<ShopAdminItem> {
+    ): ListResponse<ShopAdminItem> {
         authorizer.require(session, AdminSetting.Privilege.SHOP)
-        return service.list(query)
+        return service.list(
+            page, size, sort, query, queryTarget, queryMatch, groups, saleStatus,
+            itemStatus, flags, minCost, maxCost, minHit, maxHit, minTerm, maxTerm
+        )
     }
 
     @PostMapping("/shop")

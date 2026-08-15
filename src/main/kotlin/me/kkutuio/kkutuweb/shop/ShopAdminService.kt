@@ -21,26 +21,84 @@ class ShopAdminService(
     private val idPattern = Regex("^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
     private val groupPattern = Regex("^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
 
-    fun list(query: String): List<ShopAdminItem> {
-        val normalizedQuery = query.trim()
-        val filter = if (normalizedQuery.isEmpty()) "" else """
-            WHERE s._id ILIKE ? OR COALESCE(d.name_ko_KR, '') ILIKE ?
-               OR COALESCE(d.name_en_US, '') ILIKE ? OR s."group" ILIKE ?
-        """.trimIndent()
-        val parameters = if (normalizedQuery.isEmpty()) emptyArray() else
-            Array(4) { "%$normalizedQuery%" }
-        return jdbcTemplate.query(
+    fun list(
+        page: Int,
+        size: Int,
+        sort: String,
+        query: String,
+        queryTarget: String,
+        queryMatch: String,
+        groups: String,
+        saleStatus: String,
+        itemStatus: String,
+        flags: String,
+        minCost: Long?,
+        maxCost: Long?,
+        minHit: Int?,
+        maxHit: Int?,
+        minTerm: Int?,
+        maxTerm: Int?
+    ): ListResponse<ShopAdminItem> {
+        require(page >= 0) { "페이지는 0 이상이어야 합니다." }
+        require(size in 1..150) { "페이지 크기는 1~150이어야 합니다." }
+        require(minCost == null || maxCost == null || minCost <= maxCost) { "최소 가격은 최대 가격보다 클 수 없습니다." }
+        require(minHit == null || maxHit == null || minHit <= maxHit) { "최소 판매량은 최대 판매량보다 클 수 없습니다." }
+        require(minTerm == null || maxTerm == null || minTerm <= maxTerm) { "최소 기간은 최대 기간보다 클 수 없습니다." }
+        val where = mutableListOf<String>()
+        val parameters = mutableListOf<Any>()
+        addTextSearch(where, parameters, query, queryTarget, queryMatch)
+        val selectedGroups = groups.split(',').map(String::trim).filter(String::isNotEmpty).distinct().take(50)
+        if (selectedGroups.isNotEmpty()) {
+            where += "s.\"group\" IN (${selectedGroups.joinToString(",") { "?" }})"
+            parameters.addAll(selectedGroups)
+        }
+        when (saleStatus.uppercase()) {
+            "FOR_SALE" -> where += "s.cost >= 0"
+            "NOT_FOR_SALE" -> where += "s.cost < 0"
+        }
+        when (itemStatus.uppercase()) {
+            "RANDOM_BOX" -> where += "s.options::jsonb ? 'gives'"
+            "NORMAL" -> where += "NOT (s.options::jsonb ? 'gives')"
+        }
+        flags.split(',').map(String::trim).map(String::uppercase).distinct().forEach { flag ->
+            when (flag) {
+                "GIFTABLE" -> where += "COALESCE((s.options::jsonb ->> 'giftable')::boolean, FALSE)"
+                "GIF" -> where += "s.options::jsonb ? 'gif'"
+                "EVENT" -> where += "s.options::jsonb ? 'event'"
+                "EFFECT" -> where += "s.options::jsonb ?| ARRAY['gEXP', 'hEXP', 'gMNY', 'hMNY']"
+            }
+        }
+        minCost?.let { where += "s.cost >= ?"; parameters += it }
+        maxCost?.let { where += "s.cost <= ?"; parameters += it }
+        minHit?.let { where += "s.hit >= ?"; parameters += it }
+        maxHit?.let { where += "s.hit <= ?"; parameters += it }
+        minTerm?.let { where += "s.term >= ?"; parameters += it }
+        maxTerm?.let { where += "s.term <= ?"; parameters += it }
+        val whereSql = if (where.isEmpty()) "" else " WHERE ${where.joinToString(" AND ")}"
+        val count = jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*) FROM kkutu_shop s
+            LEFT JOIN kkutu_shop_desc d ON d._id = s._id
+            $whereSql
+            """.trimIndent(),
+            Int::class.java,
+            *parameters.toTypedArray()
+        ) ?: 0
+        val (sortColumn, sortDirection) = parseItemSort(sort)
+        val content = jdbcTemplate.query(
             """
             SELECT s._id, s.cost, s.hit, s.term, s."group", s."updatedAt", s.options,
                    d.name_ko_KR, d.desc_ko_KR, d.name_en_US, d.desc_en_US
             FROM kkutu_shop s
             LEFT JOIN kkutu_shop_desc d ON d._id = s._id
-            $filter
-            ORDER BY s."updatedAt" DESC NULLS LAST, s._id ASC
+            $whereSql
+            ORDER BY $sortColumn $sortDirection NULLS LAST, s._id ASC
+            LIMIT ? OFFSET ?
             """.trimIndent(),
             ::mapItem,
-            *parameters
+            *(parameters + listOf(size, page * size)).toTypedArray()
         )
+        return ListResponse(count, content)
     }
 
     @Transactional
@@ -279,6 +337,47 @@ class ShopAdminService(
         }
         val direction = if (values.getOrNull(1)?.trim()?.uppercase() == "ASC") "ASC" else "DESC"
         return column to direction
+    }
+
+    private fun parseItemSort(sort: String): Pair<String, String> {
+        val values = sort.split(',', limit = 2)
+        val column = when (values.firstOrNull()?.trim()) {
+            "id" -> "s._id"
+            "name" -> "d.name_ko_KR"
+            "cost" -> "s.cost"
+            "hit" -> "s.hit"
+            "term" -> "s.term"
+            "group" -> "s.\"group\""
+            else -> "s.\"updatedAt\""
+        }
+        val direction = if (values.getOrNull(1)?.trim()?.uppercase() == "ASC") "ASC" else "DESC"
+        return column to direction
+    }
+
+    private fun addTextSearch(
+        where: MutableList<String>,
+        parameters: MutableList<Any>,
+        rawQuery: String,
+        rawTarget: String,
+        rawMatch: String
+    ) {
+        val query = rawQuery.trim()
+        if (query.isEmpty()) return
+        val columns = when (rawTarget.uppercase()) {
+            "ID" -> listOf("s._id")
+            "NAME" -> listOf("COALESCE(d.name_ko_KR, '')", "COALESCE(d.name_en_US, '')")
+            else -> listOf("s._id", "COALESCE(d.name_ko_KR, '')", "COALESCE(d.name_en_US, '')")
+        }
+        val match = rawMatch.uppercase()
+        val escapedQuery = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        val value = when (match) {
+            "EXACT" -> escapedQuery
+            "STARTS_WITH" -> "$escapedQuery%"
+            "ENDS_WITH" -> "%$escapedQuery"
+            else -> "%$escapedQuery%"
+        }
+        where += "(${columns.joinToString(" OR ") { "$it ILIKE ? ESCAPE '\\'" }})"
+        repeat(columns.size) { parameters += value }
     }
 
     private fun mapItem(rs: ResultSet, ignored: Int) = ShopAdminItem(

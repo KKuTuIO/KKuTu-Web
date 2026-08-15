@@ -77,7 +77,7 @@ class GeoService(
         }.getOrNull()
     }
 
-    @Cacheable(value = ["ipGeoInfoCache"], key = "#ip")
+    @Cacheable(value = ["ipGeoInfoCache"], key = "#ip", unless = "#result == null")
     fun getGeoInfo(ip: String): GeoIpInfo? {
         val domesticExempt = isDomesticExempt(ip)
         val location = query(locationDatabase, ip)

@@ -375,12 +375,12 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='InjPickDiag',width=300,height=430,title=#{kkutu.dialog.injPick.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='InjPickDiag',width=250,height=425,title=#{kkutu.dialog.injPick.title})}">
         <th:block layout:fragment="content">
             <h4 th:text="#{kkutu.dialog.injPick.expl}"></h4>
             <div class="dialog-bar theme-preset-select-bar">
                 <select id="injpick-preset" aria-label="주제 프리셋">
-                    <option value="">기본 프리셋 ↓</option>
+                    <option value="">프리셋을 선택하세요</option>
                 </select>
             </div>
             <div class="dialog-bar theme-preset-controls">
@@ -388,7 +388,7 @@
                 <button id="theme-preset-settings" type="button"><i class="fa-solid fa-wrench"></i> 프리셋 설정</button>
             </div>
             <div id="theme-preset-editing" class="theme-preset-editing" style="display: none;"></div>
-            <div class="dialog-bar" id="injpick-list" style="height: 260px; overflow-y: scroll;">
+            <div class="dialog-bar" id="injpick-list" style="height: 250px; overflow-y: scroll;">
                 <div class="dialog-opt" id="ko-pick-list" style="width: 100%;">
                     <div style="float: left; width: 100%;" th:each="theme : ${koThemes}">
                         <input style="width: auto;" th:id="${'ko-pick-' + theme}" type="checkbox">
@@ -413,8 +413,8 @@
             <span id="theme-preset-count" style="display: none;">0/10</span>
             <div id="theme-preset-list" class="theme-preset-list"></div>
             <div class="dialog-bar tail-button theme-preset-footer">
-                <button id="theme-preset-add" type="button"><i class="fa-solid fa-plus"></i> 프리셋 추가</button>
                 <button id="theme-preset-export" type="button"><i class="fa-solid fa-file-export"></i> 내보내기</button>
+                <button id="theme-preset-add" type="button"><i class="fa-solid fa-plus"></i> 프리셋 추가</button>
             </div>
         </th:block>
     </th:block>

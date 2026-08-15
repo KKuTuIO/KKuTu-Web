@@ -52,6 +52,7 @@ data class ModerationNetworkBlockedIp(
 
 data class ModerationCurrentIpBlock(
     val caseId: Long?,
+    val inquiryId: String?,
     val onlyGuest: Boolean,
     val startsAt: Instant,
     val endsAt: Instant?,
@@ -78,6 +79,7 @@ data class ModerationIpDetail(
 
 data class ModerationCaseSummary(
     val caseId: Long,
+    val inquiryId: String,
     val primaryCategoryCode: String,
     val categoryCodes: List<String>,
     val summary: String,
@@ -166,6 +168,7 @@ data class ModerationReportDetail(
     val resolvedBy: String?,
     val resolutionNote: String?,
     val linkedSanctionCaseId: Long?,
+    val linkedSanctionInquiryId: String?,
     val linkedSanctionSubjectType: String?,
     val linkedSanctionRevoked: Boolean,
     val gameReferences: List<ModerationReportGameReference>,
@@ -216,7 +219,17 @@ data class CustomSanctionRequest(
 data class SanctionIssueResponse(
     val caseId: Long,
     val preview: ModerationPolicyPreview,
-    val duplicated: Boolean
+    val duplicated: Boolean,
+    val inquiryId: String
+)
+
+data class ModerationInquiryLookup(
+    val inquiryId: String,
+    val caseId: Long?,
+    val subjectType: String,
+    val userId: String?,
+    val ip: String?,
+    val revoked: Boolean
 )
 
 data class IpSanctionPreviewRequest(

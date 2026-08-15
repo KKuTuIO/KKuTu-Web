@@ -87,11 +87,6 @@ export const LogoutBtn = styled.button`
 `
 
 const Blocked = ({blockInfo}) => {
-    const getInquireId = () => {
-        const date = new Date();
-        return `BLK-${blockInfo.blockType}-${blockInfo.id}-${date.getMonth() + 1}.${date.getDate()}.${date.getHours()}.${date.getMinutes()}`;
-    }
-
     const hideIp = (target) => {
         if (blockInfo.blockType !== 'IP') return target;
 
@@ -141,7 +136,7 @@ const Blocked = ({blockInfo}) => {
                         color: '#A5D6A7',
                         fontWeight: 'bold',
                         userSelect: 'all'
-                    }}>{getInquireId()}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
+                    }}>{blockInfo.inquiryId}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
                 </Background>
             </>
         )
@@ -187,7 +182,7 @@ const Blocked = ({blockInfo}) => {
                     color: '#A5D6A7',
                     fontWeight: 'bold',
                     userSelect: 'all'
-                }}>{getInquireId()}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
+                }}>{blockInfo.inquiryId}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</Footer>
             </Background>
         </>
     )

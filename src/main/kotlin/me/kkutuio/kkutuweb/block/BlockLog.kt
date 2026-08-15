@@ -36,7 +36,8 @@ data class BlockLog(
     val pardonTime: Timestamp? = null,
     val reason: String,
     val punishFrom: PunishFrom,
-    val admin: String
+    val admin: String,
+    val inquiryId: String
 ) {
     companion object {
         fun fromAddOf(blockUser: BlockUser, logType: LogType = LogType.ADD): BlockLog {
@@ -52,7 +53,8 @@ data class BlockLog(
                 blockUser.pardonTime,
                 blockUser.reason,
                 blockUser.punishFrom,
-                blockUser.admin
+                blockUser.admin,
+                blockUser.inquiryId
             )
         }
 
@@ -69,7 +71,8 @@ data class BlockLog(
                 blockIp.pardonTime,
                 blockIp.reason,
                 blockIp.punishFrom,
-                blockIp.admin
+                blockIp.admin,
+                blockIp.inquiryId
             )
         }
 
@@ -86,7 +89,8 @@ data class BlockLog(
                 blockChat.pardonTime,
                 blockChat.reason,
                 blockChat.punishFrom,
-                blockChat.admin
+                blockChat.admin,
+                blockChat.inquiryId
             )
         }
     }

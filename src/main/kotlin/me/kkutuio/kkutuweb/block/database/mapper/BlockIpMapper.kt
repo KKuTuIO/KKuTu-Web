@@ -35,7 +35,8 @@ class BlockIpMapper : RowMapper<BlockIp> {
         val punishFrom = PunishFrom.valueOf(rs.getString("punish_from"))
         var onlyGuestPunish = rs.getBoolean("only_guest_punish")
         val admin = rs.getString("admin")
+        val inquiryId = rs.getString("inquiry_id")
 
-        return BlockIp(id, ipAddress, time, pardonTime, reason, punishFrom, onlyGuestPunish, admin)
+        return BlockIp(id, ipAddress, time, pardonTime, reason, punishFrom, onlyGuestPunish, admin, inquiryId)
     }
 }

@@ -29,7 +29,7 @@ class BlockLogDAO(
 ) {
     fun insert(blockLog: BlockLog) {
         val sql =
-            "INSERT INTO block_log (log_time, log_type, block_type, user_id, case_id, ip_address, block_time, pardon_time, reason, punish_from, admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO block_log (log_time, log_type, block_type, user_id, case_id, ip_address, block_time, pardon_time, reason, punish_from, admin, inquiry_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 
         jdbcTemplate.update(
             sql,
@@ -43,7 +43,8 @@ class BlockLogDAO(
             blockLog.pardonTime,
             blockLog.reason,
             blockLog.punishFrom.name,
-            blockLog.admin
+            blockLog.admin,
+            blockLog.inquiryId
         )
     }
 }

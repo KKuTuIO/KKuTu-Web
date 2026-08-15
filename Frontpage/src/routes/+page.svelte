@@ -207,11 +207,6 @@
                 jsonDataServers = data;
             });
     }
-    function getInquireId() {
-        const date = new Date();
-        return `BLK-${blockData.blockType}-${blockData.id}-${date.getMonth() + 1}.${date.getDate()}.${date.getHours()}.${date.getMinutes()}`;
-    }
-
     function hideIP(target){
         if (blockData.blockType !== 'IP') return target;
 
@@ -284,7 +279,7 @@
                         <button class="text-gray-300 mb-4">로그인 (게임 이용 가능)</button>
                     </a>
                     <p class="text-xs text-gray-400">
-                        {getInquireId()} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                        {blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
                     </p>
                 </div>
             {:else}
@@ -324,7 +319,7 @@
                         <button class="text-gray-300 mb-4">로그아웃</button>
                     </a>
                     <p class="text-xs text-gray-400">
-                        {getInquireId()} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                        {blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
                     </p>
                 </div>
             {/if}
@@ -655,4 +650,3 @@
           </div>
     </div>
 </div>
-

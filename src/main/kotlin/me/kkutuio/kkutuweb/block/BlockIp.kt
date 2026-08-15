@@ -28,5 +28,6 @@ data class BlockIp(
     val reason: String,
     val punishFrom: PunishFrom,
     val onlyGuestPunish: Boolean? = false,
-    val admin: String
+    val admin: String,
+    val inquiryId: String
 )

@@ -73,6 +73,19 @@ class AdminModerationApi(
         return service.getUserDetail(userId)
     }
 
+    @GetMapping("/inquiries/{inquiryId}")
+    fun inquiry(
+        @PathVariable inquiryId: String,
+        session: HttpSession
+    ): ModerationInquiryLookup {
+        authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        val result = service.findByInquiryId(inquiryId)
+        if (result.subjectType == "IP") {
+            authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        }
+        return result
+    }
+
     @GetMapping("/users/{userId}/reports")
     fun reports(
         @PathVariable userId: String,

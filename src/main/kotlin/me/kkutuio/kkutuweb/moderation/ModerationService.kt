@@ -82,6 +82,72 @@ class ModerationService(
         return userDao.searchUsers(query.trim()).map(::toSummary)
     }
 
+    fun findByInquiryId(value: String): ModerationInquiryLookup {
+        val inquiryId = ModerationInquiryId.normalize(value)
+        jdbcTemplate.query(
+            """
+            SELECT case_id, inquiry_id, subject_type, subject_user_id,
+                   subject_ip_encrypted, revoked_at
+            FROM moderation_cases WHERE inquiry_id = ?
+            """.trimIndent(),
+            { rs, _ ->
+                val subjectType = rs.getString("subject_type")
+                ModerationInquiryLookup(
+                    inquiryId = rs.getString("inquiry_id"),
+                    caseId = rs.getLong("case_id"),
+                    subjectType = subjectType,
+                    userId = rs.getString("subject_user_id"),
+                    ip = if (subjectType == "IP") ipSubjectCodec.decrypt(rs.getBytes("subject_ip_encrypted")) else null,
+                    revoked = rs.getTimestamp("revoked_at") != null
+                )
+            },
+            inquiryId
+        ).firstOrNull()?.let { return it }
+
+        jdbcTemplate.query(
+            """
+            SELECT 'USER' AS subject_type, user_id, NULL::TEXT AS ip_address
+            FROM block_user WHERE inquiry_id = ?
+            UNION ALL
+            SELECT 'USER', user_id, NULL::TEXT
+            FROM block_chat WHERE inquiry_id = ?
+            UNION ALL
+            SELECT 'IP', NULL::TEXT, ip_address
+            FROM block_ip WHERE inquiry_id = ?
+            LIMIT 1
+            """.trimIndent(),
+            { rs, _ -> ModerationInquiryLookup(
+                inquiryId = inquiryId,
+                caseId = null,
+                subjectType = rs.getString("subject_type"),
+                userId = rs.getString("user_id"),
+                ip = rs.getString("ip_address"),
+                revoked = false
+            ) },
+            inquiryId,
+            inquiryId,
+            inquiryId
+        ).firstOrNull()?.let { return it }
+
+        val logged = jdbcTemplate.query(
+            """
+            SELECT block_type, user_id, ip_address
+            FROM block_log WHERE inquiry_id = ?
+            ORDER BY log_time DESC LIMIT 1
+            """.trimIndent(),
+            { rs, _ -> ModerationInquiryLookup(
+                inquiryId = inquiryId,
+                caseId = null,
+                subjectType = if (rs.getString("block_type") == "IP") "IP" else "USER",
+                userId = rs.getString("user_id"),
+                ip = rs.getString("ip_address"),
+                revoked = true
+            ) },
+            inquiryId
+        ).firstOrNull()
+        return logged ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "문의번호에 해당하는 제재를 찾을 수 없습니다.")
+    }
+
     fun getUserDetail(userId: String): ModerationUserDetail {
         val user = userDao.getUser(userId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
@@ -195,13 +261,14 @@ class ModerationService(
 
         val linkedSanction = jdbcTemplate.query(
             """
-            SELECT c.case_id, c.subject_type, c.revoked_at
+            SELECT c.case_id, c.inquiry_id, c.subject_type, c.revoked_at
             FROM moderation_case_reports cr
             JOIN moderation_cases c ON c.case_id = cr.case_id
             WHERE cr.report_id = ? ORDER BY c.case_id DESC LIMIT 1
             """.trimIndent(),
             { rs, _ -> LinkedSanction(
                 rs.getLong("case_id"),
+                rs.getString("inquiry_id"),
                 rs.getString("subject_type"),
                 rs.getTimestamp("revoked_at") != null
             ) },
@@ -256,6 +323,7 @@ class ModerationService(
             resolvedBy = report.resolvedBy,
             resolutionNote = report.resolutionNote,
             linkedSanctionCaseId = linkedSanction?.caseId,
+            linkedSanctionInquiryId = linkedSanction?.inquiryId,
             linkedSanctionSubjectType = linkedSanction?.subjectType,
             linkedSanctionRevoked = linkedSanction?.revoked ?: false,
             gameReferences = gameReferences,
@@ -444,7 +512,7 @@ class ModerationService(
         val resolved = resolveIpSubject(request.subject)
         val hash = ipSubjectCodec.hash(resolved.ip)
         existingCase(request.requestId)?.let {
-            return SanctionIssueResponse(it, previewFromCase(it), true)
+            return SanctionIssueResponse(it, previewFromCase(it), true, caseInquiryId(it))
         }
         jdbcTemplate.query(
             "SELECT pg_advisory_xact_lock(hashtext(?))",
@@ -464,9 +532,10 @@ class ModerationService(
             ?: request.summary.trim()
         require(displayReason.isNotBlank()) { "표시할 제재 사유를 결정할 수 없습니다." }
         validateIpReports(request.reportIds, resolved.ip)
+        val overriddenInquiryId = request.overrideCaseId?.let(::caseInquiryId)
         request.overrideCaseId?.let {
             validateOverrideCase(it, "IP", hash, request.reportIds)
-            revoke(it, "제재 #$it 변경", actorId, requestIpHash, "IP")
+            revoke(it, "관리자 제재 변경", actorId, requestIpHash, "IP")
         }
         policyRegistry.register(policyLoader.current())
 
@@ -474,8 +543,9 @@ class ModerationService(
             insertIpCase(request, resolved.ip, hash, actorId, preview, displayReason)
         } catch (e: DuplicateKeyException) {
             val existing = existingCase(request.requestId) ?: throw e
-            return SanctionIssueResponse(existing, previewFromCase(existing), true)
+            return SanctionIssueResponse(existing, previewFromCase(existing), true, caseInquiryId(existing))
         }
+        val inquiryId = caseInquiryId(caseId)
         preview.violations.forEach { violation ->
             jdbcTemplate.update(
                 """
@@ -508,8 +578,8 @@ class ModerationService(
                 """.trimIndent(),
                 if (overridden) "OVERRIDDEN" else "RESOLVED",
                 actorId,
-                if (overridden) "IP 제재 #$caseId 로 변경 (기존 #${request.overrideCaseId})"
-                else "IP 제재 #$caseId 연결",
+                if (overridden) "IP 제재 $inquiryId 로 변경 (기존 $overriddenInquiryId)"
+                else "IP 제재 $inquiryId 연결",
                 reportId
             )
         }
@@ -548,7 +618,7 @@ class ModerationService(
                 }
             })
         }
-        return SanctionIssueResponse(caseId, preview, false)
+        return SanctionIssueResponse(caseId, preview, false, inquiryId)
     }
 
     @Transactional
@@ -565,7 +635,7 @@ class ModerationService(
         relatedUserIds.forEach(::requireUser)
 
         existingCase(request.requestId)?.let {
-            return SanctionIssueResponse(it, previewFromCase(it), true)
+            return SanctionIssueResponse(it, previewFromCase(it), true, caseInquiryId(it))
         }
 
         val preview = request.custom?.let { custom ->
@@ -591,17 +661,19 @@ class ModerationService(
         require(displayReason.isNotBlank()) { "표시할 제재 사유를 결정할 수 없습니다." }
         policyRegistry.register(policyLoader.current())
         validateReports(request.reportIds, request.userId)
+        val overriddenInquiryId = request.overrideCaseId?.let(::caseInquiryId)
         request.overrideCaseId?.let {
             validateOverrideCase(it, "USER", request.userId, request.reportIds)
-            revoke(it, "제재 #$it 변경", actorId, requestIpHash, "USER")
+            revoke(it, "관리자 제재 변경", actorId, requestIpHash, "USER")
         }
 
         val caseId = try {
             insertCase(request, actorId, preview, displayReason)
         } catch (e: DuplicateKeyException) {
             val existing = existingCase(request.requestId) ?: throw e
-            return SanctionIssueResponse(existing, previewFromCase(existing), true)
+            return SanctionIssueResponse(existing, previewFromCase(existing), true, caseInquiryId(existing))
         }
+        val inquiryId = caseInquiryId(caseId)
 
         preview.violations.forEach { violation ->
             jdbcTemplate.update(
@@ -664,8 +736,8 @@ class ModerationService(
                 """.trimIndent(),
                 if (overridden) "OVERRIDDEN" else "RESOLVED",
                 actorId,
-                if (overridden) "제재 #$caseId 로 변경 (기존 #${request.overrideCaseId})"
-                else "제재 #$caseId 연결",
+                if (overridden) "제재 $inquiryId 로 변경 (기존 $overriddenInquiryId)"
+                else "제재 $inquiryId 연결",
                 reportId
             )
         }
@@ -720,7 +792,7 @@ class ModerationService(
                 }
             })
         }
-        return SanctionIssueResponse(caseId, preview, false)
+        return SanctionIssueResponse(caseId, preview, false, inquiryId)
     }
 
     @Transactional
@@ -1219,28 +1291,30 @@ class ModerationService(
         preview: ModerationPolicyPreview,
         displayReason: String
     ): Long {
+        val inquiryId = newInquiryId()
         val keyHolder: KeyHolder = GeneratedKeyHolder()
         jdbcTemplate.update({ connection ->
             connection.prepareStatement(
                 """
                 INSERT INTO moderation_cases
-                    (request_id, subject_type, subject_user_id, primary_category_code,
+                    (request_id, inquiry_id, subject_type, subject_user_id, primary_category_code,
                      policy_id, policy_digest, source_service, occurred_at, issued_by,
                      evidence_text, summary, overrides_case_id)
-                VALUES (?, 'USER', ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
+                VALUES (?, ?, 'USER', ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 arrayOf("case_id")
             ).apply {
                 setObject(1, request.requestId)
-                setString(2, request.userId)
-                setString(3, preview.primaryCategoryCode)
-                setString(4, preview.policyId)
-                setString(5, preview.policyDigest)
-                setTimestamp(6, Timestamp.from(request.occurredAt))
-                setString(7, actorId)
-                setString(8, request.evidenceText)
-                setString(9, displayReason)
-                setObject(10, request.overrideCaseId)
+                setString(2, inquiryId)
+                setString(3, request.userId)
+                setString(4, preview.primaryCategoryCode)
+                setString(5, preview.policyId)
+                setString(6, preview.policyDigest)
+                setTimestamp(7, Timestamp.from(request.occurredAt))
+                setString(8, actorId)
+                setString(9, request.evidenceText)
+                setString(10, displayReason)
+                setObject(11, request.overrideCaseId)
             }
         }, keyHolder)
         return keyHolder.key!!.toLong()
@@ -1254,29 +1328,31 @@ class ModerationService(
         preview: ModerationPolicyPreview,
         displayReason: String
     ): Long {
+        val inquiryId = newInquiryId()
         val keyHolder: KeyHolder = GeneratedKeyHolder()
         jdbcTemplate.update({ connection ->
             connection.prepareStatement(
                 """
                 INSERT INTO moderation_cases
-                    (request_id, subject_type, subject_ip_encrypted, subject_ip_hash,
+                    (request_id, inquiry_id, subject_type, subject_ip_encrypted, subject_ip_hash,
                      primary_category_code, policy_id, policy_digest, source_service,
                      occurred_at, issued_by, evidence_text, summary, overrides_case_id)
-                VALUES (?, 'IP', ?, ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
+                VALUES (?, ?, 'IP', ?, ?, ?, ?, ?, 'ADMIN', ?, ?, ?, ?, ?)
                 """.trimIndent(),
                 arrayOf("case_id")
             ).apply {
                 setObject(1, request.requestId)
-                setBytes(2, ipSubjectCodec.encrypt(ip))
-                setString(3, ipHash)
-                setString(4, preview.primaryCategoryCode)
-                setString(5, preview.policyId)
-                setString(6, preview.policyDigest)
-                setTimestamp(7, Timestamp.from(request.occurredAt))
-                setString(8, actorId)
-                setString(9, request.evidenceText)
-                setString(10, displayReason)
-                setObject(11, request.overrideCaseId)
+                setString(2, inquiryId)
+                setBytes(3, ipSubjectCodec.encrypt(ip))
+                setString(4, ipHash)
+                setString(5, preview.primaryCategoryCode)
+                setString(6, preview.policyId)
+                setString(7, preview.policyDigest)
+                setTimestamp(8, Timestamp.from(request.occurredAt))
+                setString(9, actorId)
+                setString(10, request.evidenceText)
+                setString(11, displayReason)
+                setObject(12, request.overrideCaseId)
             }
         }, keyHolder)
         return keyHolder.key!!.toLong()
@@ -1447,20 +1523,22 @@ class ModerationService(
         effect: ResolvedPolicyEffect
     ) {
         jdbcTemplate.update("DELETE FROM $table WHERE user_id = ?", userId)
+        val inquiryId = caseInquiryId(caseId)
         val keyHolder = GeneratedKeyHolder()
         jdbcTemplate.update({ connection ->
             connection.prepareStatement(
                 """
-                INSERT INTO $table(user_id, time, pardon_time, reason, punish_from, admin)
-                VALUES (?, ?, ?, ?, 'DISCORD', ?)
+                INSERT INTO $table(user_id, time, pardon_time, reason, punish_from, admin, inquiry_id)
+                VALUES (?, ?, ?, ?, 'DISCORD', ?, ?)
                 """.trimIndent(),
                 arrayOf("id")
             ).apply {
                 setString(1, userId)
                 setTimestamp(2, Timestamp.from(effect.startsAt))
                 setTimestamp(3, effect.endsAt?.let(Timestamp::from))
-                setString(4, "[제재 #$caseId] $reason")
+                setString(4, reason)
                 setString(5, actorId)
+                setString(6, inquiryId)
             }
         }, keyHolder)
         jdbcTemplate.update(
@@ -1487,22 +1565,24 @@ class ModerationService(
             "지원하지 않는 IP 제재 효과입니다: ${effect.type}"
         }
         jdbcTemplate.update("DELETE FROM block_ip WHERE ip_address = ?", ip)
+        val inquiryId = caseInquiryId(caseId)
         val keyHolder = GeneratedKeyHolder()
         jdbcTemplate.update({ connection ->
             connection.prepareStatement(
                 """
                 INSERT INTO block_ip
-                    (ip_address, time, pardon_time, reason, punish_from, admin, only_guest_punish)
-                VALUES (?, ?, ?, ?, 'DISCORD', ?, ?)
+                    (ip_address, time, pardon_time, reason, punish_from, admin, only_guest_punish, inquiry_id)
+                VALUES (?, ?, ?, ?, 'DISCORD', ?, ?, ?)
                 """.trimIndent(),
                 arrayOf("id")
             ).apply {
                 setString(1, ip)
                 setTimestamp(2, Timestamp.from(effect.startsAt))
                 setTimestamp(3, effect.endsAt?.let(Timestamp::from))
-                setString(4, "[제재 #$caseId] $reason")
+                setString(4, reason)
                 setString(5, actorId)
                 setBoolean(6, effect.type == "GUEST_ACCESS_RESTRICTION")
+                setString(7, inquiryId)
             }
         }, keyHolder)
         jdbcTemplate.update(
@@ -1806,7 +1886,7 @@ class ModerationService(
     private fun history(userId: String, limit: Int): List<ModerationCaseSummary> =
         jdbcTemplate.query(
             """
-            SELECT case_id, primary_category_code, summary, occurred_at,
+            SELECT case_id, inquiry_id, primary_category_code, summary, occurred_at,
                    issued_at, issued_by, revoked_at
             FROM moderation_cases
             WHERE subject_user_id = ?
@@ -1817,6 +1897,7 @@ class ModerationService(
                 val caseId = rs.getLong("case_id")
                 ModerationCaseSummary(
                     caseId,
+                    rs.getString("inquiry_id"),
                     rs.getString("primary_category_code"),
                     caseCategoryCodes(caseId),
                     rs.getString("summary"),
@@ -1834,7 +1915,7 @@ class ModerationService(
     private fun ipHistory(ipHash: String, limit: Int): List<ModerationCaseSummary> =
         jdbcTemplate.query(
             """
-            SELECT case_id, primary_category_code, summary, occurred_at,
+            SELECT case_id, inquiry_id, primary_category_code, summary, occurred_at,
                    issued_at, issued_by, revoked_at
             FROM moderation_cases
             WHERE subject_type = 'IP' AND subject_ip_hash = ?
@@ -1844,6 +1925,7 @@ class ModerationService(
                 val caseId = rs.getLong("case_id")
                 ModerationCaseSummary(
                     caseId,
+                    rs.getString("inquiry_id"),
                     rs.getString("primary_category_code"),
                     caseCategoryCodes(caseId),
                     rs.getString("summary"),
@@ -2152,7 +2234,7 @@ class ModerationService(
 
     private fun currentIpBlock(ip: String): ModerationCurrentIpBlock? = jdbcTemplate.query(
         """
-        SELECT b.id, b.time, b.pardon_time, b.reason, b.only_guest_punish,
+        SELECT b.id, b.inquiry_id, b.time, b.pardon_time, b.reason, b.only_guest_punish,
                (SELECT e.case_id FROM moderation_effects e
                 WHERE e.legacy_block_type = 'IP' AND e.legacy_block_id = b.id
                 ORDER BY e.effect_id DESC LIMIT 1) AS moderation_case_id
@@ -2163,6 +2245,7 @@ class ModerationService(
         { rs, _ ->
             ModerationCurrentIpBlock(
                 rs.getLong("moderation_case_id").let { if (rs.wasNull()) null else it },
+                rs.getString("inquiry_id"),
                 rs.getBoolean("only_guest_punish"),
                 rs.instant("time")!!,
                 rs.instant("pardon_time"),
@@ -2282,6 +2365,36 @@ class ModerationService(
             { rs, _ -> rs.getLong(1) },
             requestId
         ).firstOrNull()
+
+    private fun caseInquiryId(caseId: Long): String = jdbcTemplate.query(
+        "SELECT inquiry_id FROM moderation_cases WHERE case_id = ?",
+        { rs, _ -> rs.getString("inquiry_id") },
+        caseId
+    ).firstOrNull() ?: throw IllegalStateException("제재 문의번호를 찾을 수 없습니다: $caseId")
+
+    private fun newInquiryId(): String {
+        repeat(20) {
+            val candidate = ModerationInquiryId.generate()
+            val exists = jdbcTemplate.queryForObject(
+                """
+                SELECT
+                    EXISTS(SELECT 1 FROM moderation_cases WHERE inquiry_id = ?)
+                    OR EXISTS(SELECT 1 FROM block_user WHERE inquiry_id = ?)
+                    OR EXISTS(SELECT 1 FROM block_chat WHERE inquiry_id = ?)
+                    OR EXISTS(SELECT 1 FROM block_ip WHERE inquiry_id = ?)
+                    OR EXISTS(SELECT 1 FROM block_log WHERE inquiry_id = ?)
+                """.trimIndent(),
+                Boolean::class.java,
+                candidate,
+                candidate,
+                candidate,
+                candidate,
+                candidate
+            ) == true
+            if (!exists) return candidate
+        }
+        throw IllegalStateException("고유한 제재 문의번호를 생성하지 못했습니다.")
+    }
 
     private fun previewFromCase(caseId: Long): ModerationPolicyPreview {
         val row = jdbcTemplate.queryForMap(
@@ -2413,7 +2526,12 @@ class ModerationService(
 
     private data class ResolvedIpSubject(val ip: String, val guestId: String?)
 
-    private data class LinkedSanction(val caseId: Long, val subjectType: String, val revoked: Boolean)
+    private data class LinkedSanction(
+        val caseId: Long,
+        val inquiryId: String,
+        val subjectType: String,
+        val revoked: Boolean
+    )
 
     private data class ReportDetailRow(
         val reportId: Long,

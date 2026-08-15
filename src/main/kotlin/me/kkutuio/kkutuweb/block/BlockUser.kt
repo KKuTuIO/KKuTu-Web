@@ -27,5 +27,6 @@ data class BlockUser(
     val pardonTime: Timestamp? = null,
     val reason: String,
     val punishFrom: PunishFrom,
-    val admin: String
+    val admin: String,
+    val inquiryId: String
 )

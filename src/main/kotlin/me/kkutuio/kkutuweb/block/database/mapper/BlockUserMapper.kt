@@ -34,7 +34,8 @@ class BlockUserMapper : RowMapper<BlockUser> {
         val reason = rs.getString("reason")
         val punishFrom = PunishFrom.valueOf(rs.getString("punish_from"))
         val admin = rs.getString("admin")
+        val inquiryId = rs.getString("inquiry_id")
 
-        return BlockUser(id, userId, time, pardonTime, reason, punishFrom, admin)
+        return BlockUser(id, userId, time, pardonTime, reason, punishFrom, admin, inquiryId)
     }
 }

@@ -88,7 +88,8 @@ class ShopAdminService(
         val content = jdbcTemplate.query(
             """
             SELECT s._id, s.cost, s.hit, s.term, s."group", s."updatedAt", s.options,
-                   d.name_ko_KR, d.desc_ko_KR, d.name_en_US, d.desc_en_US
+                   d."name_ko_KR" AS "name_ko_KR", d."desc_ko_KR" AS "desc_ko_KR",
+                   d."name_en_US" AS "name_en_US", d."desc_en_US" AS "desc_en_US"
             FROM kkutu_shop s
             LEFT JOIN kkutu_shop_desc d ON d._id = s._id
             $whereSql
@@ -288,13 +289,13 @@ class ShopAdminService(
     private fun upsertDescription(item: ShopAdminItemRequest) {
         jdbcTemplate.update(
             """
-            INSERT INTO kkutu_shop_desc (_id, name_ko_KR, desc_ko_KR, name_en_US, desc_en_US)
+            INSERT INTO kkutu_shop_desc (_id, "name_ko_KR", "desc_ko_KR", "name_en_US", "desc_en_US")
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT (_id) DO UPDATE SET
-                name_ko_KR = EXCLUDED.name_ko_KR,
-                desc_ko_KR = EXCLUDED.desc_ko_KR,
-                name_en_US = EXCLUDED.name_en_US,
-                desc_en_US = EXCLUDED.desc_en_US
+                "name_ko_KR" = EXCLUDED."name_ko_KR",
+                "desc_ko_KR" = EXCLUDED."desc_ko_KR",
+                "name_en_US" = EXCLUDED."name_en_US",
+                "desc_en_US" = EXCLUDED."desc_en_US"
             """.trimIndent(),
             item.id, item.nameKoKR, item.descKoKR, item.nameEnUS, item.descEnUS
         )
@@ -303,7 +304,8 @@ class ShopAdminService(
     private fun find(itemId: String): ShopAdminItem = jdbcTemplate.query(
         """
         SELECT s._id, s.cost, s.hit, s.term, s."group", s."updatedAt", s.options,
-               d.name_ko_KR, d.desc_ko_KR, d.name_en_US, d.desc_en_US
+               d."name_ko_KR" AS "name_ko_KR", d."desc_ko_KR" AS "desc_ko_KR",
+               d."name_en_US" AS "name_en_US", d."desc_en_US" AS "desc_en_US"
         FROM kkutu_shop s
         LEFT JOIN kkutu_shop_desc d ON d._id = s._id
         WHERE s._id = ?
@@ -343,7 +345,7 @@ class ShopAdminService(
         val values = sort.split(',', limit = 2)
         val column = when (values.firstOrNull()?.trim()) {
             "id" -> "s._id"
-            "name" -> "d.name_ko_KR"
+            "name" -> "d.\"name_ko_KR\""
             "cost" -> "s.cost"
             "hit" -> "s.hit"
             "term" -> "s.term"
@@ -365,8 +367,8 @@ class ShopAdminService(
         if (query.isEmpty()) return
         val columns = when (rawTarget.uppercase()) {
             "ID" -> listOf("s._id")
-            "NAME" -> listOf("COALESCE(d.name_ko_KR, '')", "COALESCE(d.name_en_US, '')")
-            else -> listOf("s._id", "COALESCE(d.name_ko_KR, '')", "COALESCE(d.name_en_US, '')")
+            "NAME" -> listOf("COALESCE(d.\"name_ko_KR\", '')", "COALESCE(d.\"name_en_US\", '')")
+            else -> listOf("s._id", "COALESCE(d.\"name_ko_KR\", '')", "COALESCE(d.\"name_en_US\", '')")
         }
         val match = rawMatch.uppercase()
         val escapedQuery = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

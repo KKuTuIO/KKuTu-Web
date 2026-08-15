@@ -26,11 +26,22 @@ data class ModerationUserDetail(
 )
 
 data class ModerationIpGeoInfo(
+    val isProxy: Int?,
+    val proxyType: String?,
     val countryCode: String?,
     val countryName: String?,
+    val regionName: String?,
+    val cityName: String?,
+    val isp: String?,
+    val domain: String?,
+    val usageType: String?,
     val asn: String?,
     val asName: String?,
-    val isp: String?
+    val lastSeenDays: Int?,
+    val threat: String?,
+    val residential: Boolean,
+    val provider: String?,
+    val fraudScore: Int?
 )
 
 data class ModerationIpIdentity(

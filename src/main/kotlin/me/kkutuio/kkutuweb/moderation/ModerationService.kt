@@ -213,13 +213,31 @@ class ModerationService(
         val node = root.path("geo")
         if (!node.isObject) return@runCatching null
         fun value(name: String): String? = node.path(name).takeUnless { it.isMissingNode || it.isNull }
-            ?.asText()?.trim()?.takeIf { it.isNotEmpty() }
+            ?.asText()?.trim()?.takeIf {
+                it.isNotEmpty() && it != "?" && it != "-" &&
+                    !it.contains("not applicable", ignoreCase = true) &&
+                    !it.contains("upgrade your subscription", ignoreCase = true)
+            }
+        fun integer(name: String): Int? = node.path(name).takeUnless { it.isMissingNode || it.isNull }
+            ?.takeIf { it.isIntegralNumber || it.isTextual }
+            ?.asText()?.toIntOrNull()
         ModerationIpGeoInfo(
+            isProxy = integer("isProxy"),
+            proxyType = value("proxyType"),
             countryCode = value("countryCode"),
             countryName = value("countryName"),
+            regionName = value("regionName"),
+            cityName = value("cityName"),
+            isp = value("isp"),
+            domain = value("domain"),
+            usageType = value("usageType"),
             asn = value("asn"),
             asName = value("asName"),
-            isp = value("isp")
+            lastSeenDays = integer("lastSeenDays"),
+            threat = value("threat"),
+            residential = node.path("residential").asBoolean(false),
+            provider = value("provider"),
+            fraudScore = integer("fraudScore")
         )
     }.getOrNull()
 

@@ -294,6 +294,9 @@
                     
 
                     <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <p class="mt-4 text-gray-300">
+                        <strong class="text-white select-all">{blockData.inquiryId}</strong> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                    </p>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
                         <button class="mt-4 mb-2 font-bold rounded-full bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
                     </a>
@@ -301,9 +304,6 @@
                     <a href="https://kkutu.io/login" rel="external">
                         <button class="text-gray-300 mb-4">로그인 (게임 이용 가능)</button>
                     </a>
-                    <p class="text-xs text-gray-400">
-                        {blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
-                    </p>
                 </div>
             {:else}
                 <h2 class="text-2xl font-bold">계정 이용 제한됨</h2>
@@ -336,6 +336,9 @@
                 
 
                     <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <p class="mt-4 text-gray-300">
+                        <strong class="text-white select-all">{blockData.inquiryId}</strong> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                    </p>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
                         <button class="mt-4 mb-2 font-bold rounded-full bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
                     </a>
@@ -343,9 +346,6 @@
                     <a href="https://kkutu.io/logout" rel="external">
                         <button class="text-gray-300 mb-4">로그아웃</button>
                     </a>
-                    <p class="text-xs text-gray-400">
-                        {blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
-                    </p>
                 </div>
             {/if}
         </div>

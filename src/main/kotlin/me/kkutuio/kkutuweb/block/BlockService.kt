@@ -105,7 +105,9 @@ class BlockService(
         inquiryId = inquiryId,
         time = DateFactory.PRETTY_FORMAT.format(startsAt.toLocalDateTime()),
         onlyGuestPunish = onlyGuest,
-        pardonTime = endsAt?.let { DateFactory.PRETTY_FORMAT.format(it.toLocalDateTime()) },
+        pardonTime = if (permanent) "영구 이용제한" else endsAt?.let {
+            DateFactory.PRETTY_FORMAT.format(it.toLocalDateTime())
+        },
         duration = if (permanent) "영구 이용제한" else TimeUtils.getTimeTextForSeconds(
             durationSeconds(endsAt!!, startsAt)
         ),

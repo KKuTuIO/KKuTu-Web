@@ -3,8 +3,8 @@ package me.kkutuio.kkutuweb.crossword
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Statement
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 @Service
 class CrosswordAdminService(private val jdbcTemplate: JdbcTemplate) {
@@ -83,31 +83,32 @@ class CrosswordAdminService(private val jdbcTemplate: JdbcTemplate) {
 
         val generator = CrosswordGenerator()
         val generated = ArrayList<GeneratedCrossword>()
-        val serialized = HashSet<String>()
+        val serialized = jdbcTemplate.queryForList(
+            "SELECT data FROM ${puzzleTable(pack.lang)} WHERE pack_id = ? AND data IS NOT NULL",
+            String::class.java,
+            packId
+        ).toHashSet()
         var attempts = 0
         val maxAttempts = request.count * 60
-        while (generated.size < request.count && attempts++ < maxAttempts) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30)
+        while (generated.size < request.count && attempts++ < maxAttempts && System.nanoTime() < deadline) {
             val puzzle = generator.generate(candidates, request) ?: continue
             if (serialized.add(puzzle.serialize())) generated.add(puzzle)
         }
         require(generated.size == request.count) {
-            "요청한 ${request.count}개 중 ${generated.size}개만 생성되었습니다. 단어 수나 길이 조건을 완화해 주세요."
+            "30초 내에 요청한 ${request.count}개 중 ${generated.size}개만 생성할 수 있었습니다. 단어 수·길이 조건을 완화해 주세요."
         }
 
         val ids = ArrayList<Long>()
         for (generatedPuzzle in generated) {
-            val keyHolder = org.springframework.jdbc.support.GeneratedKeyHolder()
-            jdbcTemplate.update({ connection ->
-                val statement = connection.prepareStatement(
-                    "INSERT INTO ${puzzleTable(pack.lang)} (map, data, pack_id) VALUES (?, ?, ?)",
-                    Statement.RETURN_GENERATED_KEYS
-                )
-                statement.setString(1, "auto-${UUID.randomUUID()}")
-                statement.setString(2, generatedPuzzle.serialize())
-                statement.setString(3, packId)
-                statement
-            }, keyHolder)
-            ids.add(keyHolder.key!!.toLong())
+            val id = jdbcTemplate.queryForObject(
+                "INSERT INTO ${puzzleTable(pack.lang)} (map, data, pack_id) VALUES (?, ?, ?) RETURNING _id",
+                Long::class.java,
+                "auto-${UUID.randomUUID()}",
+                generatedPuzzle.serialize(),
+                packId
+            )
+            ids.add(id)
         }
 
         val previews = generated.zip(ids).map { (generatedPuzzle, id) ->

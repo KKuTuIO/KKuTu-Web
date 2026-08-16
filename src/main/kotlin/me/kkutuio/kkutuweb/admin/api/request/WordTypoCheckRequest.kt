@@ -8,6 +8,7 @@ package me.kkutuio.kkutuweb.admin.api.request
 
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import me.kkutuio.kkutuweb.word.WordFlag
 import me.kkutuio.kkutuweb.word.WordSearchFilter
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -25,8 +26,12 @@ data class WordTypoCheckRequest(
     }
 
     fun toSearchFilter(): WordSearchFilter = when (scope) {
-        "THEME" -> WordSearchFilter(themes = themes.map { it.trim() }.filter { it.isNotEmpty() }.distinct())
+        "THEME" -> WordSearchFilter(
+            themes = themes.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
+            flags = listOf(WordFlag.INJEONG.flag)
+        )
         "ADMIN_HISTORY" -> WordSearchFilter(
+            flags = listOf(WordFlag.INJEONG.flag),
             createdBy = createdBy.trim(),
             createdWithinDays = createdWithinDays?.coerceIn(1, 3650)
         )

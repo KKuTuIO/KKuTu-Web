@@ -9,8 +9,9 @@ package me.kkutuio.kkutuweb.admin.service
 import kotlin.math.ln
 
 object WordTypoChecker {
+    private const val MIN_WORD_LENGTH = 4
     private const val MAX_SUGGESTIONS = 3
-    private const val MIN_IMPROVEMENT = 0.055
+    private const val MIN_IMPROVEMENT = 0.10
 
     fun check(words: List<String>, corpus: List<String>): Map<String, List<WordTypoCorrection>> {
         if (words.isEmpty() || corpus.isEmpty()) return emptyMap()
@@ -22,14 +23,14 @@ object WordTypoChecker {
     }
 
     private fun corrections(word: String, model: SyllableLanguageModel): List<WordTypoCorrection> {
-        if (word.length < 4) return emptyList()
+        if (word.length < MIN_WORD_LENGTH) return emptyList()
         val originalScore = model.score(word)
         val candidates = LinkedHashMap<String, WordTypoCorrection>()
 
         fun offer(candidate: String, start: Int, removed: String, added: String, reason: String, relaxed: Boolean = false) {
             if (candidate == word || candidate.length < 2) return
             val improvement = model.score(candidate) - originalScore
-            val threshold = if (relaxed) 0.012 else MIN_IMPROVEMENT
+            val threshold = if (relaxed) 0.04 else MIN_IMPROVEMENT
             if (improvement < threshold) return
             val correction = WordTypoCorrection(candidate, start, removed, added, reason, improvement)
             val previous = candidates[candidate]
@@ -46,22 +47,26 @@ object WordTypoChecker {
                 val differences = first.indices.filter { first[it] != second[it] }
                 if (differences.size != 1) continue
                 val offset = differences[0]
-                offer(
-                    word.replaceRange(secondStart, secondStart + length, first),
-                    secondStart + offset,
-                    second[offset].toString(),
-                    first[offset].toString(),
-                    "REPEATED_PATTERN_MISMATCH",
-                    relaxed = true
-                )
-                offer(
-                    word.replaceRange(start, secondStart, second),
-                    start + offset,
-                    first[offset].toString(),
-                    second[offset].toString(),
-                    "REPEATED_PATTERN_MISMATCH",
-                    relaxed = true
-                )
+                if (model.hasStrongReplacementEvidence(word, secondStart + offset, first[offset])) {
+                    offer(
+                        word.replaceRange(secondStart, secondStart + length, first),
+                        secondStart + offset,
+                        second[offset].toString(),
+                        first[offset].toString(),
+                        "REPEATED_PATTERN_MISMATCH",
+                        relaxed = true
+                    )
+                }
+                if (model.hasStrongReplacementEvidence(word, start + offset, second[offset])) {
+                    offer(
+                        word.replaceRange(start, secondStart, second),
+                        start + offset,
+                        first[offset].toString(),
+                        second[offset].toString(),
+                        "REPEATED_PATTERN_MISMATCH",
+                        relaxed = true
+                    )
+                }
             }
         }
 
@@ -69,14 +74,16 @@ object WordTypoChecker {
             val removed = word[index].toString()
             val duplicate = (index > 0 && word[index - 1] == word[index]) ||
                 (index + 1 < word.length && word[index + 1] == word[index])
-            offer(
-                word.removeRange(index, index + 1),
-                index,
-                removed,
-                "",
-                if (duplicate) "DUPLICATED_SYLLABLE" else "EXTRA_SYLLABLE",
-                relaxed = duplicate
-            )
+            if (duplicate && model.hasStrongDuplicateDeletionEvidence(word, index)) {
+                offer(
+                    word.removeRange(index, index + 1),
+                    index,
+                    removed,
+                    "",
+                    "DUPLICATED_SYLLABLE",
+                    relaxed = true
+                )
+            }
 
             val replacementCharacters = LinkedHashSet<Char>()
             if (index > 0) replacementCharacters.addAll(model.after(word[index - 1]))
@@ -84,7 +91,11 @@ object WordTypoChecker {
             if (index > 0 && index + 1 < word.length) {
                 replacementCharacters.addAll(model.between(word[index - 1], word[index + 1]))
             }
-            replacementCharacters.filter { it != word[index] && hangulComponentDistance(it, word[index]) <= 1 }
+            replacementCharacters.filter {
+                it != word[index] &&
+                    hangulComponentDistance(it, word[index]) <= 1 &&
+                    model.hasStrongReplacementEvidence(word, index, it)
+            }
                 .take(12)
                 .forEach { replacement ->
                     offer(
@@ -96,30 +107,6 @@ object WordTypoChecker {
                     )
                 }
 
-            if (index + 1 < word.length && word[index] != word[index + 1]) {
-                val chars = word.toCharArray()
-                chars[index] = word[index + 1]
-                chars[index + 1] = word[index]
-                offer(
-                    chars.concatToString(),
-                    index,
-                    word.substring(index, index + 2),
-                    "${word[index + 1]}${word[index]}",
-                    "SWAPPED_SYLLABLES"
-                )
-            }
-        }
-
-        for (gap in 1 until word.length) {
-            model.between(word[gap - 1], word[gap]).take(8).forEach { inserted ->
-                offer(
-                    word.substring(0, gap) + inserted + word.substring(gap),
-                    gap,
-                    "",
-                    inserted.toString(),
-                    "MISSING_SYLLABLE"
-                )
-            }
         }
 
         return candidates.values
@@ -180,6 +167,42 @@ object WordTypoChecker {
         fun before(right: Char): List<Char> = top(before[right])
         fun after(left: Char): List<Char> = top(after[left])
         fun between(left: Char, right: Char): List<Char> = top(between["$left$right"])
+
+        fun hasStrongReplacementEvidence(word: String, index: Int, replacement: Char): Boolean {
+            val candidate = word.replaceRange(index, index + 1, replacement.toString())
+            val originalCounts = contextCounts(word, index)
+            val candidateCounts = contextCounts(candidate, index)
+            if (candidateCounts.isEmpty()) return false
+
+            val originalBest = originalCounts.maxOrNull() ?: 0
+            val candidateBest = candidateCounts.maxOrNull() ?: 0
+            val minimumEvidence = if (index == 0 || index == word.lastIndex) 4 else 3
+            return candidateBest >= minimumEvidence && candidateBest >= (originalBest + 1) * 2
+        }
+
+        fun hasStrongDuplicateDeletionEvidence(word: String, index: Int): Boolean {
+            val candidate = word.removeRange(index, index + 1)
+            if (index == 0 || index >= candidate.length) return false
+            val bridgeCount = bigrams[candidate.substring(index - 1, index + 1)] ?: 0
+            val duplicateStart = if (index > 0 && word[index - 1] == word[index]) index - 1 else index
+            val duplicateCount = if (duplicateStart + 1 < word.length) {
+                bigrams[word.substring(duplicateStart, duplicateStart + 2)] ?: 0
+            } else 0
+            return bridgeCount >= 4 && bridgeCount >= (duplicateCount + 1) * 2
+        }
+
+        private fun contextCounts(word: String, index: Int): List<Int> {
+            val counts = ArrayList<Int>(3)
+            if (index > 0) counts.add(bigrams[word.substring(index - 1, index + 1)] ?: 0)
+            if (index + 1 < word.length) counts.add(bigrams[word.substring(index, index + 2)] ?: 0)
+            if (index > 0 && index + 1 < word.length) {
+                counts.add(trigrams[word.substring(index - 1, index + 2)] ?: 0)
+            } else if (word.length >= 3) {
+                val start = if (index == 0) 0 else word.length - 3
+                counts.add(trigrams[word.substring(start, start + 3)] ?: 0)
+            }
+            return counts
+        }
 
         private fun top(values: Map<Char, Int>?): List<Char> = values.orEmpty().entries
             .sortedByDescending { it.value }

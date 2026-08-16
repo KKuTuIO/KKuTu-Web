@@ -39,7 +39,20 @@ class WordTypoCheckerTest {
 
     @Test
     fun `does not report a well supported long title`() {
-        val result = WordTypoChecker.check(listOf("오싹오싹요거트꼬마유령"), corpus)
+        val correctTitles = listOf(
+            "개를훔치는완벽한방법",
+            "성냥팔이소녀는이산화탄소를일으켜",
+            "장곡사철조약사여래좌상부석조대좌",
+            "오싹오싹요거트꼬마유령딸기크레페맛쿠키"
+        )
+        val result = WordTypoChecker.check(correctTitles, corpus + correctTitles)
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `does not inspect ordinary short words`() {
+        val shortWords = listOf("견인사냥", "검은우물", "계걸아귀", "격노소냐", "결박토템", "고기방패", "고름상처", "고막찢기", "고위천사")
+        val result = WordTypoChecker.check(shortWords, corpus + shortWords)
         assertTrue(result.isEmpty())
     }
 

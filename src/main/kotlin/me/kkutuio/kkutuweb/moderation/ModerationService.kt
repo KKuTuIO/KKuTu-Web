@@ -163,7 +163,8 @@ class ModerationService(
 
         val signalPlaceholders = signalValues.joinToString(",") { "?" }
         val signalCondition = if (normalizedType == "PCID") {
-            "(cl.pcid_cookie IN ($signalPlaceholders) OR cl.pcid_localstorage IN ($signalPlaceholders))"
+            "((cl.pcid_cookie <> '' AND cl.pcid_cookie IN ($signalPlaceholders)) OR " +
+                "(cl.pcid_localstorage <> '' AND cl.pcid_localstorage IN ($signalPlaceholders)))"
         } else {
             "cl.user_ip IN ($signalPlaceholders)"
         }

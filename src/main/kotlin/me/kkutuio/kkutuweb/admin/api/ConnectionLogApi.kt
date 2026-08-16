@@ -18,9 +18,8 @@
 
 package me.kkutuio.kkutuweb.admin.api
 
-import me.kkutuio.kkutuweb.admin.api.response.ListResponse
+import me.kkutuio.kkutuweb.admin.api.response.ConnectionLogListResponse
 import me.kkutuio.kkutuweb.admin.service.ConnectionLogService
-import me.kkutuio.kkutuweb.admin.vo.ConnectionLogVO
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.AdminSetting
@@ -57,22 +56,22 @@ class ConnectionLogApi(
         @RequestParam(required = false, name = "pcid_cookie", defaultValue = "") pcidFromCookie: String,
         @RequestParam(required = false, name = "pcid_localstorage", defaultValue = "") pcidFromLocalStorage: String,
         request: HttpServletRequest, session: HttpSession
-    ): ListResponse<ConnectionLogVO> {
+    ): ConnectionLogListResponse {
         val sessionProfile = loginService.getSessionProfile(session)
         if (sessionProfile == null) {
             logger.warn("인증되지 않은 회원으로부터 접속 기록 조회 요청이 차단되었습니다.")
-            return ListResponse(0, emptyList())
+            return ConnectionLogListResponse(0, emptyList(), false)
         }
 
         if (!setting.getAdminIds().contains(sessionProfile.id)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 접속 기록 조회 요청이 차단되었습니다.")
-            return ListResponse(0, emptyList())
+            return ConnectionLogListResponse(0, emptyList(), false)
         }
 
         val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.CONNECTION_LOG)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 접속 기록 조회 요청이 차단되었습니다.")
-            return ListResponse(0, emptyList())
+            return ConnectionLogListResponse(0, emptyList(), false)
         }
 
         val searchFilters = mapOf(

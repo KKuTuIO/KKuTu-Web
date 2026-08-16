@@ -154,6 +154,16 @@ class KKuTuSetting(
         ?.mapNotNull { it.textValue()?.trim()?.takeIf(String::isNotEmpty) }
         ?: emptyList()
 
+    fun getConnectionLogRetention(): ConnectionLogRetentionSetting {
+        val retention = kkutu["connectionLog"]?.get("retention")
+        return ConnectionLogRetentionSetting(
+            enabled = retention?.get("enabled")?.booleanValue() ?: true,
+            months = (retention?.get("months")?.longValue() ?: 12L).coerceIn(1L, 120L),
+            batchSize = (retention?.get("batchSize")?.intValue() ?: 10_000).coerceIn(100, 50_000),
+            maxBatchesPerRun = (retention?.get("maxBatchesPerRun")?.intValue() ?: 10).coerceIn(1, 100)
+        )
+    }
+
     fun getKoThemes() = themes["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::textValue)
 
     fun getKoInjeongThemes() = themes["word"]["themes"]["injeong"]["ko"].toList().map(JsonNode::textValue)

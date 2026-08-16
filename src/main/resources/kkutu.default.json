@@ -54,6 +54,14 @@
       "1.2.3.4/32"
     ]
   },
+  "connectionLog": {
+    "retention": {
+      "enabled": true,
+      "months": 12,
+      "batchSize": 10000,
+      "maxBatchesPerRun": 10
+    }
+  },
   "moderationLogService": {
     "publicUrl": "https://logs-admin.kkutu.io",
     "signingSecret": "<32-Bit or Longer Secret Key>"

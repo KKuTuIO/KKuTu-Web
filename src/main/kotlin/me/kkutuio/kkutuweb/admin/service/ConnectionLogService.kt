@@ -19,7 +19,7 @@
 package me.kkutuio.kkutuweb.admin.service
 
 import me.kkutuio.kkutuweb.admin.SortType
-import me.kkutuio.kkutuweb.admin.api.response.ListResponse
+import me.kkutuio.kkutuweb.admin.api.response.ConnectionLogListResponse
 import me.kkutuio.kkutuweb.admin.dao.ConnectionLogDAO
 import me.kkutuio.kkutuweb.admin.vo.ConnectionLogVO
 import org.springframework.beans.factory.annotation.Autowired
@@ -34,17 +34,33 @@ class ConnectionLogService(
         pageSize: Int,
         sortData: String,
         searchFilters: Map<String, String>
-    ): ListResponse<ConnectionLogVO> {
+    ): ConnectionLogListResponse {
+        require(page >= 0) { "페이지는 0 이상이어야 합니다." }
+        require(pageSize in 1..500) { "페이지 크기는 1에서 500 사이여야 합니다." }
         val split = sortData.split(",")
+        require(split.size == 2 && split[0] in SORT_FIELDS) { "정렬할 수 없는 항목입니다." }
         val sortField = split[0]
-        val sortType = SortType.valueOf(split[1])
+        val sortType = runCatching { SortType.valueOf(split[1]) }
+            .getOrElse { throw IllegalArgumentException("정렬 방향이 올바르지 않습니다.") }
 
         val dbSearchFilters = searchFilters.filterValues { it.isNotEmpty() }
 
-        val dataCount = connectionLogDAO.getDataCount(dbSearchFilters)
+        val estimated = dbSearchFilters.isEmpty()
+        val measuredCount = if (estimated) connectionLogDAO.getEstimatedDataCount()
+            else connectionLogDAO.getDataCount(dbSearchFilters)
         val pageData = connectionLogDAO.getPageData(page, pageSize, sortField, sortType, dbSearchFilters)
             .map { ConnectionLogVO.convertFrom(it) }
+        val visibleCountFloor = page * pageSize + pageData.size +
+            if (estimated && pageData.size == pageSize) 1 else 0
+        val dataCount = maxOf(measuredCount, visibleCountFloor)
 
-        return ListResponse(dataCount, pageData)
+        return ConnectionLogListResponse(dataCount, pageData, estimated)
+    }
+
+    companion object {
+        private val SORT_FIELDS = setOf(
+            "id", "time", "user_id", "user_name", "user_ip", "channel",
+            "user_agent", "finger_print_2", "pcid_cookie", "pcid_localstorage"
+        )
     }
 }

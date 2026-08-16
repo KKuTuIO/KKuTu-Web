@@ -21,7 +21,6 @@ package me.kkutuio.kkutuweb.admin.dao
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.domain.ConnectionLog
 import me.kkutuio.kkutuweb.admin.mapper.ConnectionLogMapper
-import me.kkutuio.kkutuweb.admin.mapper.SingleNumberMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -29,18 +28,26 @@ import org.springframework.stereotype.Repository
 @Repository
 class ConnectionLogDAO(
     @Autowired private val jdbcTemplate: JdbcTemplate,
-    @Autowired private val connectionLogMapper: ConnectionLogMapper,
-    @Autowired private val singleNumberMapper: SingleNumberMapper
+    @Autowired private val connectionLogMapper: ConnectionLogMapper
 ) {
+    fun getEstimatedDataCount(): Int {
+        val estimate = jdbcTemplate.queryForObject(
+            "SELECT GREATEST(reltuples, 0)::BIGINT FROM pg_class WHERE oid = 'connection_log'::regclass",
+            Long::class.java
+        ) ?: 0L
+        return estimate.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    }
+
     fun getDataCount(
         searchFilters: Map<String, String>
     ): Int {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = countQuery(whereQuery)
-        val list = jdbcTemplate.query(sql, singleNumberMapper, *whereValues)
-        return list[0]
+        val filter = filterQuery(searchFilters)
+        val count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM connection_log ${filter.sql}",
+            Long::class.java,
+            *filter.values.toTypedArray()
+        )
+        return count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     fun getPageData(
@@ -50,37 +57,58 @@ class ConnectionLogDAO(
         sortType: SortType,
         searchFilters: Map<String, String>
     ): List<ConnectionLog> {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = selectQuery(whereQuery, sortField, sortType, pageSize, page)
-        return jdbcTemplate.query(sql, connectionLogMapper, *whereValues)
+        val filter = filterQuery(searchFilters)
+        val stableOrder = if (sortField == "id") "" else ", id ${sortType.name}"
+        val sql = """
+            SELECT id, time, user_id, user_name, user_ip, channel, user_agent,
+                   finger_print_2, pcid_cookie, pcid_localstorage
+            FROM connection_log ${filter.sql}
+            ORDER BY $sortField ${sortType.name}$stableOrder
+            LIMIT ? OFFSET ?
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            connectionLogMapper,
+            *(filter.values + listOf(pageSize, page * pageSize)).toTypedArray()
+        )
     }
 
-    private fun whereQuery(searchFilters: Map<String, String>): String {
-        val whereQueryParts = ArrayList<String>()
-        for (key in searchFilters.keys) {
-            whereQueryParts.add("CAST($key AS TEXT) ILIKE ?")
+    private fun filterQuery(searchFilters: Map<String, String>): ConnectionLogFilter {
+        val clauses = mutableListOf<String>()
+        val values = mutableListOf<Any>()
+        searchFilters.forEach { (key, value) ->
+            when (key) {
+                "user_id", "user_ip" -> {
+                    clauses.add("$key = ?")
+                    values.add(value)
+                }
+                "finger_print_2", "pcid_cookie", "pcid_localstorage" -> {
+                    clauses.add("$key = ? AND $key <> ''")
+                    values.add(value)
+                }
+                "channel" -> {
+                    val channel = value.toIntOrNull()
+                        ?: throw IllegalArgumentException("채널은 숫자로 입력해야 합니다.")
+                    clauses.add("channel = ?")
+                    values.add(channel)
+                }
+                "user_name", "user_agent" -> {
+                    clauses.add("$key ILIKE ? ESCAPE '\\'")
+                    values.add("%${escapeLike(value)}%")
+                }
+                else -> throw IllegalArgumentException("검색할 수 없는 항목입니다.")
+            }
         }
-
-        return if (whereQueryParts.isEmpty()) "" else "WHERE " + whereQueryParts.joinToString(" AND ")
+        return ConnectionLogFilter(
+            if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}",
+            values
+        )
     }
 
-    private fun whereValues(searchFilters: Map<String, String>): Array<String> {
-        return searchFilters.values.map { "%${it}%" }.toTypedArray()
-    }
+    private fun escapeLike(value: String) = value
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
 
-    private fun countQuery(whereQuery: String): String {
-        return "SELECT COUNT(*) FROM connection_log $whereQuery"
-    }
-
-    private fun selectQuery(
-        whereQuery: String,
-        sortField: String,
-        sortType: SortType,
-        pageSize: Int,
-        page: Int
-    ): String {
-        return "SELECT * FROM connection_log $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
-    }
+    private data class ConnectionLogFilter(val sql: String, val values: List<Any>)
 }

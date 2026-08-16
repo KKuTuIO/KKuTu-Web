@@ -41,6 +41,7 @@ import me.kkutuio.kkutuweb.admin.api.response.WordTypoCheckItem
 import me.kkutuio.kkutuweb.admin.api.response.WordTypoCheckResult
 import me.kkutuio.kkutuweb.admin.api.response.WordTypoSuggestion
 import me.kkutuio.kkutuweb.admin.dao.WordAuditLogDAO
+import me.kkutuio.kkutuweb.admin.dao.TableStatisticsDAO
 import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import me.kkutuio.kkutuweb.admin.vo.WordVO
 import me.kkutuio.kkutuweb.word.Word
@@ -58,7 +59,8 @@ import java.time.LocalDateTime
 @Service
 class AdminWordService(
     @Autowired private val wordDao: WordDao,
-    @Autowired private val wordAuditLogDAO: WordAuditLogDAO
+    @Autowired private val wordAuditLogDAO: WordAuditLogDAO,
+    @Autowired private val tableStatisticsDAO: TableStatisticsDAO
 ) {
     private val logger = LoggerFactory.getLogger(AdminWordService::class.java)
 
@@ -79,21 +81,29 @@ class AdminWordService(
             return ListResponse(0, emptyList())
         }
 
+        require(page >= 0) { "페이지는 0 이상이어야 합니다." }
+        require(pageSize in 1..500) { "페이지 크기는 1에서 500 사이여야 합니다." }
         val split = sortData.split(",")
+        require(split.size == 2) { "정렬 조건이 올바르지 않습니다." }
         val sortField = when (split[0]) {
             "word" -> "_id"
             "hit" -> "hit"
             "flag" -> "flag"
-            else -> ""
+            else -> throw IllegalArgumentException("정렬할 수 없는 항목입니다.")
         }
-        val sortType = SortType.valueOf(split[1])
+        val sortType = runCatching { SortType.valueOf(split[1]) }
+            .getOrElse { throw IllegalArgumentException("정렬 방향이 올바르지 않습니다.") }
 
-        val dataCount = wordDao.getDataCount(tableName, searchFilter)
+        val estimated = searchFilter.isEmpty()
+        val measuredCount = if (estimated) tableStatisticsDAO.getEstimatedRowCount(tableName)
+            else wordDao.getDataCount(tableName, searchFilter)
         val pageData = wordDao.getPageData(tableName, page, pageSize, sortField, sortType, searchFilter).map {
             WordVO.convertFrom(it)
         }
+        val visibleCountFloor = page * pageSize + pageData.size +
+            if (estimated && pageData.size == pageSize) 1 else 0
 
-        return ListResponse(dataCount, pageData)
+        return ListResponse(maxOf(measuredCount, visibleCountFloor), pageData, estimated)
     }
 
     fun getWords(lang: String, wordName: String): ListResponse<WordVO> {

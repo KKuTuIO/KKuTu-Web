@@ -19,7 +19,6 @@
 package me.kkutuio.kkutuweb.admin.api
 
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
-import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import me.kkutuio.kkutuweb.admin.service.AdminWordAuditService
 import me.kkutuio.kkutuweb.admin.vo.WordAuditLogVO
 import me.kkutuio.kkutuweb.extension.getIp
@@ -82,7 +81,7 @@ class WordAuditApi(
 
         val searchFilters = mapOf(
             "id" to id,
-            "type" to type,
+            "log_type" to type,
             "word" to word,
             "old_type" to oldType,
             "new_type" to newType,

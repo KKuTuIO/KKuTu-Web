@@ -21,14 +21,15 @@ package me.kkutuio.kkutuweb.admin.service
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.dao.SuspicionLogDAO
-import me.kkutuio.kkutuweb.admin.domain.SuspicionLog
+import me.kkutuio.kkutuweb.admin.dao.TableStatisticsDAO
 import me.kkutuio.kkutuweb.admin.vo.SuspicionLogVO
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 @Service
 class SuspicionLogService(
-    @Autowired private val suspicionLogDAO: SuspicionLogDAO
+    @Autowired private val suspicionLogDAO: SuspicionLogDAO,
+    @Autowired private val tableStatisticsDAO: TableStatisticsDAO
 ) {
     fun getSuspicionLogRes(
         page: Int,
@@ -36,16 +37,31 @@ class SuspicionLogService(
         sortData: String,
         searchFilters: Map<String, String>
     ): ListResponse<SuspicionLogVO> {
+        require(page >= 0) { "페이지는 0 이상이어야 합니다." }
+        require(pageSize in 1..500) { "페이지 크기는 1에서 500 사이여야 합니다." }
         val split = sortData.split(",")
+        require(split.size == 2 && split[0] in SORT_FIELDS) { "정렬할 수 없는 항목입니다." }
         val sortField = split[0]
-        val sortType = SortType.valueOf(split[1])
+        val sortType = runCatching { SortType.valueOf(split[1]) }
+            .getOrElse { throw IllegalArgumentException("정렬 방향이 올바르지 않습니다.") }
 
         val dbSearchFilters = searchFilters.filterValues { it.isNotEmpty() }
 
-        val dataCount = suspicionLogDAO.getDataCount(dbSearchFilters)
+        val estimated = dbSearchFilters.isEmpty()
+        val measuredCount = if (estimated) tableStatisticsDAO.getEstimatedRowCount("suspicion_log")
+            else suspicionLogDAO.getDataCount(dbSearchFilters)
         val pageData = suspicionLogDAO.getPageData(page, pageSize, sortField, sortType, dbSearchFilters)
             .map { SuspicionLogVO.convertFrom(it) }
+        val visibleCountFloor = page * pageSize + pageData.size +
+            if (estimated && pageData.size == pageSize) 1 else 0
 
-        return ListResponse(dataCount, pageData)
+        return ListResponse(maxOf(measuredCount, visibleCountFloor), pageData, estimated)
+    }
+
+    companion object {
+        private val SORT_FIELDS = setOf(
+            "case_id", "time", "action", "doubt", "user_name",
+            "user_id", "user_ip", "extra_info", "reference"
+        )
     }
 }

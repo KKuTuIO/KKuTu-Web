@@ -96,8 +96,18 @@ class WordDao(
     ): List<Word> {
         val (whereQuery, whereValues) = buildWhere(tableName, searchFilter)
 
-        val sql = selectQuery(tableName, whereQuery, sortField, sortType, pageSize, page)
-        return jdbcTemplate.query(sql, wordMapper, *whereValues.toTypedArray())
+        val stableOrder = if (sortField == "_id") "" else ", _id ${sortType.name}"
+        val sql = """
+            SELECT _id, type, mean, hit, flag, theme
+            FROM $tableName $whereQuery
+            ORDER BY $sortField ${sortType.name}$stableOrder
+            LIMIT ? OFFSET ?
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            wordMapper,
+            *(whereValues + listOf(pageSize, page * pageSize)).toTypedArray()
+        )
     }
 
     fun getFilteredData(
@@ -106,7 +116,7 @@ class WordDao(
         limit: Int
     ): List<Word> {
         val (whereQuery, whereValues) = buildWhere(tableName, searchFilter)
-        val sql = "SELECT * FROM $tableName $whereQuery ORDER BY _id ASC LIMIT ?"
+        val sql = "SELECT _id, type, mean, hit, flag, theme FROM $tableName $whereQuery ORDER BY _id ASC LIMIT ?"
         return jdbcTemplate.query(sql, wordMapper, *(whereValues + limit).toTypedArray())
     }
 
@@ -195,31 +205,44 @@ class WordDao(
 
         if (filter.word.isNotBlank()) {
             val escaped = escapeLike(filter.word.trim())
-            val pattern = when (filter.wordMatch) {
-                WordMatch.EXACT -> escaped
-                WordMatch.STARTS_WITH -> "$escaped%"
-                WordMatch.ENDS_WITH -> "%$escaped"
-                WordMatch.CONTAINS -> "%$escaped%"
-                WordMatch.LEGACY -> if (filter.word.startsWith("%") || filter.word.endsWith("%")) filter.word else "%${filter.word}%"
+            when (filter.wordMatch) {
+                WordMatch.EXACT -> {
+                    clauses.add("_id = ?")
+                    values.add(filter.word.trim())
+                }
+                WordMatch.STARTS_WITH, WordMatch.ENDS_WITH, WordMatch.CONTAINS -> {
+                    val pattern = when (filter.wordMatch) {
+                        WordMatch.STARTS_WITH -> "$escaped%"
+                        WordMatch.ENDS_WITH -> "%$escaped"
+                        else -> "%$escaped%"
+                    }
+                    clauses.add("LOWER(_id) LIKE LOWER(?) ESCAPE '\\'")
+                    values.add(pattern)
+                }
+                WordMatch.LEGACY -> {
+                    clauses.add("_id ILIKE ?")
+                    values.add(if (filter.word.startsWith("%") || filter.word.endsWith("%")) filter.word else "%${filter.word}%")
+                }
             }
-            clauses.add("_id ILIKE ?${if (filter.wordMatch == WordMatch.LEGACY) "" else " ESCAPE '\\'"}")
-            values.add(pattern)
         }
 
         if (filter.themes.isNotEmpty()) {
-            val themeClauses = filter.themes.distinct().map {
-                values.add("%,${escapeLike(it)},%")
-                "(',' || COALESCE(theme, '') || ',') ILIKE ? ESCAPE '\\'"
-            }
-            clauses.add(if (filter.themeMatchAll) themeClauses.joinToString(" AND ", "(", ")") else themeClauses.joinToString(" OR ", "(", ")"))
+            val themes = filter.themes.distinct()
+            clauses.add(
+                "string_to_array(COALESCE(theme, ''), ',') " +
+                    (if (filter.themeMatchAll) "@>" else "&&") +
+                    " ARRAY[${themes.joinToString(",") { "?" }}]::text[]"
+            )
+            values.addAll(themes)
         }
 
         if (filter.types.isNotEmpty()) {
-            val typeClauses = filter.types.distinct().map {
-                values.add("%,${escapeLike(it)},%")
-                "(',' || COALESCE(type, '') || ',') ILIKE ? ESCAPE '\\'"
-            }
-            clauses.add(typeClauses.joinToString(" OR ", "(", ")"))
+            val types = filter.types.distinct()
+            clauses.add(
+                "string_to_array(COALESCE(type, ''), ',') && " +
+                    "ARRAY[${types.joinToString(",") { "?" }}]::text[]"
+            )
+            values.addAll(types)
         }
 
         if (filter.flags.isNotEmpty()) {
@@ -287,14 +310,4 @@ class WordDao(
         return "SELECT COUNT(*) FROM $tableName $whereQuery"
     }
 
-    private fun selectQuery(
-        tableName: String,
-        whereQuery: String,
-        sortField: String,
-        sortType: SortType,
-        pageSize: Int,
-        page: Int
-    ): String {
-        return "SELECT * FROM $tableName $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
-    }
 }

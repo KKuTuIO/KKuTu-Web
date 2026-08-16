@@ -21,7 +21,6 @@ package me.kkutuio.kkutuweb.admin.dao
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.domain.ReportLog
 import me.kkutuio.kkutuweb.admin.mapper.ReportLogMapper
-import me.kkutuio.kkutuweb.admin.mapper.SingleNumberMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -29,18 +28,18 @@ import org.springframework.stereotype.Repository
 @Repository
 class ReportLogDAO(
     @Autowired private val jdbcTemplate: JdbcTemplate,
-    @Autowired private val reportLogMapper: ReportLogMapper,
-    @Autowired private val singleNumberMapper: SingleNumberMapper
+    @Autowired private val reportLogMapper: ReportLogMapper
 ) {
     fun getDataCount(
         searchFilters: Map<String, String>
     ): Int {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = countQuery(whereQuery)
-        val list = jdbcTemplate.query(sql, singleNumberMapper, *whereValues)
-        return list[0]
+        val filter = filterQuery(searchFilters)
+        val count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM report_log ${filter.sql}",
+            Long::class.java,
+            *filter.values.toTypedArray()
+        )
+        return count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     fun getPageData(
@@ -50,54 +49,64 @@ class ReportLogDAO(
         sortType: SortType,
         searchFilters: Map<String, String>
     ): List<ReportLog> {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = selectQuery(whereQuery, sortField, sortType, pageSize, page)
-        return jdbcTemplate.query(sql, reportLogMapper, *whereValues)
-    }
-
-    private fun whereQuery(searchFilters: Map<String, String>): String {
-        val whereQueryParts = ArrayList<String>()
-        for (key in searchFilters.keys) {
-            whereQueryParts.add(if (key == "target_id") {
-                "(CAST(target_id AS TEXT) ILIKE ? OR host(target_ip) ILIKE ?)"
-            } else {
-                "CAST($key AS TEXT) ILIKE ?"
-            })
-        }
-
-        return if (whereQueryParts.isEmpty()) "" else "WHERE " + whereQueryParts.joinToString(" AND ")
-    }
-
-    private fun whereValues(searchFilters: Map<String, String>): Array<String> {
-        return searchFilters.flatMap { (key, value) ->
-            val parameter = "%$value%"
-            if (key == "target_id") listOf(parameter, parameter) else listOf(parameter)
-        }.toTypedArray()
-    }
-
-    private fun countQuery(whereQuery: String): String {
-        return "SELECT COUNT(*) FROM report_log $whereQuery"
-    }
-
-    private fun selectQuery(
-        whereQuery: String,
-        sortField: String,
-        sortType: SortType,
-        pageSize: Int,
-        page: Int
-    ): String {
-        return """
-            SELECT report_log.*,
+        val filter = filterQuery(searchFilters)
+        val stableOrder = if (sortField == "report_id") "" else ", report_id ${sortType.name}"
+        val sql = """
+            SELECT report_log.report_id, report_log.time, report_log.reporter_id,
+                   report_log.reporter_nick, report_log.target_id, report_log.target_ip,
+                   report_log.target_type, report_log.room_title, report_log.room_owner_id,
+                   report_log.status, report_log.reason, report_log.file_name,
                    COALESCE(report_log.room_title, (
                        SELECT replay.room_title FROM game_replay replay
                        WHERE replay.game_id = report_log.game_id LIMIT 1
                    )) AS resolved_room_title
             FROM report_log
-            $whereQuery
-            ORDER BY $sortField ${sortType.name}
-            LIMIT $pageSize OFFSET ${page * pageSize}
+            ${filter.sql}
+            ORDER BY $sortField ${sortType.name}$stableOrder
+            LIMIT ? OFFSET ?
         """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            reportLogMapper,
+            *(filter.values + listOf(pageSize, page * pageSize)).toTypedArray()
+        )
     }
+
+    private fun filterQuery(searchFilters: Map<String, String>): ReportLogFilter {
+        val clauses = mutableListOf<String>()
+        val values = mutableListOf<Any>()
+        searchFilters.forEach { (key, value) ->
+            when (key) {
+                "report_id" -> {
+                    clauses.add("report_id = ?")
+                    values.add(value.toLongOrNull() ?: throw IllegalArgumentException("신고 번호는 숫자여야 합니다."))
+                }
+                "reporter_id", "status", "file_name" -> {
+                    clauses.add("$key = ?")
+                    values.add(value)
+                }
+                "target_id" -> {
+                    clauses.add("(target_id = ? OR host(target_ip) = ?)")
+                    values.add(value)
+                    values.add(value)
+                }
+                "reporter_nick", "reason" -> {
+                    clauses.add("$key ILIKE ? ESCAPE '\\'")
+                    values.add("%${escapeLike(value)}%")
+                }
+                else -> throw IllegalArgumentException("검색할 수 없는 항목입니다.")
+            }
+        }
+        return ReportLogFilter(
+            if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}",
+            values
+        )
+    }
+
+    private fun escapeLike(value: String) = value
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
+
+    private data class ReportLogFilter(val sql: String, val values: List<Any>)
 }

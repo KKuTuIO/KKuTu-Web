@@ -20,7 +20,6 @@ package me.kkutuio.kkutuweb.admin.dao
 
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
-import me.kkutuio.kkutuweb.admin.mapper.SingleNumberMapper
 import me.kkutuio.kkutuweb.admin.mapper.WordAuditLogMapper
 import me.kkutuio.kkutuweb.extension.toTimestamp
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,19 +31,19 @@ import java.time.LocalDateTime
 @Repository
 class WordAuditLogDAO(
     @Autowired private val jdbcTemplate: JdbcTemplate,
-    @Autowired private val singleNumberMapper: SingleNumberMapper,
     @Autowired private val wordAuditLogMapper: WordAuditLogMapper
 ) {
     fun getDataCount(
         lang: String,
         searchFilters: Map<String, String>
     ): Int {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = countQuery(lang, whereQuery)
-        val list = jdbcTemplate.query(sql, singleNumberMapper, *whereValues)
-        return list[0]
+        val filter = filterQuery(searchFilters)
+        val count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM kkutu_${lang}_audit_log ${filter.sql}",
+            Long::class.java,
+            *filter.values.toTypedArray()
+        )
+        return count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     fun getPageData(
@@ -55,11 +54,21 @@ class WordAuditLogDAO(
         sortType: SortType,
         searchFilters: Map<String, String>
     ): List<WordAuditLog> {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = selectQuery(lang, whereQuery, sortField, sortType, pageSize, page)
-        return jdbcTemplate.query(sql, wordAuditLogMapper, *whereValues)
+        val filter = filterQuery(searchFilters)
+        val stableOrder = if (sortField == "id") "" else ", id ${sortType.name}"
+        val sql = """
+            SELECT id, log_time, log_type, word, old_type, old_mean, old_flag, old_theme,
+                   new_type, new_mean, new_flag, new_theme, update_log_ignore,
+                   update_log_include_detail, admin
+            FROM kkutu_${lang}_audit_log ${filter.sql}
+            ORDER BY $sortField ${sortType.name}$stableOrder
+            LIMIT ? OFFSET ?
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            wordAuditLogMapper,
+            *(filter.values + listOf(pageSize, page * pageSize)).toTypedArray()
+        )
     }
 
     fun insert(lang: String, wordAuditLog: WordAuditLog) {
@@ -136,36 +145,36 @@ class WordAuditLogDAO(
         }, *values.toTypedArray()).associateBy { it.word }
     }
 
-    private fun whereQuery(searchFilters: Map<String, String>): String {
-        val whereQueryParts = ArrayList<String>()
-        for (key in searchFilters.keys) {
-            whereQueryParts.add("CAST($key AS TEXT) ILIKE ?")
+    private fun filterQuery(searchFilters: Map<String, String>): WordAuditFilter {
+        val clauses = mutableListOf<String>()
+        val values = mutableListOf<Any>()
+        searchFilters.forEach { (key, value) ->
+            when (key) {
+                "id" -> {
+                    clauses.add("id = ?")
+                    values.add(value.toLongOrNull() ?: throw IllegalArgumentException("단어 내역 번호는 숫자여야 합니다."))
+                }
+                "log_type", "word", "admin" -> {
+                    clauses.add("$key = ?")
+                    values.add(value)
+                }
+                "old_type", "old_mean", "old_theme", "new_type", "new_mean", "new_theme" -> {
+                    clauses.add("$key ILIKE ? ESCAPE '\\'")
+                    values.add("%${escapeLike(value)}%")
+                }
+                else -> throw IllegalArgumentException("검색할 수 없는 항목입니다.")
+            }
         }
-
-        return if (whereQueryParts.isEmpty()) "" else "WHERE " + whereQueryParts.joinToString(" AND ")
-    }
-
-    private fun whereValues(searchFilters: Map<String, String>): Array<String> {
-        return searchFilters.values.map { "%${it}%" }.toTypedArray()
-    }
-
-    private fun countQuery(lang: String, whereQuery: String): String {
-        return "SELECT COUNT(*) FROM kkutu_${lang}_audit_log $whereQuery"
-    }
-
-    private fun selectQuery(
-        lang: String,
-        whereQuery: String,
-        sortField: String,
-        sortType: SortType,
-        pageSize: Int,
-        page: Int
-    ): String {
-        return "SELECT * FROM kkutu_${lang}_audit_log $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
+        return WordAuditFilter(
+            if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}",
+            values
+        )
     }
 
     private fun escapeLike(value: String): String =
         value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+    private data class WordAuditFilter(val sql: String, val values: List<Any>)
 }
 
 data class WordCreateData(

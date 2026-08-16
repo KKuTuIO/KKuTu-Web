@@ -30,14 +30,6 @@ class ConnectionLogDAO(
     @Autowired private val jdbcTemplate: JdbcTemplate,
     @Autowired private val connectionLogMapper: ConnectionLogMapper
 ) {
-    fun getEstimatedDataCount(): Int {
-        val estimate = jdbcTemplate.queryForObject(
-            "SELECT GREATEST(reltuples, 0)::BIGINT FROM pg_class WHERE oid = 'connection_log'::regclass",
-            Long::class.java
-        ) ?: 0L
-        return estimate.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-    }
-
     fun getDataCount(
         searchFilters: Map<String, String>
     ): Int {

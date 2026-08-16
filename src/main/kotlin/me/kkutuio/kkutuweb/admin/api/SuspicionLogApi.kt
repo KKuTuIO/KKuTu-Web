@@ -79,6 +79,7 @@ class SuspicionLogApi(
             "case_id" to caseId,
             "action" to action,
             "doubt" to doubt,
+            "user_name" to userName,
             "user_id" to userId,
             "user_ip" to userIp,
             "extra_info" to extraInfo,

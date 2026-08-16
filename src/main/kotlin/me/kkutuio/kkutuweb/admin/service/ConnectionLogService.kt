@@ -19,22 +19,24 @@
 package me.kkutuio.kkutuweb.admin.service
 
 import me.kkutuio.kkutuweb.admin.SortType
-import me.kkutuio.kkutuweb.admin.api.response.ConnectionLogListResponse
+import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.dao.ConnectionLogDAO
+import me.kkutuio.kkutuweb.admin.dao.TableStatisticsDAO
 import me.kkutuio.kkutuweb.admin.vo.ConnectionLogVO
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
 @Service
 class ConnectionLogService(
-    @Autowired private val connectionLogDAO: ConnectionLogDAO
+    @Autowired private val connectionLogDAO: ConnectionLogDAO,
+    @Autowired private val tableStatisticsDAO: TableStatisticsDAO
 ) {
     fun getConnectionLogRes(
         page: Int,
         pageSize: Int,
         sortData: String,
         searchFilters: Map<String, String>
-    ): ConnectionLogListResponse {
+    ): ListResponse<ConnectionLogVO> {
         require(page >= 0) { "페이지는 0 이상이어야 합니다." }
         require(pageSize in 1..500) { "페이지 크기는 1에서 500 사이여야 합니다." }
         val split = sortData.split(",")
@@ -46,7 +48,7 @@ class ConnectionLogService(
         val dbSearchFilters = searchFilters.filterValues { it.isNotEmpty() }
 
         val estimated = dbSearchFilters.isEmpty()
-        val measuredCount = if (estimated) connectionLogDAO.getEstimatedDataCount()
+        val measuredCount = if (estimated) tableStatisticsDAO.getEstimatedRowCount("connection_log")
             else connectionLogDAO.getDataCount(dbSearchFilters)
         val pageData = connectionLogDAO.getPageData(page, pageSize, sortField, sortType, dbSearchFilters)
             .map { ConnectionLogVO.convertFrom(it) }
@@ -54,7 +56,7 @@ class ConnectionLogService(
             if (estimated && pageData.size == pageSize) 1 else 0
         val dataCount = maxOf(measuredCount, visibleCountFloor)
 
-        return ConnectionLogListResponse(dataCount, pageData, estimated)
+        return ListResponse(dataCount, pageData, estimated)
     }
 
     companion object {

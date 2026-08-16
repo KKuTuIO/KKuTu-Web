@@ -17,7 +17,12 @@ data class WordSearchFilter(
     val onlyInjeongWithMeaning: Boolean = false,
     val createdBy: String = "",
     val createdWithinDays: Int? = null
-)
+) {
+    fun isEmpty(): Boolean = word.isBlank() && themes.isEmpty() && types.isEmpty() && flags.isEmpty() &&
+        minHit == null && maxHit == null && minLength == null && maxLength == null &&
+        hasTheme == null && hasMeaning == null && !onlyInjeongWithMeaning &&
+        createdBy.isBlank() && createdWithinDays == null
+}
 
 enum class WordMatch {
     LEGACY,

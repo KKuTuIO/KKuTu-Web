@@ -21,7 +21,6 @@ package me.kkutuio.kkutuweb.admin.dao
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.domain.SuspicionLog
 import me.kkutuio.kkutuweb.admin.mapper.SuspicionLogMapper
-import me.kkutuio.kkutuweb.admin.mapper.SingleNumberMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -29,18 +28,18 @@ import org.springframework.stereotype.Repository
 @Repository
 class SuspicionLogDAO(
     @Autowired private val jdbcTemplate: JdbcTemplate,
-    @Autowired private val suspicionLogMapper: SuspicionLogMapper,
-    @Autowired private val singleNumberMapper: SingleNumberMapper
+    @Autowired private val suspicionLogMapper: SuspicionLogMapper
 ) {
     fun getDataCount(
         searchFilters: Map<String, String>
     ): Int {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = countQuery(whereQuery)
-        val list = jdbcTemplate.query(sql, singleNumberMapper, *whereValues)
-        return list[0]
+        val filter = filterQuery(searchFilters)
+        val count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM suspicion_log ${filter.sql}",
+            Long::class.java,
+            *filter.values.toTypedArray()
+        )
+        return count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     fun getPageData(
@@ -50,37 +49,51 @@ class SuspicionLogDAO(
         sortType: SortType,
         searchFilters: Map<String, String>
     ): List<SuspicionLog> {
-        val whereQuery = whereQuery(searchFilters)
-        val whereValues = whereValues(searchFilters)
-
-        val sql = selectQuery(whereQuery, sortField, sortType, pageSize, page)
-        return jdbcTemplate.query(sql, suspicionLogMapper, *whereValues)
+        val filter = filterQuery(searchFilters)
+        val stableOrder = if (sortField == "case_id") "" else ", case_id ${sortType.name}"
+        val sql = """
+            SELECT case_id, time, action, doubt, user_name, user_id, user_ip, extra_info, reference
+            FROM suspicion_log ${filter.sql}
+            ORDER BY $sortField ${sortType.name}$stableOrder
+            LIMIT ? OFFSET ?
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            suspicionLogMapper,
+            *(filter.values + listOf(pageSize, page * pageSize)).toTypedArray()
+        )
     }
 
-    private fun whereQuery(searchFilters: Map<String, String>): String {
-        val whereQueryParts = ArrayList<String>()
-        for (key in searchFilters.keys) {
-            whereQueryParts.add("CAST($key AS TEXT) ILIKE ?")
+    private fun filterQuery(searchFilters: Map<String, String>): SuspicionLogFilter {
+        val clauses = mutableListOf<String>()
+        val values = mutableListOf<Any>()
+        searchFilters.forEach { (key, value) ->
+            when (key) {
+                "case_id" -> {
+                    clauses.add("case_id = ?")
+                    values.add(value.toLongOrNull() ?: throw IllegalArgumentException("정책 위반 번호는 숫자여야 합니다."))
+                }
+                "doubt", "user_id", "user_ip", "reference" -> {
+                    clauses.add("$key = ?")
+                    values.add(value)
+                }
+                "action", "user_name", "extra_info" -> {
+                    clauses.add("$key ILIKE ? ESCAPE '\\'")
+                    values.add("%${escapeLike(value)}%")
+                }
+                else -> throw IllegalArgumentException("검색할 수 없는 항목입니다.")
+            }
         }
-
-        return if (whereQueryParts.isEmpty()) "" else "WHERE " + whereQueryParts.joinToString(" AND ")
+        return SuspicionLogFilter(
+            if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}",
+            values
+        )
     }
 
-    private fun whereValues(searchFilters: Map<String, String>): Array<String> {
-        return searchFilters.values.map { "%${it}%" }.toTypedArray()
-    }
+    private fun escapeLike(value: String) = value
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
 
-    private fun countQuery(whereQuery: String): String {
-        return "SELECT COUNT(*) FROM suspicion_log $whereQuery"
-    }
-
-    private fun selectQuery(
-        whereQuery: String,
-        sortField: String,
-        sortType: SortType,
-        pageSize: Int,
-        page: Int
-    ): String {
-        return "SELECT * FROM suspicion_log $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
-    }
+    private data class SuspicionLogFilter(val sql: String, val values: List<Any>)
 }

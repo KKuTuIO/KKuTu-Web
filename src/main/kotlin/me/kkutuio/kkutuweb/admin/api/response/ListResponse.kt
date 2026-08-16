@@ -20,5 +20,6 @@ package me.kkutuio.kkutuweb.admin.api.response
 
 data class ListResponse<T>(
     val totalElements: Int,
-    val content: List<T>
+    val content: List<T>,
+    val totalEstimated: Boolean = false
 )

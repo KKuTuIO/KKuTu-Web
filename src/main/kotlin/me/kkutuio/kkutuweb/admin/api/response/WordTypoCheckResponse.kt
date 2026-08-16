@@ -8,20 +8,23 @@ package me.kkutuio.kkutuweb.admin.api.response
 
 data class WordTypoCheckResult(
     val totalCount: Int,
-    val scannedCount: Int,
+    val checkedCount: Int,
     val truncated: Boolean,
-    val candidates: List<WordTypoCandidate>
+    val items: List<WordTypoCheckItem>
 )
 
-data class WordTypoCandidate(
+data class WordTypoCheckItem(
     val word: String,
-    val hit: Int,
-    val issues: List<String>,
-    val suggestions: List<WordTypoSuggestion>
+    val suggestions: List<WordTypoSuggestion>,
+    val themes: List<String>,
+    val createdBy: String? = null,
+    val createdAt: String? = null
 )
 
 data class WordTypoSuggestion(
     val word: String,
-    val hit: Int,
+    val start: Int,
+    val removed: String,
+    val added: String,
     val reason: String
 )

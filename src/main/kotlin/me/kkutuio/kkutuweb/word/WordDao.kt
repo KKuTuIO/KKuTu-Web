@@ -110,11 +110,10 @@ class WordDao(
         return jdbcTemplate.query(sql, wordMapper, *(whereValues + limit).toTypedArray())
     }
 
-    fun getSpellingData(tableName: String): List<WordSpellingData> {
-        val sql = "SELECT _id, hit FROM $tableName"
-        return jdbcTemplate.query(sql) { rs, _ ->
-            WordSpellingData(rs.getString("_id"), rs.getInt("hit"))
-        }
+    fun getWordIds(tableName: String, searchFilter: WordSearchFilter = WordSearchFilter()): List<String> {
+        val (whereQuery, whereValues) = buildWhere(tableName, searchFilter)
+        val sql = "SELECT _id FROM $tableName $whereQuery"
+        return jdbcTemplate.query(sql, { rs, _ -> rs.getString("_id") }, *whereValues.toTypedArray())
     }
 
     fun insert(tableName: String, word: Word) {
@@ -299,8 +298,3 @@ class WordDao(
         return "SELECT * FROM $tableName $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
     }
 }
-
-data class WordSpellingData(
-    val word: String,
-    val hit: Int
-)

@@ -128,7 +128,7 @@ class WordApi(
         val adminId = authorizedAdminId(session, "단어 오타 후보 검사")
             ?: return unauthorizedResponse(session)
 
-        val actionResponse = adminWordService.checkTypos(lang, typoCheckRequest.toSearchFilter())
+        val actionResponse = adminWordService.checkTypos(lang, typoCheckRequest)
         logger.info("[${request.getIp()}] $adminId 님이 단어 오타 후보 검사를 요청했습니다. 언어: $lang")
         return actionResponse
     }

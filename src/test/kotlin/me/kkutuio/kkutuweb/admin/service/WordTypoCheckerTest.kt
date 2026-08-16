@@ -1,55 +1,50 @@
 package me.kkutuio.kkutuweb.admin.service
 
-import me.kkutuio.kkutuweb.word.WordSpellingData
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class WordTypoCheckerTest {
-    @Test
-    fun `finds a transposed spelling in the existing dictionary`() {
-        val result = WordTypoChecker.check(
-            scope = listOf(WordSpellingData("삼전성자", 0)),
-            corpus = listOf(
-                WordSpellingData("삼전성자", 0),
-                WordSpellingData("삼성전자", 80)
-            )
-        )
-
-        assertEquals("삼전성자", result.single().word)
-        assertEquals("삼성전자", result.single().suggestions.single().word)
-        assertEquals("TRANSPOSED_CHARACTERS", result.single().suggestions.single().reason)
+    private val corpus = buildList {
+        repeat(8) {
+            add("오싹오싹한이야기")
+            add("오싹오싹요거트꼬마유령")
+            add("딸기크레페맛쿠키")
+            add("초코딸기맛쿠키")
+            add("장곡사철조비로자나불좌상")
+            add("철조약사여래좌상")
+            add("석조대좌")
+        }
     }
 
     @Test
-    fun `does not report equally unused one character neighbours`() {
-        val result = WordTypoChecker.check(
-            scope = listOf(WordSpellingData("가다", 0)),
-            corpus = listOf(WordSpellingData("가다", 0), WordSpellingData("나다", 0))
+    fun `finds a mismatch inside a repeated title fragment`() {
+        assertSuggests(
+            "오싹오삭요거트꼬마유령딸기크레페맛쿠키",
+            "오싹오싹요거트꼬마유령딸기크레페맛쿠키"
         )
+    }
 
+    @Test
+    fun `finds an unusual syllable inside a compound title`() {
+        assertSuggests("꼬마유령달기크레페맛쿠키", "꼬마유령딸기크레페맛쿠키")
+    }
+
+    @Test
+    fun `finds a duplicated boundary syllable`() {
+        assertSuggests(
+            "장곡사사철조약사여래좌상부석조대좌",
+            "장곡사철조약사여래좌상부석조대좌"
+        )
+    }
+
+    @Test
+    fun `does not report a well supported long title`() {
+        val result = WordTypoChecker.check(listOf("오싹오싹요거트꼬마유령"), corpus)
         assertTrue(result.isEmpty())
     }
 
-    @Test
-    fun `reports formatting problems without a suggestion`() {
-        val result = WordTypoChecker.check(
-            scope = listOf(WordSpellingData(" 잘못된단어 ", 0)),
-            corpus = emptyList()
-        )
-
-        assertTrue(result.single().issues.contains("LEADING_OR_TRAILING_SPACE"))
-        assertTrue(result.single().issues.contains("CONTAINS_WHITESPACE"))
-    }
-
-    @Test
-    fun `allows internal spaces in languages that support phrases`() {
-        val result = WordTypoChecker.check(
-            scope = listOf(WordSpellingData("ice cream", 0)),
-            corpus = emptyList(),
-            allowInternalWhitespace = true
-        )
-
-        assertTrue(result.isEmpty())
+    private fun assertSuggests(word: String, expected: String) {
+        val suggestions = WordTypoChecker.check(listOf(word), corpus)[word].orEmpty().map { it.suggestion }
+        assertTrue(expected in suggestions, "Expected $expected in $suggestions")
     }
 }

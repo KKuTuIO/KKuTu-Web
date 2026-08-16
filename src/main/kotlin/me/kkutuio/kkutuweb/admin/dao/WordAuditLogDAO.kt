@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.PreparedStatement
+import java.time.LocalDateTime
 
 @Repository
 class WordAuditLogDAO(
@@ -108,6 +109,33 @@ class WordAuditLogDAO(
         }
     }
 
+    fun getLatestCreateData(
+        lang: String,
+        words: Collection<String>,
+        adminFilter: String = ""
+    ): Map<String, WordCreateData> {
+        if (words.isEmpty()) return emptyMap()
+
+        val placeholders = words.joinToString(",") { "?" }
+        val values = ArrayList<Any>(words.size + 1).apply { addAll(words) }
+        val adminClause = if (adminFilter.isBlank()) "" else " AND admin ILIKE ? ESCAPE '\\'"
+        if (adminFilter.isNotBlank()) values.add("%${escapeLike(adminFilter.trim())}%")
+        val sql = """
+            SELECT DISTINCT ON (word) word, admin, log_time
+            FROM kkutu_${lang}_audit_log
+            WHERE log_type = 'CREATE' AND word IN ($placeholders)$adminClause
+            ORDER BY word, log_time DESC
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, { rs, _ ->
+            WordCreateData(
+                word = rs.getString("word"),
+                admin = rs.getString("admin"),
+                time = rs.getTimestamp("log_time").toLocalDateTime()
+            )
+        }, *values.toTypedArray()).associateBy { it.word }
+    }
+
     private fun whereQuery(searchFilters: Map<String, String>): String {
         val whereQueryParts = ArrayList<String>()
         for (key in searchFilters.keys) {
@@ -135,4 +163,13 @@ class WordAuditLogDAO(
     ): String {
         return "SELECT * FROM kkutu_${lang}_audit_log $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
     }
+
+    private fun escapeLike(value: String): String =
+        value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 }
+
+data class WordCreateData(
+    val word: String,
+    val admin: String,
+    val time: LocalDateTime
+)

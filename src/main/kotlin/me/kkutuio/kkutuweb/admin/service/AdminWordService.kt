@@ -24,6 +24,7 @@ import me.kkutuio.kkutuweb.admin.api.request.BulkWordAddRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordDeleteRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordModifyRequest
 import me.kkutuio.kkutuweb.admin.api.request.WordEditRequest
+import me.kkutuio.kkutuweb.admin.api.request.WordTypoCheckRequest
 import me.kkutuio.kkutuweb.admin.api.response.ActionResponse
 import me.kkutuio.kkutuweb.admin.api.response.BulkWordAddPreview
 import me.kkutuio.kkutuweb.admin.api.response.BulkWordDeleteItem
@@ -36,7 +37,9 @@ import me.kkutuio.kkutuweb.admin.api.response.BulkWordThemeGroup
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.api.response.RestResult
 import me.kkutuio.kkutuweb.admin.api.response.WordResult
+import me.kkutuio.kkutuweb.admin.api.response.WordTypoCheckItem
 import me.kkutuio.kkutuweb.admin.api.response.WordTypoCheckResult
+import me.kkutuio.kkutuweb.admin.api.response.WordTypoSuggestion
 import me.kkutuio.kkutuweb.admin.dao.WordAuditLogDAO
 import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import me.kkutuio.kkutuweb.admin.vo.WordVO
@@ -45,7 +48,6 @@ import me.kkutuio.kkutuweb.word.WordDao
 import me.kkutuio.kkutuweb.word.WordTheme
 import me.kkutuio.kkutuweb.word.WordFlag
 import me.kkutuio.kkutuweb.word.WordSearchFilter
-import me.kkutuio.kkutuweb.word.WordSpellingData
 import me.kkutuio.kkutuweb.word.WordType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -62,7 +64,7 @@ class AdminWordService(
 
     companion object {
         private const val MAX_BULK_WORDS = 5000
-        private const val MAX_TYPO_CHECK_WORDS = 2000
+        private const val MAX_TYPO_CHECK_WORDS = 500
     }
 
     fun getWordListRes(
@@ -106,28 +108,56 @@ class AdminWordService(
         return ListResponse(words.size, words)
     }
 
-    fun checkTypos(lang: String, searchFilter: WordSearchFilter): ActionResponse {
+    fun checkTypos(lang: String, request: WordTypoCheckRequest): ActionResponse {
         val tableName = getTableName(lang)
-        if (tableName.isEmpty()) {
+        if (lang != "ko" || tableName.isEmpty() || !request.isValid()) {
             return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
         }
 
+        val searchFilter = request.toSearchFilter()
         val totalCount = wordDao.getDataCount(tableName, searchFilter)
         val scopedWords = wordDao.getFilteredData(tableName, searchFilter, MAX_TYPO_CHECK_WORDS + 1)
         val scannedWords = scopedWords.take(MAX_TYPO_CHECK_WORDS)
-        val corpus = wordDao.getSpellingData(tableName)
-        val candidates = WordTypoChecker.check(
-            scannedWords.map { WordSpellingData(it.id, it.hit) },
-            corpus,
-            allowInternalWhitespace = lang == "en"
+        val generalCorpus = wordDao.getWordIds(tableName)
+        val themeCorpus = if (request.scope == "THEME") wordDao.getWordIds(tableName, searchFilter) else emptyList()
+        val corrections = WordTypoChecker.check(
+            scannedWords.map { it.id },
+            generalCorpus + themeCorpus + themeCorpus
         )
+        val createData = wordAuditLogDAO.getLatestCreateData(
+            lang,
+            scannedWords.map { it.id },
+            if (request.scope == "ADMIN_HISTORY") request.createdBy else ""
+        )
+        val items = scannedWords.mapNotNull { word ->
+            val suggestions = corrections[word.id] ?: return@mapNotNull null
+            val creation = createData[word.id]
+            WordTypoCheckItem(
+                word = word.id,
+                suggestions = suggestions.map {
+                    WordTypoSuggestion(
+                        word = it.suggestion,
+                        start = it.start,
+                        removed = it.removed,
+                        added = it.added,
+                        reason = it.reason
+                    )
+                },
+                themes = word.theme.split(",")
+                    .filter { it.isNotBlank() && it != "0" }
+                    .distinct()
+                    .map { themeName(it) },
+                createdBy = creation?.admin,
+                createdAt = creation?.time?.toString()
+            )
+        }
 
         return ActionResponse.success(
             WordTypoCheckResult(
                 totalCount = totalCount,
-                scannedCount = scannedWords.size,
+                checkedCount = scannedWords.size,
                 truncated = totalCount > scannedWords.size,
-                candidates = candidates
+                items = items
             )
         )
     }

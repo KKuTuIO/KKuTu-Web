@@ -195,7 +195,18 @@ class ModerationService(
             SELECT grouped.grouped_user_id,
                    CASE WHEN grouped.guest THEN NULL
                         ELSE COALESCE(users.nickname, grouped.last_user_name) END AS nickname,
-                   grouped.guest, grouped.last_seen_at, grouped.connection_count,
+                   grouped.guest,
+                   CASE WHEN grouped.guest THEN FALSE ELSE EXISTS (
+                       SELECT 1
+                       FROM moderation_effects effects
+                       WHERE effects.subject_user_id = grouped.grouped_user_id
+                         AND effects.effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
+                         AND effects.apply_status = 'APPLIED'
+                         AND effects.revoked_at IS NULL
+                         AND effects.starts_at <= NOW()
+                         AND (effects.permanent OR effects.ends_at > NOW())
+                   ) END AS currently_restricted,
+                   grouped.last_seen_at, grouped.connection_count,
                    SUM(grouped.connection_count) OVER () AS total_connections
             FROM grouped
             LEFT JOIN users ON users._id = grouped.grouped_user_id
@@ -209,6 +220,7 @@ class ModerationService(
                         userId = rs.getString("grouped_user_id"),
                         nickname = rs.getString("nickname"),
                         guest = rs.getBoolean("guest"),
+                        currentlyRestricted = rs.getBoolean("currently_restricted"),
                         connectionCount = rs.getLong("connection_count"),
                         lastSeenAt = rs.instant("last_seen_at")!!
                     ),
@@ -2334,6 +2346,7 @@ class ModerationService(
                 SELECT 1 FROM moderation_effects
                 WHERE subject_user_id = ?
                   AND effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
+                  AND apply_status = 'APPLIED'
                   AND revoked_at IS NULL AND starts_at <= NOW()
                   AND (permanent OR ends_at > NOW())
             )

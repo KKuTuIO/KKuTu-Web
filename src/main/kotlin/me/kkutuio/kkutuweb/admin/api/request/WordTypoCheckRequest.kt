@@ -6,10 +6,14 @@
 
 package me.kkutuio.kkutuweb.admin.api.request
 
+import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import me.kkutuio.kkutuweb.word.WordSearchFilter
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class WordTypoCheckRequest(
-    val scope: String,
+    val scope: String = "",
+    @JsonFormat(with = [JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY])
     val themes: List<String> = emptyList(),
     val createdBy: String = "",
     val createdWithinDays: Int? = null

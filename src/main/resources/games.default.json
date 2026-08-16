@@ -264,6 +264,24 @@
       "ai": false,
       "big": true,
       "ewq": false
+    },
+    "KLT": {
+      "lang": "ko",
+      "rule": "Linkland",
+      "opts": ["no2", "beg", "rnk", "etq", "nob"],
+      "time": 1,
+      "ai": false,
+      "big": true,
+      "ewq": false
+    },
+    "ELT": {
+      "lang": "en",
+      "rule": "Linkland",
+      "opts": ["beg", "rnk", "etq", "nob"],
+      "time": 1,
+      "ai": false,
+      "big": true,
+      "ewq": false
     }
   }
 }

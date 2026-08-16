@@ -35,7 +35,7 @@ class RankingApi(
         data class Error(val error: Int) : RankingResult()
     }
 
-    @GetMapping("/ranking")
+    @GetMapping("/ranking", "/api/ranking")
     fun ranking(
         @RequestParam(required = false) page: Long?,
         @RequestParam(required = false) id: String?,

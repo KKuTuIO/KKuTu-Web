@@ -36,6 +36,7 @@ import me.kkutuio.kkutuweb.admin.api.response.BulkWordThemeGroup
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.api.response.RestResult
 import me.kkutuio.kkutuweb.admin.api.response.WordResult
+import me.kkutuio.kkutuweb.admin.api.response.WordTypoCheckResult
 import me.kkutuio.kkutuweb.admin.dao.WordAuditLogDAO
 import me.kkutuio.kkutuweb.admin.domain.WordAuditLog
 import me.kkutuio.kkutuweb.admin.vo.WordVO
@@ -44,6 +45,7 @@ import me.kkutuio.kkutuweb.word.WordDao
 import me.kkutuio.kkutuweb.word.WordTheme
 import me.kkutuio.kkutuweb.word.WordFlag
 import me.kkutuio.kkutuweb.word.WordSearchFilter
+import me.kkutuio.kkutuweb.word.WordSpellingData
 import me.kkutuio.kkutuweb.word.WordType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -60,6 +62,7 @@ class AdminWordService(
 
     companion object {
         private const val MAX_BULK_WORDS = 5000
+        private const val MAX_TYPO_CHECK_WORDS = 2000
     }
 
     fun getWordListRes(
@@ -101,6 +104,32 @@ class AdminWordService(
             WordVO.convertFrom(it)
         }
         return ListResponse(words.size, words)
+    }
+
+    fun checkTypos(lang: String, searchFilter: WordSearchFilter): ActionResponse {
+        val tableName = getTableName(lang)
+        if (tableName.isEmpty()) {
+            return ActionResponse.rest(success = false, restResult = RestResult.INVALID_DATA)
+        }
+
+        val totalCount = wordDao.getDataCount(tableName, searchFilter)
+        val scopedWords = wordDao.getFilteredData(tableName, searchFilter, MAX_TYPO_CHECK_WORDS + 1)
+        val scannedWords = scopedWords.take(MAX_TYPO_CHECK_WORDS)
+        val corpus = wordDao.getSpellingData(tableName)
+        val candidates = WordTypoChecker.check(
+            scannedWords.map { WordSpellingData(it.id, it.hit) },
+            corpus,
+            allowInternalWhitespace = lang == "en"
+        )
+
+        return ActionResponse.success(
+            WordTypoCheckResult(
+                totalCount = totalCount,
+                scannedCount = scannedWords.size,
+                truncated = totalCount > scannedWords.size,
+                candidates = candidates
+            )
+        )
     }
 
     fun editWord(

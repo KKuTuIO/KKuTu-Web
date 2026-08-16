@@ -14,7 +14,9 @@ data class WordSearchFilter(
     val maxLength: Int? = null,
     val hasTheme: Boolean? = null,
     val hasMeaning: Boolean? = null,
-    val onlyInjeongWithMeaning: Boolean = false
+    val onlyInjeongWithMeaning: Boolean = false,
+    val createdBy: String = "",
+    val createdWithinDays: Int? = null
 )
 
 enum class WordMatch {

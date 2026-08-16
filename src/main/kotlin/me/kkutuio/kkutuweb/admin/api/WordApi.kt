@@ -23,6 +23,7 @@ import me.kkutuio.kkutuweb.admin.api.request.BulkWordAddRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordDeleteRequest
 import me.kkutuio.kkutuweb.admin.api.request.BulkWordModifyRequest
 import me.kkutuio.kkutuweb.admin.api.request.WordEditRequest
+import me.kkutuio.kkutuweb.admin.api.request.WordTypoCheckRequest
 import me.kkutuio.kkutuweb.admin.api.response.ActionResponse
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.api.response.RestResult
@@ -70,6 +71,8 @@ class WordApi(
         @RequestParam(required = false) hasTheme: Boolean?,
         @RequestParam(required = false) hasMeaning: Boolean?,
         @RequestParam(required = false, defaultValue = "false") onlyInjeongWithMeaning: Boolean,
+        @RequestParam(required = false, defaultValue = "") createdBy: String,
+        @RequestParam(required = false) createdWithinDays: Int?,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<WordVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -104,13 +107,30 @@ class WordApi(
             maxLength = maxLength,
             hasTheme = hasTheme,
             hasMeaning = hasMeaning,
-            onlyInjeongWithMeaning = onlyInjeongWithMeaning
+            onlyInjeongWithMeaning = onlyInjeongWithMeaning,
+            createdBy = createdBy,
+            createdWithinDays = createdWithinDays?.coerceIn(1, 3650)
         )
 
         val wordListRes = adminWordService.getWordListRes(lang, page, pageSize, sortData, searchFilter)
         logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어 목록을 요청했습니다. 언어: $lang / 검색어: $word / 테마: ${selectedThemes.joinToString()} / 총 개수: ${wordListRes.totalElements}")
 
         return wordListRes
+    }
+
+    @PostMapping("/{lang}/typo-check")
+    fun checkTypos(
+        @PathVariable lang: String,
+        @RequestBody typoCheckRequest: WordTypoCheckRequest,
+        request: HttpServletRequest,
+        session: HttpSession
+    ): ActionResponse {
+        val adminId = authorizedAdminId(session, "단어 오타 후보 검사")
+            ?: return unauthorizedResponse(session)
+
+        val actionResponse = adminWordService.checkTypos(lang, typoCheckRequest.toSearchFilter())
+        logger.info("[${request.getIp()}] $adminId 님이 단어 오타 후보 검사를 요청했습니다. 언어: $lang")
+        return actionResponse
     }
 
     @GetMapping("/{lang}/{word}")

@@ -79,7 +79,7 @@ class WordDao(
         tableName: String,
         searchFilter: WordSearchFilter
     ): Int {
-        val (whereQuery, whereValues) = buildWhere(searchFilter)
+        val (whereQuery, whereValues) = buildWhere(tableName, searchFilter)
 
         val sql = countQuery(tableName, whereQuery)
         val list = jdbcTemplate.query(sql, singleNumberMapper, *whereValues.toTypedArray())
@@ -94,10 +94,27 @@ class WordDao(
         sortType: SortType,
         searchFilter: WordSearchFilter
     ): List<Word> {
-        val (whereQuery, whereValues) = buildWhere(searchFilter)
+        val (whereQuery, whereValues) = buildWhere(tableName, searchFilter)
 
         val sql = selectQuery(tableName, whereQuery, sortField, sortType, pageSize, page)
         return jdbcTemplate.query(sql, wordMapper, *whereValues.toTypedArray())
+    }
+
+    fun getFilteredData(
+        tableName: String,
+        searchFilter: WordSearchFilter,
+        limit: Int
+    ): List<Word> {
+        val (whereQuery, whereValues) = buildWhere(tableName, searchFilter)
+        val sql = "SELECT * FROM $tableName $whereQuery ORDER BY _id ASC LIMIT ?"
+        return jdbcTemplate.query(sql, wordMapper, *(whereValues + limit).toTypedArray())
+    }
+
+    fun getSpellingData(tableName: String): List<WordSpellingData> {
+        val sql = "SELECT _id, hit FROM $tableName"
+        return jdbcTemplate.query(sql) { rs, _ ->
+            WordSpellingData(rs.getString("_id"), rs.getInt("hit"))
+        }
     }
 
     fun insert(tableName: String, word: Word) {
@@ -173,7 +190,7 @@ class WordDao(
         return list.isNotEmpty()
     }
 
-    private fun buildWhere(filter: WordSearchFilter): Pair<String, List<Any>> {
+    private fun buildWhere(tableName: String, filter: WordSearchFilter): Pair<String, List<Any>> {
         val clauses = ArrayList<String>()
         val values = ArrayList<Any>()
 
@@ -249,6 +266,19 @@ class WordDao(
             )
         }
 
+        if (filter.createdBy.isNotBlank() || filter.createdWithinDays != null) {
+            val auditClauses = arrayListOf("word_audit.word = _id", "word_audit.log_type = 'CREATE'")
+            if (filter.createdBy.isNotBlank()) {
+                auditClauses.add("word_audit.admin ILIKE ? ESCAPE '\\'")
+                values.add("%${escapeLike(filter.createdBy.trim())}%")
+            }
+            filter.createdWithinDays?.let {
+                auditClauses.add("word_audit.log_time >= CURRENT_TIMESTAMP - (? * INTERVAL '1 day')")
+                values.add(it)
+            }
+            clauses.add("EXISTS (SELECT 1 FROM ${tableName}_audit_log word_audit WHERE ${auditClauses.joinToString(" AND ")})")
+        }
+
         return (if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}") to values
     }
 
@@ -269,3 +299,8 @@ class WordDao(
         return "SELECT * FROM $tableName $whereQuery ORDER BY $sortField ${sortType.name} LIMIT $pageSize OFFSET ${page * pageSize}"
     }
 }
+
+data class WordSpellingData(
+    val word: String,
+    val hit: Int
+)

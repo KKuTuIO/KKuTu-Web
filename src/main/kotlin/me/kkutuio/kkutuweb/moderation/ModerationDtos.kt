@@ -30,6 +30,7 @@ data class ModerationRelatedAccessEntry(
     val nickname: String?,
     val guest: Boolean,
     val currentlyRestricted: Boolean,
+    val currentlyChatRestricted: Boolean,
     val connectionCount: Long,
     val lastSeenAt: Instant
 )

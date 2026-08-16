@@ -206,6 +206,16 @@ class ModerationService(
                          AND effects.starts_at <= NOW()
                          AND (effects.permanent OR effects.ends_at > NOW())
                    ) END AS currently_restricted,
+                   CASE WHEN grouped.guest THEN FALSE ELSE EXISTS (
+                       SELECT 1
+                       FROM moderation_effects effects
+                       WHERE effects.subject_user_id = grouped.grouped_user_id
+                         AND effects.effect_type = 'CHAT_RESTRICTION'
+                         AND effects.apply_status = 'APPLIED'
+                         AND effects.revoked_at IS NULL
+                         AND effects.starts_at <= NOW()
+                         AND (effects.permanent OR effects.ends_at > NOW())
+                   ) END AS currently_chat_restricted,
                    grouped.last_seen_at, grouped.connection_count,
                    SUM(grouped.connection_count) OVER () AS total_connections
             FROM grouped
@@ -221,6 +231,7 @@ class ModerationService(
                         nickname = rs.getString("nickname"),
                         guest = rs.getBoolean("guest"),
                         currentlyRestricted = rs.getBoolean("currently_restricted"),
+                        currentlyChatRestricted = rs.getBoolean("currently_chat_restricted"),
                         connectionCount = rs.getLong("connection_count"),
                         lastSeenAt = rs.instant("last_seen_at")!!
                     ),

@@ -25,6 +25,25 @@ data class ModerationUserDetail(
     val reportsAnchor: Instant
 )
 
+data class ModerationRelatedAccessEntry(
+    val userId: String?,
+    val nickname: String?,
+    val guest: Boolean,
+    val connectionCount: Long,
+    val lastSeenAt: Instant
+)
+
+data class ModerationRelatedAccessPage(
+    val matchType: String,
+    val hours: Int,
+    val offset: Int,
+    val limit: Int,
+    val totalConnections: Long,
+    val sourceAvailable: Boolean,
+    val items: List<ModerationRelatedAccessEntry>,
+    val hasMore: Boolean
+)
+
 data class ModerationIpGeoInfo(
     val countryCode: String?,
     val countryName: String?,

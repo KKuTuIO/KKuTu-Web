@@ -97,6 +97,20 @@ class AdminModerationApi(
         return service.getUserReports(userId, window, anchorMillis)
     }
 
+    @GetMapping("/users/{userId}/related-access")
+    fun relatedAccess(
+        @PathVariable userId: String,
+        @RequestParam matchType: String,
+        @RequestParam(defaultValue = "72") hours: Int,
+        @RequestParam(defaultValue = "10") limit: Int,
+        @RequestParam(defaultValue = "0") offset: Int,
+        session: HttpSession
+    ): ModerationRelatedAccessPage {
+        authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
+        authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
+        return service.getRelatedAccess(userId, matchType, hours, limit, offset)
+    }
+
     @GetMapping("/ip-subject")
     fun ipDetail(@RequestParam query: String, session: HttpSession): ModerationIpDetail {
         authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)

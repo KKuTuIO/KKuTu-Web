@@ -137,6 +137,97 @@ class ModerationService(
         return reports(userId, window, anchor)
     }
 
+    fun getRelatedAccess(
+        userId: String,
+        matchType: String,
+        hours: Int,
+        limit: Int,
+        offset: Int
+    ): ModerationRelatedAccessPage {
+        requireUser(userId)
+        val normalizedType = matchType.trim().uppercase()
+        require(normalizedType in RELATED_ACCESS_TYPES) { "일치 기준은 PCID 또는 IP여야 합니다." }
+        require(hours in RELATED_ACCESS_HOURS) { "조회 기간은 24시간, 48시간, 72시간 또는 7일이어야 합니다." }
+        require(limit in RELATED_ACCESS_LIMITS) { "표시 개수는 10, 30, 50 또는 100이어야 합니다." }
+        require(offset >= 0) { "조회 위치는 0 이상이어야 합니다." }
+
+        val source = latestAccessSignals(userId)
+            ?: return emptyRelatedAccessPage(normalizedType, hours, limit, offset)
+        val signalValues = when (normalizedType) {
+            "PCID" -> source.pcids
+            else -> source.ipVariants
+        }
+        if (signalValues.isEmpty()) {
+            return emptyRelatedAccessPage(normalizedType, hours, limit, offset)
+        }
+
+        val signalPlaceholders = signalValues.joinToString(",") { "?" }
+        val signalCondition = if (normalizedType == "PCID") {
+            "(cl.pcid_cookie IN ($signalPlaceholders) OR cl.pcid_localstorage IN ($signalPlaceholders))"
+        } else {
+            "cl.user_ip IN ($signalPlaceholders)"
+        }
+        val parameters = mutableListOf<Any>(Timestamp.from(Instant.now().minusSeconds(hours * 3600L)), userId)
+        parameters.addAll(signalValues)
+        if (normalizedType == "PCID") parameters.addAll(signalValues)
+        parameters.add(limit + 1)
+        parameters.add(offset)
+
+        val rows = jdbcTemplate.query(
+            """
+            WITH matched AS (
+                SELECT CASE WHEN cl.user_id LIKE 'guest\_\_%' ESCAPE '\'
+                            THEN NULL ELSE cl.user_id END AS grouped_user_id,
+                       CASE WHEN cl.user_id LIKE 'guest\_\_%' ESCAPE '\'
+                            THEN TRUE ELSE FALSE END AS guest,
+                       cl.user_name, cl.time, cl.id
+                FROM connection_log cl
+                WHERE cl.time >= ? AND cl.user_id <> ? AND $signalCondition
+            ), grouped AS (
+                SELECT grouped_user_id, guest,
+                       (ARRAY_AGG(user_name ORDER BY time DESC, id DESC))[1] AS last_user_name,
+                       MAX(time) AS last_seen_at,
+                       COUNT(*)::BIGINT AS connection_count
+                FROM matched
+                GROUP BY grouped_user_id, guest
+            )
+            SELECT grouped.grouped_user_id,
+                   CASE WHEN grouped.guest THEN NULL
+                        ELSE COALESCE(users.nickname, grouped.last_user_name) END AS nickname,
+                   grouped.guest, grouped.last_seen_at, grouped.connection_count,
+                   SUM(grouped.connection_count) OVER () AS total_connections
+            FROM grouped
+            LEFT JOIN users ON users._id = grouped.grouped_user_id
+            ORDER BY grouped.connection_count DESC, grouped.last_seen_at DESC,
+                     grouped.grouped_user_id NULLS LAST
+            LIMIT ? OFFSET ?
+            """.trimIndent(),
+            { rs, _ ->
+                RelatedAccessRow(
+                    entry = ModerationRelatedAccessEntry(
+                        userId = rs.getString("grouped_user_id"),
+                        nickname = rs.getString("nickname"),
+                        guest = rs.getBoolean("guest"),
+                        connectionCount = rs.getLong("connection_count"),
+                        lastSeenAt = rs.instant("last_seen_at")!!
+                    ),
+                    totalConnections = rs.getLong("total_connections")
+                )
+            },
+            *parameters.toTypedArray()
+        )
+        return ModerationRelatedAccessPage(
+            matchType = normalizedType,
+            hours = hours,
+            offset = offset,
+            limit = limit,
+            totalConnections = rows.firstOrNull()?.totalConnections ?: 0,
+            sourceAvailable = true,
+            items = rows.take(limit).map { it.entry },
+            hasMore = rows.size > limit
+        )
+    }
+
     fun getIpDetail(subject: String): ModerationIpDetail {
         val resolved = resolveIpSubject(subject)
         val reportsAnchor = Instant.now()
@@ -1902,6 +1993,51 @@ class ModerationService(
         return ResolvedIpSubject(canonicalIp(value), null)
     }
 
+    private fun latestAccessSignals(userId: String): LatestAccessSignals? = jdbcTemplate.query(
+        """
+        SELECT user_ip, NULLIF(pcid_cookie, '') AS pcid_cookie,
+               NULLIF(pcid_localstorage, '') AS pcid_localstorage
+        FROM connection_log
+        WHERE user_id = ?
+        ORDER BY time DESC, id DESC
+        LIMIT 1
+        """.trimIndent(),
+        { rs, _ ->
+            val rawIp = rs.getString("user_ip")?.trim().orEmpty()
+            val normalizedIp = if (rawIp.startsWith("::ffff:", ignoreCase = true)) {
+                rawIp.substring(7)
+            } else rawIp
+            val ipVariants = linkedSetOf<String>()
+            if (rawIp.isNotEmpty()) ipVariants.add(rawIp)
+            if (normalizedIp.isNotEmpty()) ipVariants.add(normalizedIp)
+            if (IPV4_REGEX.matches(normalizedIp)) ipVariants.add("::ffff:$normalizedIp")
+            LatestAccessSignals(
+                ipVariants = ipVariants.toList(),
+                pcids = listOfNotNull(
+                    rs.getString("pcid_cookie")?.trim()?.takeIf(String::isNotEmpty),
+                    rs.getString("pcid_localstorage")?.trim()?.takeIf(String::isNotEmpty)
+                ).distinct()
+            )
+        },
+        userId
+    ).firstOrNull()
+
+    private fun emptyRelatedAccessPage(
+        matchType: String,
+        hours: Int,
+        limit: Int,
+        offset: Int
+    ) = ModerationRelatedAccessPage(
+        matchType = matchType,
+        hours = hours,
+        offset = offset,
+        limit = limit,
+        totalConnections = 0,
+        sourceAvailable = false,
+        items = emptyList(),
+        hasMore = false
+    )
+
     private fun canonicalIp(value: String): String {
         var trimmed = value.trim().substringBefore('/')
         if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
@@ -2235,6 +2371,16 @@ class ModerationService(
 
     private data class ResolvedIpSubject(val ip: String, val guestId: String?)
 
+    private data class LatestAccessSignals(
+        val ipVariants: List<String>,
+        val pcids: List<String>
+    )
+
+    private data class RelatedAccessRow(
+        val entry: ModerationRelatedAccessEntry,
+        val totalConnections: Long
+    )
+
     private data class LinkedSanction(
         val caseId: Long,
         val inquiryId: String,
@@ -2281,6 +2427,9 @@ class ModerationService(
     )
 
     companion object {
+        private val RELATED_ACCESS_TYPES = setOf("PCID", "IP")
+        private val RELATED_ACCESS_HOURS = setOf(24, 48, 72, 168)
+        private val RELATED_ACCESS_LIMITS = setOf(10, 30, 50, 100)
         private val IPV4_REGEX = Regex("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$")
         private val IPV6_CHAR_REGEX = Regex("^[0-9A-Fa-f:.]+$")
         private val GAME_LOG_FILE_REGEX = Regex("^game-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.log(?:\\.gz)?$")

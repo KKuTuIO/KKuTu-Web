@@ -155,10 +155,22 @@ class KKuTuSetting(
         ?: emptyList()
 
     fun getConnectionLogRetention(): ConnectionLogRetentionSetting {
-        val retention = kkutu["connectionLog"]?.get("retention")
+        return getLogRetention("connectionLog", 12L)
+    }
+
+    fun getSuspicionLogRetention(): ConnectionLogRetentionSetting {
+        return getLogRetention("suspicionLog", 12L)
+    }
+
+    fun getReportLogRetention(): ConnectionLogRetentionSetting {
+        return getLogRetention("reportLog", 36L)
+    }
+
+    private fun getLogRetention(logName: String, defaultMonths: Long): ConnectionLogRetentionSetting {
+        val retention = kkutu[logName]?.get("retention")
         return ConnectionLogRetentionSetting(
             enabled = retention?.get("enabled")?.booleanValue() ?: true,
-            months = (retention?.get("months")?.longValue() ?: 12L).coerceIn(1L, 120L),
+            months = (retention?.get("months")?.longValue() ?: defaultMonths).coerceIn(1L, 120L),
             batchSize = (retention?.get("batchSize")?.intValue() ?: 10_000).coerceIn(100, 50_000),
             maxBatchesPerRun = (retention?.get("maxBatchesPerRun")?.intValue() ?: 10).coerceIn(1, 100)
         )

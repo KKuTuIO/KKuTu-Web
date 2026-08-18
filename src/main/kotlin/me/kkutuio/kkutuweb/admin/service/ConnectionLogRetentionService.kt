@@ -1,5 +1,6 @@
 package me.kkutuio.kkutuweb.admin.service
 
+import me.kkutuio.kkutuweb.setting.ConnectionLogRetentionSetting
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
@@ -17,7 +18,17 @@ class ConnectionLogRetentionService(
 
     @Scheduled(initialDelay = 300_000, fixedDelay = 3_600_000)
     fun purgeExpiredConnectionLogs() {
-        val retention = setting.getConnectionLogRetention()
+        purgeLog("connection_log", "id", "접속", setting.getConnectionLogRetention())
+        purgeLog("suspicion_log", "case_id", "의심 기록", setting.getSuspicionLogRetention())
+        purgeLog("report_log", "report_id", "신고 기록", setting.getReportLogRetention())
+    }
+
+    private fun purgeLog(
+        tableName: String,
+        idColumn: String,
+        logDescription: String,
+        retention: ConnectionLogRetentionSetting
+    ) {
         if (!retention.enabled) return
 
         val cutoff = Timestamp.from(ZonedDateTime.now().minusMonths(retention.months).toInstant())
@@ -26,16 +37,16 @@ class ConnectionLogRetentionService(
             val deleted = jdbcTemplate.update(
                 """
                 WITH expired AS (
-                    SELECT id
-                    FROM connection_log
+                    SELECT $idColumn
+                    FROM $tableName
                     WHERE time < ?
-                    ORDER BY time, id
+                    ORDER BY time, $idColumn
                     LIMIT ?
                     FOR UPDATE SKIP LOCKED
                 )
-                DELETE FROM connection_log logs
+                DELETE FROM $tableName logs
                 USING expired
-                WHERE logs.id = expired.id
+                WHERE logs.$idColumn = expired.$idColumn
                 """.trimIndent(),
                 cutoff,
                 retention.batchSize
@@ -44,7 +55,7 @@ class ConnectionLogRetentionService(
             if (deleted < retention.batchSize) break
         }
         if (deletedTotal > 0) {
-            logger.info("${retention.months}개월 보존 기간이 지난 접속 기록 ${deletedTotal}건을 삭제했습니다.")
+            logger.info("${retention.months}개월 보존 기간이 지난 ${logDescription} ${deletedTotal}건을 삭제했습니다.")
         }
     }
 }

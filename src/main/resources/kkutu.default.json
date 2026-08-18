@@ -62,6 +62,22 @@
       "maxBatchesPerRun": 10
     }
   },
+  "suspicionLog": {
+    "retention": {
+      "enabled": true,
+      "months": 12,
+      "batchSize": 10000,
+      "maxBatchesPerRun": 10
+    }
+  },
+  "reportLog": {
+    "retention": {
+      "enabled": true,
+      "months": 36,
+      "batchSize": 10000,
+      "maxBatchesPerRun": 10
+    }
+  },
   "moderationLogService": {
     "publicUrl": "https://logs-admin.kkutu.io",
     "signingSecret": "<32-Bit or Longer Secret Key>"

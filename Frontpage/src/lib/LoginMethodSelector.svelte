@@ -13,6 +13,12 @@
     export let passkeySupported = true;
     export let onPasskey = () => {};
     export let providerUrl = provider => `/login/${provider}`;
+
+    function normalizedProviderIds() {
+        return (Array.isArray(providerIds) ? providerIds : [])
+            .map(id => String(id || '').trim().toLowerCase())
+            .filter((id, index, ids) => providers[id] && ids.indexOf(id) === index);
+    }
 </script>
 
 <div>
@@ -22,7 +28,7 @@
             <span class="material-symbols-outlined mr-2 text-2xl" aria-hidden="true">key</span>패스키로 로그인
         </button>
     {/if}
-    {#each providerIds.filter(id => providers[id]).map(id => ({ id, ...providers[id] })) as provider}
+    {#each normalizedProviderIds().map(id => ({ id, ...providers[id] })) as provider}
         <a href={providerUrl(provider.id)} rel="external"
            class={`mt-4 flex min-h-[54px] w-full items-center justify-center p-3 text-lg font-semibold leading-6 shadow-md transition duration-100 ease-in active:scale-95 ${provider.color}`}>
             <img src={provider.icon} class="mr-2 h-6 w-6 object-contain" alt=""/>

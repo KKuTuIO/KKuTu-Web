@@ -66,9 +66,8 @@
             nicknamePolicy = await nicknamePolicyRes.json();
             mfa = await mfaRes.json();
             passwordEnabled = summary.password_enabled !== false;
-            reauthProviderIds = identities.filter(identity => identity.type === 'OAUTH').map(identity => identity.provider.toLowerCase());
-            const legacyProvider = oauthProviders.find(provider => summary?.legacy_user_id?.toLowerCase().startsWith(`${provider.id}-`));
-            if (legacyProvider && !reauthProviderIds.includes(legacyProvider.id)) reauthProviderIds = [...reauthProviderIds, legacyProvider.id];
+            const linkedProviders = linkedProviderIds();
+            reauthProviderIds = oauthProviders.filter(provider => linkedProviders.has(provider.id)).map(provider => provider.id);
             nickname = (nicknamePolicy.nickname || summary.nickname || '').split('#')[0];
             fixedNickname = Boolean(nicknamePolicy.fixed);
             selectedProfile = summary.selected_profile_id || summary.profiles?.[0]?.id || '';
@@ -172,12 +171,29 @@
         event.currentTarget.src = 'https://cdn.kkutu.io/img/bi/bi_profile_main.png';
     }
 
+    function normalizedProvider(value) {
+        return typeof value === 'string' ? value.trim().toLowerCase() : '';
+    }
+
+    function isOAuthIdentity(identity) {
+        return String(identity?.type || '').trim().toUpperCase() === 'OAUTH';
+    }
+
+    function linkedProviderIds() {
+        return new Set(
+            identities
+                .filter(isOAuthIdentity)
+                .map(identity => normalizedProvider(identity.provider))
+                .filter(Boolean)
+        );
+    }
+
     function linkedIdentity(provider) {
-        const identity = identities.find(identity => identity.type === 'OAUTH' && identity.provider?.toLowerCase() === provider.id);
+        const providerId = normalizedProvider(provider?.id);
+        const identity = identities.find(identity =>
+            isOAuthIdentity(identity) && normalizedProvider(identity.provider) === providerId
+        );
         if (identity) return identity;
-        if (summary?.legacy_user_id?.toLowerCase().startsWith(`${provider.id}-`)) {
-            return {type: 'OAUTH', provider: provider.id.toUpperCase(), display_name: '기본 로그인 수단', legacy: true};
-        }
         return null;
     }
 
@@ -186,7 +202,8 @@
     }
 
     function linkedProviderCount() {
-        return oauthProviders.filter(provider => linkedIdentity(provider)).length;
+        const linkedProviders = linkedProviderIds();
+        return oauthProviders.filter(provider => linkedProviders.has(provider.id)).length;
     }
 
     async function copyIdentifier() {

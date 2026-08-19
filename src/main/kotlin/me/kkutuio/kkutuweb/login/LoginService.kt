@@ -288,20 +288,26 @@ class LoginService(
 
     fun getSessionProfile(session: HttpSession): SessionProfile? {
         if (session.isGuest()) return null
-        val oAuthUser = session.getOAuthUser()
-
-        val userId = oAuthUser.getUserId()
+        val account = accountService.currentAccount(session) ?: return null
+        val oAuthUser = runCatching { session.getOAuthUser() }.getOrNull() ?: return null
+        val userId = accountService.selectedGameProfileLegacyUserId(account)
         val user = userDao.getUser(userId)
 
-        val authType = oAuthUser.authVendor.name.lowercase()
-        val title = if (user == null) oAuthUser.name else (user.nickname ?: oAuthUser.name)
+        val authType = AuthVendor.values()
+            .firstOrNull { it != AuthVendor.LOCAL && userId.startsWith("${it.name.lowercase()}-") }
+            ?.name?.lowercase() ?: "local"
+        val title = user?.nickname ?: oAuthUser.name
+        // A provider avatar is only valid for the profile represented by that
+        // provider.  Do not show a Daldalso avatar while the account's game
+        // profile is the pre-existing Discord profile.
+        val image = oAuthUser.profileImage.takeIf { oAuthUser.getUserId() == userId } ?: ""
 
         return SessionProfile(
             authType = authType,
             id = userId,
-            name = oAuthUser.name,
+            name = user?.nickname ?: oAuthUser.name,
             title = title,
-            image = oAuthUser.profileImage ?: ""
+            image = image
         )
     }
 

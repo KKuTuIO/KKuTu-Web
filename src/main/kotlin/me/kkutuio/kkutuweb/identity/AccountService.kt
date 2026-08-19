@@ -70,6 +70,15 @@ class AccountService(
     fun findExternalAccount(oauth: OAuthUser): Account? = dao.findActiveIdentity(oauth.authVendor.name, oauth.vendorId)
         ?.let { dao.findAccount(it.accountId) }
 
+    /**
+     * The OAuth method proves how the account authenticated.  It is not the
+     * game profile to use for the session.  A linked provider can have a
+     * different provider id while still belonging to this same account.
+     */
+    fun selectedGameProfileLegacyUserId(account: Account): String =
+        dao.defaultProfile(account.id)?.get("legacy_user_id")?.toString()?.takeIf { it.isNotBlank() }
+            ?: account.legacyUserId
+
     /** Verifies an existing login method without changing the signed-in account. */
     @Transactional
     fun verifyExternalReauthentication(account: Account, oauth: OAuthUser) {

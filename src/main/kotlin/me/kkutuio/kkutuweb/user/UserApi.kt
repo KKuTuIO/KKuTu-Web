@@ -26,11 +26,13 @@
  import me.kkutuio.kkutuweb.extension.isGuest
  import me.kkutuio.kkutuweb.extension.getOAuthUser
  import me.kkutuio.kkutuweb.record.RecordCheckRateLimiter
+ import me.kkutuio.kkutuweb.login.LoginService
  
  @RestController
  class UserApi(
      @Autowired private val userService: UserService,
-     @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter
+     @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter,
+     @Autowired private val loginService: LoginService
  ) {
      @GetMapping("/box", produces = [MediaType.APPLICATION_JSON_VALUE])
      fun getBox(session: HttpSession): String {
@@ -67,14 +69,23 @@
         session: HttpSession
     ): Map<String, Any?> {
         return if (!session.isGuest()) {
+            val profile = loginService.getSessionProfile(session)
+                ?: return mapOf("status" to "Guest user")
             val oauthUser = runCatching { session.getOAuthUser() }.getOrNull()
                 ?: return mapOf("status" to "Guest user")
 
+            val authVendor = profile.authType.uppercase()
+            val vendorId = if (authVendor == "LOCAL") profile.id
+            else profile.id.removePrefix("${profile.authType}-")
+
             mapOf(
-                "authVendor" to oauthUser.authVendor.name,
-                "vendorId" to oauthUser.vendorId,
-                "name" to oauthUser.name,
-                "image" to (oauthUser.profileImage?.replace("=s50", "") ?: ""),
+                // These fields feed the legacy web header and must describe
+                // the selected game profile, not the OAuth method used to
+                // authenticate the account.
+                "authVendor" to authVendor,
+                "vendorId" to vendorId,
+                "name" to profile.name,
+                "image" to profile.image.replace("=s50", ""),
                 "gender" to oauthUser.gender?.name,
                 "minAge" to oauthUser.minAge,
                 "maxAge" to oauthUser.maxAge

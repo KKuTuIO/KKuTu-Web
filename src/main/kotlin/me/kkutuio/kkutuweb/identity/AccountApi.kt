@@ -1,6 +1,7 @@
 package me.kkutuio.kkutuweb.identity
 
 import me.kkutuio.kkutuweb.extension.getIp
+import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.hasRecentAuthentication
 import me.kkutuio.kkutuweb.extension.markRecentlyAuthenticated
 import me.kkutuio.kkutuweb.login.LoginService
@@ -94,6 +95,9 @@ class AccountApi(
     @DeleteMapping("/email") fun removeEmail(session: HttpSession): ResponseEntity<Void> { accounts.removeEmail(recent(session)); return ResponseEntity.noContent().build() }
     @GetMapping("/identities") fun identities(session: HttpSession): List<Map<String, Any?>> {
         val account = accounts.requireCurrentAccount(session)
+        runCatching { session.getOAuthUser() }.getOrNull()?.takeIf {
+            it.authVendor.name != "LOCAL" && it.getUserId() == account.legacyUserId
+        }?.let { accounts.linkExternalIdentity(account, it) }
         return dao.listIdentities(account.id).filter {
             it.revokedAt == null && (it.type == IdentityType.OAUTH || (settings.passwordEnabled && it.type == IdentityType.PASSWORD))
         }.map {

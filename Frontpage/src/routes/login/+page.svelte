@@ -9,18 +9,14 @@
     var identifier = '';
     var password = '';
     var passwordEnabled = false;
-    var loading = false;
 
     async function loadLoginInfo() {
-        loading = true;
         try {
             const response = await fetch('/api/login/reason');
             loginReason = await response.text();
             const config = await fetch('/api/account/recovery/config').then(response => response.ok ? response.json() : null).catch(() => null);
             passwordEnabled = config?.password_enabled !== false;
-        } finally {
-            loading = false;
-        }
+        } catch (_) {}
     }
 
     onMount(() => {
@@ -88,7 +84,7 @@
 </svelte:head>
 <div class="dark:bg-gray-900 flex min-h-screen flex-col justify-center px-6 py-12 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-        <div class="mt-10 flex items-center justify-center gap-2"><h2 class="text-center text-3xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100">로그인</h2><button class="grid h-9 w-9 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-800" on:click={loadLoginInfo} disabled={loading} aria-label="새로고침"><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'refresh'}</span></button></div>
+        <h2 class="mt-10 text-center text-3xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100">로그인</h2>
     </div>
 
     <div class="mt-4 sm:mx-auto sm:w-full sm:max-w-sm">

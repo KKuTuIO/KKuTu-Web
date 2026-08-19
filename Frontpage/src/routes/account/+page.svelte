@@ -1,5 +1,6 @@
 <script>
     import {onMount} from 'svelte';
+    import QRCode from 'qrcode';
     import LoginMethodSelector from '$lib/LoginMethodSelector.svelte';
     import AccountModal from '$lib/AccountModal.svelte';
     import ToastStack from '$lib/ToastStack.svelte';
@@ -19,6 +20,7 @@
     let supportPin = '';
     let securityCode = '';
     let totpSecret = '';
+    let totpQr = '';
     let recoveryCodes = [];
     let selectedProfile = '';
     let reauthRequired = false;
@@ -34,12 +36,12 @@
     let modal = null;
     let modalTotpCode = '';
     const oauthProviders = [
-        {id: 'naver', name: '네이버', icon: '/img/auth/naver.png'},
-        {id: 'google', name: 'Google', icon: '/img/auth/google.png'},
-        {id: 'kakao', name: '카카오', icon: '/img/auth/kakao.png'},
-        {id: 'facebook', name: 'Facebook', icon: '/img/auth/facebook.png'},
-        {id: 'discord', name: 'Discord', icon: '/img/auth/discord.png'},
-        {id: 'daldalso', name: '달달소', icon: '/logo/daldalso.png'}
+        {id: 'naver', name: '네이버', icon: 'https://cdn.kkutu.io/logo/fusion/naver.svg'},
+        {id: 'google', name: 'Google', icon: 'https://cdn.kkutu.io/logo/fusion/google.svg'},
+        {id: 'kakao', name: '카카오', icon: 'https://cdn.kkutu.io/logo/fusion/kakao.svg'},
+        {id: 'facebook', name: 'Facebook', icon: 'https://cdn.kkutu.io/logo/fusion/facebook.svg'},
+        {id: 'discord', name: 'Discord', icon: 'https://cdn.kkutu.io/logo/fusion/discord.svg'},
+        {id: 'daldalso', name: '달달소', icon: 'https://cdn.kkutu.io/logo/fusion/daldalso.png'}
     ];
 
     async function load() {
@@ -95,6 +97,7 @@
     function closeModal() {
         modal = null;
         modalTotpCode = '';
+        totpQr = '';
     }
 
     async function call(url, options = {}) {
@@ -211,7 +214,12 @@
         const r = await call('/api/account/support-pin/issue', {method: 'POST'});
         if (r) {
             clearProtectedAction();
-            supportPin = (await r.json()).pin;
+            const data = await r.json();
+            supportPin = data?.pin || data?.support_pin || '';
+            if (!supportPin) {
+                notify('지원 PIN을 발급하지 못했습니다.', 'error');
+                return;
+            }
             modal = {type: 'support-pin', title: '지원 PIN'};
         } else if (reauthRequired) rememberProtectedAction('support-pin');
     }
@@ -220,7 +228,12 @@
         const r = await call('/api/account/security-code/reveal', {method: 'POST'});
         if (r) {
             clearProtectedAction();
-            securityCode = (await r.json()).securityCode;
+            const data = await r.json();
+            securityCode = data?.securityCode || data?.security_code || '';
+            if (!securityCode) {
+                notify('보안 코드를 불러오지 못했습니다.', 'error');
+                return;
+            }
             modal = {type: 'security-code', title: '보안 코드'};
         } else if (reauthRequired) rememberProtectedAction('security-code');
     }
@@ -286,7 +299,18 @@
         const r = await call('/api/account/mfa/totp/setup', {method: 'POST', body: JSON.stringify({name: 'TOTP 매체'})});
         if (!r) return;
         const data = await r.json();
-        totpSecret = data.secret;
+        const secret = data?.secret || data?.totp_secret;
+        const otpauthUri = data?.otpauth_uri || data?.otpauthUri;
+        if (!secret || !otpauthUri) {
+            notify('2단계 인증 설정 정보를 받지 못했습니다.', 'error');
+            return;
+        }
+        totpSecret = secret;
+        try {
+            totpQr = await QRCode.toDataURL(otpauthUri, {width: 224, margin: 1, errorCorrectionLevel: 'M'});
+        } catch (_) {
+            notify('QR 코드를 만들지 못했습니다. 비밀키를 직접 등록해 주세요.', 'error');
+        }
         modalTotpCode = '';
         modal = {type: 'totp-setup', title: '2단계 인증 설정'};
     }
@@ -319,7 +343,12 @@
         const r = await call('/api/account/one-time-login-codes/rotate', {method: 'POST'});
         if (r) {
             clearProtectedAction();
-            recoveryCodes = (await r.json()).codes || [];
+            const data = await r.json();
+            recoveryCodes = Array.isArray(data?.codes) ? data.codes : [];
+            if (!recoveryCodes.length) {
+                notify('일회용 비밀번호를 발급하지 못했습니다.', 'error');
+                return;
+            }
             mfa = {...(mfa || {}), one_time_login_codes_remaining: recoveryCodes.length};
             modal = {type: 'one-time-codes', title: '일회용 비밀번호'};
         } else if (reauthRequired) rememberProtectedAction('one-time-login-codes');
@@ -550,6 +579,7 @@
 <AccountModal open={Boolean(modal)} title={modal?.title || ''} on:close={closeModal}>
     {#if modal?.type === 'totp-setup'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">2단계 인증 앱에 아래 비밀키를 등록한 뒤 표시되는 6자리 인증번호를 입력하세요.</p>
+        {#if totpQr}<img class="mx-auto mt-4 h-48 w-48 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-600" src={totpQr} alt="2단계 인증 앱 등록 QR 코드"/>{/if}
         <p class="mt-4 break-all rounded-xl bg-amber-50 p-4 font-mono font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-100">{totpSecret}</p>
         <input class="mt-4 w-full rounded-xl border border-gray-300 bg-white p-3 text-center text-lg tracking-[0.35em] dark:border-gray-600 dark:bg-gray-900" maxlength="6" inputmode="numeric" autocomplete="one-time-code" bind:value={modalTotpCode} placeholder="000000"/>
         <button class="mt-3 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white" on:click={confirmTotp}>확인</button>

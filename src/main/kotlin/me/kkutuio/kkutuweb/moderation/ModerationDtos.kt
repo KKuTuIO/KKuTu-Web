@@ -126,6 +126,17 @@ data class ModerationEffectSummary(
     val status: String
 )
 
+data class AccountSanctionCaseSummary(
+    val caseId: Long,
+    val inquiryId: String,
+    val primaryCategoryCode: String,
+    val summary: String,
+    val occurredAt: Instant,
+    val issuedAt: Instant,
+    val revokedAt: Instant?,
+    val effects: List<ModerationEffectSummary>
+)
+
 data class ModerationReportSummary(
     val reportId: Long,
     val categoryCode: String?,

@@ -24,6 +24,7 @@
 
 	let data = { status: "Guest user" };
 	let flyout = false;
+	let accountRestricted = false;
 	var noticeData = "";
 
 	let defaultProfileImage = 'https://cdn.kkutu.io/img/default_profile.png';
@@ -44,6 +45,12 @@
         if (!normalizedProvider || !normalizedId) return '';
         return normalizedProvider === 'local' ? normalizedId : `${normalizedProvider}-${normalizedId}`;
     }
+
+	function guardRestrictedNavigation(event) {
+		if (!accountRestricted) return;
+		event.preventDefault();
+		event.stopPropagation();
+	}
 	
 	onMount(async () => {
 	// 12월 26일 0시 5분 이후부터 타임 릴리즈 기능 활성화
@@ -109,6 +116,14 @@
 
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
+			try {
+				const blockResponse = await fetch('/api/block', { cache: 'no-store' });
+				const block = blockResponse.ok ? await blockResponse.json() : null;
+				accountRestricted = block?.blocked === true && block?.onlyGuestPunish !== true;
+			} catch (_) {
+				accountRestricted = false;
+			}
+
 			// get user data
 			const userRes = await fetch(`/user/${userId}`);
 			const userData = await userRes.json();
@@ -128,7 +143,7 @@
 	}
 </script>
 
-<header class="top-0 fixed w-full z-10">
+<header class="top-0 fixed w-full z-[60]">
 	<div class="bg-white dark:bg-gray-800 shadow lg:py-2 py-3">
 		<nav class="max-w-screen-xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
 		<div class="flex lg:flex-1">
@@ -141,7 +156,7 @@
 		{:else}
 		8주년 랜딩 완료 후 주석 해제
 		{/if}-->
-			<a href="/" class="md:flex items-center space-x-2" style={mourning ? 'filter: grayscale(100%)' : ''}>
+			<a href="/" on:click={guardRestrictedNavigation} class="md:flex items-center space-x-2" style={mourning ? 'filter: grayscale(100%)' : ''}>
 				<span class="sr-only">끄투리오</span>
 				<div class="flex items-center space-x-4">
 					<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
@@ -153,37 +168,37 @@
 		
 		</div>
 		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">
-			<a href="/" class="link-header">
+			<a href="/" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					home
 				</span>
 					홈</a>
-			<a rel="external" href="/rank" class="link-header">
+			<a rel="external" href="/rank" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					trophy
 				</span>
 				랭킹</a>
-            <a href="/records" class="link-header">
+			<a href="/records" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					id_card
 				</span>
                 전적</a>
-			<a target="_blank" href="https://cafe.naver.com/kkutuio" class="link-header">
+			<a target="_blank" href="https://cafe.naver.com/kkutuio" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					local_cafe
 				</span>
 				공식카페</a>
-			<a target="_blank" href="https://kkutu.wiki" class="link-header">
+			<a target="_blank" href="https://kkutu.wiki" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					book_2
 				</span>
 				리오위키</a>
-            <a href="/wordsheet" class="link-header">
+			<a href="/wordsheet" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					collections_bookmark
 				</span>
                 단어장</a>
-			<a target="_blank" href="https://cs.kkutu.io" class="link-header">
+			<a target="_blank" href="https://cs.kkutu.io" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					help
 				</span>
@@ -195,7 +210,7 @@
 				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</button>--->
-				<a href="/game/server/0" rel="external"
+				<a href="/game/server/0" rel="external" on:click={guardRestrictedNavigation}
 				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</a>
@@ -208,7 +223,7 @@
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</button>-->
-				<a href="/game/server/0" rel="external"
+				<a href="/game/server/0" rel="external" on:click={guardRestrictedNavigation}
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</a>

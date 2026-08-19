@@ -5,6 +5,7 @@ import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.hasRecentAuthentication
 import me.kkutuio.kkutuweb.extension.markRecentlyAuthenticated
 import me.kkutuio.kkutuweb.login.LoginService
+import me.kkutuio.kkutuweb.moderation.ModerationService
 import me.kkutuio.kkutuweb.SessionAttribute
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -30,6 +31,7 @@ data class ExternalSecondFactorRequest(val totpCode: String? = null, val securit
 data class ExternalMfaSettingRequest(val enabled: Boolean)
 data class ProfileSelectionRequest(val profileId: String)
 data class PasskeyCompletionRequest(val operationToken: String, val credential: JsonNode, val deviceName: String? = null)
+data class PasskeyRenameRequest(val name: String)
 
 @RestController
 @RequestMapping("/api/account")
@@ -42,7 +44,8 @@ class AccountApi(
     private val captcha: RecaptchaVerifier,
     private val limiter: AccountRateLimiter,
     private val webAuthn: WebAuthnService,
-    private val settings: IdentityProviderSettings
+    private val settings: IdentityProviderSettings,
+    private val moderation: ModerationService
 ) {
     @GetMapping("/csrf") fun csrf(request: HttpServletRequest): Map<String, String> {
         val token = (request.getAttribute(CsrfToken::class.java.name) ?: request.getAttribute("_csrf")) as? CsrfToken
@@ -78,6 +81,7 @@ class AccountApi(
     }
     @GetMapping("/reauthenticate/oauth/{provider}") fun beginOAuthReauthentication(@PathVariable provider: String, session: HttpSession): ResponseEntity<Void> {
         val account = accounts.requireCurrentAccount(session)
+        accounts.ensureLegacyExternalIdentity(account)
         limiter.check("reauthenticate-oauth:${account.id}", 20, 3600)
         val vendor = me.kkutuio.kkutuweb.oauth.AuthVendor.fromName(provider) ?: throw IdpException("invalid_request", "지원하지 않는 제공사입니다.")
         val linked = dao.listIdentities(account.id).any { it.type == IdentityType.OAUTH && it.revokedAt == null && it.provider.equals(vendor.name, ignoreCase = true) }
@@ -107,6 +111,18 @@ class AccountApi(
     }
     @GetMapping("/connected-applications") fun connectedApplications(session: HttpSession): List<Map<String, Any?>> =
         dao.listConnectedApplications(accounts.requireCurrentAccount(session).id)
+    @GetMapping("/sanctions") fun sanctions(
+        @RequestParam(name = "profile_id", required = false) profileId: String?,
+        session: HttpSession
+    ) = run {
+        val account = accounts.requireCurrentAccount(session)
+        val profile = profileId?.takeIf { it.isNotBlank() }?.let { rawId ->
+            val id = runCatching { java.util.UUID.fromString(rawId) }.getOrElse { throw IdpException("invalid_request", "잘못된 게임 프로필입니다.") }
+            dao.findActiveProfile(account.id, id)
+        } ?: dao.defaultProfile(account.id)
+            ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
+        moderation.accountSanctionHistory(profile["legacy_user_id"]?.toString() ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404))
+    }
     @DeleteMapping("/connected-applications/{clientId}") fun revokeConnectedApplication(@PathVariable clientId: String, session: HttpSession): ResponseEntity<Void> {
         val account = recent(session)
         limiter.check("connected-application-revoke:${account.id}", 20, 3600)
@@ -132,6 +148,14 @@ class AccountApi(
     }
     @PostMapping("/passkeys/registration/options") fun passkeyRegistrationOptions(session: HttpSession): Map<String, Any> { val account = recent(session); limiter.check("passkey-register:${account.id}", 20, 3600); return webAuthn.registrationOptions(account) }
     @PostMapping("/passkeys/registration/complete") fun passkeyRegistrationComplete(@RequestBody body: PasskeyCompletionRequest, session: HttpSession): ResponseEntity<Void> { val account = recent(session); limiter.check("passkey-register:${account.id}", 20, 3600); webAuthn.completeRegistration(account, body.operationToken, body.credential, body.deviceName ?: "Passkey"); return ResponseEntity.noContent().build() }
+    @PatchMapping("/passkeys/{id}") fun renamePasskey(@PathVariable id: Long, @RequestBody body: PasskeyRenameRequest, session: HttpSession): ResponseEntity<Void> {
+        val account = recent(session)
+        val name = body.name.trim().take(100)
+        if (name.isBlank()) throw IdpException("invalid_request", "패스키 이름을 입력해 주세요.")
+        if (dao.renamePasskey(account.id, id, name) != 1) throw IdpException("not_found", "패스키를 찾을 수 없습니다.", 404)
+        dao.audit(account.id, "PASSKEY_RENAMED")
+        return ResponseEntity.noContent().build()
+    }
     @DeleteMapping("/passkeys/{id}") fun removePasskey(@PathVariable id: Long, session: HttpSession): ResponseEntity<Void> {
         val account = recent(session); limiter.check("passkey-revoke:${account.id}", 10, 3600); if (dao.countActiveLoginMethods(account.id, settings.passwordEnabled) <= 1) throw IdpException("last_login_method", "다른 로그인 수단을 먼저 추가해야 합니다.")
         if (dao.revokePasskey(account.id, id) != 1) throw IdpException("not_found", "패스키를 찾을 수 없습니다.", 404)
@@ -163,7 +187,7 @@ class AccountApi(
 
     private fun recent(session: HttpSession): Account {
         val account = accounts.requireCurrentAccount(session)
-        if (!session.hasRecentAuthentication()) throw IdpException("reauthentication_required", "최근 인증이 필요합니다.", 401)
+        if (!session.hasRecentAuthentication()) throw IdpException("reauthentication_required", "본인인증이 필요합니다.", 401)
         return account
     }
     private fun requirePasswordEnabled() {

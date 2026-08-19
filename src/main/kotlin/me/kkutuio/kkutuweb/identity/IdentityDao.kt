@@ -199,6 +199,10 @@ class IdentityDao(
     fun insertPasskey(accountId: UUID, identityId: Long, credentialId: String, publicKeyCose: String, deviceName: String) = jdbc.update(
         "INSERT INTO account_passkey(account_id, identity_id, credential_id, public_key_cose, device_name) VALUES (?, ?, ?, ?, ?)", accountId, identityId, credentialId, publicKeyCose, deviceName)
     fun listPasskeys(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT * FROM account_passkey WHERE account_id = ? AND revoked_at IS NULL ORDER BY created_at", accountId)
+    fun renamePasskey(accountId: UUID, id: Long, name: String) = jdbc.update(
+        "UPDATE account_passkey SET device_name=? WHERE id=? AND account_id=? AND revoked_at IS NULL",
+        name, id, accountId
+    )
     fun lockAccount(accountId: UUID): Account? = queryOne("SELECT * FROM account WHERE id=? FOR UPDATE", accountMapper, accountId)
     /**
      * A passkey has both a credential row and a login identity.  Revoking only

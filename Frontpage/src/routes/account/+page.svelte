@@ -24,6 +24,7 @@
     let recoveryCodes = [];
     let selectedProfile = '';
     let reauthRequired = false;
+    let reauthDialogOpen = false;
     let reauthPassword = '';
     let reauthTotpCode = '';
     let reauthMfaRequired = false;
@@ -36,6 +37,8 @@
     let modal = null;
     let modalTotpCode = '';
     let modalTotpName = '';
+    let modalPasskeyId = null;
+    let modalPasskeyName = '';
     const oauthProviders = [
         {id: 'naver', name: '네이버', icon: '/img/auth/naver.png'},
         {id: 'google', name: 'Google', icon: '/img/auth/google.png'},
@@ -64,6 +67,8 @@
             mfa = await mfaRes.json();
             passwordEnabled = summary.password_enabled !== false;
             reauthProviderIds = identities.filter(identity => identity.type === 'OAUTH').map(identity => identity.provider.toLowerCase());
+            const legacyProvider = oauthProviders.find(provider => summary?.legacy_user_id?.toLowerCase().startsWith(`${provider.id}-`));
+            if (legacyProvider && !reauthProviderIds.includes(legacyProvider.id)) reauthProviderIds = [...reauthProviderIds, legacyProvider.id];
             nickname = (nicknamePolicy.nickname || summary.nickname || '').split('#')[0];
             fixedNickname = Boolean(nicknamePolicy.fixed);
             selectedProfile = summary.selected_profile_id || summary.profiles?.[0]?.id || '';
@@ -99,7 +104,22 @@
         modal = null;
         modalTotpCode = '';
         modalTotpName = '';
+        modalPasskeyId = null;
+        modalPasskeyName = '';
         totpQr = '';
+    }
+
+    function requestReauthentication() {
+        reauthRequired = true;
+        reauthDialogOpen = true;
+    }
+
+    function closeReauthentication() {
+        reauthDialogOpen = false;
+        reauthPassword = '';
+        reauthTotpCode = '';
+        reauthMfaRequired = false;
+        clearProtectedAction();
     }
 
     async function call(url, options = {}) {
@@ -110,7 +130,8 @@
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             reauthRequired = error.error === 'reauthentication_required';
-            notify(reauthRequired ? '보호된 변경을 계속하려면 최근 인증이 필요합니다.' : (error.error_description || '요청을 완료하지 못했습니다.'), 'error');
+            if (reauthRequired) reauthDialogOpen = true;
+            notify(reauthRequired ? '보호된 변경을 계속하려면 본인인증이 필요합니다.' : (error.error_description || '요청을 완료하지 못했습니다.'), 'error');
             return null;
         }
         notify('저장했습니다.');
@@ -152,7 +173,12 @@
     }
 
     function linkedIdentity(provider) {
-        return identities.find(identity => identity.type === 'OAUTH' && identity.provider?.toLowerCase() === provider.id);
+        const identity = identities.find(identity => identity.type === 'OAUTH' && identity.provider?.toLowerCase() === provider.id);
+        if (identity) return identity;
+        if (summary?.legacy_user_id?.toLowerCase().startsWith(`${provider.id}-`)) {
+            return {type: 'OAUTH', provider: provider.id.toUpperCase(), display_name: '기본 로그인 수단', legacy: true};
+        }
+        return null;
     }
 
     function linkedAt(identity) {
@@ -309,6 +335,24 @@
         }
     }
 
+    function openPasskeyRename(passkey) {
+        modalPasskeyId = passkey.id;
+        modalPasskeyName = passkey.device_name || 'Passkey';
+        modal = {type: 'passkey-rename', title: '패스키 이름 변경'};
+    }
+
+    async function confirmPasskeyRename() {
+        const nextName = modalPasskeyName.trim();
+        if (!nextName) {
+            notify('패스키 이름을 입력해 주세요.', 'error');
+            return;
+        }
+        if (await call(`/api/account/passkeys/${modalPasskeyId}`, {method: 'PATCH', body: JSON.stringify({name: nextName})})) {
+            closeModal();
+            await load();
+        }
+    }
+
     async function setupTotp() {
         const r = await call('/api/account/mfa/totp/setup', {method: 'POST', body: JSON.stringify({name: 'TOTP 매체'})});
         if (!r) return;
@@ -395,6 +439,7 @@
             return;
         }
         reauthRequired = false;
+        reauthDialogOpen = false;
         reauthPassword = '';
         reauthTotpCode = '';
         notify('본인확인이 완료되었습니다.');
@@ -455,9 +500,9 @@
         }
         const response = await fetch(url, {redirect: 'manual'});
         if (response.status === 401) {
-            reauthRequired = true;
+            requestReauthentication();
             rememberProtectedAction(`identity-link:${provider}`);
-            notify('연동을 계속하려면 최근 인증이 필요합니다.', 'error');
+            notify('연동을 계속하려면 본인인증이 필요합니다.', 'error');
             return;
         }
         if (response.type !== 'opaqueredirect' && !response.ok) {
@@ -479,35 +524,6 @@
 <main class="min-h-screen bg-gray-100 px-4 pb-16 pt-24 text-gray-900 dark:bg-gray-900 dark:text-gray-100 sm:px-6">
     <div class="mx-auto max-w-3xl space-y-8">
         <div class="flex items-center justify-between gap-3"><h1 class="text-3xl font-bold tracking-tight text-gray-700 dark:text-gray-100">계정 관리</h1><button class="grid h-10 w-10 place-items-center rounded-full text-gray-500 transition hover:bg-gray-200 hover:text-gray-900 disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-white" on:click={load} disabled={loading} aria-label="새로고침"><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'refresh'}</span></button></div>
-        {#if reauthRequired}
-            <section
-                    class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm dark:border-amber-900 dark:bg-amber-950">
-                <h2 class="font-bold">본인확인이 필요한 업무입니다</h2>
-                {#if passwordEnabled}
-                    <p class="mt-1 text-sm text-amber-900 dark:text-amber-100">고객님의 개인정보 보호를 위해 로그인 정보를 다시 확인합니다.</p>
-                    <input
-                            class="mt-4 w-full rounded-xl border border-amber-200 bg-white p-3 text-slate-900 dark:border-amber-800 dark:bg-gray-900 dark:text-white"
-                            type="password" bind:value={reauthPassword} autocomplete="current-password"
-                            placeholder="비밀번호"/><input
-                        class="mt-2 w-full rounded-xl border border-amber-200 bg-white p-3 text-slate-900 dark:border-amber-800 dark:bg-gray-900 dark:text-white"
-                        autocomplete="one-time-code" bind:value={reauthTotpCode} placeholder="TOTP 인증 코드 또는 보안코드"/>
-                    <button class="mt-3 rounded-full bg-amber-700 px-5 py-2.5 text-sm font-bold text-white"
-                            on:click={reauthenticate}>확인
-                    </button>
-                    {#if reauthMfaRequired}
-                        <div class="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm underline">
-                            <button on:click={requestReauthenticationEmailMfaCode}>TOTP 인증 코드를 확인할 수 없나요?</button>
-                            <a href="/account/recovery?mode=one-time" rel="external">일회용 비밀번호 사용</a>
-                        </div>
-                    {/if}
-                {:else}
-                    <p class="mt-1 text-sm text-amber-900 dark:text-amber-100">고객님의 개인정보 보호를 위해 로그인 정보를 다시 확인합니다.</p>
-                {/if}
-                <LoginMethodSelector providerIds={reauthProviderIds} showPasskey={passkeys.length > 0}
-                                     {passkeySupported} onPasskey={passkeyReauthenticate}
-                                     providerUrl={provider => `/api/account/reauthenticate/oauth/${encodeURIComponent(provider)}`}/>
-            </section>
-        {/if}
         {#if summary}
             <section class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타" on:error={useFallbackAvatar}/>
@@ -590,7 +606,7 @@
                                     {#each passkeys as passkey}
                                         <div class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-900">
                                             <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"><span class="material-symbols-outlined text-3xl">key</span></div>
-                                            <div class="min-w-0 flex-1"><h3 class="truncate text-lg font-bold">{passkey.device_name || 'Passkey'}</h3><p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{passkey.last_used_at ? `최근 사용: ${new Date(passkey.last_used_at).toLocaleString()}` : `등록: ${new Date(passkey.created_at).toLocaleString()}`}</p></div>
+                                            <div class="min-w-0 flex-1"><div class="flex items-center gap-1.5"><h3 class="truncate text-lg font-bold">{passkey.device_name || 'Passkey'}</h3><button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white" on:click={() => openPasskeyRename(passkey)} aria-label="패스키 이름 변경"><span class="material-symbols-outlined text-lg">edit</span></button></div><p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{passkey.last_used_at ? `최근 사용: ${new Date(passkey.last_used_at).toLocaleString()}` : `등록: ${new Date(passkey.created_at).toLocaleString()}`}</p></div>
                                             <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950" on:click={() => removePasskey(passkey.id)} aria-label="패스키 삭제"><span class="material-symbols-outlined">delete</span></button>
                                         </div>
                                     {/each}
@@ -616,6 +632,10 @@
                             {/if}
                         </div>
                     </details>
+                    <details class="group border-b border-gray-200 dark:border-gray-700">
+                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>일회용 비밀번호</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{mfa?.one_time_login_codes_remaining || 0}개<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
+                        <div class="px-5 pb-5"><p class="mb-3 text-sm text-gray-500 dark:text-gray-300">각 코드는 한 번만 로그인에 사용할 수 있습니다.</p><button class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600" on:click={rotateOneTimeLoginCodes}>새 코드 발급</button></div>
+                    </details>
                 </div>
             </section>
 
@@ -623,8 +643,8 @@
                 <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">지원 · 복구</h2>
                 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>지원 PIN</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><p class="text-sm text-gray-500 dark:text-gray-300">고객센터 상담 시 본인 확인에 사용합니다.</p><button class="mt-3 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700" on:click={issuePin}>발급</button></div></details>
-                    <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>일회용 비밀번호</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{mfa?.one_time_login_codes_remaining || 0}개<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary><div class="px-5 pb-5"><button class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600" on:click={rotateOneTimeLoginCodes}>새 코드 발급</button></div></details>
                     <details class="group"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>보안 코드</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><p class="text-sm text-gray-500 dark:text-gray-300">계정 복구에 필요한 보안 코드를 확인합니다.</p><button class="mt-3 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600" on:click={revealSecurityCode}>보기</button></div></details>
+                    <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700" href="/account/sanctions"><span>제재 내역</span><span class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span class="material-symbols-outlined">chevron_right</span></span></a>
                 </div>
             </section>
         {:else if loading}
@@ -639,7 +659,31 @@
     </div>
 </main>
 
-<AccountModal open={Boolean(modal)} title={modal?.title || ''} showFooter={modal?.type !== 'fixed-nickname-confirm'} on:close={closeModal}>
+<AccountModal open={reauthDialogOpen} title="본인 확인" showFooter={false} on:close={closeReauthentication}>
+    <div class="text-center">
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f5e9] text-[#438c43]"><span class="material-symbols-outlined text-3xl">shield_lock</span></div>
+        <p class="mt-4 font-bold">보안을 위해 다시 로그인해 주세요.</p>
+        <p class="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-300">고객님의 정보 보호를 위해 기존 로그인 수단으로 본인 확인을 진행합니다.</p>
+    </div>
+    {#if passwordEnabled}
+        <div class="mt-5 border-t border-gray-100 pt-5 dark:border-gray-700">
+            <label class="text-sm font-bold" for="reauth-password">비밀번호로 확인</label>
+            <input id="reauth-password" class="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-slate-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white" type="password" bind:value={reauthPassword} autocomplete="current-password" placeholder="비밀번호"/>
+            <input class="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-center tracking-[0.25em] text-slate-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white" autocomplete="one-time-code" bind:value={reauthTotpCode} placeholder="TOTP 인증 코드 또는 보안코드"/>
+            <button class="mt-3 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]" on:click={reauthenticate}>확인</button>
+            {#if reauthMfaRequired}
+                <div class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm underline">
+                    <button on:click={requestReauthenticationEmailMfaCode}>TOTP 인증 코드를 확인할 수 없나요?</button>
+                    <a href="/account/recovery?mode=one-time" rel="external">일회용 비밀번호 사용</a>
+                </div>
+            {/if}
+        </div>
+    {/if}
+    {#if passwordEnabled && (reauthProviderIds.length > 0 || passkeys.length > 0)}<p class="my-5 flex items-center gap-3 text-xs text-gray-400 before:h-px before:flex-1 before:bg-gray-200 after:h-px after:flex-1 after:bg-gray-200 dark:before:bg-gray-700 dark:after:bg-gray-700">또는</p>{/if}
+    <LoginMethodSelector providerIds={reauthProviderIds} showPasskey={passkeys.length > 0} {passkeySupported} onPasskey={passkeyReauthenticate} providerUrl={provider => `/api/account/reauthenticate/oauth/${encodeURIComponent(provider)}`}/>
+</AccountModal>
+
+<AccountModal open={Boolean(modal)} title={modal?.title || ''} showFooter={!['fixed-nickname-confirm', 'totp-rename', 'passkey-rename'].includes(modal?.type)} on:close={closeModal}>
     {#if modal?.type === 'totp-setup'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">2단계 인증 앱에 아래 비밀키를 등록한 뒤 표시되는 6자리 인증번호를 입력하세요.</p>
         {#if totpQr}<img class="mx-auto mt-4 h-48 w-48 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-600" src={totpQr} alt="2단계 인증 앱 등록 QR 코드"/>{/if}
@@ -659,6 +703,10 @@
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">인증 앱을 구분하기 쉬운 이름으로 변경할 수 있습니다.</p>
         <input class="mt-4 w-full rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" maxlength="100" bind:value={modalTotpName} placeholder="Authenticator" on:keydown={(event) => event.key === 'Enter' && confirmTotpRename()}/>
         <div class="mt-5 grid grid-cols-2 gap-3"><button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={closeModal}>취소</button><button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]" on:click={confirmTotpRename}>저장</button></div>
+    {:else if modal?.type === 'passkey-rename'}
+        <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">이 패스키를 구분하기 쉬운 이름으로 변경할 수 있습니다.</p>
+        <input class="mt-4 w-full rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" maxlength="100" bind:value={modalPasskeyName} placeholder="Passkey" on:keydown={(event) => event.key === 'Enter' && confirmPasskeyRename()}/>
+        <div class="mt-5 grid grid-cols-2 gap-3"><button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={closeModal}>취소</button><button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]" on:click={confirmPasskeyRename}>저장</button></div>
     {:else if modal?.type === 'fixed-nickname-confirm'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">100핑을 사용하여 별명을 고정합니다. 별명 고정 이후 180일 이상 게임에 접속하지 않으면 다른 회원이 별명 고정을 해제시킬 수 있습니다. 계속하시겠습니까?</p>
         <div class="mt-6 grid grid-cols-2 gap-3"><button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={closeModal}>아니오</button><button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]" on:click={confirmFixedNickname}>예</button></div>

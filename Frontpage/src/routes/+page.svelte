@@ -214,9 +214,8 @@
 </svelte:head>
 
 {#if blockData.blocked}
-    <!-- Fullscreen dim -->
-    <div class="z-50 fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-        <div class="bg-gray-800 text-center text-white rounded-xl p-8">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 pt-20 pb-6 backdrop-blur-md">
+        <div class="w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-900/90 p-6 text-center text-white shadow-2xl shadow-slate-950/50 backdrop-blur-xl sm:p-8">
             {#if blockData.onlyGuestPunish && blockData.blockType == "IP"}
                 <h2 class="text-2xl font-bold">손님 계정 이용 제한됨</h2>
                 <p class="mt-4 text-gray-300">운영정책 위반으로 <strong>손님 상태에서의 게임 이용</strong>이 제한되었습니다.</p>
@@ -286,6 +285,10 @@
                     </table>
 
                     <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <div class="mt-3 flex flex-wrap justify-center gap-2">
+                        <a href="/account" rel="external" class="rounded-full bg-[#55aa55] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#51a351]">계정 관리</a>
+                        <a href="/account/sanctions" rel="external" class="rounded-full border border-slate-500 px-4 py-2 text-sm font-bold text-slate-100 transition hover:border-slate-300 hover:bg-white/10">제재 내역</a>
+                    </div>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
                         <button class="mt-4 mb-2 font-bold rounded-full bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
                     </a>

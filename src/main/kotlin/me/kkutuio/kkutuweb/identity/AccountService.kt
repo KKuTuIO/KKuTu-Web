@@ -89,9 +89,11 @@ class AccountService(
 
         val identity = dao.insertIdentity(
             account.id, IdentityType.OAUTH, provider.name, subject, providerDisplayName(provider),
-            verified = true, primary = account.primaryIdentityId == null
+            verified = true, primary = account.primaryIdentityId == null || account.primaryIdentityId == 0L
         )
-        if (account.originIdentityId == null) dao.setOriginAndPrimary(account.id, identity.id)
+        if (account.originIdentityId == null || account.originIdentityId == 0L || account.primaryIdentityId == null || account.primaryIdentityId == 0L) {
+            dao.setOriginAndPrimary(account.id, identity.id)
+        }
         dao.audit(account.id, "LEGACY_IDENTITY_REPAIRED", identity.id, metadata = mapOf("provider" to provider.name))
     }
 

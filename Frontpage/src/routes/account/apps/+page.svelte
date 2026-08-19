@@ -103,7 +103,7 @@
                     on:click={() => selected = null}><span
                     class="material-symbols-outlined">arrow_back</span>{selected.client_name}</button>
             <section
-                    class="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-9">
+                    class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-9">
                 <div class="flex flex-col gap-6 sm:flex-row sm:items-center"><img
                         class="h-20 w-20 rounded-2xl border border-slate-200 bg-white object-contain p-2 dark:border-gray-600"
                         src={logo(selected)} alt="{selected.client_name} 아이콘" on:error={fallbackLogo}/>
@@ -114,7 +114,7 @@
             </section>
 
             <section
-                    class="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8">
+                    class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8">
                 <h2 class="text-xl font-bold">허용한 정보</h2>
                 <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-gray-300">{selected.client_name}에서 아래 범위의 정보를
                     사용할 수 있습니다.</p>
@@ -132,7 +132,7 @@
             </section>
 
             <section
-                    class="mt-6 rounded-3xl border border-red-100 bg-white p-6 shadow-sm dark:border-red-950 dark:bg-gray-800 sm:p-8">
+                    class="mt-6 rounded-2xl border border-red-100 bg-white p-6 shadow-sm dark:border-red-950 dark:bg-gray-800 sm:p-8">
                 <h2 class="text-xl font-bold">연결 해제</h2>
                 <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-gray-300">이 앱의 동의 시점에 발급된 접근·갱신 식별자를 모두
                     무효화합니다. 다시 사용하려면 앱에서 권한을 다시 요청해야 합니다.</p>
@@ -159,7 +159,7 @@
                 </button>
             </div>
             <section
-                    class="mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 {#if loading}<p class="p-8 text-center text-sm text-slate-500">연결된 앱을 불러오는 중입니다.</p>
                 {:else if filteredApplications().length === 0}<p
                         class="p-8 text-center text-sm text-slate-500">{applications.length ? '검색 결과가 없습니다.' : '연결된 앱이 없습니다.'}</p>

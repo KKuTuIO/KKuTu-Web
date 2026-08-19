@@ -130,6 +130,32 @@ class ModerationService(
         )
     }
 
+    fun accountSanctionHistory(userId: String): List<AccountSanctionCaseSummary> =
+        jdbcTemplate.query(
+            """
+            SELECT case_id, inquiry_id, primary_category_code, summary, occurred_at, issued_at, revoked_at
+            FROM moderation_cases
+            WHERE subject_type = 'USER' AND subject_user_id = ?
+              AND issued_at >= CURRENT_TIMESTAMP - INTERVAL '1 year'
+            ORDER BY issued_at DESC, case_id DESC
+            LIMIT 10
+            """.trimIndent(),
+            { rs, _ ->
+                val caseId = rs.getLong("case_id")
+                AccountSanctionCaseSummary(
+                    caseId = caseId,
+                    inquiryId = rs.getString("inquiry_id"),
+                    primaryCategoryCode = rs.getString("primary_category_code"),
+                    summary = rs.getString("summary"),
+                    occurredAt = rs.instant("occurred_at")!!,
+                    issuedAt = rs.instant("issued_at")!!,
+                    revokedAt = rs.instant("revoked_at"),
+                    effects = effects(caseId)
+                )
+            },
+            userId
+        )
+
     fun getUserReports(userId: String, window: Int, anchorMillis: Long?): ModerationReportPage {
         requireUser(userId)
         require(anchorMillis == null || anchorMillis > 0) { "올바른 신고 조회 기준 시각이 필요합니다." }

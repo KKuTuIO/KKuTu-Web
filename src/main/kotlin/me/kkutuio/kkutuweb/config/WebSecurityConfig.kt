@@ -30,9 +30,6 @@ class WebSecurityConfig : WebSecurityConfigurerAdapter() {
                 .and()
             .headers()
                 .frameOptions().sameOrigin()
-        http.requiresChannel {
-            it.antMatchers("/oauth/**", "/account/**", "/api/account/**", "/.well-known/**", "/api/internal/idp/**", "/api/internal/discord/**", "/api/admin/oauth-clients/**").requiresSecure()
-        }
     }
 
     private object IdpCsrfRequestMatcher : RequestMatcher {

@@ -130,6 +130,16 @@ class AccountService(
     @Transactional
     fun linkExternalIdentity(account: Account, oauth: OAuthUser) {
         val provider = oauth.authVendor.name
+        val legacyUserId = oauth.getUserId()
+
+        val existingAccount = dao.findAccountByLegacyId(legacyUserId)
+        if (existingAccount != null && existingAccount.id != account.id) {
+            throw IdpException("identity_conflict", "이미 다른 계정에 연결된 로그인 수단입니다.")
+        }
+        if (existingAccount == null && legacyUserId != account.legacyUserId && userDao.getUser(legacyUserId) != null) {
+            throw IdpException("identity_conflict", "이미 존재하는 게임 계정의 로그인 수단입니다.")
+        }
+
         val existing = dao.findIdentity(provider, oauth.vendorId)
         if (existing != null && existing.accountId != account.id) throw IdpException("identity_conflict", "이미 다른 계정에 연결된 로그인 수단입니다.")
         if (existing == null) {

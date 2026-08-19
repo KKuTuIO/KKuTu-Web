@@ -54,14 +54,15 @@ class FacebookOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
-        val vendorId = jsonResponse["id"].textValue()
+        val vendorId = jsonResponse.path("id").asText().takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Facebook 계정 식별번호를 받지 못했습니다.")
 
         return OAuthUser(
             authVendor = AuthVendor.FACEBOOK,
             vendorId = vendorId,
-            name = jsonResponse["name"].textValue(),
+            name = jsonResponse.path("name").asText(null) ?: "Facebook 사용자",
             profileImage = "http://graph.facebook.com/$vendorId/picture?type=square",
-            gender = if (jsonResponse.has("gender")) Gender.fromName(jsonResponse["gender"].textValue()) else null,
+            gender = jsonResponse.path("gender").asText(null)?.let(Gender::fromName),
             minAge = if (jsonResponse.has("age_range") && jsonResponse["age_range"].has("min")) jsonResponse["age_range"]["min"].intValue() else null,
             maxAge = if (jsonResponse.has("age_range") && jsonResponse["age_range"].has("max")) jsonResponse["age_range"]["max"].intValue() else null,
             email = jsonResponse.path("email").asText(null),

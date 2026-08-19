@@ -52,14 +52,16 @@ class DaldalsoOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
-        val profileImage = jsonResponse["profile"]["image"].textValue()
+        val profileImage = jsonResponse.path("profile").path("image").asText(null)
         val fixedProfileImage =
             if (profileImage == "https://daldal.so/anonymous.png") "https://daldal.so/media/images/anonymous.png" else profileImage
+        val vendorId = jsonResponse.path("key").asText().takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("달달소 계정 식별번호를 받지 못했습니다.")
 
         return OAuthUser(
             authVendor = AuthVendor.DALDALSO,
-            vendorId = jsonResponse["key"].textValue(),
-            name = jsonResponse["name"].textValue(),
+            vendorId = vendorId,
+            name = jsonResponse.path("name").asText(null) ?: "달달소 사용자",
             profileImage = fixedProfileImage,
             gender = null,
             minAge = null,

@@ -54,11 +54,15 @@ class DiscordOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
+        val vendorId = jsonResponse.path("id").asText().takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Discord 계정 식별번호를 받지 못했습니다.")
+        val avatar = jsonResponse.path("avatar").asText(null)
+
         return OAuthUser(
             authVendor = AuthVendor.DISCORD,
-            vendorId = jsonResponse["id"].textValue(),
-            name = jsonResponse["username"].textValue(),
-            profileImage = "https://cdn.discordapp.com/avatars/${jsonResponse["id"].longValue()}/${jsonResponse["avatar"].textValue()}",
+            vendorId = vendorId,
+            name = jsonResponse.path("username").asText(null) ?: "Discord 사용자",
+            profileImage = avatar?.let { "https://cdn.discordapp.com/avatars/$vendorId/$it" },
             gender = null,
             minAge = null,
             maxAge = null,

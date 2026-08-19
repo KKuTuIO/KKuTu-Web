@@ -149,7 +149,16 @@ class LoginService(
             session.removeAttribute(SessionAttribute.OAUTH_STATE)
             establishExternalSession(session, account, oAuthUser)
             true
+        } catch (e: me.kkutuio.kkutuweb.identity.IdpException) {
+            request.session.setAttribute("loginReason", e.message ?: "로그인 수단을 연결할 수 없습니다.")
+            request.session.removeAttribute(SessionAttribute.OAUTH_STATE.attributeName)
+            request.session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID.attributeName)
+            logger.info("OAuth login rejected for {}: {}", authVendor, e.message)
+            false
         } catch (e: Exception) {
+            request.session.setAttribute("loginReason", "로그인 처리 중 문제가 발생했습니다. 다시 시도해 주세요.")
+            request.session.removeAttribute(SessionAttribute.OAUTH_STATE.attributeName)
+            request.session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID.attributeName)
             logger.error("OAuth login failed for {}", authVendor, e)
             false
         }

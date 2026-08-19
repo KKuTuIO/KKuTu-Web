@@ -112,7 +112,7 @@
     <div class="mx-auto max-w-3xl">
         <a class="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-lg font-bold transition hover:bg-slate-200 dark:hover:bg-gray-800" href="/account"><span class="material-symbols-outlined">arrow_back</span>계정 관리</a>
 
-        <header class="mt-7"><p class="text-sm font-bold text-[#438c43]">계정 및 보안</p><h1 class="mt-1 text-3xl font-bold tracking-tight">제재 내역</h1><p class="mt-3 max-w-2xl text-slate-600 dark:text-gray-300">선택한 게임 프로필의 최근 1년 내 제재 내역을 최대 10건까지 확인할 수 있습니다.</p></header>
+        <header class="mt-7"><p class="text-sm font-bold text-[#438c43]">계정 및 보안</p><h1 class="mt-1 text-3xl font-bold tracking-tight">제재 내역</h1><p class="mt-3 max-w-2xl text-slate-600 dark:text-gray-300">선택한 게임 프로필의 최근 1년 내 제재 내역을 확인할 수 있습니다.</p></header>
 
         {#if summary}
             <section class="mt-7 flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">

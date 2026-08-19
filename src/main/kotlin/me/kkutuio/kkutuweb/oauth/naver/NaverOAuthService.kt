@@ -53,17 +53,19 @@ class NaverOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
-        val responseNode = jsonResponse["response"]
-        val splitAge = responseNode["age"].textValue().split("-")
+        val responseNode = jsonResponse.path("response")
+        val vendorId = responseNode.path("id").asText().takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("네이버 계정 식별번호를 받지 못했습니다.")
+        val splitAge = responseNode.path("age").asText("").split("-")
 
         return OAuthUser(
             authVendor = AuthVendor.NAVER,
-            vendorId = responseNode["id"].textValue(),
-            name = responseNode["nickname"].textValue(),
-            profileImage = responseNode["profile_image"].textValue(),
-            gender = Gender.fromName(responseNode["gender"].textValue()),
-            minAge = splitAge[0].toIntOrNull(),
-            maxAge = splitAge[1].toIntOrNull(),
+            vendorId = vendorId,
+            name = responseNode.path("nickname").asText(null) ?: "네이버 사용자",
+            profileImage = responseNode.path("profile_image").asText(null),
+            gender = responseNode.path("gender").asText(null)?.let(Gender::fromName),
+            minAge = splitAge.getOrNull(0)?.toIntOrNull(),
+            maxAge = splitAge.getOrNull(1)?.toIntOrNull(),
             email = responseNode.path("email").asText(null),
             emailVerified = false
         )

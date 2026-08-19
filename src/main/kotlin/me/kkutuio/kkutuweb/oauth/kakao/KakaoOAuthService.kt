@@ -51,12 +51,18 @@ class KakaoOAuthService(
 
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
+        val vendorId = jsonResponse.path("id").asText().takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("카카오 계정 식별번호를 받지 못했습니다.")
+        val properties = jsonResponse.path("properties")
+        val nickname = properties.path("nickname").asText(null)
+            ?: jsonResponse.path("kakao_account").path("profile").path("nickname").asText(null)
+            ?: "카카오 사용자"
 
         return OAuthUser(
             authVendor = AuthVendor.KAKAO,
-            vendorId = jsonResponse["id"].longValue().toString(),
-            name = jsonResponse["properties"]["nickname"].textValue(),
-            profileImage = if (jsonResponse["properties"].has("profile_image")) jsonResponse["properties"]["profile_image"].textValue() else null,
+            vendorId = vendorId,
+            name = nickname,
+            profileImage = properties.path("profile_image").asText(null),
             gender = null,
             minAge = null,
             maxAge = null,

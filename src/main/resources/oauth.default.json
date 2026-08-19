@@ -5,7 +5,7 @@
     "client-id": "",
     "client-secret": "",
     "callback-url": "",
-    "allowRegister": true
+    "allow-register": true
   },
   "facebook": {
     "enable": false,
@@ -13,7 +13,7 @@
     "client-id": "",
     "client-secret": "",
     "callback-url": "",
-    "allowRegister": true
+    "allow-register": true
   },
   "google": {
     "enable": false,
@@ -21,7 +21,7 @@
     "client-id": "",
     "client-secret": "",
     "callback-url": "",
-    "allowRegister": true
+    "allow-register": true
   },
   "naver": {
     "enable": false,
@@ -29,7 +29,7 @@
     "client-id": "",
     "client-secret": "",
     "callback-url": "",
-    "allowRegister": true
+    "allow-register": true
   },
   "github": {
     "enable": false,
@@ -37,7 +37,7 @@
     "client-id": "",
     "client-secret": "",
     "callback-url": "",
-    "allowRegister": true
+    "allow-register": true
   },
   "discord": {
     "enable": false,
@@ -45,7 +45,7 @@
     "client-id": "",
     "client-secret": "",
     "callback-url": "",
-    "allowRegister": true
+    "allow-register": true
   },
   "kakao": {
     "enable": false,
@@ -53,6 +53,6 @@
     "client-id": "",
     "client-secret": "<Empty>",
     "callback-url": "",
-    "allowRegister": true
+    "allow-register": true
   }
 }

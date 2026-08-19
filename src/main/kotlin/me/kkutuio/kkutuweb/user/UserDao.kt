@@ -23,12 +23,22 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.SingleColumnRowMapper
 import org.springframework.stereotype.Component
+import java.sql.ResultSet
 
 @Component
 class UserDao(
     @Autowired private val jdbcTemplate: JdbcTemplate,
     @Autowired private val userMapper: UserMapper
 ) {
+    data class NicknameState(
+        val id: String,
+        val nickname: String?,
+        val money: Long,
+        val lastLogin: Long?,
+        val lastModifiedAt: Long?,
+        val changeRestricted: Boolean,
+        val gameServer: String?
+    )
     fun getUser(id: String): User? {
         val sql = "SELECT * FROM users WHERE _id = ?"
 
@@ -47,6 +57,11 @@ class UserDao(
             { rs, _ -> rs.getString("_id") to rs.getString("nickname") },
             *ids.toTypedArray()
         ).toMap()
+    }
+
+    fun listLegacyUserIds(after: String?, limit: Int): List<String> {
+        return if (after == null) jdbcTemplate.queryForList("SELECT _id FROM users ORDER BY _id LIMIT ?", String::class.java, limit)
+        else jdbcTemplate.queryForList("SELECT _id FROM users WHERE _id > ? ORDER BY _id LIMIT ?", String::class.java, after, limit)
     }
 
     fun getUserFromNick(similarityNick: String, originalNick: String): User? {
@@ -85,6 +100,48 @@ class UserDao(
         val sql = "SELECT EXISTS(SELECT 1 FROM users WHERE nickname = ?)"
         return jdbcTemplate.queryForObject(sql, Boolean::class.java, nickname) ?: false
     }
+
+    fun nicknameState(id: String): NicknameState? = jdbcTemplate.query(
+        "SELECT _id, nickname, money, \"lastLogin\", \"lastModifiedNickAt\", \"isLimitModifyNick\", server FROM users WHERE _id = ?",
+        { rs, _ -> nicknameState(rs) }, id
+    ).firstOrNull()
+
+    fun lockNicknameState(id: String): NicknameState? = jdbcTemplate.query(
+        "SELECT _id, nickname, money, \"lastLogin\", \"lastModifiedNickAt\", \"isLimitModifyNick\", server FROM users WHERE _id = ? FOR UPDATE",
+        { rs, _ -> nicknameState(rs) }, id
+    ).firstOrNull()
+
+    fun lockFixedNicknameOwner(meanableNick: String): NicknameState? = jdbcTemplate.query(
+        "SELECT _id, nickname, money, \"lastLogin\", \"lastModifiedNickAt\", \"isLimitModifyNick\", server FROM users WHERE \"meanableNick\" = ? AND position('#' in nickname) = 0 FOR UPDATE",
+        { rs, _ -> nicknameState(rs) }, meanableNick
+    ).firstOrNull()
+
+    fun lockNicknameKey(meanableNick: String) {
+        jdbcTemplate.queryForList("SELECT pg_advisory_xact_lock(hashtext(?))", meanableNick)
+    }
+
+    fun nicknameOwner(nickname: String): String? = jdbcTemplate.queryForList(
+        "SELECT _id FROM users WHERE nickname = ?", String::class.java, nickname
+    ).firstOrNull()
+
+    fun updateNickname(id: String, nickname: String, meanableNick: String, money: Long, changedAt: Long) = jdbcTemplate.update(
+        "UPDATE users SET money = ?, nickname = ?, \"meanableNick\" = ?, \"lastModifiedNickAt\" = ? WHERE _id = ?",
+        money, nickname, meanableNick, changedAt, id
+    )
+
+    fun releaseDormantFixedNickname(id: String, nickname: String, meanableNick: String) = jdbcTemplate.update(
+        "UPDATE users SET nickname = ?, \"meanableNick\" = ? WHERE _id = ?", nickname, meanableNick, id
+    )
+
+    private fun nicknameState(rs: ResultSet): NicknameState = NicknameState(
+        id = rs.getString("_id"),
+        nickname = rs.getString("nickname"),
+        money = rs.getLong("money"),
+        lastLogin = rs.getObject("lastLogin")?.let { value -> (value as? Number)?.toLong() ?: value.toString().toLongOrNull() },
+        lastModifiedAt = rs.getObject("lastModifiedNickAt")?.let { value -> (value as? Number)?.toLong() ?: value.toString().toLongOrNull() },
+        changeRestricted = rs.getBoolean("isLimitModifyNick"),
+        gameServer = rs.getString("server")?.takeIf { it.isNotBlank() }
+    )
 
     // meanableNick only checked on Unique Nicknames
     fun newUser(id: String, nick: String, similarityNick: String) {

@@ -28,7 +28,8 @@ data class WordTypoCheckRequest(
     fun toSearchFilter(): WordSearchFilter = when (scope) {
         "THEME" -> WordSearchFilter(
             themes = themes.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
-            flags = listOf(WordFlag.INJEONG.flag)
+            flags = listOf(WordFlag.INJEONG.flag),
+            minLength = 8
         )
         "ADMIN_HISTORY" -> WordSearchFilter(
             flags = listOf(WordFlag.INJEONG.flag),

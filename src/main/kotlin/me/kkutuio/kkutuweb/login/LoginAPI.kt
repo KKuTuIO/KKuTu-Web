@@ -28,7 +28,8 @@ import javax.servlet.http.HttpSession
 @RestController
 @RequestMapping("/api/login")
 class LoginAPI(
-    @Autowired private val oAuthSetting: OAuthSetting
+    @Autowired private val oAuthSetting: OAuthSetting,
+    @Autowired private val loginService: LoginService
 ) {
     @GetMapping("/vendor")
     fun vendorList(): List<String> {
@@ -43,5 +44,12 @@ class LoginAPI(
         session.removeAttribute("loginReason")
 
         return reason
+    }
+
+    @GetMapping("/link-account")
+    fun getLinkAccountInfo(session: HttpSession): Map<String, String> {
+        val provider = loginService.pendingRegistrationProvider(session)
+            ?: throw IllegalStateException("연동할 로그인 정보가 없습니다.")
+        return mapOf("provider" to provider)
     }
 }

@@ -60,7 +60,9 @@ class GoogleOAuthService(
             profileImage = jsonResponse.path("picture").asText(null),
             gender = null,
             minAge = null,
-            maxAge = null
+            maxAge = null,
+            email = jsonResponse.path("email").asText(null),
+            emailVerified = jsonResponse.path("email_verified").asBoolean(false)
         )
     }
 }

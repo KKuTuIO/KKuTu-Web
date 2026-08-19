@@ -4,10 +4,16 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository
+import org.springframework.security.web.util.matcher.RequestMatcher
+import javax.servlet.http.HttpServletRequest
 
 @Configuration
 class WebSecurityConfig : WebSecurityConfigurerAdapter() {
     override fun configure(http: HttpSecurity) {
+        val csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse().apply {
+            setCookiePath("/")
+        }
         http
             .authorizeRequests {
                 it
@@ -15,8 +21,37 @@ class WebSecurityConfig : WebSecurityConfigurerAdapter() {
                     .anyRequest().permitAll()
             }
             .httpBasic(Customizer.withDefaults())
-            .csrf().disable()
+            // The legacy API predates CSRF tokens.  Protect every cookie-backed
+            // IdP account mutation and the Consent form without breaking its
+            // independent, bearer-authenticated API endpoints.
+            .csrf()
+                .csrfTokenRepository(csrfRepository)
+                .requireCsrfProtectionMatcher(IdpCsrfRequestMatcher)
+                .and()
             .headers()
-                .frameOptions().disable();
+                .frameOptions().sameOrigin()
+        http.requiresChannel {
+            it.antMatchers("/oauth/**", "/account/**", "/api/account/**", "/.well-known/**", "/api/internal/idp/**", "/api/internal/discord/**", "/api/admin/oauth-clients/**").requiresSecure()
+        }
+    }
+
+    private object IdpCsrfRequestMatcher : RequestMatcher {
+        private val unsafeMethods = setOf("POST", "PUT", "PATCH", "DELETE")
+        private val publicAccountPaths = setOf(
+            "/api/account/recovery/request",
+            "/api/account/recovery/reset",
+            "/api/account/recovery/recovery-code",
+            "/api/account/password/login",
+            "/api/account/passkeys/authentication/options",
+            "/api/account/passkeys/authentication/complete",
+            "/api/account/email/confirm"
+        )
+
+        override fun matches(request: HttpServletRequest): Boolean {
+            if (request.method !in unsafeMethods) return false
+            val path = request.requestURI.removePrefix(request.contextPath)
+            return path == "/oauth/authorize/consent" ||
+                (path.startsWith("/api/account/") && path !in publicAccountPaths)
+        }
     }
 }

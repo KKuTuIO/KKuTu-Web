@@ -23,6 +23,8 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import me.kkutuio.kkutuweb.SessionAttribute
 import me.kkutuio.kkutuweb.oauth.OAuthUser
 import javax.servlet.http.HttpSession
+import java.time.Instant
+import java.util.UUID
 
 private val objectMapper = ObjectMapper().registerKotlinModule()
 
@@ -40,3 +42,16 @@ fun HttpSession.setAttribute(sessionAttribute: SessionAttribute, value: Any) =
 
 fun HttpSession.removeAttribute(sessionAttribute: SessionAttribute) =
     this.removeAttribute(sessionAttribute.attributeName)
+
+fun HttpSession.getAccountId(): UUID? = (getAttribute(SessionAttribute.ACCOUNT_ID.attributeName) as? String)?.let {
+    runCatching { UUID.fromString(it) }.getOrNull()
+}
+
+fun HttpSession.setAccountId(accountId: UUID) = setAttribute(SessionAttribute.ACCOUNT_ID, accountId.toString())
+
+fun HttpSession.markRecentlyAuthenticated() = setAttribute(SessionAttribute.RECENT_AUTH_AT, Instant.now().epochSecond)
+fun HttpSession.markAuthenticated() = setAttribute(SessionAttribute.AUTHENTICATED_AT, Instant.now().epochSecond)
+fun HttpSession.authenticatedAt(): Long = (getAttribute(SessionAttribute.AUTHENTICATED_AT.attributeName) as? Long) ?: 0L
+
+fun HttpSession.hasRecentAuthentication(maxAgeSeconds: Long = 300): Boolean =
+    ((getAttribute(SessionAttribute.RECENT_AUTH_AT.attributeName) as? Long) ?: 0L) >= Instant.now().epochSecond - maxAgeSeconds

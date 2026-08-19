@@ -34,13 +34,14 @@ import org.springframework.stereotype.Service
 class FacebookOAuthService(
     @Autowired private val objectMapper: ObjectMapper
 ) : OAuthService() {
-    private val protectedResourceUrl = "https://graph.facebook.com/v8.0/me?fields=id,name,gender,age_range"
+    private val protectedResourceUrl = "https://graph.facebook.com/v8.0/me?fields=id,name,gender,age_range,email"
 
     override fun init(apiKey: String, apiSecret: String, callbackUrl: String, _allowRegister: Boolean) {
         allowRegister = _allowRegister
         oAuth20Service = ServiceBuilder(apiKey)
             .apiSecret(apiSecret)
             .callback(callbackUrl)
+            .defaultScope("email")
             .build(FacebookApi.instance())
     }
 
@@ -62,7 +63,9 @@ class FacebookOAuthService(
             profileImage = "http://graph.facebook.com/$vendorId/picture?type=square",
             gender = if (jsonResponse.has("gender")) Gender.fromName(jsonResponse["gender"].textValue()) else null,
             minAge = if (jsonResponse.has("age_range") && jsonResponse["age_range"].has("min")) jsonResponse["age_range"]["min"].intValue() else null,
-            maxAge = if (jsonResponse.has("age_range") && jsonResponse["age_range"].has("max")) jsonResponse["age_range"]["max"].intValue() else null
+            maxAge = if (jsonResponse.has("age_range") && jsonResponse["age_range"].has("max")) jsonResponse["age_range"]["max"].intValue() else null,
+            email = jsonResponse.path("email").asText(null),
+            emailVerified = false
         )
     }
 }

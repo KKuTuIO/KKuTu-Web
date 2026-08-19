@@ -38,6 +38,7 @@ class KakaoOAuthService(
         allowRegister = _allowRegister
         oAuth20Service = ServiceBuilder(apiKey)
             .callback(callbackUrl)
+            .defaultScope("account_email")
             .userAgent("KKuTu-Web (https://github.com/horyu1234/KKuTu-Web)")
             .build(KakaoApi)
     }
@@ -58,7 +59,9 @@ class KakaoOAuthService(
             profileImage = if (jsonResponse["properties"].has("profile_image")) jsonResponse["properties"]["profile_image"].textValue() else null,
             gender = null,
             minAge = null,
-            maxAge = null
+            maxAge = null,
+            email = jsonResponse.path("kakao_account").path("email").asText(null),
+            emailVerified = jsonResponse.path("kakao_account").path("is_email_valid").asBoolean(false) && jsonResponse.path("kakao_account").path("is_email_verified").asBoolean(false)
         )
     }
 }

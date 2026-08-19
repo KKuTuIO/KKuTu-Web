@@ -21,6 +21,7 @@ package me.kkutuio.kkutuweb.login
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.oauth.AuthVendor
+import me.kkutuio.kkutuweb.SessionAttribute
 import me.kkutuio.kkutuweb.view.View
 import me.kkutuio.kkutuweb.view.Views.getView
 import org.slf4j.LoggerFactory
@@ -57,6 +58,11 @@ class LoginController(
         return "forward:/loginFail.html"
     }
 
+    @GetMapping("/link-account")
+    fun linkAccount(session: HttpSession): String {
+        return if (session.getAttribute(SessionAttribute.LOGIN_LINK_REQUIRED.attributeName) == true) "forward:/login/link-account.html" else "redirect:/login"
+    }
+
     @GetMapping("/logout")
     fun logout(session: HttpSession): String {
         try {
@@ -90,6 +96,9 @@ class LoginController(
         val vendorType = AuthVendor.fromName(vendorName) ?: return "redirect:/login/fail"
 
         val loginSuccess = loginService.login(request, vendorType, code, state)
+        if (loginSuccess && request.session.getAttribute(SessionAttribute.LOGIN_LINK_REQUIRED.attributeName) == true) {
+            return "redirect:/login/link-account"
+        }
         if (loginSuccess) {
             val session = request.session
             val oAuthUser = session.getOAuthUser()
@@ -99,7 +108,10 @@ class LoginController(
             logger.info("[${request.getIp()}] ${request.session.id} 세션에서 ${vendorType.name} 로그인에 실패했습니다.")
         }
 
-        return if (!loginSuccess) "redirect:/login/fail"
-        else "redirect:/"
+        if (!loginSuccess) return "redirect:/login/fail"
+        val continuation = request.session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
+        request.session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName)
+        val safeContinuation = continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") }
+        return if (safeContinuation != null) "redirect:$safeContinuation" else "redirect:/"
     }
 }

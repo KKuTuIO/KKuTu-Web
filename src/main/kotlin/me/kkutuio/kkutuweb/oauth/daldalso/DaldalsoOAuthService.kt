@@ -63,7 +63,9 @@ class DaldalsoOAuthService(
             profileImage = fixedProfileImage,
             gender = null,
             minAge = null,
-            maxAge = null
+            maxAge = null,
+            email = jsonResponse.path("account").asText(null),
+            emailVerified = false
         )
     }
 }

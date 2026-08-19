@@ -52,6 +52,14 @@ class SetupService(
         return user.nickname == null
     }
 
+    fun nicknameValidationError(nick: String): String? = when {
+        nick.length < 2 || nick.length > 16 || nick.isBlank() -> NickChangeResult.INVALID_LENGTH.errorCode
+        !nick.matches(nickRegex) -> NickChangeResult.INVALID_PATTERN.errorCode
+        nick.lowercase().contains(badWordRegex) -> NickChangeResult.HAS_BAD_WORDS.errorCode
+        nick.replace(" ", "").lowercase().contains(bannedWordRegex) -> NickChangeResult.HAS_BANNED_WORDS.errorCode
+        else -> null
+    }
+
     fun setupNick(request: HttpServletRequest, session: HttpSession, nick: String): ActionResult {
         val isGuest = session.isGuest()
         val sessionProfile = loginService.getSessionProfile(session)
@@ -60,30 +68,15 @@ class SetupService(
             return ActionResult(false, RestResult.BAD_REQUEST.name)
         }
 
-        if (nick.length < 2 || nick.length > 16 || nick.isBlank()) {
-            return ActionResult(false, NickChangeResult.INVALID_LENGTH.errorCode)
-        }
-
-        if (!nick.matches(nickRegex)) {
-            return ActionResult(false, NickChangeResult.INVALID_PATTERN.errorCode)
-        }
-
-        if (nick.lowercase().contains(badWordRegex)) {
-            return ActionResult(false, NickChangeResult.HAS_BAD_WORDS.errorCode)
-        }
-
-        if (nick.replace(" ", "").lowercase().contains(bannedWordRegex)) {
-            return ActionResult(false, NickChangeResult.HAS_BANNED_WORDS.errorCode)
-        }
+        nicknameValidationError(nick)?.let { return ActionResult(false, it) }
 
         val nickname = nick + "#" + sessionProfile.id.split("-")[1]?.take(5)
 
         try {
             val isExistInCache = redisTemplate.opsForSet().isMember("nickname_cache", nickname) ?: false
-            if (isExistInCache) {
-                return ActionResult(false, NickChangeResult.ALREADY_USING.errorCode)
-            }
-        } catch (e: Exception) { }
+            if (isExistInCache) return ActionResult(false, NickChangeResult.ALREADY_USING.errorCode)
+        } catch (_: Exception) {
+        }
 
         val similarityNick = similarityRegex.replace(nickname, "").lowercase()
 

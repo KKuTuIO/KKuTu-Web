@@ -40,6 +40,7 @@ class GithubOAuthService(
         oAuth20Service = ServiceBuilder(apiKey)
             .apiSecret(apiSecret)
             .callback(callbackUrl)
+            .defaultScope("read:user user:email")
             .build(GitHubApi.instance())
     }
 
@@ -52,6 +53,12 @@ class GithubOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
+        val emailRequest = OAuthRequest(Verb.GET, "https://api.github.com/user/emails")
+        oAuth20Service.signRequest(accessToken, emailRequest)
+        val verifiedEmail = objectMapper.readTree(oAuth20Service.execute(emailRequest).body)
+            .firstOrNull { it.path("primary").asBoolean(false) && it.path("verified").asBoolean(false) }
+            ?.path("email")?.asText(null)
+
         return OAuthUser(
             authVendor = AuthVendor.GITHUB,
             vendorId = jsonResponse["id"].intValue().toString(),
@@ -59,7 +66,9 @@ class GithubOAuthService(
             profileImage = jsonResponse["avatar_url"].textValue(),
             gender = null,
             minAge = null,
-            maxAge = null
+            maxAge = null,
+            email = verifiedEmail,
+            emailVerified = verifiedEmail != null
         )
     }
 }

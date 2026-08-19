@@ -37,6 +37,7 @@ data class AdminSetting(
         USER_SANCTION_REVOKE,
         REPORT_RESOLVE,
         SANCTION_POLICY_OVERRIDE,
-        SANCTION_COUNTER_RESET
+        SANCTION_COUNTER_RESET,
+        IDP_CLIENT_MANAGE
     }
 }

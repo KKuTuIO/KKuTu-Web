@@ -32,9 +32,13 @@ import me.kkutuio.kkutuweb.oauth.naver.NaverOAuthService
 import me.kkutuio.kkutuweb.session.SessionProfile
 import me.kkutuio.kkutuweb.setting.OAuthSetting
 import me.kkutuio.kkutuweb.user.UserDao
+import me.kkutuio.kkutuweb.identity.AccountService
+import me.kkutuio.kkutuweb.identity.Account
+import me.kkutuio.kkutuweb.identity.SecretTools
+import me.kkutuio.kkutuweb.oauth.OAuthUser
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.*
 import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
@@ -50,10 +54,10 @@ class LoginService(
     @Autowired private val githubOAuthService: GithubOAuthService,
     @Autowired private val discordOAuthService: DiscordOAuthService,
     @Autowired private val kakaoOAuthService: KakaoOAuthService,
-    @Autowired private val userDao: UserDao
+    @Autowired private val userDao: UserDao,
+    @Autowired private val accountService: AccountService,
+    @Autowired private val objectMapper: ObjectMapper
 ) {
-    private val stateLength = 50L
-
     @PostConstruct
     fun initOAuthServices() {
         for (entry in oAuthSetting.getSetting().entries) {
@@ -86,21 +90,83 @@ class LoginService(
                 return false
             }
 
+            val linkAccount = (session.getAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID.attributeName) as? String)
+                ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+
+            if (linkAccount != null) {
+                val account = accountService.currentAccount(session) ?: return false
+                if (account.id != linkAccount) return false
+                val oAuthUser = getOAuthService(authVendor).login(code)
+                accountService.linkExternalIdentity(account, oAuthUser)
+                session.removeAttribute(SessionAttribute.OAUTH_STATE)
+                session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID)
+                return true
+            }
+
+            val pendingIdentityJson = session.getAttribute(SessionAttribute.PENDING_OAUTH_USER.attributeName) as? String
+            val continuation = session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
             try {
                 session.invalidate()
                 session = request.session
             } catch (e: Exception) {
             }
+            continuation?.let { session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, it) }
 
             val oAuthUser = getOAuthService(authVendor).login(code)
+
+            if (pendingIdentityJson != null) {
+                // This is the second half of the "no direct registration" flow.
+                // Do not let a caller bypass it by selecting another blocked provider directly.
+                if (!getOAuthService(authVendor).allowRegister) return false
+                val pendingIdentity = objectMapper.readValue(pendingIdentityJson, OAuthUser::class.java)
+                val account = accountService.ensureExternalAccount(oAuthUser, request)
+                accountService.linkExternalIdentity(account, pendingIdentity)
+                session.setAttribute(SessionAttribute.IS_GUEST, false)
+                session.setOAuthUser(oAuthUser)
+                accountService.bindSession(session, account)
+                return true
+            }
+
+            if (!accountService.isKnownExternalAccount(oAuthUser) && !getOAuthService(authVendor).allowRegister) {
+                session.setAttribute(SessionAttribute.IS_GUEST, true)
+                session.setAttribute(SessionAttribute.PENDING_OAUTH_USER.attributeName, objectMapper.writeValueAsString(oAuthUser))
+                session.setAttribute(SessionAttribute.LOGIN_LINK_REQUIRED.attributeName, true)
+                return true
+            }
+
+            val account = accountService.ensureExternalAccount(oAuthUser, request)
 
             session.removeAttribute(SessionAttribute.OAUTH_STATE)
             session.setAttribute(SessionAttribute.IS_GUEST, false)
             session.setOAuthUser(oAuthUser)
+            accountService.bindSession(session, account)
             true
         } catch (e: Exception) {
             false
         }
+    }
+
+    fun pendingRegistrationProvider(session: HttpSession): String? {
+        if (session.getAttribute(SessionAttribute.LOGIN_LINK_REQUIRED.attributeName) != true) return null
+        val pendingIdentity = session.getAttribute(SessionAttribute.PENDING_OAUTH_USER.attributeName) as? String ?: return null
+        return runCatching { objectMapper.readValue(pendingIdentity, OAuthUser::class.java).authVendor }.getOrNull()
+            ?.let(::providerDisplayName)
+    }
+
+    private fun providerDisplayName(vendor: AuthVendor): String = when (vendor) {
+        AuthVendor.DALDALSO -> "Daldalso"
+        AuthVendor.DISCORD -> "Discord"
+        AuthVendor.NAVER -> "네이버"
+        AuthVendor.FACEBOOK -> "Facebook"
+        AuthVendor.GOOGLE -> "Google"
+        AuthVendor.KAKAO -> "카카오"
+        AuthVendor.GITHUB -> "GitHub"
+        AuthVendor.LOCAL -> "로컬"
+    }
+
+    fun beginIdentityLink(session: HttpSession, account: Account, authVendor: AuthVendor): String? {
+        session.setAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID, account.id.toString())
+        return getAuthorizationUrl(session, authVendor)
     }
 
     fun getSessionProfile(session: HttpSession): SessionProfile? {
@@ -129,6 +195,17 @@ class LoginService(
         return getOAuthService(vendorType)
     }
 
+    fun loginWithAccount(request: HttpServletRequest, account: Account) {
+        accountService.requireLoginAllowed(account)
+        var session = request.session
+        runCatching { session.invalidate() }
+        session = request.session
+        val nickname = userDao.getUser(account.legacyUserId)?.nickname ?: account.legacyUserId
+        session.setAttribute(SessionAttribute.IS_GUEST, false)
+        session.setOAuthUser(OAuthUser(AuthVendor.LOCAL, account.legacyUserId, nickname, null, null, null, null))
+        accountService.bindSession(session, account)
+    }
+
     private fun getOAuthService(authVendor: AuthVendor): OAuthService {
         return when (authVendor) {
             AuthVendor.DALDALSO -> daldalsoOAuthService
@@ -138,14 +215,9 @@ class LoginService(
             AuthVendor.GITHUB -> githubOAuthService
             AuthVendor.DISCORD -> discordOAuthService
             AuthVendor.KAKAO -> kakaoOAuthService
+            AuthVendor.LOCAL -> throw IllegalArgumentException("LOCAL is not an external OAuth provider")
         }
     }
 
-    private fun getRandomState(): String {
-        val source = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-        return Random().ints(stateLength, 0, source.length)
-            .asSequence()
-            .map(source::get)
-            .joinToString("")
-    }
+    private fun getRandomState(): String = SecretTools.randomToken(32)
 }

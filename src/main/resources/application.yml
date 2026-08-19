@@ -6,6 +6,9 @@ server:
       timeout: 12h
       cookie:
         name: KKUTU-WEB-SESSION
+        http-only: true
+        secure: true
+        same-site: lax
       persistent: true
       store-dir: <Your Session Dir>
 
@@ -23,6 +26,14 @@ spring:
     url: jdbc:postgresql://<Host>:<Port>/<Database>
     username: <Username>
     password: <Password>
+  mail:
+    host: <SMTP Host>
+    port: 587
+    username: <SMTP Username>
+    password: <SMTP Password>
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
   jpa:
     open-in-view: false
   cache:
@@ -79,3 +90,25 @@ resilience4j:
         limitForPeriod: 3
         limitRefreshPeriod: 1s
         timeoutDuration: 0s
+
+# Identity Provider secrets must be injected by deployment configuration; never commit real values.
+idp:
+  issuer: https://kkutu.io
+  rp-id: kkutu.io
+  allowed-origins: https://kkutu.io
+  internal-api-key: ""
+  data-encryption-key: ""
+  mail:
+    from: no-reply@kkutu.io
+  recaptcha:
+    site-key: ""
+    secret: ""
+    minimum-score: 0.5
+    expected-hostnames: kkutu.io
+  password:
+    enabled: true
+  signing-key:
+    rotation-days: 90
+    previous-key-grace-days: 30
+  legacy-migration:
+    enabled: false

@@ -40,7 +40,7 @@ class DiscordOAuthService(
         oAuth20Service = ServiceBuilder(apiKey)
             .apiSecret(apiSecret)
             .callback(callbackUrl)
-            .defaultScope("identify")
+            .defaultScope("identify email")
             .userAgent("KKuTu-Web (https://github.com/horyu1234/KKuTu-Web)")
             .build(DiscordApi.instance())
     }
@@ -61,7 +61,9 @@ class DiscordOAuthService(
             profileImage = "https://cdn.discordapp.com/avatars/${jsonResponse["id"].longValue()}/${jsonResponse["avatar"].textValue()}",
             gender = null,
             minAge = null,
-            maxAge = null
+            maxAge = null,
+            email = jsonResponse.path("email").asText(null),
+            emailVerified = jsonResponse.path("verified").asBoolean(false)
         )
     }
 }

@@ -27,10 +27,12 @@ data class OAuthUser(
     val profileImage: String?,
     val gender: Gender?,
     val minAge: Int?,
-    val maxAge: Int?
+    val maxAge: Int?,
+    val email: String? = null,
+    val emailVerified: Boolean = false
 ) {
     @JsonIgnore
     fun getUserId(): String {
-        return "${authVendor.name.lowercase()}-${vendorId}"
+        return if (authVendor == AuthVendor.LOCAL) vendorId else "${authVendor.name.lowercase()}-${vendorId}"
     }
 }

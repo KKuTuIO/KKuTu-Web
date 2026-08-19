@@ -78,6 +78,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect")
 
     implementation("de.codecentric:spring-boot-admin-starter-client:2.6.3")
@@ -88,6 +89,10 @@ dependencies {
     implementation("com.github.scribejava:scribejava-apis:7.1.1")
     implementation("org.postgresql:postgresql:42.2.16")
     implementation("com.googlecode.htmlcompressor:htmlcompressor:1.5.2")
+    implementation("org.flywaydb:flyway-core")
+    implementation("de.mkammerer:argon2-jvm:2.11")
+    implementation("com.nimbusds:nimbus-jose-jwt:9.37.3")
+    implementation("com.upokecenter:cbor:4.5.5")
 
     implementation("io.sentry:sentry-spring-boot-starter:4.3.0")
     implementation("io.sentry:sentry-logback:4.3.0")

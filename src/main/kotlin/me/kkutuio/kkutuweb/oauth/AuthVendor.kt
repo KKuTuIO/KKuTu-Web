@@ -25,7 +25,8 @@ enum class AuthVendor {
     NAVER,
     GITHUB,
     DISCORD,
-    KAKAO;
+    KAKAO,
+    LOCAL;
 
     companion object {
         fun fromName(vendorName: String): AuthVendor? {

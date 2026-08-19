@@ -21,5 +21,12 @@ package me.kkutuio.kkutuweb
 enum class SessionAttribute(val attributeName: String) {
     IS_GUEST("isGuest"),
     OAUTH_STATE("oAuthState"),
-    OAUTH_USER("oAuthUser")
+    OAUTH_USER("oAuthUser"),
+    ACCOUNT_ID("accountId"),
+    RECENT_AUTH_AT("recentAuthAt"),
+    AFTER_LOGIN_URL("afterLoginUrl"),
+    AUTHENTICATED_AT("authenticatedAt"),
+    OAUTH_LINK_ACCOUNT_ID("oauthLinkAccountId"),
+    PENDING_OAUTH_USER("pendingOAuthUser"),
+    LOGIN_LINK_REQUIRED("loginLinkRequired")
 }

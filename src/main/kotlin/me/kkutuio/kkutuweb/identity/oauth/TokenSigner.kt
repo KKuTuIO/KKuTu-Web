@@ -11,6 +11,7 @@ import me.kkutuio.kkutuweb.identity.IdentityProviderSettings
 import me.kkutuio.kkutuweb.identity.SecretCipher
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Component
+import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Date
@@ -39,7 +40,7 @@ class TokenSigner(
 
     private fun activeKey(): RSAKey = synchronized(lock) {
         val now = Instant.now()
-        jdbc.update("DELETE FROM idp_signing_key WHERE status='RETIRED' AND expires_at <= ?", now)
+        jdbc.update("DELETE FROM idp_signing_key WHERE status='RETIRED' AND expires_at <= ?", Timestamp.from(now))
         val current = readKeys("status='ACTIVE'").firstOrNull()
         if (current != null && current.createdAt.plus(settings.signingKeyRotationDays.coerceAtLeast(1), ChronoUnit.DAYS).isAfter(now)) {
             return@synchronized current.key
@@ -47,7 +48,7 @@ class TokenSigner(
         if (current != null) {
             jdbc.update(
                 "UPDATE idp_signing_key SET status='RETIRED', retired_at=?, expires_at=? WHERE kid=? AND status='ACTIVE'",
-                now, now.plus(settings.signingKeyGraceDays.coerceAtLeast(1), ChronoUnit.DAYS), current.key.keyID
+                Timestamp.from(now), Timestamp.from(now.plus(settings.signingKeyGraceDays.coerceAtLeast(1), ChronoUnit.DAYS)), current.key.keyID
             )
         }
         val generated = RSAKeyGenerator(2048).keyIDFromThumbprint(true).generate()

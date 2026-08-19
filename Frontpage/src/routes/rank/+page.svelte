@@ -8,6 +8,7 @@
   import { getMoremi } from '../../lib/getMoremi.js';
 
   let currentPage = 0;
+  let loading = false;
 
   var topRankData = {
     "data": {
@@ -32,14 +33,10 @@
   };
 
   onMount(async () => {
-    const res = await fetch('/ranking?page=0');
-    topRankData = await res.json();
-    topRankData.data.data = topRankData.data.data.slice(0, 4);
-
     const urlParams = new URLSearchParams(window.location.search);
     const page = urlParams.get('page');
     if(page) currentPage = Number(page) - 1;
-
+    await refreshRanking();
   });
 
 
@@ -47,6 +44,22 @@
     const res = await fetch(`/ranking?page=${page}`);
     const data = await res.json();
     rankData = data;
+  }
+
+  async function refreshRanking() {
+    loading = true;
+    try {
+      const [topResponse, pageResponse] = await Promise.all([
+        fetch('/ranking?page=0'),
+        fetch(`/ranking?page=${currentPage}`)
+      ]);
+      if (!topResponse.ok || !pageResponse.ok) throw new Error();
+      topRankData = await topResponse.json();
+      topRankData.data.data = topRankData.data.data.slice(0, 4);
+      rankData = await pageResponse.json();
+    } finally {
+      loading = false;
+    }
   }
 
   async function drawMoremi(uid){
@@ -78,7 +91,7 @@
 </svelte:head>
 <div class="dark:bg-gray-900">
   <div class="pt-32 px-4 pb-24 flex flex-col items-center rankBg">
-      <h1 class="text-white text-5xl font-bold mb-2">랭킹</h1>
+      <div class="flex items-center gap-2"><h1 class="text-white text-5xl font-bold mb-2">랭킹</h1><button class="mb-2 grid h-10 w-10 place-items-center rounded-full text-white/80 transition hover:bg-white/15 disabled:opacity-50" on:click={refreshRanking} disabled={loading} aria-label="새로고침"><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'refresh'}</span></button></div>
       <p class="text-gray-300 text-xl my-4">끄투리오의 랭킹을 확인하세요.</p>
   </div>
   <div class="lg:shadow-md mx-2 lg:mx-auto max-w-screen-xl -mt-16 mb-24 p-2 lg:p-4 bg-gray-100 dark:bg-gray-800 dark:text-white rounded-lg">

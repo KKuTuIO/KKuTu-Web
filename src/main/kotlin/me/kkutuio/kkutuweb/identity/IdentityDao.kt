@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
+import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -139,7 +140,7 @@ class IdentityDao(
     fun grantConsent(accountId: UUID, clientId: String, scopes: Set<String>) = jdbc.update("INSERT INTO idp_consent(account_id, client_id, scopes) VALUES (?, ?, CAST(? AS jsonb)) ON CONFLICT(account_id, client_id) DO UPDATE SET scopes=EXCLUDED.scopes, updated_at=CURRENT_TIMESTAMP", accountId, clientId, json(scopes))
 
     fun saveAuthorizationCode(hash: String, accountId: UUID, clientId: String, redirectUri: String, scopes: Set<String>, nonce: String?, challenge: String, profileId: UUID?, expiresAt: Instant) {
-        jdbc.update("INSERT INTO idp_authorization_code(code_hash, account_id, client_id, redirect_uri, scopes, nonce, code_challenge, code_challenge_method, selected_profile_id, expires_at) VALUES (?, ?, ?, ?, CAST(? AS jsonb), ?, ?, 'S256', ?, ?)", hash, accountId, clientId, redirectUri, json(scopes), nonce, challenge, profileId, expiresAt)
+        jdbc.update("INSERT INTO idp_authorization_code(code_hash, account_id, client_id, redirect_uri, scopes, nonce, code_challenge, code_challenge_method, selected_profile_id, expires_at) VALUES (?, ?, ?, ?, CAST(? AS jsonb), ?, ?, 'S256', ?, ?)", hash, accountId, clientId, redirectUri, json(scopes), nonce, challenge, profileId, Timestamp.from(expiresAt))
     }
     fun consumeAuthorizationCode(hash: String): Map<String, Any?>? {
         val rows = jdbc.queryForList("UPDATE idp_authorization_code SET used_at = CURRENT_TIMESTAMP WHERE code_hash = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP RETURNING *", hash)
@@ -151,12 +152,12 @@ class IdentityDao(
     ).firstOrNull()
 
     fun saveAccessToken(hash: String, accountId: UUID, clientId: String, scopes: Set<String>, profileId: UUID?, expiresAt: Instant) = jdbc.update(
-        "INSERT INTO idp_access_token(token_hash, account_id, client_id, scopes, selected_profile_id, expires_at) VALUES (?, ?, ?, CAST(? AS jsonb), ?, ?)", hash, accountId, clientId, json(scopes), profileId, expiresAt)
+        "INSERT INTO idp_access_token(token_hash, account_id, client_id, scopes, selected_profile_id, expires_at) VALUES (?, ?, ?, CAST(? AS jsonb), ?, ?)", hash, accountId, clientId, json(scopes), profileId, Timestamp.from(expiresAt))
     fun findActiveAccessToken(hash: String): Map<String, Any?>? = jdbc.queryForList("SELECT * FROM idp_access_token WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > CURRENT_TIMESTAMP", hash).firstOrNull()
     fun revokeAccessToken(hash: String) = jdbc.update("UPDATE idp_access_token SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = ?", hash)
 
     fun saveRefreshToken(hash: String, familyId: UUID, parentHash: String?, accountId: UUID, clientId: String, scopes: Set<String>, profileId: UUID?, expiresAt: Instant) = jdbc.update(
-        "INSERT INTO idp_refresh_token(token_hash, family_id, parent_hash, account_id, client_id, scopes, selected_profile_id, expires_at) VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?)", hash, familyId, parentHash, accountId, clientId, json(scopes), profileId, expiresAt)
+        "INSERT INTO idp_refresh_token(token_hash, family_id, parent_hash, account_id, client_id, scopes, selected_profile_id, expires_at) VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?)", hash, familyId, parentHash, accountId, clientId, json(scopes), profileId, Timestamp.from(expiresAt))
     fun consumeRefreshToken(hash: String, clientId: String): Map<String, Any?>? = jdbc.queryForList(
         "UPDATE idp_refresh_token SET used_at = CURRENT_TIMESTAMP WHERE token_hash = ? AND client_id = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > CURRENT_TIMESTAMP RETURNING *",
         hash, clientId
@@ -170,7 +171,7 @@ class IdentityDao(
     fun invalidateSessions(accountId: UUID) = jdbc.update("UPDATE account SET session_not_before=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?", accountId)
 
     fun saveOneTimeToken(hash: String, accountId: UUID?, purpose: String, payload: Map<String, Any?>, expiresAt: Instant) = jdbc.update(
-        "INSERT INTO account_one_time_token(token_hash, account_id, purpose, payload, expires_at) VALUES (?, ?, ?, CAST(? AS jsonb), ?)", hash, accountId, purpose, objectMapper.writeValueAsString(payload), expiresAt)
+        "INSERT INTO account_one_time_token(token_hash, account_id, purpose, payload, expires_at) VALUES (?, ?, ?, CAST(? AS jsonb), ?)", hash, accountId, purpose, objectMapper.writeValueAsString(payload), Timestamp.from(expiresAt))
     fun consumeOneTimeToken(hash: String, purpose: String): Map<String, Any?>? = jdbc.queryForList("UPDATE account_one_time_token SET consumed_at = CURRENT_TIMESTAMP WHERE token_hash = ? AND purpose = ? AND consumed_at IS NULL AND expires_at > CURRENT_TIMESTAMP RETURNING *", hash, purpose).firstOrNull()
 
     fun insertPasskey(accountId: UUID, identityId: Long, credentialId: String, publicKeyCose: String, deviceName: String) = jdbc.update(
@@ -210,7 +211,7 @@ class IdentityDao(
     fun supportPinIssuedAt(accountId: UUID): Instant? = jdbc.queryForList("SELECT issued_at FROM account_support_pin WHERE account_id=? AND revoked_at IS NULL", accountId).firstOrNull()?.get("issued_at")?.let { (it as java.sql.Timestamp).toInstant() }
     fun supportPinHash(accountId: UUID): String? = jdbc.queryForList("SELECT pin_hash FROM account_support_pin WHERE account_id=? AND revoked_at IS NULL", accountId).firstOrNull()?.get("pin_hash")?.toString()
 
-    fun saveDiscordLinkRequest(hash: String, discordSubject: String, legacyUserId: String, client: String, expiresAt: Instant) = jdbc.update("INSERT INTO discord_link_request(nonce_hash, discord_subject, legacy_user_id, request_client, expires_at) VALUES (?, ?, ?, ?, ?)", hash, discordSubject, legacyUserId, client, expiresAt)
+    fun saveDiscordLinkRequest(hash: String, discordSubject: String, legacyUserId: String, client: String, expiresAt: Instant) = jdbc.update("INSERT INTO discord_link_request(nonce_hash, discord_subject, legacy_user_id, request_client, expires_at) VALUES (?, ?, ?, ?, ?)", hash, discordSubject, legacyUserId, client, Timestamp.from(expiresAt))
     fun findDiscordLinkRequest(hash: String): Map<String, Any?>? = jdbc.queryForList("SELECT * FROM discord_link_request WHERE nonce_hash=?", hash).firstOrNull()
     fun completeDiscordLinkRequest(hash: String, accountId: UUID, status: String) = jdbc.update("UPDATE discord_link_request SET status=?, account_id=?, completed_at=CURRENT_TIMESTAMP WHERE nonce_hash=? AND status='PENDING' AND expires_at>CURRENT_TIMESTAMP", status, accountId, hash)
     fun expireDiscordRequests() = jdbc.update("UPDATE discord_link_request SET status='EXPIRED' WHERE status='PENDING' AND expires_at<=CURRENT_TIMESTAMP")

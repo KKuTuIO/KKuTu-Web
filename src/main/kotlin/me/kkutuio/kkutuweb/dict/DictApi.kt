@@ -29,13 +29,26 @@ import javax.servlet.http.HttpServletResponse
 import javax.servlet.http.HttpSession
 import me.kkutuio.kkutuweb.shop.ShopService
 import me.kkutuio.kkutuweb.extension.isGuest
+import me.kkutuio.kkutuweb.locale.LocalePropertyLoader
+import java.util.Locale
 
 @RestController
 class DictApi(
     @Autowired private val dictService: DictService,
-    @Autowired private val shopService: ShopService
+    @Autowired private val shopService: ShopService,
+    @Autowired private val localePropertyLoader: LocalePropertyLoader
 ) {
-    @GetMapping("/dictionary/{lang}/{word}", produces = [MediaType.APPLICATION_JSON_VALUE])
+    @GetMapping("/dictionary/meta", "/api/dictionary/meta", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getMetadata(): DictionaryMetadata {
+        val messages = localePropertyLoader.getMessages(Locale.KOREAN)
+        return DictionaryMetadata(
+            themes = messages.filterKeys { it.startsWith("word.theme.") }
+                .mapKeys { it.key.removePrefix("word.theme.") },
+            parts = messages.filterKeys { it.startsWith("word.class.") }
+                .mapKeys { it.key.removePrefix("word.class.") }
+        )
+    }
+    @GetMapping("/dictionary/{lang}/{word}", "/api/dictionary/{lang}/{word}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getWord(
         @PathVariable word: String,
         @PathVariable lang: String
@@ -70,3 +83,8 @@ class DictApi(
         return dictService.getWords(startChar, lang, mission)
     }
 }
+
+data class DictionaryMetadata(
+    val themes: Map<String, String>,
+    val parts: Map<String, String>
+)

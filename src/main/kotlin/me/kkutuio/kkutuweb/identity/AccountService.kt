@@ -70,14 +70,17 @@ class AccountService(
     fun findExternalAccount(oauth: OAuthUser): Account? = dao.findActiveIdentity(oauth.authVendor.name, oauth.vendorId)
         ?.let { dao.findAccount(it.accountId) }
 
-    /**
-     * OAuth is a login method, not the game identity.  Once an account has
-     * several login methods, every game-facing request must use the account's
-     * selected game profile instead of the provider that happened to sign in.
-     */
-    fun selectedGameProfileLegacyUserId(account: Account): String =
-        dao.defaultProfile(account.id)?.get("legacy_user_id")?.toString()?.takeIf { it.isNotBlank() }
-            ?: account.legacyUserId
+    /** Verifies an existing login method without changing the signed-in account. */
+    @Transactional
+    fun verifyExternalReauthentication(account: Account, oauth: OAuthUser) {
+        val identity = dao.findActiveIdentity(oauth.authVendor.name, oauth.vendorId)
+            ?: throw IdpException("reauthentication_failed", "현재 계정에 연결된 로그인 수단이 아닙니다.", 403)
+        if (identity.accountId != account.id) {
+            throw IdpException("reauthentication_failed", "현재 계정에 연결된 로그인 수단이 아닙니다.", 403)
+        }
+        dao.touchIdentity(identity.id)
+        dao.audit(account.id, "OAUTH_REAUTHENTICATED", identity.id, metadata = mapOf("provider" to oauth.authVendor.name))
+    }
 
     @Transactional
     fun ensureLegacyExternalIdentity(account: Account) {

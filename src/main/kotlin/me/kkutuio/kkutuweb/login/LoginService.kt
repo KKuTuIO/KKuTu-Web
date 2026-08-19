@@ -104,6 +104,8 @@ class LoginService(
 
             val linkAccount = (session.getAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID.attributeName) as? String)
                 ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+            val reauthenticationAccount = (session.getAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID.attributeName) as? String)
+                ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
 
             if (linkAccount != null) {
                 val account = accountService.currentAccount(session) ?: return false
@@ -112,6 +114,21 @@ class LoginService(
                 accountService.linkExternalIdentity(account, oAuthUser)
                 session.removeAttribute(SessionAttribute.OAUTH_STATE)
                 session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID)
+                session.removeAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID)
+                return true
+            }
+
+            if (reauthenticationAccount != null) {
+                val account = accountService.currentAccount(session) ?: return false
+                if (account.id != reauthenticationAccount) return false
+                val oAuthUser = getOAuthService(authVendor).login(code)
+                // Reauthentication is proof for the account that is already
+                // signed in.  It must never become a normal login and replace
+                // that account with the provider's own legacy account.
+                accountService.verifyExternalReauthentication(account, oAuthUser)
+                session.markRecentlyAuthenticated()
+                session.removeAttribute(SessionAttribute.OAUTH_STATE)
+                session.removeAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID)
                 return true
             }
 
@@ -153,12 +170,14 @@ class LoginService(
             request.session.setAttribute("loginReason", e.message ?: "로그인 수단을 연결할 수 없습니다.")
             request.session.removeAttribute(SessionAttribute.OAUTH_STATE.attributeName)
             request.session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID.attributeName)
+            request.session.removeAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID.attributeName)
             logger.info("OAuth login rejected for {}: {}", authVendor, e.message)
             false
         } catch (e: Exception) {
             request.session.setAttribute("loginReason", "로그인 처리 중 문제가 발생했습니다. 다시 시도해 주세요.")
             request.session.removeAttribute(SessionAttribute.OAUTH_STATE.attributeName)
             request.session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID.attributeName)
+            request.session.removeAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID.attributeName)
             logger.error("OAuth login failed for {}", authVendor, e)
             false
         }
@@ -256,31 +275,33 @@ class LoginService(
     }
 
     fun beginIdentityLink(session: HttpSession, account: Account, authVendor: AuthVendor): String? {
+        session.removeAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID)
         session.setAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID, account.id.toString())
+        return getAuthorizationUrl(session, authVendor)
+    }
+
+    fun beginOAuthReauthentication(session: HttpSession, account: Account, authVendor: AuthVendor): String? {
+        session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID)
+        session.setAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID, account.id.toString())
         return getAuthorizationUrl(session, authVendor)
     }
 
     fun getSessionProfile(session: HttpSession): SessionProfile? {
         if (session.isGuest()) return null
+        val oAuthUser = session.getOAuthUser()
 
-        // The OAuth object proves how the account authenticated.  It is not
-        // the game identity: a linked provider can legitimately have a
-        // different legacy ID.  The account session is the authority for the
-        // selected game profile used by the game server and all profile APIs.
-        val account = accountService.currentAccount(session)
-        val oAuthUser = runCatching { session.getOAuthUser() }.getOrNull()
-        val userId = account?.let(accountService::selectedGameProfileLegacyUserId) ?: oAuthUser?.getUserId() ?: return null
+        val userId = oAuthUser.getUserId()
         val user = userDao.getUser(userId)
-        val authType = userId.substringBefore('-', "local").lowercase()
-        val fallbackName = oAuthUser?.name ?: userId
-        val title = user?.nickname ?: fallbackName
+
+        val authType = oAuthUser.authVendor.name.lowercase()
+        val title = if (user == null) oAuthUser.name else (user.nickname ?: oAuthUser.name)
 
         return SessionProfile(
             authType = authType,
             id = userId,
-            name = user?.nickname ?: fallbackName,
+            name = oAuthUser.name,
             title = title,
-            image = oAuthUser?.takeIf { it.getUserId() == userId }?.profileImage ?: ""
+            image = oAuthUser.profileImage ?: ""
         )
     }
 

@@ -87,7 +87,8 @@ class AccountApi(
         val linked = dao.listIdentities(account.id).any { it.type == IdentityType.OAUTH && it.revokedAt == null && it.provider.equals(vendor.name, ignoreCase = true) }
         if (!linked) throw IdpException("forbidden", "연결된 로그인 수단만 사용할 수 있습니다.", 403)
         session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, "/account")
-        val url = loginService.getAuthorizationUrl(session, vendor) ?: throw IdpException("temporarily_unavailable", "로그인 제공사가 설정되지 않았습니다.", 503)
+        val url = loginService.beginOAuthReauthentication(session, account, vendor)
+            ?: throw IdpException("temporarily_unavailable", "로그인 제공사가 설정되지 않았습니다.", 503)
         return ResponseEntity.status(302).header("Location", url).build()
     }
     @PostMapping("/email/verify") fun emailVerify(@RequestBody body: EmailRequest, session: HttpSession): ResponseEntity<Void> {

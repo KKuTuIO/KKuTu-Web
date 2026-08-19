@@ -18,15 +18,10 @@
 
     let slideData = [
                 {
-                    "id": 0,
+                    "id": "loading",
                     "link": "/",
-                    "color": "#000",
-                    "slides": [
-                        {
-                            "desktop": "/slide/d.png",
-                            "mobile": "/slide/m.png"
-                        }
-                    ]
+                    "color": "#fff",
+                    "slides": []
                 }
             ];
     
@@ -98,7 +93,12 @@
     function getUserId(provider, id) {
         const normalizedProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
         const normalizedId = id === undefined || id === null ? '' : String(id).trim();
-        return normalizedProvider && normalizedId ? `${normalizedProvider}-${normalizedId}` : '';
+        if (!normalizedProvider || !normalizedId) return '';
+
+        // Passkey, recovery, and optional email/password sign-ins keep the
+        // legacy game-profile id in vendorId.  LOCAL is the login method, not
+        // a prefix belonging to that profile.
+        return normalizedProvider === 'local' ? normalizedId : `${normalizedProvider}-${normalizedId}`;
     }
 
     function processNick(nick) {
@@ -317,10 +317,12 @@
             <ul class="glide__slides lg:min-h-[456px] min-h-[280px]">
                 {#each slideData as slide, index (slide.id ?? index)}
                     <li class="glide__slide pt-[56px] flex justify-center items-center" style={`background: ${slide.color || '#000'}`}>
-                        <a href={getSlideLink(slide)}>
-                            <img src={slide.slides?.[0]?.desktop || '/slide/d.png'} class="hidden h-[400px] lg:block object-cover" alt="끄투리오 안내" />
-                            <img src={slide.slides?.[0]?.mobile || '/slide/m.png'} class="h-54 lg:hidden object-cover" alt="끄투리오 안내" />
-                        </a>
+                        {#if slide.slides?.[0]?.desktop || slide.slides?.[0]?.mobile}
+                            <a href={getSlideLink(slide)}>
+                                {#if slide.slides?.[0]?.desktop}<img src={slide.slides[0].desktop} class="hidden h-[400px] lg:block object-cover" alt="끄투리오 안내" />{/if}
+                                {#if slide.slides?.[0]?.mobile}<img src={slide.slides[0].mobile} class="h-54 lg:hidden object-cover" alt="끄투리오 안내" />{/if}
+                            </a>
+                        {/if}
                     </li>
                 {/each}
             </ul>
@@ -422,7 +424,7 @@
                                     <h3 class="text-2xl font-bold text-white truncate w-48">{@html ingameName}</h3>
                                 </div>
                                 <p class="text-gray-300">{score.toLocaleString()}점</p>
-                                <p class="text-gray-300">{authVendor} 계정</p>
+                                <p class="text-gray-300">{authVendor === 'LOCAL' ? '계정 로그인' : `${authVendor} 계정`}</p>
                             </div>
                         {:else}
                             <div class="w-[120px] h-[120px]">

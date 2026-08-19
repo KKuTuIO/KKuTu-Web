@@ -1,10 +1,13 @@
 package me.kkutuio.kkutuweb.identity
 
 import org.springframework.http.ResponseEntity
+import org.springframework.core.Ordered
+import org.springframework.core.annotation.Order
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 class IdentityExceptionHandler {
     @ExceptionHandler(IdpException::class)
     fun idp(error: IdpException): ResponseEntity<Map<String, String>> = ResponseEntity.status(error.status).body(mapOf("error" to error.error, "error_description" to (error.message ?: "request failed")))

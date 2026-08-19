@@ -30,7 +30,8 @@
 	function getUserId(provider, id) {
 		const normalizedProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
 		const normalizedId = id === undefined || id === null ? '' : String(id).trim();
-		return normalizedProvider && normalizedId ? `${normalizedProvider}-${normalizedId}` : '';
+		if (!normalizedProvider || !normalizedId) return '';
+		return normalizedProvider === 'local' ? normalizedId : `${normalizedProvider}-${normalizedId}`;
 	}
 
 	

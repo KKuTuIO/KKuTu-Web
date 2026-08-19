@@ -40,6 +40,7 @@ import me.kkutuio.kkutuweb.oauth.OAuthUser
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.slf4j.LoggerFactory
 import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
@@ -61,6 +62,7 @@ class LoginService(
     @Autowired private val accountSecurity: AccountSecurityService,
     @Autowired private val objectMapper: ObjectMapper
 ) {
+    private val logger = LoggerFactory.getLogger(LoginService::class.java)
     private companion object {
         const val PENDING_MFA_TTL_SECONDS = 300L
     }
@@ -90,9 +92,13 @@ class LoginService(
         return try {
             var session = request.session
             val oAuthState = session.getAttribute(SessionAttribute.OAUTH_STATE.attributeName)
-                ?: return false
+                ?: run {
+                    logger.warn("OAuth callback rejected for {}: session has no state", authVendor)
+                    return false
+                }
 
             if (oAuthState != state) {
+                logger.warn("OAuth callback rejected for {}: state did not match", authVendor)
                 return false
             }
 
@@ -144,6 +150,7 @@ class LoginService(
             establishExternalSession(session, account, oAuthUser)
             true
         } catch (e: Exception) {
+            logger.error("OAuth login failed for {}", authVendor, e)
             false
         }
     }

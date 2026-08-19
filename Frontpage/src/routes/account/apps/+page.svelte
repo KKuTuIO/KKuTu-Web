@@ -96,7 +96,7 @@
 
 <svelte:head><title>끄투리오 - 연결된 앱</title></svelte:head>
 
-<main class="min-h-screen bg-slate-100 px-4 pb-16 pt-24 text-slate-900 dark:bg-gray-900 dark:text-gray-100 sm:px-6">
+<main class="min-h-screen bg-gray-100 px-4 pb-16 pt-24 text-slate-900 dark:bg-gray-900 dark:text-gray-100 sm:px-6">
     <div class="mx-auto max-w-4xl">
         {#if selected}
             <button class="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-lg font-bold transition hover:bg-slate-200 dark:hover:bg-gray-800"

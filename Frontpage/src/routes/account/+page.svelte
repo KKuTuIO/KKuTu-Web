@@ -35,6 +35,7 @@
     let pendingProtectedAction = '';
     let modal = null;
     let modalTotpCode = '';
+    let modalTotpName = '';
     const oauthProviders = [
         {id: 'naver', name: '네이버', icon: 'https://cdn.kkutu.io/logo/fusion/naver.svg'},
         {id: 'google', name: 'Google', icon: 'https://cdn.kkutu.io/logo/fusion/google.svg'},
@@ -97,6 +98,7 @@
     function closeModal() {
         modal = null;
         modalTotpCode = '';
+        modalTotpName = '';
         totpQr = '';
     }
 
@@ -339,8 +341,22 @@
         }
     }
 
-    async function renameTotp() {
-        if (await call('/api/account/mfa/totp', {method: 'PATCH', body: JSON.stringify({name: totpName})})) load();
+    function openTotpRename() {
+        modalTotpName = totpName || 'Authenticator';
+        modal = {type: 'totp-rename', title: 'TOTP 인증 매체 이름 변경'};
+    }
+
+    async function confirmTotpRename() {
+        const nextName = modalTotpName.trim();
+        if (!nextName) {
+            notify('TOTP 인증 매체 이름을 입력해 주세요.', 'error');
+            return;
+        }
+        totpName = nextName;
+        if (await call('/api/account/mfa/totp', {method: 'PATCH', body: JSON.stringify({name: nextName})})) {
+            closeModal();
+            await load();
+        }
     }
 
     async function removeTotp() {
@@ -565,7 +581,23 @@
                         <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>비밀번호</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><div class="grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" type="password" minlength="12" placeholder="새 비밀번호 (12자 이상)" bind:value={password}/><button class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-white dark:bg-gray-700" on:click={setPassword}>{identities.some(identity => identity.type === 'PASSWORD') ? '변경' : '설정'}</button></div></div></details>
                     {/if}
                     <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>패스키</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{passkeys.length}/10<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary><div class="px-5 pb-5"><button class="rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43] disabled:opacity-50" on:click={registerPasskey} disabled={passkeys.length >= 10}>추가</button>{#each passkeys as passkey}<div class="mt-3 flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-3 text-sm dark:bg-gray-900"><span><b>{passkey.device_name}</b><br/><small class="text-gray-500">{passkey.last_used_at || passkey.created_at}</small></span><button class="font-bold text-red-700" on:click={() => removePasskey(passkey.id)}>삭제</button></div>{/each}</div></details>
-                    <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>2단계 인증</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{mfa?.totp ? '사용 중' : '미설정'}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary><div class="px-5 pb-5"><div class="flex items-center justify-between gap-3">{#if mfa?.totp}<button class="rounded-xl border border-red-300 px-4 py-2 text-sm font-bold text-red-700" on:click={removeTotp}>해제</button>{:else}<button class="rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]" on:click={setupTotp}>추가</button>{/if}</div>{#if mfa?.totp}<div class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" maxlength="100" bind:value={totpName} placeholder="TOTP 매체명"/><button class="rounded-xl border px-4 py-3 text-sm font-bold" on:click={renameTotp}>수정</button></div>{#if passwordEnabled}<div class="mt-4 flex items-center justify-between gap-4 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900"><span class="text-sm font-bold">외부 계정으로 로그인 시 2단계 인증 사용</span><button type="button" role="switch" aria-checked={Boolean(mfa?.external_login_mfa_enabled)} class={`relative h-7 w-12 rounded-full transition-colors ${mfa?.external_login_mfa_enabled ? 'bg-[#55aa55]' : 'bg-gray-300 dark:bg-gray-600'}`} on:click={() => setExternalLoginMfa(!mfa?.external_login_mfa_enabled)}><span class:translate-x-6={mfa?.external_login_mfa_enabled} class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform"></span></button></div>{/if}{/if}</div></details>
+                    <details class="group border-b border-gray-200 dark:border-gray-700">
+                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>2단계 인증</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{mfa?.totp ? '사용 중' : '미설정'}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
+                        <div class="px-5 pb-5">
+                            {#if mfa?.totp}
+                                <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-900">
+                                    <div class="flex items-center gap-4">
+                                        <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"><span class="material-symbols-outlined text-3xl">qr_code_2</span></div>
+                                        <div class="min-w-0 flex-1"><div class="flex items-center gap-1.5"><h3 class="truncate text-lg font-bold">{totpName || 'Authenticator'}</h3><button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white" on:click={openTotpRename} aria-label="TOTP 인증 매체 이름 변경"><span class="material-symbols-outlined text-lg">edit</span></button></div><p class="mt-1 text-sm text-gray-500 dark:text-gray-300">2단계 인증에 사용 중</p></div>
+                                        <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950" on:click={removeTotp} aria-label="TOTP 인증 매체 해제"><span class="material-symbols-outlined">delete</span></button>
+                                    </div>
+                                </div>
+                                {#if passwordEnabled}<div class="mt-4 flex items-center justify-between gap-4 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900"><span class="text-sm font-bold">외부 계정으로 로그인 시 2단계 인증 사용</span><button type="button" role="switch" aria-checked={Boolean(mfa?.external_login_mfa_enabled)} class={`relative h-7 w-12 rounded-full transition-colors ${mfa?.external_login_mfa_enabled ? 'bg-[#55aa55]' : 'bg-gray-300 dark:bg-gray-600'}`} on:click={() => setExternalLoginMfa(!mfa?.external_login_mfa_enabled)}><span class:translate-x-6={mfa?.external_login_mfa_enabled} class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform"></span></button></div>{/if}
+                            {:else}
+                                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center dark:border-gray-600 dark:bg-gray-900"><span class="material-symbols-outlined text-3xl text-gray-400">qr_code_2</span><p class="mt-2 text-sm text-gray-500 dark:text-gray-300">등록된 TOTP 인증 매체가 없습니다.</p><button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]" on:click={setupTotp}>TOTP 인증 매체 추가</button></div>
+                            {/if}
+                        </div>
+                    </details>
                 </div>
             </section>
 
@@ -605,6 +637,10 @@
     {:else if modal?.type === 'security-code'}
         <p class="text-sm text-gray-600 dark:text-gray-300">계정 복구에 필요한 보안 코드입니다. 다른 사람에게 공유하지 마세요.</p>
         <p class="mt-4 break-all rounded-xl bg-amber-50 p-4 text-center font-mono text-xl font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-100">{securityCode}</p>
+    {:else if modal?.type === 'totp-rename'}
+        <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">인증 앱을 구분하기 쉬운 이름으로 변경할 수 있습니다.</p>
+        <input class="mt-4 w-full rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" maxlength="100" bind:value={modalTotpName} placeholder="Authenticator" on:keydown={(event) => event.key === 'Enter' && confirmTotpRename()}/>
+        <div class="mt-5 grid grid-cols-2 gap-3"><button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={closeModal}>취소</button><button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]" on:click={confirmTotpRename}>저장</button></div>
     {:else if modal?.type === 'fixed-nickname-confirm'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">100핑을 사용하여 별명을 고정합니다. 별명 고정 이후 180일 이상 게임에 접속하지 않으면 다른 회원이 별명 고정을 해제시킬 수 있습니다. 계속하시겠습니까?</p>
         <div class="mt-6 grid grid-cols-2 gap-3"><button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={closeModal}>아니오</button><button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]" on:click={confirmFixedNickname}>예</button></div>

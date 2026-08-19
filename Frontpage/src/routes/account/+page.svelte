@@ -183,14 +183,26 @@
     }
 
     async function saveNickname() {
-        const notice = fixedNickname
-            ? '100핑을 사용하여 별명을 고정합니다. 별명 고정 이후 180일 이상 게임에 접속하지 않으면 다른 회원이 별명 고정을 해제시킬 수 있습니다. 계속하시겠습니까?'
-            : '비고정 별명은 무료이며 뒤에 식별번호 5자리가 붙습니다. 별명 변경은 7일에 한 번 가능합니다. 계속하시겠습니까?';
-        if (!confirm(notice)) return;
         if (await call('/api/account/nickname', {
             method: 'PATCH',
             body: JSON.stringify({nickname, fixed: fixedNickname})
         })) load();
+    }
+
+    function changeFixedNickname(event) {
+        if (!event.currentTarget.checked) {
+            fixedNickname = false;
+            return;
+        }
+        // Do not turn the setting on until the user explicitly accepts the
+        // Ping charge and dormant-name rule in the modal below.
+        event.currentTarget.checked = false;
+        modal = {type: 'fixed-nickname-confirm', title: '별명 고정'};
+    }
+
+    function confirmFixedNickname() {
+        fixedNickname = true;
+        closeModal();
     }
 
     async function addEmail() {
@@ -501,9 +513,9 @@
                     <details open class="group border-b border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>별명</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary>
                         <div class="px-5 pb-5">
-                            <div class="grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" maxlength="15" bind:value={nickname} placeholder="새 별명"/>
+                            <div class="grid gap-2 sm:grid-cols-[1fr_auto]"><div class="flex min-w-0"><input class={`min-w-0 flex-1 border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900 ${fixedNickname ? 'rounded-xl' : 'rounded-l-xl'}`} maxlength="15" bind:value={nickname} placeholder="새 별명"/>{#if !fixedNickname}<span class="-ml-px inline-flex shrink-0 items-center rounded-r-xl border border-gray-300 bg-slate-100 px-3 font-mono text-sm font-bold text-slate-600 dark:border-gray-600 dark:bg-slate-900 dark:text-gray-300">#{nicknamePolicy?.suffix || '00000'}</span>{/if}</div>
                                 <button class="rounded-xl bg-[#55aa55] px-5 py-3 text-sm font-bold text-white disabled:opacity-50" disabled={nicknamePolicy && !nicknamePolicy.can_change} on:click={saveNickname}>변경</button></div>
-                            <label class="mt-3 flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" bind:checked={fixedNickname}/><span>별명 고정</span></label>
+                            <label class="mt-3 flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox" checked={fixedNickname} on:change={changeFixedNickname}/><span>별명 고정</span></label>
                             {#if nicknamePolicy?.game_connected}<p class="mt-3 text-sm text-red-600">게임 접속 중에는 게임 내 프로필 관리 화면에서 별명을 변경해 주세요.</p>{:else if nicknamePolicy?.change_restricted}<p class="mt-3 text-sm text-red-600">운영정책 위반으로 별명 변경을 이용할 수 없습니다.</p>{:else if nicknamePolicy && !nicknamePolicy.can_change}<p class="mt-3 text-sm text-red-600">{new Date(nicknamePolicy.next_change_at).toLocaleString()} 이후 별명을 변경할 수 있습니다.</p>{/if}
                         </div>
                     </details>
@@ -542,6 +554,7 @@
                             {/each}
                         </div>
                     </details>
+                    <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700" href="/account/apps"><span>연결된 앱</span><span class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span class="material-symbols-outlined">chevron_right</span></span></a>
                 </div>
             </section>
 
@@ -576,7 +589,7 @@
     </div>
 </main>
 
-<AccountModal open={Boolean(modal)} title={modal?.title || ''} on:close={closeModal}>
+<AccountModal open={Boolean(modal)} title={modal?.title || ''} showFooter={modal?.type !== 'fixed-nickname-confirm'} on:close={closeModal}>
     {#if modal?.type === 'totp-setup'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">2단계 인증 앱에 아래 비밀키를 등록한 뒤 표시되는 6자리 인증번호를 입력하세요.</p>
         {#if totpQr}<img class="mx-auto mt-4 h-48 w-48 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-600" src={totpQr} alt="2단계 인증 앱 등록 QR 코드"/>{/if}
@@ -592,6 +605,9 @@
     {:else if modal?.type === 'security-code'}
         <p class="text-sm text-gray-600 dark:text-gray-300">계정 복구에 필요한 보안 코드입니다. 다른 사람에게 공유하지 마세요.</p>
         <p class="mt-4 break-all rounded-xl bg-amber-50 p-4 text-center font-mono text-xl font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-100">{securityCode}</p>
+    {:else if modal?.type === 'fixed-nickname-confirm'}
+        <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">100핑을 사용하여 별명을 고정합니다. 별명 고정 이후 180일 이상 게임에 접속하지 않으면 다른 회원이 별명 고정을 해제시킬 수 있습니다. 계속하시겠습니까?</p>
+        <div class="mt-6 grid grid-cols-2 gap-3"><button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={closeModal}>아니오</button><button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]" on:click={confirmFixedNickname}>예</button></div>
     {/if}
 </AccountModal>
 <ToastStack {toasts} dismiss={dismissToast}/>

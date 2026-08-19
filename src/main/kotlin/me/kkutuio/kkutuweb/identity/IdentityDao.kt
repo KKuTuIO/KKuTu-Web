@@ -138,6 +138,28 @@ class IdentityDao(
     fun rotateClientSecret(clientId: String, hash: String) = jdbc.update("UPDATE idp_client SET client_secret_hash=? WHERE client_id=? AND client_type='CONFIDENTIAL'", hash, clientId)
     fun consentedScopes(accountId: UUID, clientId: String): Set<String> = jdbc.queryForList("SELECT scopes FROM idp_consent WHERE account_id=? AND client_id=?", String::class.java, accountId, clientId).firstOrNull()?.let(::readSet) ?: emptySet()
     fun grantConsent(accountId: UUID, clientId: String, scopes: Set<String>) = jdbc.update("INSERT INTO idp_consent(account_id, client_id, scopes) VALUES (?, ?, CAST(? AS jsonb)) ON CONFLICT(account_id, client_id) DO UPDATE SET scopes=EXCLUDED.scopes, updated_at=CURRENT_TIMESTAMP", accountId, clientId, json(scopes))
+    fun listConnectedApplications(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList(
+        "SELECT c.client_id, c.client_name, c.logo_uri, c.first_party, c.active, consent.scopes, consent.updated_at " +
+            "FROM idp_consent consent JOIN idp_client c ON c.client_id=consent.client_id " +
+            "WHERE consent.account_id=? ORDER BY consent.updated_at DESC, c.client_name",
+        accountId
+    ).map { row ->
+        mapOf(
+            "client_id" to row["client_id"],
+            "client_name" to row["client_name"],
+            "logo_uri" to row["logo_uri"],
+            "first_party" to row["first_party"],
+            "active" to row["active"],
+            "scopes" to readSet(row["scopes"].toString()).sorted(),
+            "updated_at" to row["updated_at"]
+        )
+    }
+    fun revokeConnectedApplication(accountId: UUID, clientId: String) {
+        jdbc.update("DELETE FROM idp_consent WHERE account_id=? AND client_id=?", accountId, clientId)
+        jdbc.update("UPDATE idp_access_token SET revoked_at=CURRENT_TIMESTAMP WHERE account_id=? AND client_id=? AND revoked_at IS NULL", accountId, clientId)
+        jdbc.update("UPDATE idp_refresh_token SET revoked_at=CURRENT_TIMESTAMP WHERE account_id=? AND client_id=? AND revoked_at IS NULL", accountId, clientId)
+        jdbc.update("UPDATE idp_authorization_code SET used_at=CURRENT_TIMESTAMP WHERE account_id=? AND client_id=? AND used_at IS NULL", accountId, clientId)
+    }
 
     fun saveAuthorizationCode(hash: String, accountId: UUID, clientId: String, redirectUri: String, scopes: Set<String>, nonce: String?, challenge: String, profileId: UUID?, expiresAt: Instant) {
         jdbc.update("INSERT INTO idp_authorization_code(code_hash, account_id, client_id, redirect_uri, scopes, nonce, code_challenge, code_challenge_method, selected_profile_id, expires_at) VALUES (?, ?, ?, ?, CAST(? AS jsonb), ?, ?, 'S256', ?, ?)", hash, accountId, clientId, redirectUri, json(scopes), nonce, challenge, profileId, Timestamp.from(expiresAt))

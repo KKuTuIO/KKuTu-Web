@@ -27,6 +27,7 @@ class NicknameService(
         val nextChangeAt = user.lastModifiedAt?.plus(NICKNAME_CHANGE_INTERVAL_MS)
         return mapOf(
             "nickname" to user.nickname,
+            "suffix" to suffix(account.legacyUserId),
             "last_modified_at" to user.lastModifiedAt,
             "fixed" to (user.nickname?.contains('#') == false),
             "ping_balance" to user.money,

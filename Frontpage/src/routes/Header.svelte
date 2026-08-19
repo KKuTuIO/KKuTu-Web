@@ -41,7 +41,8 @@
     function getUserId(provider, id) {
         const normalizedProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
         const normalizedId = id === undefined || id === null ? '' : String(id).trim();
-        return normalizedProvider && normalizedId ? `${normalizedProvider}-${normalizedId}` : '';
+        if (!normalizedProvider || !normalizedId) return '';
+        return normalizedProvider === 'local' ? normalizedId : `${normalizedProvider}-${normalizedId}`;
     }
 	
 	onMount(async () => {
@@ -221,7 +222,7 @@
 						<div class="level" style={getLevelImage(Number(score))}></div>
 						<div>
 							<div class="font-bold truncate">{@html ingameName}</div>
-							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor} 계정</div>
+							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor === 'LOCAL' ? '계정 로그인' : `${authVendor} 계정`}</div>
 						</div>
 					</div>
 					<div class="mt-2">

@@ -5,6 +5,7 @@
     export let open = false;
     export let title = '';
     export let closeLabel = '닫기';
+    export let showFooter = true;
     const dispatch = createEventDispatcher();
 
     function close() {
@@ -25,7 +26,7 @@
                 <button class="grid h-9 w-9 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white" on:click={close} aria-label="닫기"><span class="material-symbols-outlined">close</span></button>
             </div>
             <div class="p-5"><slot/></div>
-            <div class="flex justify-end border-t border-gray-200 px-5 py-4 dark:border-gray-700"><button class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={close}>{closeLabel}</button></div>
+            {#if showFooter}<div class="flex justify-end border-t border-gray-200 px-5 py-4 dark:border-gray-700"><button class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700" on:click={close}>{closeLabel}</button></div>{/if}
         </section>
     </div>
 {/if}

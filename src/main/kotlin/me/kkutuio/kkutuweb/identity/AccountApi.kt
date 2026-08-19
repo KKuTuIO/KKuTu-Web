@@ -104,6 +104,16 @@ class AccountApi(
             mapOf("id" to it.id, "type" to it.type.name, "provider" to it.provider, "display_name" to it.displayName, "verified" to (it.verifiedAt != null), "is_primary" to it.primary, "is_origin" to (it.id == account.originIdentityId), "created_at" to it.createdAt, "last_used_at" to it.lastUsedAt, "revocable" to (!it.primary && it.id != account.originIdentityId && dao.countActiveLoginMethods(account.id, settings.passwordEnabled) > 1))
         }
     }
+    @GetMapping("/connected-applications") fun connectedApplications(session: HttpSession): List<Map<String, Any?>> =
+        dao.listConnectedApplications(accounts.requireCurrentAccount(session).id)
+    @DeleteMapping("/connected-applications/{clientId}") fun revokeConnectedApplication(@PathVariable clientId: String, session: HttpSession): ResponseEntity<Void> {
+        val account = recent(session)
+        limiter.check("connected-application-revoke:${account.id}", 20, 3600)
+        if (dao.consentedScopes(account.id, clientId).isEmpty()) throw IdpException("not_found", "연결된 앱을 찾을 수 없습니다.", 404)
+        dao.revokeConnectedApplication(account.id, clientId)
+        dao.audit(account.id, "OIDC_CONNECTED_APPLICATION_REVOKED", metadata = mapOf("client_id" to clientId))
+        return ResponseEntity.noContent().build()
+    }
     @PostMapping("/identities/{id}/revoke") fun revokeIdentity(@PathVariable id: Long, session: HttpSession): ResponseEntity<Void> {
         val account = recent(session); limiter.check("identity-revoke:${account.id}", 10, 3600); val identity = dao.findIdentity(id) ?: throw IdpException("not_found", "로그인 수단을 찾을 수 없습니다.", 404)
         if (identity.accountId != account.id || identity.primary || identity.id == account.originIdentityId) throw IdpException("forbidden", "삭제할 수 없는 기본 수단입니다.", 403)

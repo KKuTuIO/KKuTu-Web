@@ -256,7 +256,7 @@ class LoginService(
 
         return SessionProfile(
             authType = authType,
-            id = authType + "-" + oAuthUser.vendorId,
+            id = userId,
             name = oAuthUser.name,
             title = title,
             image = oAuthUser.profileImage ?: ""

@@ -20,7 +20,9 @@ package me.kkutuio.kkutuweb.setup
 
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.extension.isGuest
+import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.login.LoginService
+import me.kkutuio.kkutuweb.oauth.AuthVendor
 import me.kkutuio.kkutuweb.view.View
 import me.kkutuio.kkutuweb.view.Views.getView
 import org.slf4j.LoggerFactory
@@ -53,7 +55,10 @@ class SetupController(
             return "redirect:/"
         }
 
-        
+        if (session.getOAuthUser().authVendor == AuthVendor.LOCAL) {
+            return "redirect:/account"
+        }
+
         if (!loginService.getOAuthServiceFromSession(session).allowRegister) {
             try {
                 session.invalidate()

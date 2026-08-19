@@ -175,23 +175,18 @@
         return typeof value === 'string' ? value.trim().toLowerCase() : '';
     }
 
-    function isOAuthIdentity(identity) {
-        return String(identity?.type || '').trim().toUpperCase() === 'OAUTH';
-    }
-
     function linkedProviderIds() {
         return new Set(
             identities
-                .filter(isOAuthIdentity)
                 .map(identity => normalizedProvider(identity.provider))
-                .filter(Boolean)
+                .filter(providerId => oauthProviders.some(provider => provider.id === providerId))
         );
     }
 
     function linkedIdentity(provider) {
         const providerId = normalizedProvider(provider?.id);
         const identity = identities.find(identity =>
-            isOAuthIdentity(identity) && normalizedProvider(identity.provider) === providerId
+            normalizedProvider(identity.provider) === providerId
         );
         if (identity) return identity;
         return null;

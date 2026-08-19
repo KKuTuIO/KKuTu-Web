@@ -8,7 +8,7 @@
     var passkeySupported = false;
     var identifier = '';
     var password = '';
-    var passwordEnabled = true;
+    var passwordEnabled = false;
 
     onMount(async () => {
         const response = await fetch('/api/login/reason');

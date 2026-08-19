@@ -127,7 +127,8 @@ class AccountService(
         return mapOf(
             "sub" to account.id.toString(), "uuid" to account.uuid.toString(), "legacy_user_id" to account.legacyUserId,
             "nickname" to user?.nickname, "nickname_changed_at" to nicknameState?.lastModifiedAt?.let { Instant.ofEpochMilli(it).toString() },
-            "email" to email?.subject?.let(::maskEmail), "email_verified" to (email != null),
+            "email" to if (settings.passwordEnabled) email?.subject?.let(::maskEmail) else null,
+            "email_verified" to (settings.passwordEnabled && email != null),
             "linked_services" to identities.count { it.type == IdentityType.OAUTH },
             "password_enabled" to settings.passwordEnabled,
             "external_mfa_enabled" to account.externalMfaEnabled,

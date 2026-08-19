@@ -1,6 +1,5 @@
 server:
   port: <Port>
-  forward-headers-strategy: framework
   servlet:
     session:
       tracking-modes: cookie

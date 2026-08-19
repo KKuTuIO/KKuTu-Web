@@ -94,7 +94,9 @@ class AccountApi(
     @DeleteMapping("/email") fun removeEmail(session: HttpSession): ResponseEntity<Void> { accounts.removeEmail(recent(session)); return ResponseEntity.noContent().build() }
     @GetMapping("/identities") fun identities(session: HttpSession): List<Map<String, Any?>> {
         val account = accounts.requireCurrentAccount(session)
-        return dao.listIdentities(account.id).filter { it.revokedAt == null && (settings.passwordEnabled || it.type != IdentityType.PASSWORD) }.map {
+        return dao.listIdentities(account.id).filter {
+            it.revokedAt == null && (it.type == IdentityType.OAUTH || (settings.passwordEnabled && it.type == IdentityType.PASSWORD))
+        }.map {
             mapOf("id" to it.id, "type" to it.type.name, "provider" to it.provider, "display_name" to it.displayName, "verified" to (it.verifiedAt != null), "is_primary" to it.primary, "is_origin" to (it.id == account.originIdentityId), "created_at" to it.createdAt, "last_used_at" to it.lastUsedAt, "revocable" to (!it.primary && it.id != account.originIdentityId && dao.countActiveLoginMethods(account.id, settings.passwordEnabled) > 1))
         }
     }

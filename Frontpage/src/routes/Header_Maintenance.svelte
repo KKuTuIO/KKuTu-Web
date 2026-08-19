@@ -17,7 +17,7 @@
 	let loginDialog = false;
 
 
-	let data = "";
+	let data = { status: "Guest user" };
 	let flyout = false;
 	var noticeData = "";
 
@@ -25,6 +25,12 @@
 
 	function handleImageError(event) {
 		event.target.src = defaultProfileImage;
+	}
+
+	function getUserId(provider, id) {
+		const normalizedProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
+		const normalizedId = id === undefined || id === null ? '' : String(id).trim();
+		return normalizedProvider && normalizedId ? `${normalizedProvider}-${normalizedId}` : '';
 	}
 
 	
@@ -57,11 +63,12 @@
 			}*/
 		}
 		
-		if (data.status !== "Guest user") {
-			authVendor = data.authVendor;
-			vendorId = data.vendorId;
-			name = data.name;
-			profileImage = data.image;
+		const userId = getUserId(data?.authVendor, data?.vendorId);
+		if (data?.status !== "Guest user" && userId) {
+			authVendor = String(data.authVendor);
+			vendorId = String(data.vendorId);
+			name = typeof data.name === 'string' && data.name ? data.name : 'Moremi';
+			profileImage = typeof data.image === 'string' ? data.image : '';
 			user = name;
 
 			if (authVendor === "DISCORD") {
@@ -72,11 +79,11 @@
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
 			// get user data
-			const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
+			const userRes = await fetch(`/user/${userId}`);
 			const userData = await userRes.json();
 
-			ingameName = userData.profile.title;
-			score = userData.data.score;
+			ingameName = typeof userData?.profile?.title === 'string' ? userData.profile.title : '계정 설정 필요';
+			score = Number(userData?.data?.score) || 0;
 
 
 		} else {
@@ -187,7 +194,7 @@
 			</a>
 		  </div>
 		  <p class="mt-8 text-center text-sm text-gray-500 dark:text-gray-300">
-			회원가입 또는 로그인을 하면 끄투리오의 <a href="https://cs.kkutu.io/terms" target="_blank" rel="noopener" class="link-signin">서비스 이용약관</a>과 <a href="https://cs.kkutu.io/operation" target="_blank" rel="noopener" class="link-signin">운영정책</a>, <a href="https://cs.kkutu.io/privacy-policy" target="_blank" rel="noopener" class="link-signin">개인정보처리방침</a>에 동의하는 것으로 봅니다.
+			로그인하면 끄투리오의 <a href="https://cs.kkutu.io/terms" target="_blank" rel="noopener" class="link-signin">서비스 이용약관</a>과 <a href="https://cs.kkutu.io/operation" target="_blank" rel="noopener" class="link-signin">운영정책</a>, <a href="https://cs.kkutu.io/privacy-policy" target="_blank" rel="noopener" class="link-signin">개인정보처리방침</a>에 동의하는 것으로 봅니다.
 		  </p>
 		</div>
 	  </div>

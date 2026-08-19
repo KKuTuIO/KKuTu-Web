@@ -105,7 +105,7 @@
         </div>
         <p class="mt-10 text-center text-sm text-gray-500 dark:text-gray-300">
             계정 정보를 분실하셨나요? <a href="/account/recovery" class="link-signin">계정 복구하기</a><br/>
-            회원가입 또는 로그인을 하면 끄투리오의 <a href="https://cs.kkutu.io/terms" target="_blank" rel="noopener"
+            로그인하면 끄투리오의 <a href="https://cs.kkutu.io/terms" target="_blank" rel="noopener"
                                      class="link-signin">서비스 이용약관</a>과 <a href="https://cs.kkutu.io/operation"
                                                                           target="_blank" rel="noopener"
                                                                           class="link-signin">운영정책</a>, <a

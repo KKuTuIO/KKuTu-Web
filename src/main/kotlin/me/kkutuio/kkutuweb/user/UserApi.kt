@@ -65,26 +65,20 @@
     @GetMapping("/user/oauth", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getUserOAuthData(
         session: HttpSession
-    ): Map<String, Any> {
+    ): Map<String, Any?> {
         return if (!session.isGuest()) {
-            val userString = session.getOAuthUser().toString()
-            val regex = Regex("""OAuthUser\(authVendor=(\w+), vendorId=(\w+), name=([^,]+), profileImage=([^,]+), gender=([^,]+), minAge=([^,]+), maxAge=([^,]+)\)""")
-            val matchResult = regex.find(userString)
+            val oauthUser = runCatching { session.getOAuthUser() }.getOrNull()
+                ?: return mapOf("status" to "Guest user")
 
-            if (matchResult != null) {
-                val (authVendor, vendorId, name, profileImage, gender, minAge, maxAge) = matchResult.destructured
-                mapOf(
-                    "authVendor" to authVendor,
-                    "vendorId" to vendorId,
-                    "name" to name,
-                    "image" to profileImage.replace("=s50", ""),
-                    "gender" to gender,
-                    "minAge" to minAge,
-                    "maxAge" to maxAge
-                )
-            } else {
-                mapOf("status" to "Parsing error")
-            }
+            mapOf(
+                "authVendor" to oauthUser.authVendor.name,
+                "vendorId" to oauthUser.vendorId,
+                "name" to oauthUser.name,
+                "image" to (oauthUser.profileImage?.replace("=s50", "") ?: ""),
+                "gender" to oauthUser.gender?.name,
+                "minAge" to oauthUser.minAge,
+                "maxAge" to oauthUser.maxAge
+            )
         } else {
             mapOf("status" to "Guest user")
         }

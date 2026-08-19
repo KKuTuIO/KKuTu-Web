@@ -1,5 +1,5 @@
 <script nonce="kkutuio">
-    import { onMount } from 'svelte';
+    import { onDestroy, onMount, tick } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../lib/getLevelImg.js';
     import { getMoremi } from '../lib/getMoremi.js';
@@ -12,7 +12,7 @@
 
 	let ingameName = "";
 	let score = 0;
-	let data = "";
+	let data = { status: "Guest user" };
 
     const title = '글자로 놀자! 끄투 온라인';
 
@@ -54,56 +54,18 @@
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
     let jsonDataServers = { list: [], max: 9 };
     let glide;
-    let gl;
+    let glideRoot;
     $: filteredData = rankData.data.data ? rankData.data.data.slice(0, 10) : [];
     let slidePage = 0;
 
     let finalData = [];
 
-    function updateSlides() {
-        const slideContainer = document.querySelector('.glide__slides');
-        const glideBullets = document.querySelector('.glide__bullets');
-        slideContainer.innerHTML = ''; // 기존 슬라이드 초기화
-        glideBullets.innerHTML = ''; // 기존 버튼 초기화
+    async function updateSlides() {
+        await tick();
+        if (!glideRoot || slideData.length === 0) return;
 
-        slideData.forEach((slide) => {
-            const slideElement = document.createElement('li');
-            slideElement.className = 'glide__slide pt-[56px] flex justify-center items-center ';
-            slideElement.style.background = slide.color;
-
-            const linkElement = document.createElement('a');
-            if (window.innerWidth < 1000 && slide.m_link) {
-                linkElement.href = slide.m_link;
-            } else{
-                linkElement.href = slide.link;
-            }
-
-            const desktopImage = document.createElement('img');
-            desktopImage.src = slide.slides[0].desktop;
-            desktopImage.className = 'hidden h-[400px] lg:block object-cover';
-            desktopImage.alt = 'Desktop UI';
-
-            const mobileImage = document.createElement('img');
-            mobileImage.src = slide.slides[0].mobile;
-            mobileImage.className = 'h-54 lg:hidden object-cover';
-            mobileImage.alt = 'Mobile UI';
-
-            linkElement.appendChild(desktopImage);
-            linkElement.appendChild(mobileImage);
-            slideElement.appendChild(linkElement);
-            slideContainer.appendChild(slideElement);
-
-            const bulletElement = document.createElement('button');
-            bulletElement.className = 'glide__bullet';
-            bulletElement.setAttribute('data-glide-dir', `=${slide.id}`);
-            glideBullets.appendChild(bulletElement);
-        });
-
-        if (glide) {
-            glide.destroy();
-        }
-
-        glide = new Glide('.glide', {
+        glide?.destroy();
+        glide = new Glide(glideRoot, {
             type: 'carousel',
             startAt: 0,
             gap: 0,
@@ -114,26 +76,35 @@
             animationTimingFunc: 'ease-in-out'
         });
 
-        gl = glide.mount();
-
-        console.log('Slides updated');
-
         glide.on('run', () => {
             slidePage = glide.index;
         });
+        glide.mount();
     }
 
     function goLeft() {
-        glide.go('<');
+        glide?.go('<');
     }
 
     function goRight() {
-        glide.go('>');
+        glide?.go('>');
+    }
+
+    function getSlideLink(slide) {
+        const mobile = typeof window !== 'undefined' && window.innerWidth < 1000;
+        return (mobile && slide.m_link) ? slide.m_link : (slide.link || '/');
+    }
+
+    function getUserId(provider, id) {
+        const normalizedProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
+        const normalizedId = id === undefined || id === null ? '' : String(id).trim();
+        return normalizedProvider && normalizedId ? `${normalizedProvider}-${normalizedId}` : '';
     }
 
     function processNick(nick) {
-        return nick.split("#")[0] +
-            (nick.includes("#") ? '<small style="color:#bbb">#' + nick.split("#")[1] + '</small>' : "");
+        if (typeof nick !== 'string' || nick.length === 0) return '계정 설정 필요';
+        const [title, discriminator] = nick.split("#", 2);
+        return title + (discriminator ? `<small style="color:#bbb">#${discriminator}</small>` : "");
     }
 
     onMount(async () => {
@@ -146,11 +117,12 @@
 			data = { status: "Guest user" };
 		}
 		
-		if (data.status !== "Guest user") {
-			authVendor = data.authVendor;
-			vendorId = data.vendorId;
-			name = data.name;
-			profileImage = data.image;
+		const userId = getUserId(data?.authVendor, data?.vendorId);
+		if (data?.status !== "Guest user" && userId) {
+			authVendor = String(data.authVendor);
+			vendorId = String(data.vendorId);
+			name = typeof data.name === 'string' && data.name ? data.name : 'Moremi';
+			profileImage = typeof data.image === 'string' ? data.image : '';
 			user = name;
 
 			if (authVendor === "DISCORD") {
@@ -161,11 +133,11 @@
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
 			// get user data
-			const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
+			const userRes = await fetch(`/user/${userId}`);
 			const userData = await userRes.json();
 
-			ingameName = userData.profile ? processNick(userData.profile.title) : "계정 설정 필요";
-			score = userData.data ? userData.data.score : 0;
+			ingameName = processNick(userData?.profile?.title);
+			score = Number(userData?.data?.score) || 0;
 		} else {
 			console.log("User is not logged in");
 		}
@@ -176,8 +148,9 @@
             finalData = await cafeResponse_events.json();
 
             const slideResponse = await fetch('https://static.kkutu.io/slides.json');
-            slideData = await slideResponse.json();
-            updateSlides();
+            const loadedSlides = await slideResponse.json();
+            if (Array.isArray(loadedSlides)) slideData = loadedSlides;
+            await updateSlides();
 
             const rankResponse = await fetch('/ranking?p=0');
             rankData = await rankResponse.json();
@@ -199,6 +172,8 @@
         
 
     });
+
+    onDestroy(() => glide?.destroy());
 
     function reloadList() { 
         fetch('/servers')
@@ -327,7 +302,7 @@
     </div>
 {/if}
 <div class="dark:bg-gray-900">
-    <div class="glide">
+    <div class="glide" bind:this={glideRoot}>
         <!-- Slide Left/right btn -->
          <div class="glide__arrows hidden" data-glide-el="controls">
             <button id="slideLeft" class="glide__arrow glide__arrow--left  hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
@@ -340,9 +315,20 @@
 
         <div class="glide__track" data-glide-el="track">
             <ul class="glide__slides lg:min-h-[456px] min-h-[280px]">
+                {#each slideData as slide, index (slide.id ?? index)}
+                    <li class="glide__slide pt-[56px] flex justify-center items-center" style={`background: ${slide.color || '#000'}`}>
+                        <a href={getSlideLink(slide)}>
+                            <img src={slide.slides?.[0]?.desktop || '/slide/d.png'} class="hidden h-[400px] lg:block object-cover" alt="끄투리오 안내" />
+                            <img src={slide.slides?.[0]?.mobile || '/slide/m.png'} class="h-54 lg:hidden object-cover" alt="끄투리오 안내" />
+                        </a>
+                    </li>
+                {/each}
             </ul>
         </div>
         <div class="hidden glide__bullets opacity-0 " data-glide-el="controls[nav]">
+            {#each slideData as _, index}
+                <button class="glide__bullet" data-glide-dir={`=${index}`} aria-label={`${index + 1}번째 슬라이드`}></button>
+            {/each}
         </div>
         
         <div class="-mt-[400px] h-[400px] hidden lg:flex items-center min-w-screen-lg max-w-screen-xl mx-auto justify-end pr-4 z-50">
@@ -413,7 +399,7 @@
 
                 <!-- Login status -->
                 <div class="flex justify-center items-center gap-x-4 h-full w-full">
-                    {#await getMoremi(authVendor.toLowerCase()+"-"+vendorId) then equip}
+                    {#await getMoremi(getUserId(authVendor, vendorId)) then equip}
                         {#if equip}
                             <div class="w-[120px] h-[120px]">
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" on:error={(e) => handleImgErr(e, 'back', equip.Mback)} />

@@ -22,7 +22,7 @@
 	let eighthevent = false;
 
 
-	let data = "";
+	let data = { status: "Guest user" };
 	let flyout = false;
 	var noticeData = "";
 
@@ -33,8 +33,15 @@
 	}
 
     function processNick(nick) {
-        return nick.split("#")[0] +
-            (nick.includes("#") ? '<small style="color:#bbb">#' + nick.split("#")[1] + '</small>' : "");
+        if (typeof nick !== 'string' || nick.length === 0) return '계정 설정 필요';
+        const [title, discriminator] = nick.split("#", 2);
+        return title + (discriminator ? `<small style="color:#bbb">#${discriminator}</small>` : "");
+    }
+
+    function getUserId(provider, id) {
+        const normalizedProvider = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
+        const normalizedId = id === undefined || id === null ? '' : String(id).trim();
+        return normalizedProvider && normalizedId ? `${normalizedProvider}-${normalizedId}` : '';
     }
 	
 	onMount(async () => {
@@ -86,11 +93,12 @@
 			}*/
 		}
 		
-		if (data.status !== "Guest user") {
-			authVendor = data.authVendor;
-			vendorId = data.vendorId;
-			name = data.name;
-			profileImage = data.image;
+		const userId = getUserId(data?.authVendor, data?.vendorId);
+		if (data?.status !== "Guest user" && userId) {
+			authVendor = String(data.authVendor);
+			vendorId = String(data.vendorId);
+			name = typeof data.name === 'string' && data.name ? data.name : 'Moremi';
+			profileImage = typeof data.image === 'string' ? data.image : '';
 			user = name;
 
 			if (authVendor === "DISCORD") {
@@ -101,11 +109,11 @@
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
 			// get user data
-			const userRes = await fetch(`/user/${authVendor.toLowerCase()}-${vendorId}`);
+			const userRes = await fetch(`/user/${userId}`);
 			const userData = await userRes.json();
 
-			ingameName = processNick(userData.profile.title);
-            score = userData.data.score;
+			ingameName = processNick(userData?.profile?.title);
+            score = Number(userData?.data?.score) || 0;
 
 
 		} else {

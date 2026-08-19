@@ -3,7 +3,6 @@
     import { onMount } from 'svelte';
   let deferredPrompt;
     let installButtonVisible = false;
-    let output = '';
   
     onMount(() => {
       if ('BeforeInstallPromptEvent' in window) {
@@ -25,11 +24,7 @@
     });
   
     function showResult(text, append = false) {
-      if (append) {
-        document.querySelector('output').innerHTML += '<br>' + text;
-      } else {
-        document.querySelector('output').innerHTML = text;
-      }
+      console.info(text);
     }
   
     async function installApp() {

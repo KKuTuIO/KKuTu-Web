@@ -64,6 +64,8 @@ class AccountService(
     fun currentAccount(session: HttpSession): Account? = session.getAccountId()?.let(dao::findAccount)
         ?.takeIf { it.sessionNotBefore.epochSecond <= session.authenticatedAt() }
 
+    fun findAccount(accountId: java.util.UUID): Account? = dao.findAccount(accountId)
+
     fun findExternalAccount(oauth: OAuthUser): Account? = dao.findActiveIdentity(oauth.authVendor.name, oauth.vendorId)
         ?.let { dao.findAccount(it.accountId) }
 
@@ -128,6 +130,7 @@ class AccountService(
             "email" to email?.subject?.let(::maskEmail), "email_verified" to (email != null),
             "linked_services" to identities.count { it.type == IdentityType.OAUTH },
             "password_enabled" to settings.passwordEnabled,
+            "external_mfa_enabled" to account.externalMfaEnabled,
             "login_methods" to dao.countActiveLoginMethods(account.id, settings.passwordEnabled),
             "passkeys" to dao.listPasskeys(account.id).size,
             "support_pin_issued_at" to dao.supportPinIssuedAt(account.id)?.toString(),

@@ -63,12 +63,11 @@ class OidcService(
     fun refresh(clientId: String, clientSecret: String?, refreshToken: String): TokenSet {
         val client = authenticateClient(clientId, clientSecret)
         val hash = SecretTools.sha256(refreshToken)
-        val row = dao.consumeRefreshToken(hash)
+        val row = dao.consumeRefreshToken(hash, client.clientId)
         if (row == null) {
-            dao.findRefreshToken(hash)?.get("family_id")?.toString()?.let { dao.revokeRefreshFamily(UUID.fromString(it)) }
+            dao.findRefreshTokenForClient(hash, client.clientId)?.get("family_id")?.toString()?.let { dao.revokeRefreshFamily(UUID.fromString(it)) }
             throw IdpException("invalid_grant", "유효하지 않은 refresh token입니다.")
         }
-        if (row["client_id"] != client.clientId) throw IdpException("invalid_grant", "Refresh token 요청이 일치하지 않습니다.")
         val account = dao.findAccount(UUID.fromString(row["account_id"].toString())) ?: throw IdpException("invalid_grant", "계정을 찾을 수 없습니다.")
         requireActive(account)
         return issueTokens(account, client, readScopes(row["scopes"]), null, UUID.fromString(row["family_id"].toString()), hash, row["selected_profile_id"]?.toString()?.let(UUID::fromString))
@@ -78,7 +77,7 @@ class OidcService(
         val row = dao.findActiveAccessToken(SecretTools.sha256(accessToken)) ?: throw IdpException("invalid_token", "유효하지 않은 access token입니다.", 401)
         val account = dao.findAccount(UUID.fromString(row["account_id"].toString())) ?: throw IdpException("invalid_token", "계정을 찾을 수 없습니다.", 401)
         requireActive(account)
-        return claims(account, row["client_id"].toString(), readScopes(row["scopes"]), row["selected_profile_id"]?.toString()?.let(UUID::fromString))
+        return claims(account, readScopes(row["scopes"]), row["selected_profile_id"]?.toString()?.let(UUID::fromString))
     }
 
     fun introspect(clientId: String, secret: String?, token: String): Map<String, Any?> {
@@ -99,7 +98,7 @@ class OidcService(
         val now = Instant.now()
         val access = SecretTools.randomToken()
         dao.saveAccessToken(SecretTools.sha256(access), account.id, client.clientId, scopes, selectedProfileId, now.plusSeconds(client.accessTokenTtlSeconds))
-        val idToken = if ("openid" in scopes) signer.sign(account.id.toString(), client.clientId, claims(account, client.clientId, scopes, selectedProfileId) + mapOf("nonce" to nonce), now.plusSeconds(client.accessTokenTtlSeconds)) else null
+        val idToken = if ("openid" in scopes) signer.sign(account.id.toString(), client.clientId, claims(account, scopes, selectedProfileId) + mapOf("nonce" to nonce), now.plusSeconds(client.accessTokenTtlSeconds)) else null
         val refresh = if ("offline" in scopes) SecretTools.randomToken().also {
             dao.saveRefreshToken(SecretTools.sha256(it), existingFamily ?: UUID.randomUUID(), parentHash, account.id, client.clientId, scopes, selectedProfileId, now.plusSeconds(client.refreshTokenTtlSeconds))
         } else null
@@ -107,13 +106,13 @@ class OidcService(
         return TokenSet(access, expiresIn = client.accessTokenTtlSeconds, scope = scopes.sorted().joinToString(" "), idToken = idToken, refreshToken = refresh)
     }
 
-    private fun claims(account: Account, clientId: String, scopes: Set<String>, selectedProfileId: UUID? = null): Map<String, Any?> {
+    private fun claims(account: Account, scopes: Set<String>, selectedProfileId: UUID? = null): Map<String, Any?> {
         val user = userDao.getUser(account.legacyUserId)
         val verifiedEmail = dao.listIdentities(account.id).firstOrNull { it.type == IdentityType.EMAIL && it.verifiedAt != null && it.revokedAt == null }?.subject
         val out = linkedMapOf<String, Any?>("sub" to account.id.toString())
         if ("profile" in scopes) out += mapOf("preferred_username" to user?.nickname, "legacy_user_id" to account.legacyUserId)
         if ("email" in scopes) out += mapOf("email" to verifiedEmail, "email_verified" to (verifiedEmail != null))
-        if ("account" in scopes) out += mapOf("account_status" to account.status.name, "uuid" to account.uuid.toString(), "amr" to dao.listIdentities(account.id).filter { it.revokedAt == null }.map { it.type.name.lowercase() })
+        if ("account" in scopes) out += mapOf("account_status" to account.status.name, "uuid" to account.uuid.toString())
         if ("game:kkutu" in scopes) {
             val profile = selectedProfileId?.let { dao.findActiveProfile(account.id, it) } ?: dao.defaultProfile(account.id)
             if (profile != null) out += mapOf("game_profile_id" to profile["id"].toString(), "game_key" to profile["game_key"], "game_profile_legacy_user_id" to profile["legacy_user_id"])

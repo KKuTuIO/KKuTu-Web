@@ -30,7 +30,7 @@ class WebAuthnService(private val dao: IdentityDao, private val settings: Identi
             "challenge" to challenge, "rp" to mapOf("id" to settings.rpId, "name" to "KKuTuIO"),
             "user" to mapOf("id" to b64(account.id.toString().toByteArray()), "name" to account.legacyUserId, "displayName" to account.legacyUserId),
             "pubKeyCredParams" to listOf(mapOf("type" to "public-key", "alg" to -7), mapOf("type" to "public-key", "alg" to -257)),
-            "timeout" to 300000, "attestation" to "none", "authenticatorSelection" to mapOf("userVerification" to "preferred")
+            "timeout" to 300000, "attestation" to "none", "authenticatorSelection" to mapOf("userVerification" to "required")
         ))
     }
     @Transactional
@@ -44,7 +44,7 @@ class WebAuthnService(private val dao: IdentityDao, private val settings: Identi
         validateClientData(clientData, expected, "webauthn.create")
         val attestation = CBORObject.DecodeFromBytes(decode(credential.path("response").path("attestationObject").asText()))
         val authData = attestation[CBORObject.FromObject("authData")].GetByteString()
-        validateAuthenticatorData(authData, requireUserVerification = false)
+        validateAuthenticatorData(authData, requireUserVerification = true)
         val flags = authData[32].toInt() and 0xff
         if (flags and 0x40 == 0) throw IdpException("invalid_credential", "Attested credential data가 없습니다.")
         val credentialLength = ((authData[53].toInt() and 0xff) shl 8) or (authData[54].toInt() and 0xff)
@@ -60,7 +60,7 @@ class WebAuthnService(private val dao: IdentityDao, private val settings: Identi
     fun authenticationOptions(): Map<String, Any> {
         val challenge = SecretTools.randomToken(); val token = SecretTools.randomToken()
         dao.saveOneTimeToken(SecretTools.sha256(token), null, "PASSKEY_AUTH", mapOf("challenge" to challenge), Instant.now().plusSeconds(300))
-        return mapOf("operation_token" to token, "publicKey" to mapOf("challenge" to challenge, "rpId" to settings.rpId, "timeout" to 300000, "userVerification" to "preferred"))
+        return mapOf("operation_token" to token, "publicKey" to mapOf("challenge" to challenge, "rpId" to settings.rpId, "timeout" to 300000, "userVerification" to "required"))
     }
     @Transactional
     fun completeAuthentication(operationToken: String, credential: JsonNode): Account {
@@ -70,7 +70,7 @@ class WebAuthnService(private val dao: IdentityDao, private val settings: Identi
         validateClientData(clientData, expected, "webauthn.get")
         val rawId = credential.path("rawId").asText().ifBlank { credential.path("id").asText() }
         val passkey = dao.findPasskeyByCredential(rawId) ?: throw IdpException("invalid_credential", "등록되지 않은 패스키입니다.", 401)
-        val authData = decode(credential.path("response").path("authenticatorData").asText()); validateAuthenticatorData(authData, requireUserVerification = false)
+        val authData = decode(credential.path("response").path("authenticatorData").asText()); validateAuthenticatorData(authData, requireUserVerification = true)
         val signature = decode(credential.path("response").path("signature").asText())
         val signed = authData + MessageDigest.getInstance("SHA-256").digest(clientDataRaw)
         val publicKey = cosePublicKey(CBORObject.DecodeFromBytes(decode(passkey["public_key_cose"].toString())))

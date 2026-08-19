@@ -17,7 +17,7 @@ import org.springframework.security.web.csrf.CsrfToken
 data class NicknameRequest(val nickname: String, val fixed: Boolean = false)
 data class EmailRequest(val email: String)
 data class PasswordRequest(val password: String)
-data class PasswordLoginRequest(val identifier: String, val password: String, val totpCode: String? = null)
+data class PasswordLoginRequest(val identifier: String, val password: String)
 data class ReauthenticateRequest(val password: String, val totpCode: String? = null)
 data class TotpConfirmRequest(val code: String)
 data class TotpSetupRequest(val name: String? = null)
@@ -25,6 +25,8 @@ data class TotpRenameRequest(val name: String)
 data class RecoveryRequest(val email: String, val recaptchaToken: String? = null)
 data class ResetPasswordRequest(val token: String, val password: String, val recaptchaToken: String? = null)
 data class OneTimeLoginCodeRequest(val code: String, val recaptchaToken: String? = null)
+data class ExternalSecondFactorRequest(val totpCode: String? = null, val securityCode: String? = null, val emailCode: String? = null)
+data class ExternalMfaSettingRequest(val enabled: Boolean)
 data class ProfileSelectionRequest(val profileId: String)
 data class PasskeyCompletionRequest(val operationToken: String, val credential: JsonNode, val deviceName: String? = null)
 
@@ -67,6 +69,11 @@ class AccountApi(
         security.reauthenticate(account, body.password.toCharArray(), body.totpCode)
         session.markRecentlyAuthenticated()
         return ResponseEntity.noContent().build()
+    }
+    @PostMapping("/reauthenticate/email-mfa-code") fun reauthenticationEmailMfaCode(@RequestBody body: ReauthenticateRequest, session: HttpSession): ResponseEntity<Void> {
+        requirePasswordEnabled()
+        security.requestEmailMfaReauthenticationCode(accounts.requireCurrentAccount(session), body.password.toCharArray())
+        return ResponseEntity.accepted().build()
     }
     @GetMapping("/reauthenticate/oauth/{provider}") fun beginOAuthReauthentication(@PathVariable provider: String, session: HttpSession): ResponseEntity<Void> {
         val account = accounts.requireCurrentAccount(session)
@@ -113,8 +120,16 @@ class AccountApi(
         if (dao.revokePasskey(account.id, id) != 1) throw IdpException("not_found", "패스키를 찾을 수 없습니다.", 404)
         dao.audit(account.id, "PASSKEY_REVOKED"); return ResponseEntity.noContent().build()
     }
-    @GetMapping("/mfa") fun mfa(session: HttpSession): Map<String, Any?> { val a = accounts.requireCurrentAccount(session); val row = dao.findTotp(a.id); return mapOf("totp" to (row?.get("confirmed_at") != null), "totp_name" to row?.get("display_name"), "one_time_login_codes_remaining" to dao.activeRecoveryCodeCount(a.id)) }
-    @PostMapping("/mfa/totp/setup") fun totpSetup(@RequestBody(required = false) body: TotpSetupRequest?, session: HttpSession) = security.setupTotp(recent(session), body?.name ?: "TOTP 기기")
+    @GetMapping("/mfa") fun mfa(session: HttpSession): Map<String, Any?> { val a = accounts.requireCurrentAccount(session); val row = dao.findTotp(a.id); return mapOf("totp" to (row?.get("confirmed_at") != null), "totp_name" to row?.get("display_name"), "external_login_mfa_enabled" to a.externalMfaEnabled, "one_time_login_codes_remaining" to dao.activeRecoveryCodeCount(a.id)) }
+    @PatchMapping("/mfa/external-login") fun setExternalLoginMfa(@RequestBody body: ExternalMfaSettingRequest, session: HttpSession): ResponseEntity<Void> {
+        if (!settings.passwordEnabled) throw IdpException("password_disabled", "비밀번호 로그인 기능이 꺼진 경우 외부 로그인 2단계 인증은 항상 적용됩니다.", 400)
+        val account = recent(session)
+        if (body.enabled && !security.requiresSecondFactor(account)) throw IdpException("totp_required", "먼저 TOTP 2단계 인증을 설정해 주세요.", 400)
+        dao.setExternalMfaEnabled(account.id, body.enabled)
+        dao.audit(account.id, if (body.enabled) "EXTERNAL_LOGIN_MFA_ENABLED" else "EXTERNAL_LOGIN_MFA_DISABLED")
+        return ResponseEntity.noContent().build()
+    }
+    @PostMapping("/mfa/totp/setup") fun totpSetup(@RequestBody(required = false) body: TotpSetupRequest?, session: HttpSession) = security.setupTotp(recent(session), body?.name ?: "TOTP 매체")
     @PostMapping("/mfa/totp/confirm") fun totpConfirm(@RequestBody body: TotpConfirmRequest, session: HttpSession): ResponseEntity<Void> { security.confirmTotp(recent(session), body.code); return ResponseEntity.noContent().build() }
     @PatchMapping("/mfa/totp") fun totpRename(@RequestBody body: TotpRenameRequest, session: HttpSession): ResponseEntity<Void> { val a = recent(session); dao.renameTotp(a.id, body.name.trim().take(100)); dao.audit(a.id, "TOTP_RENAMED"); return ResponseEntity.noContent().build() }
     @DeleteMapping("/mfa/totp") fun totpRemove(session: HttpSession): ResponseEntity<Void> {
@@ -157,7 +172,49 @@ class AccountRecoveryApi(
     }
     @PostMapping("/api/account/recovery/reset") fun reset(@RequestBody body: ResetPasswordRequest, request: HttpServletRequest): ResponseEntity<Void> { requirePasswordEnabled(); captcha.verify(body.recaptchaToken, request.getIp(), "account_recovery_reset"); limiter.check("reset-ip:" + request.getIp(), 10, 3600); security.resetPassword(body.token, body.password.toCharArray()); return ResponseEntity.noContent().build() }
     @PostMapping("/api/account/recovery/one-time-login-code") fun oneTimeLoginCode(@RequestBody body: OneTimeLoginCodeRequest, request: HttpServletRequest): ResponseEntity<Void> { captcha.verify(body.recaptchaToken, request.getIp(), "account_one_time_login_code"); limiter.check("one-time-login-code-ip:" + request.getIp(), 10, 3600); loginService.loginWithAccount(request, security.consumeOneTimeLoginCode(body.code)); return ResponseEntity.noContent().build() }
-    @PostMapping("/api/account/password/login") fun passwordLogin(@RequestBody body: PasswordLoginRequest, request: HttpServletRequest): ResponseEntity<Void> { requirePasswordEnabled(); val normalized = body.identifier.trim().lowercase(); limiter.check("password-login-ip:" + request.getIp(), 50, 900); limiter.check("password-login-identifier:" + normalized, 10, 900); loginService.loginWithAccount(request, security.authenticate(body.identifier, body.password.toCharArray(), body.totpCode)); return ResponseEntity.noContent().build() }
+    @GetMapping("/api/account/login/mfa") fun pendingExternalSecondFactor(session: HttpSession): Map<String, Boolean> {
+        val account = loginService.pendingSecondFactorAccount(session)
+        return mapOf("pending" to (account != null), "email_backup_available" to (account?.let(security::isEmailMfaBackupAvailable) ?: false))
+    }
+    @PostMapping("/api/account/login/mfa") fun completeExternalSecondFactor(@RequestBody body: ExternalSecondFactorRequest, request: HttpServletRequest): ResponseEntity<Map<String, String>> {
+        val pendingAccount = loginService.pendingSecondFactorAccount(request.session)
+            ?: throw IdpException("mfa_session_expired", "2단계 인증 세션이 만료되었습니다. 다시 로그인해 주세요.", 401)
+        try {
+            limiter.check("external-mfa-session:${request.session.id}", 10, 300)
+            limiter.check("external-mfa-account:${pendingAccount.id}", 10, 300)
+            limiter.check("external-mfa-ip:${request.getIp()}", 20, 900)
+        } catch (error: IdpException) {
+            if (error.error == "rate_limited") loginService.cancelPendingSecondFactor(request.session)
+            throw error
+        }
+        if (!loginService.completePendingSecondFactor(request.session, body.totpCode, body.securityCode, body.emailCode)) throw IdpException("mfa_session_expired", "2단계 인증 세션이 만료되었습니다. 다시 로그인해 주세요.", 401)
+        val continuation = request.session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
+        request.session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName)
+        val redirect = continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") } ?: "/"
+        return ResponseEntity.ok(mapOf("redirect" to redirect))
+    }
+    @PostMapping("/api/account/login/mfa/email") fun requestExternalSecondFactorEmail(request: HttpServletRequest): ResponseEntity<Void> {
+        limiter.check("external-mfa-email-ip:${request.getIp()}", 10, 3600)
+        val account = loginService.pendingSecondFactorAccount(request.session)
+            ?: throw IdpException("mfa_session_expired", "2단계 인증 세션이 만료되었습니다. 다시 로그인해 주세요.", 401)
+        security.requestEmailMfaPendingCode(account)
+        return ResponseEntity.accepted().build()
+    }
+    @PostMapping("/api/account/password/login") fun passwordLogin(@RequestBody body: PasswordLoginRequest, request: HttpServletRequest): ResponseEntity<Map<String, Boolean>> {
+        requirePasswordEnabled()
+        val normalized = body.identifier.trim().lowercase()
+        limiter.check("password-login-ip:" + request.getIp(), 50, 900)
+        limiter.check("password-login-identifier:" + normalized, 10, 900)
+        val account = security.authenticatePasswordFirstFactor(body.identifier, body.password.toCharArray())
+        if (security.requiresSecondFactor(account)) {
+            loginService.beginPendingPasswordSecondFactor(request, account)
+            return ResponseEntity.status(202).body(mapOf("mfa_required" to true))
+        }
+        security.recordPasswordLoginSuccess(account)
+        loginService.loginWithAccount(request, account)
+        return ResponseEntity.noContent().build()
+    }
+    @PostMapping("/api/account/password/login/email-mfa-code") fun passwordLoginEmailMfaCode(@RequestBody body: PasswordLoginRequest, request: HttpServletRequest): ResponseEntity<Void> { requirePasswordEnabled(); limiter.check("email-mfa-request-ip:" + request.getIp(), 10, 3600); security.requestEmailMfaLoginCode(body.identifier, body.password.toCharArray()); return ResponseEntity.accepted().build() }
     @PostMapping("/api/account/passkeys/authentication/options") fun passkeyAuthenticationOptions(request: HttpServletRequest): Map<String, Any> { limiter.check("passkey-login:${request.getIp()}", 20, 900); return webAuthn.authenticationOptions() }
     @PostMapping("/api/account/passkeys/authentication/complete") fun passkeyAuthenticationComplete(@RequestBody body: PasskeyCompletionRequest, request: HttpServletRequest): ResponseEntity<Void> { limiter.check("passkey-login:${request.getIp()}", 20, 900); loginService.loginWithAccount(request, webAuthn.completeAuthentication(body.operationToken, body.credential)); return ResponseEntity.noContent().build() }
     private fun requirePasswordEnabled() {

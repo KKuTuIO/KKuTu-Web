@@ -18,7 +18,7 @@ class IdentityDao(
 ) {
     private val accountMapper = RowMapper { rs: ResultSet, _: Int ->
         Account(
-            UUID.fromString(rs.getString("id")), UUID.fromString(rs.getString("uuid")), rs.getString("legacy_user_id"), AccountStatus.valueOf(rs.getString("status")),
+            UUID.fromString(rs.getString("id")), UUID.fromString(rs.getString("uuid")), rs.getString("legacy_user_id"), AccountStatus.valueOf(rs.getString("status")), rs.getBoolean("external_mfa_enabled"),
             rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant(), rs.getTimestamp("session_not_before").toInstant(),
             rs.getLongOrNull("primary_identity_id"), rs.getLongOrNull("origin_identity_id")
         )
@@ -100,6 +100,7 @@ class IdentityDao(
     ) == true
     fun updateNicknameTimestamp(accountId: UUID) = jdbc.update("UPDATE account SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", accountId)
     fun setStatus(accountId: UUID, status: AccountStatus) = jdbc.update("UPDATE account SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", status.name, accountId)
+    fun setExternalMfaEnabled(accountId: UUID, enabled: Boolean) = jdbc.update("UPDATE account SET external_mfa_enabled=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", enabled, accountId)
 
     fun audit(accountId: UUID?, event: String, identityId: Long? = null, ipHash: String? = null, metadata: Map<String, Any?> = emptyMap()) {
         jdbc.update("INSERT INTO account_audit_log(account_id, event_type, identity_id, ip_hash, metadata) VALUES (?, ?, ?, ?, CAST(? AS jsonb))",
@@ -111,6 +112,13 @@ class IdentityDao(
         "INSERT INTO account_email_verification_quota(account_id, quota_date, attempts) VALUES (?, ?, 1) " +
             "ON CONFLICT(account_id, quota_date) DO UPDATE SET attempts = account_email_verification_quota.attempts + 1 " +
             "WHERE account_email_verification_quota.attempts < 6 RETURNING attempts",
+        accountId, LocalDate.now(ZoneId.of("Asia/Seoul"))
+    ).isNotEmpty()
+
+    fun consumeEmailBackupCodeQuota(accountId: UUID): Boolean = jdbc.queryForList(
+        "INSERT INTO account_email_backup_code_quota(account_id, quota_date, attempts, last_sent_at) VALUES (?, ?, 1, CURRENT_TIMESTAMP) " +
+            "ON CONFLICT(account_id, quota_date) DO UPDATE SET attempts=account_email_backup_code_quota.attempts+1, last_sent_at=CURRENT_TIMESTAMP " +
+            "WHERE account_email_backup_code_quota.attempts < 10 AND account_email_backup_code_quota.last_sent_at <= CURRENT_TIMESTAMP - INTERVAL '5 minutes' RETURNING attempts",
         accountId, LocalDate.now(ZoneId.of("Asia/Seoul"))
     ).isNotEmpty()
 
@@ -149,8 +157,14 @@ class IdentityDao(
 
     fun saveRefreshToken(hash: String, familyId: UUID, parentHash: String?, accountId: UUID, clientId: String, scopes: Set<String>, profileId: UUID?, expiresAt: Instant) = jdbc.update(
         "INSERT INTO idp_refresh_token(token_hash, family_id, parent_hash, account_id, client_id, scopes, selected_profile_id, expires_at) VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?)", hash, familyId, parentHash, accountId, clientId, json(scopes), profileId, expiresAt)
-    fun consumeRefreshToken(hash: String): Map<String, Any?>? = jdbc.queryForList("UPDATE idp_refresh_token SET used_at = CURRENT_TIMESTAMP WHERE token_hash = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > CURRENT_TIMESTAMP RETURNING *", hash).firstOrNull()
+    fun consumeRefreshToken(hash: String, clientId: String): Map<String, Any?>? = jdbc.queryForList(
+        "UPDATE idp_refresh_token SET used_at = CURRENT_TIMESTAMP WHERE token_hash = ? AND client_id = ? AND used_at IS NULL AND revoked_at IS NULL AND expires_at > CURRENT_TIMESTAMP RETURNING *",
+        hash, clientId
+    ).firstOrNull()
     fun findRefreshToken(hash: String): Map<String, Any?>? = jdbc.queryForList("SELECT * FROM idp_refresh_token WHERE token_hash = ?", hash).firstOrNull()
+    fun findRefreshTokenForClient(hash: String, clientId: String): Map<String, Any?>? = jdbc.queryForList(
+        "SELECT * FROM idp_refresh_token WHERE token_hash = ? AND client_id = ?", hash, clientId
+    ).firstOrNull()
     fun revokeRefreshFamily(family: UUID) = jdbc.update("UPDATE idp_refresh_token SET revoked_at = CURRENT_TIMESTAMP WHERE family_id = ? AND revoked_at IS NULL", family)
     fun revokeRefreshTokens(accountId: UUID) = jdbc.update("UPDATE idp_refresh_token SET revoked_at = CURRENT_TIMESTAMP WHERE account_id = ? AND revoked_at IS NULL", accountId)
     fun invalidateSessions(accountId: UUID) = jdbc.update("UPDATE account SET session_not_before=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=?", accountId)

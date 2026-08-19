@@ -12,6 +12,7 @@ data class Account(
     val uuid: UUID,
     val legacyUserId: String,
     val status: AccountStatus,
+    val externalMfaEnabled: Boolean,
     val createdAt: Instant,
     val updatedAt: Instant,
     val sessionNotBefore: Instant,

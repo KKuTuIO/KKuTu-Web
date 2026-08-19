@@ -4,6 +4,8 @@ import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import me.kkutuio.kkutuweb.user.UserDao
+import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
 import java.util.UUID
@@ -14,7 +16,8 @@ class AccountSecurityService(
     private val settings: IdentityProviderSettings,
     private val mailSender: JavaMailSender,
     private val cipher: SecretCipher,
-    private val limiter: AccountRateLimiter
+    private val limiter: AccountRateLimiter,
+    private val userDao: UserDao
 ) {
     private val secureRandom = SecureRandom()
     @Transactional
@@ -91,7 +94,7 @@ class AccountSecurityService(
     }
 
     fun setupTotp(account: Account, name: String): Map<String, String> {
-        val secret = Totp.newSecret(); dao.upsertTotp(account.id, cipher.encrypt(secret), name.trim().take(100).ifBlank { "TOTP 기기" })
+        val secret = Totp.newSecret(); dao.upsertTotp(account.id, cipher.encrypt(secret), name.trim().take(100).ifBlank { "TOTP 매체" })
         dao.audit(account.id, "TOTP_SETUP_STARTED")
         return mapOf("secret" to secret, "otpauth_uri" to "otpauth://totp/KKuTuIO:${account.legacyUserId}?secret=$secret&issuer=KKuTuIO")
     }
@@ -99,6 +102,43 @@ class AccountSecurityService(
         val row = dao.findTotp(account.id) ?: throw IdpException("not_found", "설정된 2단계 인증 수단이 없습니다.", 404)
         if (!Totp.verify(cipher.decrypt(row["secret_encrypted"].toString()), code)) throw IdpException("invalid_code", "인증 코드가 올바르지 않습니다.")
         dao.confirmTotp(account.id); dao.audit(account.id, "TOTP_ENABLED")
+    }
+
+    fun requiresSecondFactor(account: Account): Boolean =
+        dao.findTotp(account.id)?.get("confirmed_at") != null
+
+    fun requiresExternalSecondFactor(account: Account): Boolean =
+        requiresSecondFactor(account) && (!settings.passwordEnabled || account.externalMfaEnabled)
+
+    /** Completes the second factor after a successful external OAuth first factor. */
+    fun verifyExternalSecondFactor(account: Account, totpCode: String?, securityCode: String?, emailCode: String?) {
+        val configuredTotp = dao.findTotp(account.id)?.takeIf { it["confirmed_at"] != null }
+            ?: return
+        if (!totpCode.isNullOrBlank() && Totp.verify(cipher.decrypt(configuredTotp["secret_encrypted"].toString()), totpCode)) return
+        if (!emailCode.isNullOrBlank() && isEmailMfaBackupAvailable(account) && consumeEmailMfaCode(account, emailCode, "EMAIL_MFA_LOGIN")) {
+            dao.audit(account.id, "EMAIL_MFA_LOGIN_CODE_USED")
+            return
+        }
+        if (!securityCode.isNullOrBlank() && matchesSecurityCode(account, securityCode)) {
+            dao.audit(account.id, "SECURITY_CODE_MFA_SUCCESS")
+            return
+        }
+        throw IdpException("mfa_required", "TOTP 인증 코드 또는 보안코드가 필요합니다.", 401)
+    }
+    fun isEmailMfaBackupAvailable(account: Account): Boolean = requiresSecondFactor(account) && dao.hasVerifiedEmail(account.id)
+    fun requestEmailMfaPendingCode(account: Account) {
+        requireEmailMfaBackupAvailable(account)
+        sendEmailMfaCode(account, "EMAIL_MFA_LOGIN", "로그인")
+    }
+    fun requestEmailMfaLoginCode(identifier: String, password: CharArray) {
+        val account = findPasswordAccount(identifier, password)
+        requireEmailMfaBackupAvailable(account)
+        sendEmailMfaCode(account, "EMAIL_MFA_LOGIN", "로그인")
+    }
+    fun requestEmailMfaReauthenticationCode(account: Account, password: CharArray) {
+        verifyPasswordForAccount(account, password)
+        requireEmailMfaBackupAvailable(account)
+        sendEmailMfaCode(account, "EMAIL_MFA_LOGIN", "본인확인")
     }
     fun rotateOneTimeLoginCodes(account: Account): List<String> {
         dao.revokeRecoveryCodes(account.id)
@@ -114,31 +154,31 @@ class AccountSecurityService(
     }
     fun authenticate(identifier: String, password: CharArray, totpCode: String?): Account {
         requirePasswordEnabled()
-        val identity = if (identifier.contains('@')) dao.findActiveIdentity("EMAIL", identifier.trim().lowercase()) else null
-        val account = identity?.let { dao.findAccount(it.accountId) } ?: dao.findAccountByLegacyId(identifier.trim())
-            ?: run { password.fill('\u0000'); throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401) }
-        if (account.status != AccountStatus.ACTIVE) { password.fill('\u0000'); throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401) }
+        val account = findPasswordAccount(identifier, password)
         val passwordIdentity = dao.listIdentities(account.id).firstOrNull { it.type == IdentityType.PASSWORD && it.revokedAt == null }
-        if (passwordIdentity?.credentialHash == null || !SecretTools.verifyPassword(passwordIdentity.credentialHash, password)) throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401)
-        val configuredTotp = dao.findTotp(account.id)?.takeIf { it["confirmed_at"] != null }
-        if (configuredTotp != null && (totpCode.isNullOrBlank() || !Totp.verify(cipher.decrypt(configuredTotp["secret_encrypted"].toString()), totpCode))) throw IdpException("mfa_required", "2단계 인증 코드가 필요합니다.", 401)
-        dao.touchIdentity(passwordIdentity.id); dao.audit(account.id, "PASSWORD_LOGIN_SUCCESS")
+        verifySecondFactor(account, totpCode)
+        dao.touchIdentity(passwordIdentity!!.id); dao.audit(account.id, "PASSWORD_LOGIN_SUCCESS")
         return account
+    }
+
+    /** Validates only the password first factor.  MFA is completed in the shared login screen. */
+    fun authenticatePasswordFirstFactor(identifier: String, password: CharArray): Account {
+        requirePasswordEnabled()
+        return findPasswordAccount(identifier, password)
+    }
+
+    fun recordPasswordLoginSuccess(account: Account) {
+        val passwordIdentity = dao.listIdentities(account.id).firstOrNull { it.type == IdentityType.PASSWORD && it.revokedAt == null }
+            ?: throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401)
+        dao.touchIdentity(passwordIdentity.id)
+        dao.audit(account.id, "PASSWORD_LOGIN_SUCCESS")
     }
 
     /** Re-authentication is scoped to the already logged-in account. */
     fun reauthenticate(account: Account, password: CharArray, totpCode: String?) {
         requirePasswordEnabled()
-        val passwordIdentity = dao.listIdentities(account.id)
-            .firstOrNull { it.type == IdentityType.PASSWORD && it.revokedAt == null }
-            ?: run { password.fill('\u0000'); throw IdpException("reauthentication_unavailable", "비밀번호 로그인 수단이 없습니다.", 400) }
-        if (!SecretTools.verifyPassword(passwordIdentity.credentialHash ?: "", password)) {
-            throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401)
-        }
-        val configuredTotp = dao.findTotp(account.id)?.takeIf { it["confirmed_at"] != null }
-        if (configuredTotp != null && (totpCode.isNullOrBlank() || !Totp.verify(cipher.decrypt(configuredTotp["secret_encrypted"].toString()), totpCode))) {
-            throw IdpException("mfa_required", "2단계 인증 코드가 필요합니다.", 401)
-        }
+        val passwordIdentity = verifyPasswordForAccount(account, password)
+        verifySecondFactor(account, totpCode)
         dao.touchIdentity(passwordIdentity.id)
         dao.audit(account.id, "ACCOUNT_REAUTHENTICATED", passwordIdentity.id)
     }
@@ -154,8 +194,66 @@ class AccountSecurityService(
         return account
     }
 
+    private fun verifySecondFactor(account: Account, code: String?) {
+        val configuredTotp = dao.findTotp(account.id)?.takeIf { it["confirmed_at"] != null }
+        if (configuredTotp == null) return
+        val emailMfaBackupAvailable = dao.hasVerifiedEmail(account.id)
+        if (!code.isNullOrBlank()) {
+            if (Totp.verify(cipher.decrypt(configuredTotp["secret_encrypted"].toString()), code)) return
+            if (emailMfaBackupAvailable && consumeEmailMfaCode(account, code, "EMAIL_MFA_LOGIN")) return
+            if (matchesSecurityCode(account, code)) {
+                dao.audit(account.id, "SECURITY_CODE_MFA_SUCCESS")
+                return
+            }
+        }
+        throw IdpException("mfa_required", if (emailMfaBackupAvailable) "TOTP 인증 코드가 필요합니다. 코드를 잊으셨다면 전자 메일 백업 인증을 요청하세요." else "TOTP 인증 코드가 필요합니다.", 401)
+    }
+
+    private fun sendEmailMfaCode(account: Account, purpose: String, operation: String) {
+        val email = dao.listIdentities(account.id).firstOrNull { it.type == IdentityType.EMAIL && it.verifiedAt != null && it.revokedAt == null }?.subject
+            ?: throw IdpException("email_mfa_unavailable", "계정에 등록된 전자 메일 주소가 인증되지 않았습니다.", 400)
+        if (!dao.consumeEmailBackupCodeQuota(account.id)) throw IdpException("rate_limited", "전자 메일 인증 코드는 5분에 한 번, 계정당 하루 10회까지 보낼 수 있습니다.", 429)
+        val code = SecretTools.randomToken(8).uppercase()
+        dao.saveOneTimeToken(SecretTools.sha256(code), account.id, purpose, emptyMap(), Instant.now().plusSeconds(300))
+        deliver(email, "끄투리오 2단계 인증", "고객님 계정의 인증 코드는 $operation 입니다. 5분 안에 입력해 주세요.\n\n$code")
+        dao.audit(account.id, "EMAIL_MFA_LOGIN_CODE_SENT")
+    }
+
+    private fun consumeEmailMfaCode(account: Account, code: String, purpose: String): Boolean {
+        val row = dao.consumeOneTimeToken(SecretTools.sha256(code.trim().uppercase()), purpose) ?: return false
+        return row["account_id"]?.toString() == account.id.toString()
+    }
+
+    private fun requireEmailMfaBackupAvailable(account: Account) {
+        if (dao.findTotp(account.id)?.get("confirmed_at") == null || !dao.hasVerifiedEmail(account.id)) {
+            throw IdpException("email_mfa_unavailable", "잘못된 요청입니다.", 400)
+        }
+    }
+
+    private fun matchesSecurityCode(account: Account, code: String): Boolean {
+        val expected = userDao.getUser(account.legacyUserId)?.flags?.path("uid")?.path("value")?.asText()
+        return !expected.isNullOrBlank() && MessageDigest.isEqual(expected.toByteArray(), code.trim().toByteArray())
+    }
+
+    private fun findPasswordAccount(identifier: String, password: CharArray): Account {
+        val identity = if (identifier.contains('@')) dao.findActiveIdentity("EMAIL", identifier.trim().lowercase()) else null
+        val account = identity?.let { dao.findAccount(it.accountId) } ?: dao.findAccountByLegacyId(identifier.trim())
+            ?: run { password.fill('\u0000'); throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401) }
+        if (account.status != AccountStatus.ACTIVE) { password.fill('\u0000'); throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401) }
+        verifyPasswordForAccount(account, password)
+        return account
+    }
+
+    private fun verifyPasswordForAccount(account: Account, password: CharArray): AccountIdentity {
+        val passwordIdentity = dao.listIdentities(account.id)
+            .firstOrNull { it.type == IdentityType.PASSWORD && it.revokedAt == null }
+            ?: run { password.fill('\u0000'); throw IdpException("reauthentication_unavailable", "잘못된 요청입니다.", 400) }
+        if (!SecretTools.verifyPassword(passwordIdentity.credentialHash ?: "", password)) throw IdpException("invalid_credentials", "로그인 정보가 올바르지 않습니다.", 401)
+        return passwordIdentity
+    }
+
     private fun requirePasswordEnabled() {
-        if (!settings.passwordEnabled) throw IdpException("password_disabled", "비밀번호 로그인은 비활성화되어 있습니다.", 404)
+        if (!settings.passwordEnabled) throw IdpException("password_disabled", "잘못된 요청입니다.", 400)
     }
 
     private fun deliver(to: String, subject: String, text: String) {

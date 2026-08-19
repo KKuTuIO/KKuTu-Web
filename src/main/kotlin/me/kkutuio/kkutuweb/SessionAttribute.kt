@@ -28,5 +28,8 @@ enum class SessionAttribute(val attributeName: String) {
     AUTHENTICATED_AT("authenticatedAt"),
     OAUTH_LINK_ACCOUNT_ID("oauthLinkAccountId"),
     PENDING_OAUTH_USER("pendingOAuthUser"),
-    LOGIN_LINK_REQUIRED("loginLinkRequired")
+    LOGIN_LINK_REQUIRED("loginLinkRequired"),
+    PENDING_MFA_ACCOUNT_ID("pendingMfaAccountId"),
+    PENDING_MFA_OAUTH_USER("pendingMfaOAuthUser"),
+    PENDING_MFA_STARTED_AT("pendingMfaStartedAt")
 }

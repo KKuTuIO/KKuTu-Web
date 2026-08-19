@@ -34,6 +34,7 @@ import me.kkutuio.kkutuweb.setting.OAuthSetting
 import me.kkutuio.kkutuweb.user.UserDao
 import me.kkutuio.kkutuweb.identity.AccountService
 import me.kkutuio.kkutuweb.identity.Account
+import me.kkutuio.kkutuweb.identity.AccountSecurityService
 import me.kkutuio.kkutuweb.identity.SecretTools
 import me.kkutuio.kkutuweb.oauth.OAuthUser
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -43,6 +44,7 @@ import javax.annotation.PostConstruct
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
 import kotlin.streams.asSequence
+import java.time.Instant
 
 @Service
 class LoginService(
@@ -56,8 +58,12 @@ class LoginService(
     @Autowired private val kakaoOAuthService: KakaoOAuthService,
     @Autowired private val userDao: UserDao,
     @Autowired private val accountService: AccountService,
+    @Autowired private val accountSecurity: AccountSecurityService,
     @Autowired private val objectMapper: ObjectMapper
 ) {
+    private companion object {
+        const val PENDING_MFA_TTL_SECONDS = 300L
+    }
     @PostConstruct
     fun initOAuthServices() {
         for (entry in oAuthSetting.getSetting().entries) {
@@ -121,9 +127,7 @@ class LoginService(
                 val pendingIdentity = objectMapper.readValue(pendingIdentityJson, OAuthUser::class.java)
                 val account = accountService.ensureExternalAccount(oAuthUser, request)
                 accountService.linkExternalIdentity(account, pendingIdentity)
-                session.setAttribute(SessionAttribute.IS_GUEST, false)
-                session.setOAuthUser(oAuthUser)
-                accountService.bindSession(session, account)
+                establishExternalSession(session, account, oAuthUser)
                 return true
             }
 
@@ -137,9 +141,7 @@ class LoginService(
             val account = accountService.ensureExternalAccount(oAuthUser, request)
 
             session.removeAttribute(SessionAttribute.OAUTH_STATE)
-            session.setAttribute(SessionAttribute.IS_GUEST, false)
-            session.setOAuthUser(oAuthUser)
-            accountService.bindSession(session, account)
+            establishExternalSession(session, account, oAuthUser)
             true
         } catch (e: Exception) {
             false
@@ -151,6 +153,79 @@ class LoginService(
         val pendingIdentity = session.getAttribute(SessionAttribute.PENDING_OAUTH_USER.attributeName) as? String ?: return null
         return runCatching { objectMapper.readValue(pendingIdentity, OAuthUser::class.java).authVendor }.getOrNull()
             ?.let(::providerDisplayName)
+    }
+
+    fun hasPendingSecondFactor(session: HttpSession): Boolean {
+        val startedAt = session.getAttribute(SessionAttribute.PENDING_MFA_STARTED_AT.attributeName) as? Long
+        val pending = session.getAttribute(SessionAttribute.PENDING_MFA_ACCOUNT_ID.attributeName) is String &&
+            session.getAttribute(SessionAttribute.PENDING_MFA_OAUTH_USER.attributeName) is String
+        if (!pending || startedAt == null || startedAt < Instant.now().epochSecond - PENDING_MFA_TTL_SECONDS) {
+            clearPendingSecondFactor(session)
+            return false
+        }
+        return true
+    }
+
+    fun pendingSecondFactorAccount(session: HttpSession): Account? {
+        if (!hasPendingSecondFactor(session)) return null
+        val accountId = (session.getAttribute(SessionAttribute.PENDING_MFA_ACCOUNT_ID.attributeName) as? String)
+            ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+            ?: return null
+        return accountService.findAccount(accountId)
+    }
+
+    fun cancelPendingSecondFactor(session: HttpSession) = clearPendingSecondFactor(session)
+
+    fun beginPendingPasswordSecondFactor(request: HttpServletRequest, account: Account) {
+        var session = request.session
+        runCatching { session.invalidate() }
+        session = request.session
+        beginPendingSecondFactor(session, account, localOAuthUser(account))
+    }
+
+    fun completePendingSecondFactor(session: HttpSession, totpCode: String?, securityCode: String?, emailCode: String?): Boolean {
+        if (!hasPendingSecondFactor(session)) return false
+        val accountId = (session.getAttribute(SessionAttribute.PENDING_MFA_ACCOUNT_ID.attributeName) as? String)
+            ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() } ?: return false
+        val oauthJson = session.getAttribute(SessionAttribute.PENDING_MFA_OAUTH_USER.attributeName) as? String ?: return false
+        val account = accountService.findAccount(accountId) ?: return false
+        accountService.requireLoginAllowed(account)
+        accountSecurity.verifyExternalSecondFactor(account, totpCode, securityCode, emailCode)
+        val oauthUser = objectMapper.readValue(oauthJson, OAuthUser::class.java)
+        clearPendingSecondFactor(session)
+        session.setAttribute(SessionAttribute.IS_GUEST, false)
+        session.setOAuthUser(oauthUser)
+        accountService.bindSession(session, account)
+        if (oauthUser.authVendor == AuthVendor.LOCAL) accountSecurity.recordPasswordLoginSuccess(account)
+        return true
+    }
+
+    private fun establishExternalSession(session: HttpSession, account: Account, oauthUser: OAuthUser) {
+        if (accountSecurity.requiresExternalSecondFactor(account)) {
+            beginPendingSecondFactor(session, account, oauthUser)
+            return
+        }
+        session.setAttribute(SessionAttribute.IS_GUEST, false)
+        session.setOAuthUser(oauthUser)
+        accountService.bindSession(session, account)
+    }
+
+    private fun beginPendingSecondFactor(session: HttpSession, account: Account, oauthUser: OAuthUser) {
+        session.setAttribute(SessionAttribute.IS_GUEST, true)
+        session.setAttribute(SessionAttribute.PENDING_MFA_ACCOUNT_ID, account.id.toString())
+        session.setAttribute(SessionAttribute.PENDING_MFA_OAUTH_USER, objectMapper.writeValueAsString(oauthUser))
+        session.setAttribute(SessionAttribute.PENDING_MFA_STARTED_AT, Instant.now().epochSecond)
+    }
+
+    private fun clearPendingSecondFactor(session: HttpSession) {
+        session.removeAttribute(SessionAttribute.PENDING_MFA_ACCOUNT_ID)
+        session.removeAttribute(SessionAttribute.PENDING_MFA_OAUTH_USER)
+        session.removeAttribute(SessionAttribute.PENDING_MFA_STARTED_AT)
+    }
+
+    private fun localOAuthUser(account: Account): OAuthUser {
+        val nickname = userDao.getUser(account.legacyUserId)?.nickname ?: account.legacyUserId
+        return OAuthUser(AuthVendor.LOCAL, account.legacyUserId, nickname, null, null, null, null)
     }
 
     private fun providerDisplayName(vendor: AuthVendor): String = when (vendor) {
@@ -200,9 +275,8 @@ class LoginService(
         var session = request.session
         runCatching { session.invalidate() }
         session = request.session
-        val nickname = userDao.getUser(account.legacyUserId)?.nickname ?: account.legacyUserId
         session.setAttribute(SessionAttribute.IS_GUEST, false)
-        session.setOAuthUser(OAuthUser(AuthVendor.LOCAL, account.legacyUserId, nickname, null, null, null, null))
+        session.setOAuthUser(localOAuthUser(account))
         accountService.bindSession(session, account)
     }
 

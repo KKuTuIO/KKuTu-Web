@@ -99,6 +99,9 @@ class LoginController(
         if (loginSuccess && request.session.getAttribute(SessionAttribute.LOGIN_LINK_REQUIRED.attributeName) == true) {
             return "redirect:/login/link-account"
         }
+        if (loginSuccess && loginService.hasPendingSecondFactor(request.session)) {
+            return "redirect:/login/mfa"
+        }
         if (loginSuccess) {
             val session = request.session
             val oAuthUser = session.getOAuthUser()
@@ -114,4 +117,7 @@ class LoginController(
         val safeContinuation = continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") }
         return if (safeContinuation != null) "redirect:$safeContinuation" else "redirect:/"
     }
+
+    @GetMapping("/mfa")
+    fun mfa(): String = "forward:/login/mfa.html"
 }

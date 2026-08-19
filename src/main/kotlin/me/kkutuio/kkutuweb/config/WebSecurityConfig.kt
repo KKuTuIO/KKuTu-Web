@@ -40,7 +40,6 @@ class WebSecurityConfig : WebSecurityConfigurerAdapter() {
         private val publicAccountPaths = setOf(
             "/api/account/recovery/request",
             "/api/account/recovery/reset",
-            "/api/account/recovery/recovery-code",
             "/api/account/password/login",
             "/api/account/passkeys/authentication/options",
             "/api/account/passkeys/authentication/complete",
@@ -50,7 +49,8 @@ class WebSecurityConfig : WebSecurityConfigurerAdapter() {
         override fun matches(request: HttpServletRequest): Boolean {
             if (request.method !in unsafeMethods) return false
             val path = request.requestURI.removePrefix(request.contextPath)
-            return path == "/oauth/authorize/consent" ||
+            return path == "/oauth/authorize/consent" || path == "/account/recovery/login" ||
+                path.startsWith("/api/admin/oauth-clients") ||
                 (path.startsWith("/api/account/") && path !in publicAccountPaths)
         }
     }

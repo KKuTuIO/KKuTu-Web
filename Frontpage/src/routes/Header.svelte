@@ -240,6 +240,15 @@
 							</span>
 							계정 변경
 						</button>
+						<a
+							href="/account"
+							rel="external"
+							class="flex w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
+							<span class="material-symbols-outlined text-md mr-2">
+								manage_accounts
+							</span>
+							계정 관리
+						</a>
 						<button
 						on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}
 						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">

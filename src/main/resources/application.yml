@@ -1,5 +1,8 @@
 server:
   port: <Port>
+  forward-headers-strategy: framework
+  tomcat:
+    use-relative-redirects: true
   servlet:
     session:
       tracking-modes: cookie

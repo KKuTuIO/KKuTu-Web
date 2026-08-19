@@ -24,13 +24,14 @@
  import javax.servlet.http.HttpSession
  import javax.servlet.http.HttpServletRequest
  import me.kkutuio.kkutuweb.extension.isGuest
- import me.kkutuio.kkutuweb.extension.getOAuthUser
+ import me.kkutuio.kkutuweb.login.LoginService
  import me.kkutuio.kkutuweb.record.RecordCheckRateLimiter
  
  @RestController
  class UserApi(
      @Autowired private val userService: UserService,
-     @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter
+     @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter,
+     @Autowired private val loginService: LoginService
  ) {
      @GetMapping("/box", produces = [MediaType.APPLICATION_JSON_VALUE])
      fun getBox(session: HttpSession): String {
@@ -67,17 +68,18 @@
         session: HttpSession
     ): Map<String, Any?> {
         return if (!session.isGuest()) {
-            val oauthUser = runCatching { session.getOAuthUser() }.getOrNull()
+            val profile = loginService.getSessionProfile(session)
                 ?: return mapOf("status" to "Guest user")
-
+            val separator = profile.id.indexOf('-')
+            val vendorId = if (profile.authType == "local" || separator < 0) profile.id else profile.id.substring(separator + 1)
             mapOf(
-                "authVendor" to oauthUser.authVendor.name,
-                "vendorId" to oauthUser.vendorId,
-                "name" to oauthUser.name,
-                "image" to (oauthUser.profileImage?.replace("=s50", "") ?: ""),
-                "gender" to oauthUser.gender?.name,
-                "minAge" to oauthUser.minAge,
-                "maxAge" to oauthUser.maxAge
+                "authVendor" to profile.authType.uppercase(),
+                "vendorId" to vendorId,
+                "name" to profile.name,
+                "image" to profile.image.replace("=s50", ""),
+                "gender" to null,
+                "minAge" to null,
+                "maxAge" to null
             )
         } else {
             mapOf("status" to "Guest user")

@@ -72,7 +72,10 @@ class LoginController(
         return "redirect:/"
     }
 
-    @GetMapping("/{vendorName}")
+    // Do not let this catch the internal forwards to /login/*.html.  Those
+    // forwards must reach the Svelte static bundle, not be interpreted as an
+    // unknown OAuth provider and redirected back to /login/fail.
+    @GetMapping("/{vendorName:naver|google|kakao|facebook|discord|daldalso|github}")
     fun loginRequest(
         @PathVariable vendorName: String,
         session: HttpSession
@@ -85,7 +88,7 @@ class LoginController(
         return "redirect:$authorizationUrl"
     }
 
-    @GetMapping("/{vendorName}/callback")
+    @GetMapping("/{vendorName:naver|google|kakao|facebook|discord|daldalso|github}/callback")
     fun loginCallback(
         @PathVariable vendorName: String,
         @RequestParam("code", required = false, defaultValue = "") code: String,

@@ -70,6 +70,15 @@ class AccountService(
     fun findExternalAccount(oauth: OAuthUser): Account? = dao.findActiveIdentity(oauth.authVendor.name, oauth.vendorId)
         ?.let { dao.findAccount(it.accountId) }
 
+    /**
+     * OAuth is a login method, not the game identity.  Once an account has
+     * several login methods, every game-facing request must use the account's
+     * selected game profile instead of the provider that happened to sign in.
+     */
+    fun selectedGameProfileLegacyUserId(account: Account): String =
+        dao.defaultProfile(account.id)?.get("legacy_user_id")?.toString()?.takeIf { it.isNotBlank() }
+            ?: account.legacyUserId
+
     @Transactional
     fun ensureLegacyExternalIdentity(account: Account) {
         val provider = AuthVendor.values().firstOrNull { vendor ->

@@ -262,20 +262,25 @@ class LoginService(
 
     fun getSessionProfile(session: HttpSession): SessionProfile? {
         if (session.isGuest()) return null
-        val oAuthUser = session.getOAuthUser()
 
-        val userId = oAuthUser.getUserId()
+        // The OAuth object proves how the account authenticated.  It is not
+        // the game identity: a linked provider can legitimately have a
+        // different legacy ID.  The account session is the authority for the
+        // selected game profile used by the game server and all profile APIs.
+        val account = accountService.currentAccount(session)
+        val oAuthUser = runCatching { session.getOAuthUser() }.getOrNull()
+        val userId = account?.let(accountService::selectedGameProfileLegacyUserId) ?: oAuthUser?.getUserId() ?: return null
         val user = userDao.getUser(userId)
-
-        val authType = oAuthUser.authVendor.name.lowercase()
-        val title = if (user == null) oAuthUser.name else (user.nickname ?: oAuthUser.name)
+        val authType = userId.substringBefore('-', "local").lowercase()
+        val fallbackName = oAuthUser?.name ?: userId
+        val title = user?.nickname ?: fallbackName
 
         return SessionProfile(
             authType = authType,
             id = userId,
-            name = oAuthUser.name,
+            name = user?.nickname ?: fallbackName,
             title = title,
-            image = oAuthUser.profileImage ?: ""
+            image = oAuthUser?.takeIf { it.getUserId() == userId }?.profileImage ?: ""
         )
     }
 

@@ -89,7 +89,6 @@ dependencies {
     implementation("com.github.scribejava:scribejava-apis:7.1.1")
     implementation("org.postgresql:postgresql:42.2.16")
     implementation("com.googlecode.htmlcompressor:htmlcompressor:1.5.2")
-    implementation("org.flywaydb:flyway-core")
     implementation("de.mkammerer:argon2-jvm:2.11")
     implementation("com.nimbusds:nimbus-jose-jwt:9.37.3")
     implementation("com.upokecenter:cbor:4.5.5")

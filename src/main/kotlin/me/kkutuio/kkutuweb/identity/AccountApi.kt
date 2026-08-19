@@ -95,6 +95,7 @@ class AccountApi(
     @DeleteMapping("/email") fun removeEmail(session: HttpSession): ResponseEntity<Void> { accounts.removeEmail(recent(session)); return ResponseEntity.noContent().build() }
     @GetMapping("/identities") fun identities(session: HttpSession): List<Map<String, Any?>> {
         val account = accounts.requireCurrentAccount(session)
+        accounts.ensureLegacyExternalIdentity(account)
         runCatching { session.getOAuthUser() }.getOrNull()?.takeIf {
             it.authVendor.name != "LOCAL" && it.getUserId() == account.legacyUserId
         }?.let { accounts.linkExternalIdentity(account, it) }

@@ -65,7 +65,7 @@ class NaverOAuthService(
             minAge = splitAge[0].toIntOrNull(),
             maxAge = splitAge[1].toIntOrNull(),
             email = responseNode.path("email").asText(null),
-            emailVerified = true
+            emailVerified = false
         )
     }
 }

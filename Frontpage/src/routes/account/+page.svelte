@@ -37,12 +37,12 @@
     let modalTotpCode = '';
     let modalTotpName = '';
     const oauthProviders = [
-        {id: 'naver', name: '네이버', icon: 'https://cdn.kkutu.io/logo/fusion/naver.svg'},
-        {id: 'google', name: 'Google', icon: 'https://cdn.kkutu.io/logo/fusion/google.svg'},
-        {id: 'kakao', name: '카카오', icon: 'https://cdn.kkutu.io/logo/fusion/kakao.svg'},
-        {id: 'facebook', name: 'Facebook', icon: 'https://cdn.kkutu.io/logo/fusion/facebook.svg'},
-        {id: 'discord', name: 'Discord', icon: 'https://cdn.kkutu.io/logo/fusion/discord.svg'},
-        {id: 'daldalso', name: '달달소', icon: 'https://cdn.kkutu.io/logo/fusion/daldalso.png'}
+        {id: 'naver', name: '네이버', icon: '/img/auth/naver.png'},
+        {id: 'google', name: 'Google', icon: '/img/auth/google.png'},
+        {id: 'kakao', name: '카카오', icon: '/img/auth/kakao.png'},
+        {id: 'facebook', name: 'Facebook', icon: '/img/auth/facebook.png'},
+        {id: 'discord', name: 'Discord', icon: '/img/auth/discord.png'},
+        {id: 'daldalso', name: '달달소', icon: '/logo/daldalso.png'}
     ];
 
     async function load() {
@@ -343,13 +343,13 @@
 
     function openTotpRename() {
         modalTotpName = totpName || 'Authenticator';
-        modal = {type: 'totp-rename', title: 'TOTP 인증 매체 이름 변경'};
+        modal = {type: 'totp-rename', title: 'TOTP 매체 이름 변경'};
     }
 
     async function confirmTotpRename() {
         const nextName = modalTotpName.trim();
         if (!nextName) {
-            notify('TOTP 인증 매체 이름을 입력해 주세요.', 'error');
+            notify('TOTP 매체 이름을 입력해 주세요.', 'error');
             return;
         }
         totpName = nextName;
@@ -549,7 +549,7 @@
                             {#each oauthProviders as provider}
                                 {@const identity = linkedIdentity(provider)}
                                 <div class="flex items-center gap-4 border-b border-gray-100 py-4 last:border-0 dark:border-gray-700">
-                                    <img src={provider.icon} class="h-10 w-10 shrink-0 object-contain" alt="{provider.name} 아이콘"/>
+                                    <img src={provider.icon} class="h-11 w-11 shrink-0 object-contain" alt="{provider.name} 아이콘"/>
                                     <div class="min-w-0 flex-1">
                                         <h3 class="font-bold">{provider.name}</h3>
                                         {#if identity}
@@ -580,7 +580,25 @@
                     {#if passwordEnabled}
                         <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>비밀번호</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><div class="grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" type="password" minlength="12" placeholder="새 비밀번호 (12자 이상)" bind:value={password}/><button class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-white dark:bg-gray-700" on:click={setPassword}>{identities.some(identity => identity.type === 'PASSWORD') ? '변경' : '설정'}</button></div></div></details>
                     {/if}
-                    <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>패스키</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{passkeys.length}/10<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary><div class="px-5 pb-5"><button class="rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43] disabled:opacity-50" on:click={registerPasskey} disabled={passkeys.length >= 10}>추가</button>{#each passkeys as passkey}<div class="mt-3 flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-3 text-sm dark:bg-gray-900"><span><b>{passkey.device_name}</b><br/><small class="text-gray-500">{passkey.last_used_at || passkey.created_at}</small></span><button class="font-bold text-red-700" on:click={() => removePasskey(passkey.id)}>삭제</button></div>{/each}</div></details>
+                    <details class="group border-b border-gray-200 dark:border-gray-700">
+                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>패스키</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{passkeys.length}/10<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
+                        <div class="px-5 pb-5">
+                            {#if passkeys.length === 0}
+                                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center dark:border-gray-600 dark:bg-gray-900"><span class="material-symbols-outlined text-3xl text-gray-400">key</span><p class="mt-2 text-sm text-gray-500 dark:text-gray-300">등록된 패스키가 없습니다.</p><button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43] disabled:opacity-50" on:click={registerPasskey} disabled={passkeys.length >= 10}>패스키 추가</button></div>
+                            {:else}
+                                <div class="space-y-3">
+                                    {#each passkeys as passkey}
+                                        <div class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-900">
+                                            <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"><span class="material-symbols-outlined text-3xl">key</span></div>
+                                            <div class="min-w-0 flex-1"><h3 class="truncate text-lg font-bold">{passkey.device_name || 'Passkey'}</h3><p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{passkey.last_used_at ? `최근 사용: ${new Date(passkey.last_used_at).toLocaleString()}` : `등록: ${new Date(passkey.created_at).toLocaleString()}`}</p></div>
+                                            <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950" on:click={() => removePasskey(passkey.id)} aria-label="패스키 삭제"><span class="material-symbols-outlined">delete</span></button>
+                                        </div>
+                                    {/each}
+                                </div>
+                                <button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43] disabled:opacity-50" on:click={registerPasskey} disabled={passkeys.length >= 10}>패스키 추가</button>
+                            {/if}
+                        </div>
+                    </details>
                     <details class="group border-b border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>2단계 인증</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{mfa?.totp ? '사용 중' : '미설정'}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
                         <div class="px-5 pb-5">
@@ -588,13 +606,13 @@
                                 <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-900">
                                     <div class="flex items-center gap-4">
                                         <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200"><span class="material-symbols-outlined text-3xl">qr_code_2</span></div>
-                                        <div class="min-w-0 flex-1"><div class="flex items-center gap-1.5"><h3 class="truncate text-lg font-bold">{totpName || 'Authenticator'}</h3><button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white" on:click={openTotpRename} aria-label="TOTP 인증 매체 이름 변경"><span class="material-symbols-outlined text-lg">edit</span></button></div><p class="mt-1 text-sm text-gray-500 dark:text-gray-300">2단계 인증에 사용 중</p></div>
-                                        <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950" on:click={removeTotp} aria-label="TOTP 인증 매체 해제"><span class="material-symbols-outlined">delete</span></button>
+                                        <div class="min-w-0 flex-1"><div class="flex items-center gap-1.5"><h3 class="truncate text-lg font-bold">{totpName || 'Authenticator'}</h3><button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white" on:click={openTotpRename} aria-label="TOTP 매체 이름 변경"><span class="material-symbols-outlined text-lg">edit</span></button></div><p class="mt-1 text-sm text-gray-500 dark:text-gray-300">2단계 인증에 사용 중</p></div>
+                                        <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950" on:click={removeTotp} aria-label="TOTP 매체 해제"><span class="material-symbols-outlined">delete</span></button>
                                     </div>
                                 </div>
                                 {#if passwordEnabled}<div class="mt-4 flex items-center justify-between gap-4 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900"><span class="text-sm font-bold">외부 계정으로 로그인 시 2단계 인증 사용</span><button type="button" role="switch" aria-checked={Boolean(mfa?.external_login_mfa_enabled)} class={`relative h-7 w-12 rounded-full transition-colors ${mfa?.external_login_mfa_enabled ? 'bg-[#55aa55]' : 'bg-gray-300 dark:bg-gray-600'}`} on:click={() => setExternalLoginMfa(!mfa?.external_login_mfa_enabled)}><span class:translate-x-6={mfa?.external_login_mfa_enabled} class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform"></span></button></div>{/if}
                             {:else}
-                                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center dark:border-gray-600 dark:bg-gray-900"><span class="material-symbols-outlined text-3xl text-gray-400">qr_code_2</span><p class="mt-2 text-sm text-gray-500 dark:text-gray-300">등록된 TOTP 인증 매체가 없습니다.</p><button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]" on:click={setupTotp}>TOTP 인증 매체 추가</button></div>
+                                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5 text-center dark:border-gray-600 dark:bg-gray-900"><span class="material-symbols-outlined text-3xl text-gray-400">qr_code_2</span><p class="mt-2 text-sm text-gray-500 dark:text-gray-300">등록된 TOTP 매체가 없습니다.</p><button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]" on:click={setupTotp}>TOTP 매체 추가</button></div>
                             {/if}
                         </div>
                     </details>

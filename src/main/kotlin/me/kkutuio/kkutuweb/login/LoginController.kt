@@ -55,7 +55,7 @@ class LoginController(
         model: Model,
         request: HttpServletRequest
     ): String {
-        return "forward:/loginFail.html"
+        return "forward:/login/fail.html"
     }
 
     @GetMapping("/link-account")

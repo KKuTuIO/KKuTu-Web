@@ -1,6 +1,7 @@
 package me.kkutuio.kkutuweb.identity
 
 import me.kkutuio.kkutuweb.extension.*
+import me.kkutuio.kkutuweb.oauth.AuthVendor
 import me.kkutuio.kkutuweb.oauth.OAuthUser
 import me.kkutuio.kkutuweb.user.UserDao
 import org.springframework.stereotype.Service
@@ -69,6 +70,31 @@ class AccountService(
     fun findExternalAccount(oauth: OAuthUser): Account? = dao.findActiveIdentity(oauth.authVendor.name, oauth.vendorId)
         ?.let { dao.findAccount(it.accountId) }
 
+    @Transactional
+    fun ensureLegacyExternalIdentity(account: Account) {
+        val provider = AuthVendor.values().firstOrNull { vendor ->
+            vendor != AuthVendor.LOCAL && account.legacyUserId.startsWith(vendor.name.lowercase() + "-")
+        } ?: return
+        val subject = account.legacyUserId.removePrefix(provider.name.lowercase() + "-")
+        if (subject.isBlank()) return
+
+        val existing = dao.findIdentity(provider.name, subject)
+        if (existing != null) {
+            if (existing.accountId == account.id && existing.revokedAt != null) {
+                dao.restoreIdentity(existing.id)
+                dao.audit(account.id, "LEGACY_IDENTITY_RESTORED", existing.id, metadata = mapOf("provider" to provider.name))
+            }
+            return
+        }
+
+        val identity = dao.insertIdentity(
+            account.id, IdentityType.OAUTH, provider.name, subject, providerDisplayName(provider),
+            verified = true, primary = account.primaryIdentityId == null
+        )
+        if (account.originIdentityId == null) dao.setOriginAndPrimary(account.id, identity.id)
+        dao.audit(account.id, "LEGACY_IDENTITY_REPAIRED", identity.id, metadata = mapOf("provider" to provider.name))
+    }
+
     /**
      * V1 deliberately leaves legacy migration disabled.  A legacy game user is
      * nevertheless an existing account for registration-policy purposes, and
@@ -84,6 +110,13 @@ class AccountService(
 
     fun requireLoginAllowed(account: Account) {
         if (account.status != AccountStatus.ACTIVE) throw IdpException("access_denied", "로그인할 수 없는 계정입니다.", 403)
+    }
+
+    private fun providerDisplayName(provider: AuthVendor): String = when (provider) {
+        AuthVendor.NAVER -> "네이버"
+        AuthVendor.KAKAO -> "카카오"
+        AuthVendor.DALDALSO -> "달달소"
+        else -> provider.name.lowercase().replaceFirstChar { it.uppercase() }
     }
 
     fun bindSession(session: HttpSession, account: Account) {

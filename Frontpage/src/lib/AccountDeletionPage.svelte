@@ -40,6 +40,11 @@
     $: confirmationPhrase = `${originalName} ${isProfile ? '계정 탈퇴' : '프로필 삭제'}`;
     $: deletionAlias = `${isProfile ? '계정삭제대기' : '계정탈퇴대기'}${deletionTag ? `#${deletionTag}` : ''}`;
 
+    function profileDisplayHtml(value) {
+        const [name, tag] = String(value || '').split('#', 2);
+        return `${name}${tag ? `<small style="color:#bbb">#${tag}</small>` : ''}`;
+    }
+
     function csrfHeaders() {
         const token = document.cookie.split('; ').find(value => value.startsWith('XSRF-TOKEN='))?.split('=').slice(1).join('=');
         return token ? {'X-XSRF-TOKEN': decodeURIComponent(token)} : {};
@@ -327,7 +332,7 @@
         <div class="confirmation-list">
             <p><span class="material-symbols-outlined">emoji_events</span><span>{isProfile ? '회원님의 프로필이 랭킹에서 삭제됩니다.' : '회원님의 모든 프로필이 랭킹에서 삭제됩니다.'}</span></p>
             <p><span class="material-symbols-outlined">edit</span><span>{isProfile ? '회원님의 프로필 별명이' : '회원님의 계정에 속한 별명이'} <strong>{deletionAlias}</strong>(으)로 변경됩니다.</span></p>
-            <p><span class="material-symbols-outlined">person_off</span><span><strong>{originalName}</strong>(으)로 더 이상 게임에 접속할 수 없습니다.</span></p>
+            <p><span class="material-symbols-outlined">person_off</span><span><strong>{@html profileDisplayHtml(originalName)}</strong>(으)로 더 이상 게임에 접속할 수 없습니다.</span></p>
             <p><span class="material-symbols-outlined">link_off</span><span>{isProfile ? '이 프로필을 연결한 앱' : '이 계정에 연결한 앱'} {applications.length}개의 연결이 즉시 해제됩니다.</span></p>
         </div>
         <h3 style="font-weight: bold;">{formatDeletionDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000))} 이후</h3>

@@ -42,6 +42,11 @@
         return `https://api.dicebear.com/10.x/patchwork/svg?seed=${encodeURIComponent(seed)}`;
     }
 
+    function profileDisplayHtml(value) {
+        const [name, tag] = String(value || '').split('#', 2);
+        return `${name}${tag ? `<small style="color:#bbb">#${tag}</small>` : ''}`;
+    }
+
     function fallbackAvatar(event) {
         event.currentTarget.onerror = null;
         event.currentTarget.src = 'https://cdn.kkutu.io/img/bi/bi_profile_main.png';
@@ -109,7 +114,7 @@
         {#if summary}
             <section class="mt-7 flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타" on:error={fallbackAvatar}/>
-                <div class="min-w-0 flex-1"><h2 class="truncate text-xl font-bold">{currentProfile?.nickname || summary.nickname || '별명 설정 필요'}</h2><p class="mt-1 truncate font-mono text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p></div>
+                <div class="min-w-0 flex-1"><h2 class="truncate text-xl font-bold">{@html profileDisplayHtml(currentProfile?.nickname || summary.nickname || '별명 설정 필요')}</h2><p class="mt-1 truncate font-mono text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p></div>
             </section>
         {/if}
 

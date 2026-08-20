@@ -204,6 +204,11 @@
         return `프로필 ${index + 1}`;
     }
 
+    function profileDisplayHtml(profile, index = 0) {
+        const [name, tag] = profileDisplayName(profile, index).split('#', 2);
+        return `${name}${tag ? `<small style="color:#bbb">#${tag}</small>` : ''}`;
+    }
+
     function formatDeletionDate(value) {
         return value ? new Date(value).toLocaleString() : '';
     }
@@ -664,7 +669,7 @@
                 <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타"
                      on:error={useFallbackAvatar}/>
                 <div class="min-w-0 flex-1">
-                    <h2 class="truncate text-xl font-bold">{selectedProfileData?.nickname || summary.nickname || '별명 설정 필요'}</h2>
+                    <h2 class="truncate text-xl font-bold">{@html profileDisplayHtml(selectedProfileData)}</h2>
                     <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p>
                 </div>
                 <button type="button"
@@ -673,7 +678,7 @@
                         aria-label="프로필 전환">
                     <img class="h-8 w-8 shrink-0 rounded-lg" src={avatarUrl(currentIdentifier)} alt="현재 프로필"
                          on:error={useFallbackAvatar}/>
-                    <span class="min-w-0 flex-1 truncate text-sm font-semibold">{profileDisplayName(selectedProfileData)}</span>
+                    <span class="min-w-0 flex-1 truncate text-sm font-semibold">{@html profileDisplayHtml(selectedProfileData)}</span>
                     <span class="material-symbols-outlined shrink-0 text-gray-500">expand_more</span>
                 </button>
             </section>
@@ -795,8 +800,7 @@
                     {/if}
                     <details class="group border-b border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>계정 연동</span><span
-                                class="flex items-center gap-3 text-sm font-normal text-gray-500">{linkedProviderCount}
-                            /{oauthProviders.length}<span
+                                class="flex items-center gap-3 text-sm font-normal text-gray-500">{linkedProviderCount}/{oauthProviders.length}<span
                                     class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span>
                         </summary>
                         <div class="border-t border-gray-100 px-5 dark:border-gray-700">
@@ -831,8 +835,7 @@
                     </details>
                     <details class="group border-b border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>패스키</span><span
-                                class="flex items-center gap-3 text-sm font-normal text-gray-500">{passkeys.length}
-                            /10<span
+                                class="flex items-center gap-3 text-sm font-normal text-gray-500">{passkeys.length}/10<span
                                     class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span>
                         </summary>
                         <div class="px-5 pb-5">
@@ -1029,7 +1032,7 @@
                     <img class="h-11 w-11 shrink-0 rounded-xl" src={avatarUrl(profile.id)} alt={profileDisplayName(profile, index)}
                          on:error={useFallbackAvatar}/>
                     <span class="min-w-0 flex-1">
-                        <span class="block truncate font-semibold">{profileDisplayName(profile, index)}</span>
+                        <span class="block truncate font-semibold">{@html profileDisplayHtml(profile, index)}</span>
                         <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
                     </span>
                         {#if String(profile.id) === String(selectedProfile)}

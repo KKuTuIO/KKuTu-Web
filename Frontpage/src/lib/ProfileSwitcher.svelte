@@ -34,6 +34,11 @@
         return profile?.nickname || profile?.id || `프로필 ${index + 1}`;
     }
 
+    function profileDisplayHtml(value) {
+        const [name, tag] = String(value || '').split('#', 2);
+        return `${name}${tag ? `<small style="color:#bbb">#${tag}</small>` : ''}`;
+    }
+
     function csrfHeaders() {
         const token = document.cookie.split('; ').find(value => value.startsWith('XSRF-TOKEN='))?.split('=').slice(1).join('=');
         return token ? {'X-XSRF-TOKEN': decodeURIComponent(token)} : {};
@@ -135,7 +140,7 @@
                 <img class="h-11 w-11 shrink-0 rounded-full" src={avatarUrl(profileSeed || accountLabel)} alt="계정 프로필" on:error={fallbackAvatar}/>
                 <div class="min-w-0">
                     <div class="truncate font-bold">{summary?.email || accountLabel || '계정'}</div>
-                    <div class="truncate text-sm text-gray-500 dark:text-gray-300">{selectedProfile?.nickname || profileName}</div>
+                    <div class="truncate text-sm text-gray-500 dark:text-gray-300">{@html profileDisplayHtml(selectedProfile?.nickname || profileName)}</div>
                 </div>
             </div>
 
@@ -154,7 +159,7 @@
                     >
                         <img class="h-9 w-9 shrink-0 rounded-full" src={avatarUrl(profile.id)} alt="{profileTitle(profile, index)}" on:error={fallbackAvatar}/>
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate font-semibold">{profileTitle(profile, index)}</span>
+                            <span class="block truncate font-semibold">{@html profileDisplayHtml(profileTitle(profile, index))}</span>
                             {#if profile.id && profile.nickname}
                                 <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
                             {/if}

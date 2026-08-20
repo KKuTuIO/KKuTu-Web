@@ -163,7 +163,7 @@
                 <div class="px-3 py-3 text-sm text-gray-500 dark:text-gray-300">사용 가능한 프로필이 없습니다.</div>
             {/if}
 
-            <button type="button" class="my-1 flex w-full items-center justify-between gap-3 border-t border-gray-200 px-3 pt-2 text-left text-gray-400 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:hover:bg-gray-700"
+            <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-gray-400 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-gray-700"
                     disabled={!profilePolicy?.can_create || Boolean(switching)} on:click={openProfileCreate}>
                 <span class="flex min-w-0 items-center gap-3">
                     <span aria-hidden="true" class="material-symbols-outlined">add</span>

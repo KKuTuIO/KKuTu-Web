@@ -956,7 +956,7 @@
                     {/if}
                 </button>
             {/each}
-            <button type="button" class="mt-2 flex w-full items-center justify-between gap-3 border-t border-gray-200 px-2 pt-2 text-left text-sm font-semibold text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+            <button type="button" class="mt-2 flex w-full items-center justify-between gap-3 rounded-xl border-t border-gray-200 px-3 py-3 text-left text-sm font-semibold text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
                     disabled={!profilePolicy?.can_create || profileSwitching} on:click={openProfileCreate}>
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">add</span>

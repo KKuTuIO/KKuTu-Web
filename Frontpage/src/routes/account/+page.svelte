@@ -23,6 +23,7 @@
     let totpQr = '';
     let recoveryCodes = [];
     let selectedProfile = '';
+    let profileSwitching = false;
     let reauthRequired = false;
     let reauthDialogOpen = false;
     let reauthPassword = '';
@@ -166,9 +167,14 @@
         if (action.startsWith('identity-link:')) await linkProvider(action.slice('identity-link:'.length), true);
     }
 
-    function avatarUrl() {
-        const seed = currentIdentifier || 'kkutuio';
+    function avatarUrl(seed = currentIdentifier) {
         return `https://api.dicebear.com/10.x/patchwork/svg?seed=${encodeURIComponent(seed)}`;
+    }
+
+    function profileDisplayName(profile, index = 0) {
+        if (profile?.nickname) return profile.nickname;
+        if (String(profile?.id) === String(selectedProfile) && summary?.nickname) return summary.nickname;
+        return `프로필 ${index + 1}`;
     }
 
     function useFallbackAvatar(event) {
@@ -269,8 +275,20 @@
         password = '';
     }
 
-    async function selectProfile() {
-        await call('/api/account/profile', {method: 'PUT', body: JSON.stringify({profileId: selectedProfile})});
+    async function selectProfile(profile) {
+        const profileId = profile?.id;
+        if (!profileId || String(profileId) === String(selectedProfile) || profileSwitching) return;
+        profileSwitching = true;
+        const response = await call('/api/account/profile', {
+            method: 'PUT',
+            body: JSON.stringify({profileId})
+        });
+        if (response) {
+            selectedProfile = profileId;
+            closeModal();
+            await load();
+        }
+        profileSwitching = false;
     }
 
     async function issuePin() {
@@ -568,14 +586,15 @@
                     <h2 class="truncate text-xl font-bold">{selectedProfileData?.nickname || summary.nickname || '별명 설정 필요'}</h2>
                     <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p>
                 </div>
-                <label class="sr-only" for="account-profile">게임 프로필</label>
-                <select id="account-profile"
-                        class="max-w-[9rem] rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold dark:border-gray-600 dark:bg-gray-900"
-                        bind:value={selectedProfile} on:change={selectProfile}>
-                    {#each summary.profiles || [] as profile}
-                        <option value={profile.id}>{profile.nickname || profile.id}</option>
-                    {/each}
-                </select>
+                <button type="button"
+                        class="flex max-w-[13rem] items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:hover:bg-gray-700"
+                        on:click={() => modal = {type: 'profile-switch', title: '프로필 전환'}}
+                        aria-label="프로필 전환">
+                    <img class="h-8 w-8 shrink-0 rounded-lg" src={avatarUrl(currentIdentifier)} alt="현재 프로필"
+                         on:error={useFallbackAvatar}/>
+                    <span class="min-w-0 flex-1 truncate text-sm font-semibold">{profileDisplayName(selectedProfileData)}</span>
+                    <span class="material-symbols-outlined shrink-0 text-gray-500">expand_more</span>
+                </button>
             </section>
 
             <section>
@@ -903,9 +922,28 @@
 </AccountModal>
 
 <AccountModal open={Boolean(modal)} title={modal?.title || ''}
-              showFooter={!['fixed-nickname-confirm', 'totp-rename', 'passkey-rename'].includes(modal?.type)}
+              showFooter={!['fixed-nickname-confirm', 'totp-rename', 'passkey-rename', 'profile-switch'].includes(modal?.type)}
               on:close={closeModal}>
-    {#if modal?.type === 'totp-setup'}
+    {#if modal?.type === 'profile-switch'}
+        <div class="space-y-2">
+            {#each summary?.profiles || [] as profile, index (profile.id)}
+                <button type="button"
+                        class={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-gray-100 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-gray-700 ${String(profile.id) === String(selectedProfile) ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                        disabled={profileSwitching}
+                        on:click={() => selectProfile(profile)}>
+                    <img class="h-11 w-11 shrink-0 rounded-xl" src={avatarUrl(profile.id)} alt={profileDisplayName(profile, index)}
+                         on:error={useFallbackAvatar}/>
+                    <span class="min-w-0 flex-1">
+                        <span class="block truncate font-semibold">{profileDisplayName(profile, index)}</span>
+                        <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
+                    </span>
+                    {#if String(profile.id) === String(selectedProfile)}
+                        <span class="material-symbols-outlined text-xl text-gray-700 dark:text-gray-100" aria-label="현재 프로필">check</span>
+                    {/if}
+                </button>
+            {/each}
+        </div>
+    {:else if modal?.type === 'totp-setup'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">2단계 인증 앱에 아래 비밀키를 등록한 뒤 표시되는 6자리 인증번호를 입력하세요.</p>
         {#if totpQr}<img
                 class="mx-auto mt-4 h-48 w-48 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-600"

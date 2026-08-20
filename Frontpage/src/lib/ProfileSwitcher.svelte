@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher } from 'svelte';
+    import { onMount } from 'svelte';
 
     export let profileSeed = '';
     export let profileName = '계정 설정 필요';
@@ -54,6 +55,15 @@
         if (open && !summary) await loadSummary();
     }
 
+    function closeOnEscape(event) {
+        if (event.key === 'Escape' && open) open = false;
+    }
+
+    onMount(() => {
+        window.addEventListener('keydown', closeOnEscape);
+        return () => window.removeEventListener('keydown', closeOnEscape);
+    });
+
     async function selectProfile(profile) {
         if (!profile?.id || String(profile.id) === String(selectedProfileId) || switching) return;
         switching = String(profile.id);
@@ -97,7 +107,6 @@
             tabindex="-1"
             class="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl bg-white p-2 text-gray-900 shadow-xl ring-1 ring-black/5 dark:bg-gray-800 dark:text-white"
             on:click|stopPropagation
-            on:keydown|stopPropagation
         >
             <div class="flex items-center gap-3 px-3 py-2">
                 <img class="h-11 w-11 shrink-0 rounded-full" src={avatarUrl(profileSeed || accountLabel)} alt="계정 프로필" on:error={fallbackAvatar}/>

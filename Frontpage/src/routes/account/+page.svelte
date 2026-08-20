@@ -226,7 +226,7 @@
     }
 
     async function copyIdentifier() {
-        await copyValue(currentIdentifier);
+        await copyValue(currentIdentifier, '프로필 식별번호');
     }
 
     async function copyAccountIdentifier() {

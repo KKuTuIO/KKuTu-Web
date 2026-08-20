@@ -77,11 +77,15 @@ class IdentityDao(
     fun previewProfileNicknameTag(profileId: UUID): String = jdbc.queryForObject(
         "SELECT kkutu_nickname_tag(?::varchar)", String::class.java, profileId.toString()
     ) ?: "00000"
-    fun createKkutuProfile(accountId: UUID, profileId: UUID, nickname: String?): Boolean = jdbc.update(
+    fun nicknameTagForNewProfile(accountId: UUID, fallbackProfileId: UUID): String = jdbc.queryForObject(
+        "SELECT COALESCE((SELECT nickname_tag FROM game_profile WHERE account_id=? ORDER BY created_at, id LIMIT 1), kkutu_nickname_tag(?::varchar))",
+        String::class.java, accountId, fallbackProfileId.toString()
+    ) ?: "00000"
+    fun createKkutuProfile(accountId: UUID, profileId: UUID, nickname: String?, nicknameTag: String): Boolean = jdbc.update(
         "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname, nickname_tag) " +
-            "SELECT ?, account.id, account.uuid, 'kkutu', ?, ?, kkutu_nickname_tag(?::varchar) " +
+            "SELECT ?, account.id, account.uuid, 'kkutu', ?, ?, ? " +
             "FROM account WHERE account.id=?",
-        profileId, profileId.toString(), nickname, profileId.toString(), accountId
+        profileId, profileId.toString(), nickname, nicknameTag, accountId
     ) == 1
     fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND status='ACTIVE' ORDER BY created_at", accountId)
     fun findActiveProfile(accountId: UUID, profileId: UUID): Map<String, Any?>? = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND id=? AND status='ACTIVE'", accountId, profileId).firstOrNull()

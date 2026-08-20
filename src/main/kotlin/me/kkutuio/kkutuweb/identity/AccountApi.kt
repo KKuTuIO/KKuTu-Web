@@ -68,7 +68,7 @@ class AccountApi(
             "limit" to limit,
             "can_create" to (count < limit),
             "preview_profile_id" to previewId.toString(),
-            "nickname_tag" to dao.previewProfileNicknameTag(previewId)
+            "nickname_tag" to dao.nicknameTagForNewProfile(account.id, previewId)
         )
     }
     @PutMapping("/profile") fun selectProfile(@RequestBody body: ProfileSelectionRequest, session: HttpSession): ResponseEntity<Void> {
@@ -95,9 +95,9 @@ class AccountApi(
                 throw IdpException("invalid_request", "잘못된 프로필입니다.")
             }
         } ?: java.util.UUID.randomUUID()
-        val nicknameTag = dao.previewProfileNicknameTag(profileId)
+        val nicknameTag = dao.nicknameTagForNewProfile(account.id, profileId)
         val fullNickname = "$nickname#$nicknameTag"
-        if (!dao.createKkutuProfile(account.id, profileId, fullNickname)) {
+        if (!dao.createKkutuProfile(account.id, profileId, fullNickname, nicknameTag)) {
             throw IdpException("profile_create_failed", "프로필을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.", 409)
         }
         nicknames.createInitial(profileId.toString(), nickname, nicknameTag)

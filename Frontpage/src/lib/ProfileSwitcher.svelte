@@ -163,14 +163,14 @@
                 <div class="px-3 py-3 text-sm text-gray-500 dark:text-gray-300">사용 가능한 프로필이 없습니다.</div>
             {/if}
 
-            <div class="my-1 flex items-center justify-between gap-3 border-t border-gray-200 px-3 pt-2 dark:border-gray-700">
-                <button type="button" class="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 text-left transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-700"
-                        disabled={!profilePolicy?.can_create || Boolean(switching)} on:click={openProfileCreate}>
-                <span aria-hidden="true" class="material-symbols-outlined">add</span>
-                <span class="font-semibold">프로필 만들기</span>
-                </button>
+            <button type="button" class="my-1 flex w-full items-center justify-between gap-3 border-t border-gray-200 px-3 pt-2 text-left text-gray-400 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:hover:bg-gray-700"
+                    disabled={!profilePolicy?.can_create || Boolean(switching)} on:click={openProfileCreate}>
+                <span class="flex min-w-0 items-center gap-3">
+                    <span aria-hidden="true" class="material-symbols-outlined">add</span>
+                    <span class="font-semibold">프로필 만들기</span>
+                </span>
                 <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">{profiles.length}/{profilePolicy?.limit || 1}</span>
-            </div>
+            </button>
 
             {#if error}
                 <p class="px-3 py-2 text-xs text-red-600 dark:text-red-400">{error}</p>

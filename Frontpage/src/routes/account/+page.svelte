@@ -956,14 +956,14 @@
                     {/if}
                 </button>
             {/each}
-            <div class="mt-2 flex items-center justify-between border-t border-gray-200 pt-2 dark:border-gray-700">
-                <button type="button" class="flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                        disabled={!profilePolicy?.can_create || profileSwitching} on:click={openProfileCreate}>
+            <button type="button" class="mt-2 flex w-full items-center justify-between gap-3 border-t border-gray-200 px-2 pt-2 text-left text-sm font-semibold text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                    disabled={!profilePolicy?.can_create || profileSwitching} on:click={openProfileCreate}>
+                <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">add</span>
                     <span>프로필 추가</span>
-                </button>
-                <span class="text-xs text-gray-500 dark:text-gray-400">{summary?.profiles?.length || 0}/{profilePolicy?.limit || 1}</span>
-            </div>
+                </span>
+                <span class="text-xs font-normal text-gray-500 dark:text-gray-400">{summary?.profiles?.length || 0}/{profilePolicy?.limit || 1}</span>
+            </button>
         </div>
     {:else if modal?.type === 'totp-setup'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">2단계 인증 앱에 아래 비밀키를 등록한 뒤 표시되는 6자리 인증번호를 입력하세요.</p>

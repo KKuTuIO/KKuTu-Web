@@ -38,7 +38,7 @@
 
     function avatarUrl() {
         const seed = summary?.uuid || summary?.sub || summary?.legacy_user_id || 'kkutu';
-        return `https://api.dicebear.com/9.x/personas/svg?seed=${encodeURIComponent(seed)}`;
+        return `https://api.dicebear.com/10.x/patchwork/svg?seed=${encodeURIComponent(seed)}`;
     }
 
     function fallbackAvatar(event) {

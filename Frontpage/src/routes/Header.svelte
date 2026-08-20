@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
-	import { getLevelImage } from '../lib/getLevelImg.js';
+	import ProfileSwitcher from '$lib/ProfileSwitcher.svelte';
 
 	import { showDialog } from './dialogStore';
 
@@ -11,10 +11,7 @@
 	let authVendor = "KKuTu";
 	let vendorId = "0";
 	let name = "Moremi";
-	let profileImage = "";
-
 	let ingameName = "";
-	let score = 0;
 
 	// 타임 릴리즈
 	let showRelayUpdate = false;
@@ -23,15 +20,8 @@
 
 
 	let data = { status: "Guest user" };
-	let flyout = false;
 	let accountRestricted = false;
 	var noticeData = "";
-
-	let defaultProfileImage = 'https://cdn.kkutu.io/img/default_profile.png';
-
-	function handleImageError(event) {
-		event.target.src = defaultProfileImage;
-	}
 
     function processNick(nick) {
         if (typeof nick !== 'string' || nick.length === 0) return '계정 설정 필요';
@@ -106,13 +96,7 @@
 			authVendor = String(data.authVendor);
 			vendorId = String(data.vendorId);
 			name = typeof data.name === 'string' && data.name ? data.name : 'Moremi';
-			profileImage = typeof data.image === 'string' ? data.image : '';
 			user = name;
-
-			if (authVendor === "DISCORD") {
-				profileImage = profileImage.replace("/avatars/0/", `/avatars/${vendorId}/`);
-				profileImage = profileImage + ".webp";
-			}
 
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
@@ -129,7 +113,6 @@
 			const userData = await userRes.json();
 
 			ingameName = processNick(userData?.profile?.title);
-            score = Number(userData?.data?.score) || 0;
 
 
 		} else {
@@ -138,9 +121,6 @@
 		
 	});
 
-	function flyoutMenu() {
-		flyout = !flyout;
-	}
 </script>
 
 <header class="top-0 fixed w-full z-[60]">
@@ -227,55 +207,11 @@
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</a>
-				<button on:click={flyoutMenu}>
-					<img src={profileImage} class="h-8 w-8 rounded-full" id="pfp"/>
-				</button>
-				<!-- Flyout Menu -->
-				{#if flyout}
-				<div class="absolute left-11/12 top-14 transform -translate-x-11/12 dark:text-white bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 max-w-screen-xl w-max">
-					<div class="flex items-center gap-x-4 px-2">
-						<div class="level" style={getLevelImage(Number(score))}></div>
-						<div>
-							<div class="font-bold truncate">{@html ingameName}</div>
-							<div class="text-gray-500 dark:text-gray-300 text-sm">{authVendor === 'LOCAL' ? '계정 로그인' : `${authVendor} 계정`}</div>
-						</div>
-					</div>
-					<div class="mt-2">
-						<!--<button
-						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-							<span class="material-symbols-outlined text-md mr-2">
-								account_circle
-							</span>
-							내 전적
-						</button>-->
-						<button
-						on:click={() => location.href = "https://kkutu.io/login"}
-						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-							<span class="material-symbols-outlined text-md mr-2">
-								account_circle
-							</span>
-							계정 변경
-						</button>
-						<a
-							href="/account"
-							rel="external"
-							class="flex w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-							<span class="material-symbols-outlined text-md mr-2">
-								manage_accounts
-							</span>
-							계정 관리
-						</a>
-						<button
-						on:click={() => confirm('정말로 로그아웃 할까요?') ? location.href = "https://kkutu.io/logout" : console.log("user cancel")}
-						class="flex text-left w-full py-1 px-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md">
-							<span class="material-symbols-outlined text-md mr-2">
-								logout
-							</span>
-							로그아웃
-						</button>
-					</div>
-				</div>
-			{/if}
+				<ProfileSwitcher
+					profileSeed={`${authVendor}:${vendorId}`}
+					profileName={ingameName.replace(/<[^>]*>/g, '')}
+					accountLabel={data?.email || name}
+				/>
 			
 			{/if}
 		</div>

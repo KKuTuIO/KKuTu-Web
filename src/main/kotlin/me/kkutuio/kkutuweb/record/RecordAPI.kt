@@ -23,11 +23,12 @@ class RecordAPI(
     @Autowired private val kKuTuSetting: KKuTuSetting,
     @Autowired private val loginService: LoginService
 ) {
-    private fun resolveRequester(session: HttpSession): Pair<String?, Boolean> {
-        if (session.isGuest()) return Pair(null, false)
-        val userId = loginService.gameUserId(session) ?: return Pair(null, false)
-        val isAdmin = kKuTuSetting.getAdminIds().contains(userId)
-        return Pair(userId, isAdmin)
+    private fun resolveRequester(session: HttpSession): Triple<String?, String?, Boolean> {
+        if (session.isGuest()) return Triple(null, null, false)
+        val userId = loginService.gameUserId(session) ?: return Triple(null, null, false)
+        val accountUuid = loginService.accountUuid(session)
+        val isAdmin = accountUuid?.let(kKuTuSetting.getAdminIds()::contains) == true
+        return Triple(userId, accountUuid, isAdmin)
     }
 
     @RateLimiter(name = "recordFindByGameId", fallbackMethod = "onGameRateLimited")
@@ -43,8 +44,8 @@ class RecordAPI(
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordGameLookupResponse(ok = false, code = 429, error = "rate-limited")
         }
-        val (requesterId, isAdmin) = resolveRequester(session)
-        return recordService.findByGameId(gameId, includePayload, requesterId, isAdmin)
+        val (requesterId, requesterAccountUuid, isAdmin) = resolveRequester(session)
+        return recordService.findByGameId(gameId, includePayload, requesterId, requesterAccountUuid, isAdmin)
     }
 
     @RateLimiter(name = "recordFindUserHistory", fallbackMethod = "onUserHistoryRateLimited")
@@ -59,7 +60,7 @@ class RecordAPI(
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordUserHistoryResponse(ok = false, code = 429, error = "rate-limited")
         }
-        val (requesterId, isAdmin) = resolveRequester(session)
+        val (requesterId, _, isAdmin) = resolveRequester(session)
         return recordService.findUserHistory(userId, page, pageSize, requesterId, isAdmin)
     }
 
@@ -73,7 +74,7 @@ class RecordAPI(
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordUserModeStatsResponse(ok = false, code = 429, error = "rate-limited")
         }
-        val (requesterId, isAdmin) = resolveRequester(session)
+        val (requesterId, _, isAdmin) = resolveRequester(session)
         return recordService.findUserModeStats(userId, requesterId, isAdmin)
     }
 

@@ -96,6 +96,7 @@ class GameClientManager(
         gameId: String,
         includePayload: Boolean,
         requesterId: String?,
+        requesterAccountUuid: String?,
         includeAdminKeyTrace: Boolean
     ): String? {
         for (client in gameClientList) {
@@ -104,6 +105,7 @@ class GameClientManager(
                 gameId,
                 includePayload,
                 requesterId,
+                requesterAccountUuid,
                 includeAdminKeyTrace
             )
             if (response != null) return response

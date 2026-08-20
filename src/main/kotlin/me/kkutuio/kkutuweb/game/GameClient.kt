@@ -171,6 +171,7 @@ class GameClient(
         gameId: String,
         includePayload: Boolean,
         requesterId: String?,
+        requesterAccountUuid: String?,
         includeAdminKeyTrace: Boolean
     ): String? {
         val payload = objectMapper.createObjectNode()
@@ -179,6 +180,7 @@ class GameClient(
         payload.put("includePayload", includePayload)
         payload.put("includeAdminKeyTrace", includeAdminKeyTrace)
         if (!requesterId.isNullOrBlank()) payload.put("requesterId", requesterId)
+        if (!requesterAccountUuid.isNullOrBlank()) payload.put("requesterAccountUuid", requesterAccountUuid)
         return requestReply(payload)
     }
 

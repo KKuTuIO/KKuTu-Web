@@ -46,11 +46,12 @@ class ProfileAPI(
             return null
         }
 
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("[${request.getIp()}] 권한이 없는 회원(${sessionProfile.id})으로부터 본인 프로필 정보 조회 요청이 차단되었습니다.")
             return null
         }
 
-        return setting.getAdmins().find { it.id == sessionProfile.id }
+        return setting.getAdmins().find { it.id == accountUuid }
     }
 }

@@ -68,12 +68,13 @@ class WordAuditApi(
             return ListResponse(0, emptyList())
         }
 
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
-        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
+        val adminSetting = setting.getAdmins().find { it.id == accountUuid }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 관리 로그 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())

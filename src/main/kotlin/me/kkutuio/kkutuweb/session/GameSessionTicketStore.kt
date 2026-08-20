@@ -34,16 +34,24 @@ class GameSessionTicketStore(
     private val issued = AtomicLong()
     private val redisErrors = AtomicLong()
 
-    fun issue(ticket: String, profile: SessionProfile?, serverId: String, ttlMillis: Long = 5 * 60 * 1000L) {
+    fun issue(
+        ticket: String,
+        profile: SessionProfile?,
+        serverId: String,
+        ttlMillis: Long = 5 * 60 * 1000L,
+        accountUuid: String? = null
+    ) {
         require(ttlMillis in 1..(10 * 60 * 1000L)) { "invalid game ticket TTL" }
         val key = KEY_PREFIX + sha256(ticket)
         val profileJson = objectMapper.writeValueAsString(profile)
+        val accountUuidValue = accountUuid.orEmpty()
         try {
             val result = redisTemplate.execute(
                 ISSUE_SCRIPT,
                 listOf(key),
                 serverId,
                 profileJson,
+                accountUuidValue,
                 ttlMillis.toString()
             )
             check(result == 1L) { "game session ticket collision" }
@@ -71,8 +79,8 @@ class GameSessionTicketStore(
             if redis.call("EXISTS", KEYS[1]) == 1 then
                 return 0
             end
-            redis.call("HSET", KEYS[1], "server_id", ARGV[1], "profile", ARGV[2])
-            redis.call("PEXPIRE", KEYS[1], ARGV[3])
+            redis.call("HSET", KEYS[1], "server_id", ARGV[1], "profile", ARGV[2], "account_uuid", ARGV[3])
+            redis.call("PEXPIRE", KEYS[1], ARGV[4])
             return 1
             """.trimIndent(),
             Long::class.java

@@ -16,12 +16,14 @@ class RecordDao(
         gameId: String,
         includePayload: Boolean,
         requesterId: String?,
+        requesterAccountUuid: String?,
         isAdmin: Boolean
     ): RecordGameLookupResponse? {
         val raw = recordClientManager.requestReplayByGameId(
             gameId,
             includePayload,
             requesterId,
+            requesterAccountUuid,
             includePayload && isAdmin
         ) ?: return null
         return recordMapper.toGameLookupResponse(raw)

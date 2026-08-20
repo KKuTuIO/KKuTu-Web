@@ -53,8 +53,9 @@ class CrosswordApi(
         mutate(session) { service.deletePuzzle(id, puzzleId) }
 
     private fun authorized(session: HttpSession): Boolean {
-        val profile = loginService.getSessionProfile(session) ?: return false
-        val admin = setting.getAdmins().find { it.id == profile.id } ?: return false
+        loginService.getSessionProfile(session) ?: return false
+        val accountUuid = loginService.accountUuid(session) ?: return false
+        val admin = setting.getAdmins().find { it.id == accountUuid } ?: return false
         return AdminSetting.Privilege.CROSSWORD in admin.privileges || AdminSetting.Privilege.WORD in admin.privileges
     }
 

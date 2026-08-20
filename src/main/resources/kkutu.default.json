@@ -26,7 +26,7 @@
   },
   "admins": [
     {
-      "id": "<User ID>",
+      "id": "<Account UUID>",
       "name": "<User Name>",
       "team": "<Team Name>",
       "privileges": [

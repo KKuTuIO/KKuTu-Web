@@ -90,6 +90,7 @@ class RecordClient(
         gameId: String,
         includePayload: Boolean,
         requesterId: String? = null,
+        requesterAccountUuid: String? = null,
         includeAdminKeyTrace: Boolean = false
     ): String? {
         val payload = objectMapper.createObjectNode()
@@ -97,6 +98,7 @@ class RecordClient(
         payload.put("includePayload", includePayload)
         payload.put("includeAdminKeyTrace", includeAdminKeyTrace)
         if (!requesterId.isNullOrBlank()) payload.put("requesterId", requesterId)
+        if (!requesterAccountUuid.isNullOrBlank()) payload.put("requesterAccountUuid", requesterAccountUuid)
         return requestReplay("record-find-game", payload)
     }
 

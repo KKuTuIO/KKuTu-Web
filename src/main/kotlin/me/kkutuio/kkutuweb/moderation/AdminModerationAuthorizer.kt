@@ -14,19 +14,22 @@ class AdminModerationAuthorizer(
     private val loginService: LoginService
 ) {
     fun require(session: HttpSession, privilege: AdminSetting.Privilege): String {
-        val profile = loginService.getSessionProfile(session)
+        loginService.getSessionProfile(session)
             ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
-        val admin = setting.getAdmins().firstOrNull { it.id == profile.id }
+        val accountUuid = loginService.accountUuid(session)
+            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+        val admin = setting.getAdmins().firstOrNull { it.id == accountUuid }
             ?: throw ResponseStatusException(HttpStatus.FORBIDDEN)
         if (privilege !in admin.privileges) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN)
         }
-        return profile.id
+        return accountUuid
     }
 
     fun hasPrivilege(session: HttpSession, privilege: AdminSetting.Privilege): Boolean {
-        val profile = loginService.getSessionProfile(session) ?: return false
-        val admin = setting.getAdmins().firstOrNull { it.id == profile.id } ?: return false
+        loginService.getSessionProfile(session) ?: return false
+        val accountUuid = loginService.accountUuid(session) ?: return false
+        val admin = setting.getAdmins().firstOrNull { it.id == accountUuid } ?: return false
         return privilege in admin.privileges
     }
 }

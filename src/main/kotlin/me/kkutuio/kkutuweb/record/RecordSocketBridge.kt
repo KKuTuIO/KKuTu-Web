@@ -9,6 +9,7 @@ interface RecordSocketBridge {
         gameId: String,
         includePayload: Boolean,
         requesterId: String?,
+        requesterAccountUuid: String?,
         includeAdminKeyTrace: Boolean
     ): String?
     fun requestReplayUserHistory(userId: String, page: Int, pageSize: Int, canViewAll: Boolean): String?

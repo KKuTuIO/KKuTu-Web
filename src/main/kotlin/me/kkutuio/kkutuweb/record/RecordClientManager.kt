@@ -11,12 +11,14 @@ class RecordClientManager(
         gameId: String,
         includePayload: Boolean,
         requesterId: String?,
+        requesterAccountUuid: String?,
         includeAdminKeyTrace: Boolean
     ): String? {
         return recordSocketBridge.requestReplayByGameId(
             gameId,
             includePayload,
             requesterId,
+            requesterAccountUuid,
             includeAdminKeyTrace
         )
     }

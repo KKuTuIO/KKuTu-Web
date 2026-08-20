@@ -327,6 +327,9 @@ class LoginService(
 
     fun gameUserId(session: HttpSession): String? = getSessionProfile(session)?.id
 
+    /** Public account UUID used for account-scoped administrator permissions. */
+    fun accountUuid(session: HttpSession): String? = accountService.currentAccount(session)?.uuid?.toString()
+
     fun getOAuthServiceFromSession(session: HttpSession): OAuthService {
         val oAuthUser = session.getOAuthUser()
         val authType = oAuthUser.authVendor.name.lowercase()

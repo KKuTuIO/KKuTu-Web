@@ -81,12 +81,13 @@ class WordApi(
             return ListResponse(0, emptyList())
         }
 
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 목록 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
-        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
+        val adminSetting = setting.getAdmins().find { it.id == accountUuid }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 목록 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
@@ -145,12 +146,13 @@ class WordApi(
             return ListResponse(0, emptyList())
         }
 
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
         }
 
-        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
+        val adminSetting = setting.getAdmins().find { it.id == accountUuid }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 조회 요청이 차단되었습니다.")
             return ListResponse(0, emptyList())
@@ -173,19 +175,20 @@ class WordApi(
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHENTICATED)
         }
 
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 수정 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
-        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
+        val adminSetting = setting.getAdmins().find { it.id == accountUuid }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 수정 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
-        val actionResponse = adminWordService.editWord(sessionProfile.id, lang, word, wordEditRequest)
-        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어를 수정했습니다. 언어: $lang / 단어: $word")
+        val actionResponse = adminWordService.editWord(accountUuid, lang, word, wordEditRequest)
+        logger.info("[${request.getIp()}] ${accountUuid} 님이 단어를 수정했습니다. 언어: $lang / 단어: $word")
 
         return actionResponse
     }
@@ -204,24 +207,25 @@ class WordApi(
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHENTICATED)
         }
 
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 삭제 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
-        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
+        val adminSetting = setting.getAdmins().find { it.id == accountUuid }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 삭제 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
         val actionResponse = adminWordService.deleteWord(
-            sessionProfile.id,
+            accountUuid,
             lang,
             word,
             UpdateLogRequest(updateLogIgnore, updateLogIncludeDetail)
         )
-        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어를 삭제했습니다. 언어: $lang / 단어: $word")
+        logger.info("[${request.getIp()}] ${accountUuid} 님이 단어를 삭제했습니다. 언어: $lang / 단어: $word")
 
         return actionResponse
     }
@@ -239,19 +243,20 @@ class WordApi(
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHENTICATED)
         }
 
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 단어 추가 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
-        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id }!!
+        val adminSetting = setting.getAdmins().find { it.id == accountUuid }!!
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 단어 추가 요청이 차단되었습니다.")
             return ActionResponse.rest(success = false, restResult = RestResult.UNAUTHORIZED)
         }
 
-        val actionResponse = adminWordService.addWord(sessionProfile.id, lang, word, wordEditRequest)
-        logger.info("[${request.getIp()}] ${sessionProfile.id} 님이 단어를 추가했습니다. 언어: $lang / 단어: $word")
+        val actionResponse = adminWordService.addWord(accountUuid, lang, word, wordEditRequest)
+        logger.info("[${request.getIp()}] ${accountUuid} 님이 단어를 추가했습니다. 언어: $lang / 단어: $word")
 
         return actionResponse
     }
@@ -348,16 +353,17 @@ class WordApi(
             logger.warn("인증되지 않은 회원으로부터 $action 요청이 차단되었습니다.")
             return null
         }
-        if (!setting.getAdminIds().contains(sessionProfile.id)) {
+        val accountUuid = loginService.accountUuid(session)
+        if (accountUuid == null || !setting.getAdminIds().contains(accountUuid)) {
             logger.warn("관리자가 아닌 회원(${sessionProfile.id})으로부터 $action 요청이 차단되었습니다.")
             return null
         }
-        val adminSetting = setting.getAdmins().find { it.id == sessionProfile.id } ?: return null
+        val adminSetting = setting.getAdmins().find { it.id == accountUuid } ?: return null
         if (!adminSetting.privileges.contains(AdminSetting.Privilege.WORD)) {
             logger.warn("기능 권한이 없는 관리자(${sessionProfile.id})로부터 $action 요청이 차단되었습니다.")
             return null
         }
-        return sessionProfile.id
+        return accountUuid
     }
 
     private fun unauthorizedResponse(session: HttpSession): ActionResponse {

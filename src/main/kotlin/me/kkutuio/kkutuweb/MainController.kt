@@ -60,7 +60,10 @@ class MainController(
     private val logger = LoggerFactory.getLogger(MainController::class.java)
 
     @GetMapping
-    fun index(@RequestParam(required = false) server: Short?): String {
+    fun index(@RequestParam(required = false) server: Short?, session: HttpSession): String {
+        if (server == null && loginService.needsSetup(session)) {
+            return "redirect:/setup"
+        }
         return if (server != null) {
             "redirect:/game/server/$server"
         } else {

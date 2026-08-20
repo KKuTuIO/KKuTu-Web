@@ -232,7 +232,8 @@ class AccountRecoveryApi(
         if (!loginService.completePendingSecondFactor(request.session, body.totpCode, body.securityCode, body.emailCode)) throw IdpException("mfa_session_expired", "2단계 인증 세션이 만료되었습니다. 다시 로그인해 주세요.", 401)
         val continuation = request.session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
         request.session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName)
-        val redirect = continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") } ?: "/"
+        val redirect = if (loginService.needsSetup(request.session)) "/setup"
+        else continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") } ?: "/"
         return ResponseEntity.ok(mapOf("redirect" to redirect))
     }
     @PostMapping("/api/account/login/mfa/email") fun requestExternalSecondFactorEmail(request: HttpServletRequest): ResponseEntity<Void> {

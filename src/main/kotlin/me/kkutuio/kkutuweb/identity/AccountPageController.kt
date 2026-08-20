@@ -15,7 +15,10 @@ class AccountPageController(
     private val loginService: LoginService
 ) {
     @GetMapping("/account", "/account/security", "/account/services")
-    fun account(session: HttpSession): String = if (accounts.currentAccount(session) == null) "redirect:/login" else "forward:/account.html"
+    fun account(session: HttpSession): String {
+        if (accounts.currentAccount(session) == null) return "redirect:/login"
+        return if (loginService.needsSetup(session)) "redirect:/setup" else "forward:/account.html"
+    }
     @GetMapping("/account/apps")
     fun connectedApplications(session: HttpSession): String = if (accounts.currentAccount(session) == null) "redirect:/login" else "forward:/account/apps.html"
     @GetMapping("/account/sanctions")

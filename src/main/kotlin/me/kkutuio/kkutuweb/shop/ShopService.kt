@@ -22,9 +22,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.IntNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
+import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.shop.response.ResponseGood
 import me.kkutuio.kkutuweb.shop.response.ResponseGoodDetail
 import me.kkutuio.kkutuweb.shop.response.ShopResponse
@@ -41,7 +41,8 @@ class ShopService(
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val shopDao: ShopDao,
     @Autowired private val shopDetailDao: ShopDetailDao,
-    @Autowired private val userDao: UserDao
+    @Autowired private val userDao: UserDao,
+    @Autowired private val loginService: LoginService
 ) {
     private val logger = LoggerFactory.getLogger(ShopService::class.java)
 
@@ -53,12 +54,11 @@ class ShopService(
 
     fun buyGood(id: String, session: HttpSession): String {
         if (session.isGuest()) return "{\"error\":423}"
-        val oAuthUser = session.getOAuthUser()
 
         val good = shopDao.getGood(id) ?: return "{\"error\":400}"
         if (good.cost < 0) return "{\"error\":400}"
 
-        val userId = oAuthUser.getUserId()
+        val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
         val user = userDao.getUser(userId) ?: return "{\"error\":400}"
 
         val afterBuyMoney = user.money - good.cost
@@ -86,12 +86,10 @@ class ShopService(
 
     fun consumeToken(session: HttpSession, amount: Int?): String {
         if (session.isGuest()) return "{\"error\":423}"
-        val oAuthUser = session.getOAuthUser()
-        
         val tokenId = "wordToken"
         val tokenAmount = amount ?: 1
         
-        val userId = oAuthUser.getUserId()
+        val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
         val user = userDao.getUser(userId) ?: return "{\"error\":400}"
         
         val box = user.box
@@ -117,9 +115,7 @@ class ShopService(
 
     fun paybackGood(id: String, session: HttpSession): String {
         if (session.isGuest()) return "{\"error\":400}"
-        val oAuthUser = session.getOAuthUser()
-
-        val userId = oAuthUser.getUserId()
+        val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
         val user = userDao.getUser(userId) ?: return "{\"error\":400}"
 
         val box = user.box

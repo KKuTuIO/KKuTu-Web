@@ -19,9 +19,9 @@
 package me.kkutuio.kkutuweb.charfactory
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
+import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.shop.ShopService
 import me.kkutuio.kkutuweb.user.UserDao
 import me.kkutuio.kkutuweb.word.WordDao
@@ -39,7 +39,8 @@ class CharFactoryService(
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val userDao: UserDao,
     @Autowired private val wordDao: WordDao,
-    @Autowired private val shopService: ShopService
+    @Autowired private val shopService: ShopService,
+    @Autowired private val loginService: LoginService
 ) {
     fun previewCharFactory(word: String, l: Int, b: String): CFResult {
         return if (l == -1) getCfEventRewards(word, b == "1") else getCfRewards(word, l, b == "1")
@@ -49,9 +50,7 @@ class CharFactoryService(
         if (tray.isEmpty() || tray.size > 6) return "{\"error\":400}"
 
         if (session.isGuest()) return "{\"error\":400}"
-        val oAuthUser = session.getOAuthUser()
-
-        val userId = oAuthUser.getUserId()
+        val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
         val user = userDao.getUser(userId) ?: return "{\"error\":400}"
 
         var wordString = ""

@@ -2,8 +2,8 @@ package me.kkutuio.kkutuweb.record
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter
 import io.github.resilience4j.ratelimiter.RequestNotPermitted
-import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
+import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
@@ -20,11 +20,12 @@ import javax.servlet.http.HttpSession
 class RecordAPI(
     @Autowired private val recordService: RecordService,
     @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter,
-    @Autowired private val kKuTuSetting: KKuTuSetting
+    @Autowired private val kKuTuSetting: KKuTuSetting,
+    @Autowired private val loginService: LoginService
 ) {
     private fun resolveRequester(session: HttpSession): Pair<String?, Boolean> {
         if (session.isGuest()) return Pair(null, false)
-        val userId = runCatching { session.getOAuthUser().getUserId() }.getOrNull() ?: return Pair(null, false)
+        val userId = loginService.gameUserId(session) ?: return Pair(null, false)
         val isAdmin = kKuTuSetting.getAdminIds().contains(userId)
         return Pair(userId, isAdmin)
     }

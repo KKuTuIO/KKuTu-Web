@@ -21,9 +21,9 @@ package me.kkutuio.kkutuweb.user
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
+import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.shop.ShopDao
 import me.kkutuio.kkutuweb.shop.ShopService
 import me.kkutuio.kkutuweb.config.CacheConfig
@@ -48,16 +48,15 @@ class UserService(
     @Autowired private val shopDao: ShopDao,
     @Autowired private val shopService: ShopService,
     @Autowired private val objectMapper: ObjectMapper,
-    @Autowired private val cacheManager: CacheManager
+    @Autowired private val cacheManager: CacheManager,
+    @Autowired private val loginService: LoginService
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
     private val similarityRegex = "[-_ ]*".toRegex()
 
     fun getBox(session: HttpSession): String {
         if (session.isGuest()) return "{\"error\":400}"
-        val oAuthUser = session.getOAuthUser()
-
-        val userId = oAuthUser.getUserId()
+        val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
         val user = userDao.getUser(userId) ?: return "{\"error\":400}"
 
         return user.box.toJson()
@@ -67,8 +66,7 @@ class UserService(
         val maxExordialLength = 100
         if (session.isGuest()) return "{\"error\":400}"
 
-        val oAuthUser = session.getOAuthUser()
-        val userId = oAuthUser.getUserId()
+        val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
 
         val resultData = data.take(maxExordialLength).trim()
 

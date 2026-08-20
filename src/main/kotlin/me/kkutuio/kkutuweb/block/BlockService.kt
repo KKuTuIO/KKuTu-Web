@@ -6,10 +6,10 @@
 package me.kkutuio.kkutuweb.block
 
 import me.kkutuio.kkutuweb.extension.getIp
-import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toTimestamp
 import me.kkutuio.kkutuweb.factory.DateFactory
+import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.utils.TimeUtils
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
@@ -19,7 +19,8 @@ import javax.servlet.http.HttpServletRequest
 
 @Service
 class BlockService(
-    private val jdbcTemplate: JdbcTemplate
+    private val jdbcTemplate: JdbcTemplate,
+    private val loginService: LoginService
 ) {
     fun getBlockStatus(request: HttpServletRequest): BlockStatus {
         val session = request.session
@@ -30,8 +31,9 @@ class BlockService(
         }
 
         if (!session.isGuest()) {
-            val userId = session.getOAuthUser().getUserId()
-            findUserBlock(userId)?.let { return it.toStatus(BlockType.USER, userId) }
+            loginService.gameUserId(session)?.let { userId ->
+                findUserBlock(userId)?.let { return it.toStatus(BlockType.USER, userId) }
+            }
         }
         return BlockStatus()
     }

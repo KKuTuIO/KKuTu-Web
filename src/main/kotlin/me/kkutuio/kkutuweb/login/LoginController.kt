@@ -105,6 +105,9 @@ class LoginController(
         if (loginSuccess && loginService.hasPendingSecondFactor(request.session)) {
             return "redirect:/login/mfa"
         }
+        if (loginSuccess && loginService.needsSetup(request.session)) {
+            return "redirect:/setup"
+        }
         if (loginSuccess) {
             val session = request.session
             val oAuthUser = session.getOAuthUser()

@@ -1,8 +1,8 @@
 package me.kkutuio.kkutuweb.record
 
 import me.kkutuio.kkutuweb.extension.getIp
-import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.isGuest
+import me.kkutuio.kkutuweb.login.LoginService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
@@ -12,7 +12,8 @@ import javax.servlet.http.HttpSession
 
 @Component
 class RecordCheckRateLimiter(
-    @Autowired private val redisTemplate: RedisTemplate<String, Any>
+    @Autowired private val redisTemplate: RedisTemplate<String, Any>,
+    @Autowired private val loginService: LoginService
 ) {
     companion object {
         private const val KEY_PREFIX = "kkutu:web:record:checks:ratelimit"
@@ -36,9 +37,7 @@ class RecordCheckRateLimiter(
     }
 
     private fun resolveRequesterKey(request: HttpServletRequest, session: HttpSession): String {
-        val userId = runCatching {
-            if (!session.isGuest()) session.getOAuthUser().getUserId() else ""
-        }.getOrDefault("")
+        val userId = if (!session.isGuest()) loginService.gameUserId(session).orEmpty() else ""
 
         if (userId.isNotBlank()) return "uid:$userId"
         val ip = request.getIp().ifBlank { "unknown" }

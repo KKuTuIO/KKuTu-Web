@@ -319,6 +319,13 @@ class LoginService(
         )
     }
 
+    fun needsSetup(session: HttpSession): Boolean {
+        val profile = getSessionProfile(session) ?: return false
+        return userDao.getUser(profile.id)?.nickname == null
+    }
+
+    fun gameUserId(session: HttpSession): String? = getSessionProfile(session)?.id
+
     fun getOAuthServiceFromSession(session: HttpSession): OAuthService {
         val oAuthUser = session.getOAuthUser()
         val authType = oAuthUser.authVendor.name.lowercase()

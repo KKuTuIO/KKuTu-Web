@@ -104,7 +104,6 @@
                 <div class="min-w-0">
                     <div class="truncate font-bold">{summary?.email || accountLabel || '계정'}</div>
                     <div class="truncate text-sm text-gray-500 dark:text-gray-300">{selectedProfile?.nickname || profileName}</div>
-                    {#if selectedProfile}<div class="truncate font-mono text-xs text-gray-500 dark:text-gray-300">{selectedProfile.id}</div>{/if}
                 </div>
             </div>
 
@@ -138,7 +137,7 @@
             {/if}
 
             <div class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-gray-400 opacity-60 dark:text-gray-500" aria-disabled="true">
-                <span class="material-symbols-outlined flex h-9 w-9 items-center justify-center text-3xl leading-none">add</span>
+                <span aria-hidden="true" class="material-symbols-outlined relative top-px flex h-9 w-9 items-center justify-center text-3xl leading-none">add</span>
                 <span class="font-semibold">프로필 만들기</span>
             </div>
 

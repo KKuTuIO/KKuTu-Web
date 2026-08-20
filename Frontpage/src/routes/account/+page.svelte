@@ -166,7 +166,7 @@
     }
 
     function avatarUrl() {
-        const seed = summary?.uuid || summary?.legacy_user_id || 'kkutuio';
+        const seed = selectedProfileData?.id || selectedProfile || summary?.uuid || summary?.legacy_user_id || 'kkutuio';
         return `https://api.dicebear.com/10.x/patchwork/svg?seed=${encodeURIComponent(seed)}`;
     }
 
@@ -543,7 +543,7 @@
             <section class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타" on:error={useFallbackAvatar}/>
                 <div class="min-w-0 flex-1">
-                    <h2 class="truncate text-xl font-bold">{summary.nickname || '별명 설정 필요'}</h2>
+                    <h2 class="truncate text-xl font-bold">{selectedProfileData?.nickname || summary.nickname || '별명 설정 필요'}</h2>
                     <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p>
                 </div>
                 <label class="sr-only" for="account-profile">게임 프로필</label>

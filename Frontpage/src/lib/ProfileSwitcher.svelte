@@ -83,7 +83,12 @@
     });
 
     async function selectProfile(profile) {
-        if (!profile?.id || String(profile.id) === String(selectedProfileId) || switching) return;
+        if (!profile?.id || switching) return;
+        if (profile.deletion_scheduled_at) {
+            window.location.href = `/account/profile-delete?profile_id=${encodeURIComponent(profile.id)}`;
+            return;
+        }
+        if (String(profile.id) === String(selectedProfileId)) return;
         switching = String(profile.id);
         error = '';
         try {

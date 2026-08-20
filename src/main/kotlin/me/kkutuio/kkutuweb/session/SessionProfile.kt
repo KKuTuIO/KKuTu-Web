@@ -23,5 +23,6 @@ data class SessionProfile(
     val id: String,
     val name: String,
     val title: String,
-    val image: String
+    val image: String,
+    val nicknameSuffix: String = "00000"
 )

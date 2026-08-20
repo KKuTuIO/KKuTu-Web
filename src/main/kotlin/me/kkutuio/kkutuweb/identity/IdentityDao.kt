@@ -35,7 +35,11 @@ class IdentityDao(
 
     fun findAccount(id: UUID): Account? = queryOne("SELECT * FROM account WHERE id = ?", accountMapper, id)
     fun findAccountByLegacyId(legacyUserId: String): Account? = queryOne("SELECT * FROM account WHERE legacy_user_id = ?", accountMapper, legacyUserId)
-    fun findIdentity(provider: String, subject: String): AccountIdentity? = queryOne("SELECT * FROM account_identity WHERE provider = ? AND subject = ?", identityMapper, provider, subject)
+    fun findIdentity(provider: String, subject: String): AccountIdentity? = queryOne(
+        "SELECT * FROM account_identity WHERE provider = ? AND subject = ? " +
+            "ORDER BY (revoked_at IS NULL) DESC, created_at DESC",
+        identityMapper, provider, subject
+    )
     fun findActiveIdentity(provider: String, subject: String): AccountIdentity? = queryOne("SELECT * FROM account_identity WHERE provider = ? AND subject = ? AND revoked_at IS NULL", identityMapper, provider, subject)
     fun findIdentity(id: Long): AccountIdentity? = queryOne("SELECT * FROM account_identity WHERE id = ?", identityMapper, id)
     fun listIdentities(accountId: UUID): List<AccountIdentity> = jdbc.query("SELECT * FROM account_identity WHERE account_id = ? ORDER BY created_at", identityMapper, accountId)
@@ -50,18 +54,36 @@ class IdentityDao(
         return findAccount(id)!!
     }
     fun createKkutuProfile(accountId: UUID, legacyUserId: String) = jdbc.update(
-        "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id) " +
-            "SELECT ?, id, uuid, 'kkutu', ? FROM account WHERE id=? ON CONFLICT(account_id, game_key) DO NOTHING",
-        UUID.randomUUID(), legacyUserId, accountId
+        "WITH profile_input AS (SELECT ?::varchar AS legacy_user_id) " +
+            "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname_tag) " +
+            "SELECT ?, account.id, account.uuid, 'kkutu', profile_input.legacy_user_id, " +
+            "kkutu_nickname_tag(profile_input.legacy_user_id) FROM account CROSS JOIN profile_input " +
+            "WHERE account.id=? ON CONFLICT(account_id, game_key) DO NOTHING",
+        legacyUserId, UUID.randomUUID(), accountId
     )
-    fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, status FROM game_profile WHERE account_id=? AND status='ACTIVE' ORDER BY created_at", accountId)
-    fun findActiveProfile(accountId: UUID, profileId: UUID): Map<String, Any?>? = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, status FROM game_profile WHERE account_id=? AND id=? AND status='ACTIVE'", accountId, profileId).firstOrNull()
+    fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND status='ACTIVE' ORDER BY created_at", accountId)
+    fun findActiveProfile(accountId: UUID, profileId: UUID): Map<String, Any?>? = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND id=? AND status='ACTIVE'", accountId, profileId).firstOrNull()
     fun defaultProfile(accountId: UUID): Map<String, Any?>? = jdbc.queryForList(
-        "SELECT id, uuid, game_key, legacy_user_id, nickname, status FROM game_profile WHERE id = COALESCE(" +
+        "SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE id = COALESCE(" +
             "(SELECT a.selected_profile_id FROM account a JOIN game_profile selected ON selected.id=a.selected_profile_id AND selected.account_id=a.id AND selected.status='ACTIVE' WHERE a.id=?), " +
             "(SELECT id FROM game_profile WHERE account_id=? AND status='ACTIVE' ORDER BY created_at LIMIT 1))",
         accountId, accountId
     ).firstOrNull()
+
+    fun selectedProfileLegacyUserId(accountId: UUID): String? =
+        defaultProfile(accountId)?.get("legacy_user_id")?.toString()?.takeIf { it.isNotBlank() }
+
+    fun nicknameSuffix(accountId: UUID): String {
+        val profile = defaultProfile(accountId)
+        return profile?.get("nickname_tag")?.toString() ?: "00000"
+    }
+
+    fun nicknameSuffixForUserId(userId: String): String {
+        val profile = jdbc.queryForList(
+            "SELECT account_id, nickname_tag FROM game_profile WHERE legacy_user_id=? LIMIT 1", userId
+        ).firstOrNull()
+        return profile?.get("nickname_tag")?.toString() ?: userId.substringAfter('-', userId).take(5)
+    }
     fun setSelectedProfile(accountId: UUID, profileId: UUID): Boolean = jdbc.update(
         "UPDATE account SET selected_profile_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND EXISTS (SELECT 1 FROM game_profile WHERE id=? AND account_id=? AND status='ACTIVE')",
         profileId, accountId, profileId, accountId

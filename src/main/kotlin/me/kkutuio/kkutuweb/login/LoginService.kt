@@ -143,6 +143,12 @@ class LoginService(
 
             val oAuthUser = getOAuthService(authVendor).login(code)
 
+            if (accountService.isRevokedExternalIdentity(oAuthUser) && !getOAuthService(authVendor).allowRegister) {
+                session.setAttribute("loginReason", "해제된 로그인 수단입니다. 이 로그인 제공자는 신규 가입을 허용하지 않습니다.")
+                session.removeAttribute(SessionAttribute.OAUTH_STATE.attributeName)
+                return false
+            }
+
             if (pendingIdentityJson != null) {
                 // This is the second half of the "no direct registration" flow.
                 // Do not let a caller bypass it by selecting another blocked provider directly.
@@ -291,6 +297,7 @@ class LoginService(
         val account = accountService.currentAccount(session) ?: return null
         val oAuthUser = runCatching { session.getOAuthUser() }.getOrNull() ?: return null
         val userId = accountService.selectedGameProfileLegacyUserId(account)
+        val nicknameSuffix = accountService.selectedGameProfileNicknameSuffix(account)
         val user = userDao.getUser(userId)
 
         val authType = AuthVendor.values()
@@ -307,7 +314,8 @@ class LoginService(
             id = userId,
             name = user?.nickname ?: oAuthUser.name,
             title = title,
-            image = image
+            image = image,
+            nicknameSuffix = nicknameSuffix
         )
     }
 

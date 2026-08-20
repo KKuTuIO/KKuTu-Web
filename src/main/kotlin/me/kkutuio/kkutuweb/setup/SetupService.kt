@@ -70,7 +70,7 @@ class SetupService(
 
         nicknameValidationError(nick)?.let { return ActionResult(false, it) }
 
-        val nickname = nick + "#" + sessionProfile.id.split("-")[1]?.take(5)
+        val nickname = nick + "#" + sessionProfile.nicknameSuffix
 
         try {
             val isExistInCache = redisTemplate.opsForSet().isMember("nickname_cache", nickname) ?: false

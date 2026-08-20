@@ -22,16 +22,19 @@ class AccountService(
         val provider = oauth.authVendor.name
         val subject = oauth.vendorId
         val historicalIdentity = dao.findIdentity(provider, subject)
-        if (historicalIdentity?.revokedAt != null) throw IdpException("identity_revoked", "해제된 로그인 수단입니다. 계정 보안 화면에서 다시 연결해 주세요.", 403)
-        val existingIdentity = historicalIdentity
+        val existingIdentity = historicalIdentity?.takeIf { it.revokedAt == null }
         val account = if (existingIdentity != null) {
             dao.findAccount(existingIdentity.accountId) ?: throw IdpException("server_error", "Identity points to a missing account", 500)
         } else {
-            val legacyId = oauth.getUserId()
+            val isFreshAfterRevocation = historicalIdentity?.revokedAt != null
+            val legacyId = if (isFreshAfterRevocation) UUID.randomUUID().toString() else oauth.getUserId()
             val created = dao.findAccountByLegacyId(legacyId) ?: dao.createAccount(legacyId)
             val identity = dao.insertIdentity(created.id, IdentityType.OAUTH, provider, subject, oauth.name, verified = true, primary = true)
             dao.setOriginAndPrimary(created.id, identity.id)
-            dao.audit(created.id, "IDENTITY_CREATED", identity.id, request?.getIp()?.let(SecretTools::sha256), mapOf("type" to "OAUTH", "provider" to provider))
+            dao.audit(
+                created.id, "IDENTITY_CREATED", identity.id, request?.getIp()?.let(SecretTools::sha256),
+                mapOf("type" to "OAUTH", "provider" to provider, "fresh_after_revocation" to isFreshAfterRevocation)
+            )
             created
         }
         dao.createKkutuProfile(account.id, account.legacyUserId)
@@ -70,6 +73,9 @@ class AccountService(
     fun findExternalAccount(oauth: OAuthUser): Account? = dao.findActiveIdentity(oauth.authVendor.name, oauth.vendorId)
         ?.let { dao.findAccount(it.accountId) }
 
+    fun isRevokedExternalIdentity(oauth: OAuthUser): Boolean =
+        dao.findIdentity(oauth.authVendor.name, oauth.vendorId)?.revokedAt != null
+
     /**
      * The OAuth method proves how the account authenticated.  It is not the
      * game profile to use for the session.  A linked provider can have a
@@ -78,6 +84,8 @@ class AccountService(
     fun selectedGameProfileLegacyUserId(account: Account): String =
         dao.defaultProfile(account.id)?.get("legacy_user_id")?.toString()?.takeIf { it.isNotBlank() }
             ?: account.legacyUserId
+
+    fun selectedGameProfileNicknameSuffix(account: Account): String = dao.nicknameSuffix(account.id)
 
     /** Verifies an existing login method without changing the signed-in account. */
     @Transactional
@@ -186,8 +194,9 @@ class AccountService(
     }
 
     fun summary(account: Account): Map<String, Any?> {
-        val user = userDao.getUser(account.legacyUserId)
-        val nicknameState = userDao.nicknameState(account.legacyUserId)
+        val selectedUserId = selectedGameProfileLegacyUserId(account)
+        val user = userDao.getUser(selectedUserId)
+        val nicknameState = userDao.nicknameState(selectedUserId)
         val identities = dao.listIdentities(account.id).filter { it.revokedAt == null && (settings.passwordEnabled || it.type != IdentityType.PASSWORD) }
         val email = identities.firstOrNull { it.type == IdentityType.EMAIL && it.verifiedAt != null }
         return mapOf(

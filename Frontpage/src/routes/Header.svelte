@@ -10,6 +10,7 @@
 	let user = "Guest User";
 	let authVendor = "KKuTu";
 	let vendorId = "0";
+	let activeProfileId = "";
 	let name = "Moremi";
 	let ingameName = "";
 
@@ -95,6 +96,7 @@
 		if (data?.status !== "Guest user" && userId) {
 			authVendor = String(data.authVendor);
 			vendorId = String(data.vendorId);
+			activeProfileId = typeof data.profileId === 'string' ? data.profileId : '';
 			name = typeof data.name === 'string' && data.name ? data.name : 'Moremi';
 			user = name;
 
@@ -208,7 +210,7 @@
 				게임 시작
 				</a>
 				<ProfileSwitcher
-					profileSeed={`${authVendor}:${vendorId}`}
+					profileSeed={activeProfileId || `${authVendor}:${vendorId}`}
 					profileName={ingameName.replace(/<[^>]*>/g, '')}
 					accountLabel={data?.email || name}
 				/>

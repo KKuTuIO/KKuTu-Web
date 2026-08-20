@@ -84,6 +84,7 @@
                 // authenticate the account.
                 "authVendor" to authVendor,
                 "vendorId" to vendorId,
+                "profileId" to profile.id,
                 "name" to profile.name,
                 "image" to profile.image.replace("=s50", ""),
                 "gender" to oauthUser.gender?.name,

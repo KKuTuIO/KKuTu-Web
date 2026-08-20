@@ -41,6 +41,8 @@
     let modalPasskeyName = '';
     let linkedIdentityMap = new Map();
     let linkedProviderCount = 0;
+    $: selectedProfileData = summary?.profiles?.find(profile => String(profile.id) === String(selectedProfile)) || null;
+    $: currentIdentifier = selectedProfileData?.id || selectedProfile || summary?.uuid || '';
     const oauthProviders = [
         {id: 'naver', name: '네이버', icon: '/img/auth/naver.png'},
         {id: 'google', name: 'Google', icon: '/img/auth/google.png'},
@@ -203,7 +205,7 @@
     }
 
     async function copyIdentifier() {
-        const identifier = summary?.legacy_user_id;
+        const identifier = currentIdentifier;
         if (!identifier) return;
         try {
             if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(identifier);
@@ -542,12 +544,12 @@
                 <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타" on:error={useFallbackAvatar}/>
                 <div class="min-w-0 flex-1">
                     <h2 class="truncate text-xl font-bold">{summary.nickname || '별명 설정 필요'}</h2>
-                    <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{summary.legacy_user_id}</p>
+                    <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p>
                 </div>
                 <label class="sr-only" for="account-profile">게임 프로필</label>
                 <select id="account-profile" class="max-w-[9rem] rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-semibold dark:border-gray-600 dark:bg-gray-900" bind:value={selectedProfile} on:change={selectProfile}>
                     {#each summary.profiles || [] as profile}
-                        <option value={profile.id}>{profile.nickname || profile.legacy_user_id}</option>
+                        <option value={profile.id}>{profile.nickname || profile.id}</option>
                     {/each}
                 </select>
             </section>
@@ -564,7 +566,7 @@
                             {#if nicknamePolicy?.game_connected}<p class="mt-3 text-sm text-red-600">게임 접속 중에는 게임 내 프로필 관리 화면에서 별명을 변경해 주세요.</p>{:else if nicknamePolicy?.change_restricted}<p class="mt-3 text-sm text-red-600">운영정책 위반으로 별명 변경을 이용할 수 없습니다.</p>{:else if nicknamePolicy && !nicknamePolicy.can_change}<p class="mt-3 text-sm text-red-600">{new Date(nicknamePolicy.next_change_at).toLocaleString()} 이후 별명을 변경할 수 있습니다.</p>{/if}
                         </div>
                     </details>
-                    <div class="flex items-center justify-between gap-5 p-5"><span class="font-bold">식별번호</span><div class="flex max-w-[65%] items-center gap-2"><span class="break-all text-right font-mono text-sm text-gray-500 dark:text-gray-300">{summary.legacy_user_id}</span><button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white" on:click={copyIdentifier} aria-label="식별번호 복사"><span class="material-symbols-outlined text-lg">content_copy</span></button></div></div>
+                    <div class="flex items-center justify-between gap-5 p-5"><span class="font-bold">식별번호</span><div class="flex max-w-[65%] items-center gap-2"><span class="break-all text-right font-mono text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</span><button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white" on:click={copyIdentifier} aria-label="식별번호 복사"><span class="material-symbols-outlined text-lg">content_copy</span></button></div></div>
                     <details class="group border-t border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>전자 메일 주소</span><span class="flex items-center gap-2 text-sm font-normal text-gray-500">{summary.email ? (summary.email_verified ? '인증됨' : '미인증') : '미등록'}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
                         <div class="px-5 pb-5">

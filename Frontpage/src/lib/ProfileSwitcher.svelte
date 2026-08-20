@@ -27,7 +27,7 @@
     }
 
     function profileTitle(profile, index = 0) {
-        return profile?.nickname || profile?.legacy_user_id || `프로필 ${index + 1}`;
+        return profile?.nickname || profile?.id || `프로필 ${index + 1}`;
     }
 
     function csrfHeaders() {
@@ -88,7 +88,7 @@
         aria-expanded={open}
         on:click={toggleMenu}
     >
-        <img class="h-8 w-8 rounded-full" src={avatarUrl(selectedProfile?.id || profileSeed)} alt="현재 프로필" on:error={fallbackAvatar}/>
+        <img class="h-8 w-8 rounded-full" src={avatarUrl(profileSeed)} alt="현재 프로필" on:error={fallbackAvatar}/>
     </button>
 
     {#if open}
@@ -100,10 +100,11 @@
             on:keydown|stopPropagation
         >
             <div class="flex items-center gap-3 px-3 py-2">
-                <img class="h-11 w-11 shrink-0 rounded-full" src={avatarUrl(selectedProfile?.id || profileSeed || accountLabel)} alt="계정 프로필" on:error={fallbackAvatar}/>
+                <img class="h-11 w-11 shrink-0 rounded-full" src={avatarUrl(profileSeed || accountLabel)} alt="계정 프로필" on:error={fallbackAvatar}/>
                 <div class="min-w-0">
                     <div class="truncate font-bold">{summary?.email || accountLabel || '계정'}</div>
-                    <div class="truncate text-sm text-gray-500 dark:text-gray-300">{selectedProfile ? profileTitle(selectedProfile) : profileName}</div>
+                    <div class="truncate text-sm text-gray-500 dark:text-gray-300">{selectedProfile?.nickname || profileName}</div>
+                    {#if selectedProfile}<div class="truncate font-mono text-xs text-gray-500 dark:text-gray-300">{selectedProfile.id}</div>{/if}
                 </div>
             </div>
 
@@ -123,8 +124,8 @@
                         <img class="h-9 w-9 shrink-0 rounded-full" src={avatarUrl(profile.id)} alt="{profileTitle(profile, index)}" on:error={fallbackAvatar}/>
                         <span class="min-w-0 flex-1">
                             <span class="block truncate font-semibold">{profileTitle(profile, index)}</span>
-                            {#if profile.legacy_user_id && profile.nickname}
-                                <span class="block truncate text-xs text-gray-500 dark:text-gray-300">{profile.legacy_user_id}</span>
+                            {#if profile.id && profile.nickname}
+                                <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
                             {/if}
                         </span>
                         {#if String(profile.id) === String(selectedProfileId)}
@@ -137,7 +138,7 @@
             {/if}
 
             <div class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-gray-400 opacity-60 dark:text-gray-500" aria-disabled="true">
-                <span class="material-symbols-outlined h-9 w-9 text-center text-3xl leading-9">add</span>
+                <span class="material-symbols-outlined flex h-9 w-9 items-center justify-center text-3xl leading-none">add</span>
                 <span class="font-semibold">프로필 만들기</span>
             </div>
 

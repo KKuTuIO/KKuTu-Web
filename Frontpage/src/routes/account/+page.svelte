@@ -723,9 +723,9 @@
                         <div class="flex items-center justify-between gap-5 px-5 pb-5">
                             <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">더 이상 해당 프로필 이용을 원하지 않으신다면 프로필을 삭제할 수 있습니다.</p>
                             {#if selectedProfileDeletionAt}
-                                <a class="shrink-0 bg-black px-6 py-3 text-lg font-bold text-white transition hover:bg-gray-800" href={`/account/profile-delete?profile_id=${encodeURIComponent(selectedProfileData.id)}`}>관리</a>
+                                <a class="shrink-0 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-700 dark:bg-gray-700 dark:hover:bg-gray-600" href={`/account/profile-delete?profile_id=${encodeURIComponent(selectedProfileData.id)}`}>관리</a>
                             {:else}
-                                <a class="shrink-0 bg-black px-6 py-3 text-lg font-bold text-white transition hover:bg-gray-800" href={`/account/profile-delete?profile_id=${encodeURIComponent(selectedProfileData?.id || '')}`}>삭제</a>
+                                <a class="shrink-0 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-700 dark:bg-gray-700 dark:hover:bg-gray-600" href={`/account/profile-delete?profile_id=${encodeURIComponent(selectedProfileData?.id || '')}`}>삭제</a>
                             {/if}
                         </div>
                     </details>
@@ -769,9 +769,6 @@
                        href="/account/apps"><span>연결된 앱</span><span
                             class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span
                             class="material-symbols-outlined">chevron_right</span></span></a>
-                    <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold text-gray-500 underline transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700" href="/account/delete">
-                        <span>계정 탈퇴</span><span class="material-symbols-outlined">chevron_right</span>
-                    </a>
                 </div>
             </section>
 
@@ -968,6 +965,7 @@
                             class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span
                             class="material-symbols-outlined">chevron_right</span></span></a>
                 </div>
+                <a class="mx-1 mt-4 block text-sm font-semibold text-gray-500 underline underline-offset-4 transition hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100" href="/account/delete">계정 탈퇴</a>
             </section>
         {:else if loading}
             <section

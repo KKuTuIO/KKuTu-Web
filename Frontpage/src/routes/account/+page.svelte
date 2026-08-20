@@ -39,6 +39,8 @@
     let modalTotpName = '';
     let modalPasskeyId = null;
     let modalPasskeyName = '';
+    let linkedIdentityMap = new Map();
+    let linkedProviderCount = 0;
     const oauthProviders = [
         {id: 'naver', name: '네이버', icon: '/img/auth/naver.png'},
         {id: 'google', name: 'Google', icon: '/img/auth/google.png'},
@@ -66,7 +68,7 @@
             nicknamePolicy = await nicknamePolicyRes.json();
             mfa = await mfaRes.json();
             passwordEnabled = summary.password_enabled !== false;
-            const linkedProviders = linkedProviderIds();
+            const linkedProviders = linkedProviderIdsFor(identities);
             reauthProviderIds = oauthProviders.filter(provider => linkedProviders.has(provider.id)).map(provider => provider.id);
             nickname = (nicknamePolicy.nickname || summary.nickname || '').split('#')[0];
             fixedNickname = Boolean(nicknamePolicy.fixed);
@@ -179,31 +181,25 @@
         return normalizedProvider(identity?.provider_id || identity?.provider);
     }
 
-    function linkedProviderIds() {
+    function linkedProviderIdsFor(identityList) {
         return new Set(oauthProviders
-            .filter(provider => identities.some(identity =>
+            .filter(provider => identityList.some(identity =>
                 String(identity?.type || '').trim().toUpperCase() === 'OAUTH' &&
                 identityProviderId(identity) === provider.id
             ))
             .map(provider => provider.id));
     }
 
-    function linkedIdentity(provider) {
-        const providerId = normalizedProvider(provider?.id);
-        const identity = identities.find(identity =>
-            String(identity?.type || '').trim().toUpperCase() === 'OAUTH' &&
-            identityProviderId(identity) === providerId
-        );
-        if (identity) return identity;
-        return null;
-    }
+    $: linkedIdentityMap = new Map(
+        identities
+            .filter(identity => String(identity?.type || '').trim().toUpperCase() === 'OAUTH')
+            .map(identity => [identityProviderId(identity), identity])
+            .filter(([providerId]) => oauthProviders.some(provider => provider.id === providerId))
+    );
+    $: linkedProviderCount = linkedIdentityMap.size;
 
     function linkedAt(identity) {
         return identity?.created_at ? new Date(identity.created_at).toLocaleDateString() : '';
-    }
-
-    function linkedProviderCount() {
-        return linkedProviderIds().size;
     }
 
     async function copyIdentifier() {
@@ -577,10 +573,10 @@
                         </details>
                     {/if}
                     <details class="group border-t border-gray-200 dark:border-gray-700">
-                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>계정 연동</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{linkedProviderCount()}/{oauthProviders.length}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
+                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>계정 연동</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{linkedProviderCount}/{oauthProviders.length}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
                         <div class="border-t border-gray-100 px-5 dark:border-gray-700">
                             {#each oauthProviders as provider}
-                                {@const identity = linkedIdentity(provider)}
+                                {@const identity = linkedIdentityMap.get(provider.id)}
                                 <div class="flex items-center gap-4 border-b border-gray-100 py-4 last:border-0 dark:border-gray-700">
                                     <img src={provider.icon} class="h-11 w-11 shrink-0 object-contain" alt="{provider.name} 아이콘"/>
                                     <div class="min-w-0 flex-1">

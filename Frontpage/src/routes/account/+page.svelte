@@ -3,6 +3,7 @@
     import QRCode from 'qrcode';
     import LoginMethodSelector from '$lib/LoginMethodSelector.svelte';
     import AccountModal from '$lib/AccountModal.svelte';
+    import ProfileCreateModal from '$lib/ProfileCreateModal.svelte';
     import ToastStack from '$lib/ToastStack.svelte';
 
     let summary = null;
@@ -24,6 +25,8 @@
     let recoveryCodes = [];
     let selectedProfile = '';
     let profileSwitching = false;
+    let profilePolicy = null;
+    let profileCreateOpen = false;
     let reauthRequired = false;
     let reauthDialogOpen = false;
     let reauthPassword = '';
@@ -58,12 +61,12 @@
         loading = true;
         try {
             await fetch('/api/account/csrf');
-            const [summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes] = await Promise.all([fetch('/api/account/summary'), fetch('/api/account/identities'), fetch('/api/account/passkeys'), fetch('/api/account/nickname-policy'), fetch('/api/account/mfa')]);
+            const [summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes] = await Promise.all([fetch('/api/account/summary'), fetch('/api/account/identities'), fetch('/api/account/passkeys'), fetch('/api/account/nickname-policy'), fetch('/api/account/mfa'), fetch('/api/account/profile-policy')]);
             if (summaryRes.status === 401) {
                 location.href = '/login';
                 return;
             }
-            if (![summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes].every(response => response.ok)) {
+            if (![summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes].every(response => response.ok)) {
                 throw new Error('account api request failed');
             }
             summary = await summaryRes.json();
@@ -71,6 +74,7 @@
             passkeys = await passkeyRes.json();
             nicknamePolicy = await nicknamePolicyRes.json();
             mfa = await mfaRes.json();
+            profilePolicy = await profilePolicyRes.json();
             passwordEnabled = summary.password_enabled !== false;
             const linkedProviders = linkedProviderIdsFor(identities);
             reauthProviderIds = oauthProviders.filter(provider => linkedProviders.has(provider.id)).map(provider => provider.id);
@@ -112,6 +116,16 @@
         modalPasskeyId = null;
         modalPasskeyName = '';
         totpQr = '';
+    }
+
+    function openProfileCreate() {
+        modal = null;
+        profileCreateOpen = true;
+    }
+
+    async function profileCreated() {
+        profileCreateOpen = false;
+        await load();
     }
 
     function requestReauthentication() {
@@ -942,6 +956,14 @@
                     {/if}
                 </button>
             {/each}
+            <div class="mt-2 flex items-center justify-between border-t border-gray-200 pt-2 dark:border-gray-700">
+                <button type="button" class="flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                        disabled={!profilePolicy?.can_create || profileSwitching} on:click={openProfileCreate}>
+                    <span class="material-symbols-outlined text-lg" aria-hidden="true">add</span>
+                    <span>프로필 추가</span>
+                </button>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{summary?.profiles?.length || 0}/{profilePolicy?.limit || 1}</span>
+            </div>
         </div>
     {:else if modal?.type === 'totp-setup'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">2단계 인증 앱에 아래 비밀키를 등록한 뒤 표시되는 6자리 인증번호를 입력하세요.</p>
@@ -1005,6 +1027,7 @@
         </div>
     {/if}
 </AccountModal>
+<ProfileCreateModal open={profileCreateOpen} on:close={() => profileCreateOpen = false} on:created={profileCreated}/>
 <ToastStack {toasts} dismiss={dismissToast}/>
 
 <style>

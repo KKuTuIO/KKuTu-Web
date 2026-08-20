@@ -65,9 +65,24 @@ class IdentityDao(
             "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname_tag) " +
             "SELECT ?, account.id, account.uuid, 'kkutu', profile_input.legacy_user_id, " +
             "kkutu_nickname_tag(profile_input.legacy_user_id) FROM account CROSS JOIN profile_input " +
-            "WHERE account.id=? ON CONFLICT(account_id, game_key) DO NOTHING",
+            "WHERE account.id=? AND NOT EXISTS (SELECT 1 FROM game_profile existing WHERE existing.account_id=account.id AND existing.game_key='kkutu')",
         legacyUserId, UUID.randomUUID(), accountId
     )
+    fun lockAccountForProfileMutation(accountId: UUID) {
+        jdbc.queryForObject("SELECT id FROM account WHERE id=? FOR UPDATE", UUID::class.java, accountId)
+    }
+    fun countActiveProfiles(accountId: UUID): Int = jdbc.queryForObject(
+        "SELECT count(*) FROM game_profile WHERE account_id=? AND status='ACTIVE'", Int::class.java, accountId
+    ) ?: 0
+    fun previewProfileNicknameTag(profileId: UUID): String = jdbc.queryForObject(
+        "SELECT kkutu_nickname_tag(?::varchar)", String::class.java, profileId.toString()
+    ) ?: "00000"
+    fun createKkutuProfile(accountId: UUID, profileId: UUID, nickname: String?): Boolean = jdbc.update(
+        "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname, nickname_tag) " +
+            "SELECT ?, account.id, account.uuid, 'kkutu', ?, ?, kkutu_nickname_tag(?::varchar) " +
+            "FROM account WHERE account.id=?",
+        profileId, profileId.toString(), nickname, profileId.toString(), accountId
+    ) == 1
     fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND status='ACTIVE' ORDER BY created_at", accountId)
     fun findActiveProfile(accountId: UUID, profileId: UUID): Map<String, Any?>? = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND id=? AND status='ACTIVE'", accountId, profileId).firstOrNull()
     fun defaultProfile(accountId: UUID): Map<String, Any?>? = jdbc.queryForList(

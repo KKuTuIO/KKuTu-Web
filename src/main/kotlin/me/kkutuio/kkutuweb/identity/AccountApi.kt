@@ -6,8 +6,11 @@ import me.kkutuio.kkutuweb.extension.hasRecentAuthentication
 import me.kkutuio.kkutuweb.extension.markRecentlyAuthenticated
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.moderation.ModerationService
+import me.kkutuio.kkutuweb.moderation.AdminModerationAuthorizer
 import me.kkutuio.kkutuweb.SessionAttribute
+import me.kkutuio.kkutuweb.setting.AdminSetting
 import org.springframework.http.ResponseEntity
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
 import com.fasterxml.jackson.databind.JsonNode
@@ -30,6 +33,7 @@ data class OneTimeLoginCodeRequest(val identifier: String, val code: String, val
 data class ExternalSecondFactorRequest(val totpCode: String? = null, val securityCode: String? = null, val emailCode: String? = null)
 data class ExternalMfaSettingRequest(val enabled: Boolean)
 data class ProfileSelectionRequest(val profileId: String)
+data class ProfileCreationRequest(val nickname: String, val profileId: String? = null)
 data class PasskeyCompletionRequest(val operationToken: String, val credential: JsonNode, val deviceName: String? = null)
 data class PasskeyRenameRequest(val name: String)
 
@@ -45,7 +49,8 @@ class AccountApi(
     private val limiter: AccountRateLimiter,
     private val webAuthn: WebAuthnService,
     private val settings: IdentityProviderSettings,
-    private val moderation: ModerationService
+    private val moderation: ModerationService,
+    private val adminAuthorizer: AdminModerationAuthorizer
 ) {
     @GetMapping("/csrf") fun csrf(request: HttpServletRequest): Map<String, String> {
         val token = (request.getAttribute(CsrfToken::class.java.name) ?: request.getAttribute("_csrf")) as? CsrfToken
@@ -53,12 +58,51 @@ class AccountApi(
         return mapOf("token" to token.token, "header" to token.headerName, "parameter" to token.parameterName)
     }
     @GetMapping("/summary") fun summary(session: HttpSession): Map<String, Any?> = accounts.summary(accounts.requireCurrentAccount(session))
+    @GetMapping("/profile-policy") fun profilePolicy(session: HttpSession): Map<String, Any?> {
+        val account = accounts.requireCurrentAccount(session)
+        val count = dao.countActiveProfiles(account.id)
+        val limit = profileLimit(session)
+        val previewId = java.util.UUID.randomUUID()
+        return mapOf(
+            "count" to count,
+            "limit" to limit,
+            "can_create" to (count < limit),
+            "preview_profile_id" to previewId.toString(),
+            "nickname_tag" to dao.previewProfileNicknameTag(previewId)
+        )
+    }
     @PutMapping("/profile") fun selectProfile(@RequestBody body: ProfileSelectionRequest, session: HttpSession): ResponseEntity<Void> {
         val account = recent(session)
         val profileId = runCatching { java.util.UUID.fromString(body.profileId) }.getOrElse { throw IdpException("invalid_request", "잘못된 게임 프로필입니다.") }
         if (!dao.setSelectedProfile(account.id, profileId)) throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "GAME_PROFILE_SELECTED", metadata = mapOf("profile_id" to profileId.toString()))
         return ResponseEntity.noContent().build()
+    }
+    @Transactional
+    @PostMapping("/profile") fun createProfile(@RequestBody body: ProfileCreationRequest, session: HttpSession): Map<String, Any?> {
+        val account = recent(session)
+        val nickname = body.nickname.trim()
+        val validationError = nicknames.validationError(nickname)
+        if (validationError != null) throw IdpException("invalid_nickname", "사용할 수 없는 별명입니다: $validationError")
+
+        dao.lockAccountForProfileMutation(account.id)
+        val count = dao.countActiveProfiles(account.id)
+        val limit = profileLimit(session)
+        if (count >= limit) throw IdpException("profile_limit_reached", "프로필은 최대 ${limit}개까지 만들 수 있습니다.", 409)
+
+        val profileId = body.profileId?.let {
+            runCatching { java.util.UUID.fromString(it) }.getOrElse {
+                throw IdpException("invalid_request", "잘못된 프로필입니다.")
+            }
+        } ?: java.util.UUID.randomUUID()
+        val nicknameTag = dao.previewProfileNicknameTag(profileId)
+        val fullNickname = "$nickname#$nicknameTag"
+        if (!dao.createKkutuProfile(account.id, profileId, fullNickname)) {
+            throw IdpException("profile_create_failed", "프로필을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.", 409)
+        }
+        nicknames.createInitial(profileId.toString(), nickname, nicknameTag)
+        dao.audit(account.id, "GAME_PROFILE_CREATED", metadata = mapOf("profile_id" to profileId.toString()))
+        return mapOf("id" to profileId.toString(), "nickname" to fullNickname, "nickname_tag" to nicknameTag)
     }
 
     @GetMapping("/nickname-policy") fun nicknamePolicy(session: HttpSession): Map<String, Any?> = nicknames.status(accounts.requireCurrentAccount(session))
@@ -186,6 +230,8 @@ class AccountApi(
         if (!session.hasRecentAuthentication()) throw IdpException("reauthentication_required", "본인인증이 필요합니다.", 401)
         return account
     }
+    private fun profileLimit(session: HttpSession): Int =
+        if (adminAuthorizer.hasPrivilege(session, AdminSetting.Privilege.ADMIN_PROFILE)) 3 else 1
     private fun requirePasswordEnabled() {
         if (!settings.passwordEnabled) throw IdpException("password_disabled", "비밀번호 로그인은 비활성화되어 있습니다.", 404)
     }

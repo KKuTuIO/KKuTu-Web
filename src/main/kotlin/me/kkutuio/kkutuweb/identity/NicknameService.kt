@@ -21,6 +21,21 @@ class NicknameService(
     private val setup: SetupService,
     private val identityDao: IdentityDao
 ) {
+    fun validationError(nickname: String): String? = setup.nicknameValidationError(nickname)
+
+    @Transactional
+    fun createInitial(profileId: String, baseNickname: String, nicknameTag: String): String {
+        setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", "사용할 수 없는 별명입니다: $it") }
+        val nickname = "$baseNickname#$nicknameTag"
+        val meanable = normalize(nickname)
+        users.lockNicknameKey(meanable)
+        if (users.getUser(profileId) != null || users.getExistsSimilarityNick(meanable)) {
+            throw IdpException("nickname_in_use", "이미 사용 중인 별명입니다. 다른 별명을 입력해 주세요.", 409)
+        }
+        users.newUser(profileId, nickname, meanable)
+        return nickname
+    }
+
     fun status(account: Account): Map<String, Any?> {
         val userId = identityDao.selectedProfileId(account.id) ?: account.legacyUserId
         val user = users.nicknameState(userId)

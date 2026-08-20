@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { onMount } from 'svelte';
+    import ProfileCreateModal from '$lib/ProfileCreateModal.svelte';
 
     export let profileSeed = '';
     export let profileName = '계정 설정 필요';
@@ -12,6 +13,8 @@
     let switching = '';
     let summary = null;
     let error = '';
+    let profilePolicy = null;
+    let profileCreateOpen = false;
 
     $: profiles = summary?.profiles || [];
     $: selectedProfileId = summary?.selected_profile_id || profiles[0]?.id || '';
@@ -40,14 +43,29 @@
         loading = true;
         error = '';
         try {
-            const response = await fetch('/api/account/summary', {credentials: 'same-origin'});
-            if (!response.ok) throw new Error('account summary request failed');
-            summary = await response.json();
+            const [summaryResponse, policyResponse] = await Promise.all([
+                fetch('/api/account/summary', {credentials: 'same-origin'}),
+                fetch('/api/account/profile-policy', {credentials: 'same-origin'})
+            ]);
+            if (!summaryResponse.ok || !policyResponse.ok) throw new Error('account summary request failed');
+            summary = await summaryResponse.json();
+            profilePolicy = await policyResponse.json();
         } catch (_) {
             error = '프로필 목록을 불러오지 못했습니다.';
         } finally {
             loading = false;
         }
+    }
+
+    function openProfileCreate() {
+        open = false;
+        profileCreateOpen = true;
+    }
+
+    async function profileCreated() {
+        profileCreateOpen = false;
+        summary = null;
+        await loadSummary();
     }
 
     async function toggleMenu() {
@@ -145,9 +163,13 @@
                 <div class="px-3 py-3 text-sm text-gray-500 dark:text-gray-300">사용 가능한 프로필이 없습니다.</div>
             {/if}
 
-            <div class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-gray-400 opacity-60 dark:text-gray-500" aria-disabled="true">
+            <div class="my-1 flex items-center justify-between gap-3 border-t border-gray-200 px-3 pt-2 dark:border-gray-700">
+                <button type="button" class="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-2 text-left transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-700"
+                        disabled={!profilePolicy?.can_create || Boolean(switching)} on:click={openProfileCreate}>
                 <span aria-hidden="true" class="material-symbols-outlined">add</span>
                 <span class="font-semibold">프로필 만들기</span>
+                </button>
+                <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">{profiles.length}/{profilePolicy?.limit || 1}</span>
             </div>
 
             {#if error}
@@ -170,3 +192,5 @@
         </div>
     {/if}
 </div>
+
+<ProfileCreateModal open={profileCreateOpen} on:close={() => profileCreateOpen = false} on:created={profileCreated}/>

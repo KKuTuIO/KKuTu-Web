@@ -215,11 +215,11 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 pt-20 pb-6 backdrop-blur-md">
         <div class="w-full max-w-2xl rounded-2xl border border-white/10 bg-slate-900/90 p-6 text-center text-white shadow-2xl shadow-slate-950/50 backdrop-blur-xl sm:p-8">
             {#if blockData.onlyGuestPunish && blockData.blockType == "IP"}
-                <h2 class="text-2xl font-bold">손님 계정 이용 제한됨</h2>
-                <p class="mt-4 text-gray-300">운영정책 위반으로 <strong>손님 상태에서의 게임 이용</strong>이 제한되었습니다.</p>
+                <h2 class="text-3xl font-bold">손님 계정 이용 제한됨</h2>
+                <p class="mt-4 text-base text-gray-300">운영정책 위반으로 <strong>손님 상태에서의 게임 이용</strong>이 제한되었습니다.</p>
 
                 <div class="mt-4">
-                    <table class="w-full text-left border-separate border-spacing-y-3">
+                    <table class="w-full text-left text-base border-separate border-spacing-y-3">
                         <tr>
                             <td class="w-24 font-semibold">IP 주소</td>
                             <td class="w-72 text-gray-300">{hideIP(blockData.target)}</td>
@@ -242,24 +242,22 @@
                         </tr>
                     </table>
 
-                    <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <p class="mt-6 text-base leading-8 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <p class="mt-6 text-xl font-black leading-8 text-white">{blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</p>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
-                        <button class="mt-4 mb-2 font-bold rounded-full bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
+                        <button class="mt-4 mb-2 rounded-full bg-green-600 px-5 py-2.5 text-base font-bold hover:bg-green-700">고객센터 문의하기</button>
                     </a>
                     <br>
                     <a href="https://kkutu.io/login" rel="external">
                         <button class="text-gray-300 mb-4">로그인 (게임 이용 가능)</button>
                     </a>
-                    <p class="text-xs text-gray-400">
-                        {blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
-                    </p>
                 </div>
             {:else}
-                <h2 class="text-2xl font-bold">계정 이용 제한됨</h2>
-                <p class="mt-4 text-gray-300">운영정책 위반으로 <strong>게임 이용</strong>이 제한되었습니다.</p>
+                <h2 class="text-3xl font-bold">계정 이용 제한됨</h2>
+                <p class="mt-4 text-base text-gray-300">운영정책 위반으로 <strong>게임 이용</strong>이 제한되었습니다.</p>
 
                 <div class="mt-4">
-                    <table class="w-full text-left border-separate border-spacing-y-3">
+                    <table class="w-full text-left text-base border-separate border-spacing-y-3">
                         <tr>
                             <td class="w-24 font-semibold">식별 번호</td>
                             <td class="w-72 text-gray-300">{blockData.target}</td>
@@ -282,21 +280,18 @@
                         </tr>
                     </table>
 
-                    <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
-                    <div class="mt-3 flex flex-wrap justify-center gap-2">
-                <a href="/account" class="rounded-full bg-[#55aa55] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#51a351]">계정 관리</a>
-                <a href="/account/sanctions" class="rounded-full border border-slate-500 px-4 py-2 text-sm font-bold text-slate-100 transition hover:border-slate-300 hover:bg-white/10">제재 내역</a>
+                    <p class="mt-6 text-base leading-8 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
+                    <p class="mt-6 text-xl font-black leading-8 text-white">{blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.</p>
+                    <div class="mt-4 flex flex-wrap justify-center gap-3">
+                        <a href="/account/sanctions" class="inline-flex items-center justify-center rounded-full border border-slate-500 px-5 py-2.5 text-base font-bold text-slate-100 transition hover:border-slate-300 hover:bg-white/10">제재 내역</a>
+                        <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
+                            <button class="rounded-full bg-green-600 px-5 py-2.5 text-base font-bold hover:bg-green-700">고객센터 문의하기</button>
+                        </a>
                     </div>
-                    <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
-                        <button class="mt-4 mb-2 font-bold rounded-full bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
-                    </a>
                     <br>
                     <a href="https://kkutu.io/logout" rel="external">
                         <button class="text-gray-300 mb-4">로그아웃</button>
                     </a>
-                    <p class="text-xs text-gray-400">
-                        {blockData.inquiryId} 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
-                    </p>
                 </div>
             {/if}
         </div>

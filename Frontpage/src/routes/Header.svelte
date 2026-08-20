@@ -104,7 +104,7 @@
 
 			try {
 				const block = await loadBlock();
-				accountRestricted = block?.blocked === true && block?.onlyGuestPunish !== true;
+				accountRestricted = block?.blocked === true;
 			} catch (_) {
 				accountRestricted = false;
 			}
@@ -136,7 +136,7 @@
 		{:else}
 		8주년 랜딩 완료 후 주석 해제
 		{/if}-->
-			<a href="/" on:click={guardRestrictedNavigation} class="md:flex items-center space-x-2" style={mourning ? 'filter: grayscale(100%)' : ''}>
+			<a href="/" class="md:flex items-center space-x-2" style={mourning ? 'filter: grayscale(100%)' : ''}>
 				<span class="sr-only">끄투리오</span>
 				<div class="flex items-center space-x-4">
 					<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
@@ -148,37 +148,37 @@
 		
 		</div>
 		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">
-			<a href="/" on:click={guardRestrictedNavigation} class="link-header">
+			<a href="/" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					home
 				</span>
 					홈</a>
-			<a href="/rank" on:click={guardRestrictedNavigation} class="link-header">
+			<a href="/rank" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					trophy
 				</span>
 				랭킹</a>
-			<a href="/records" on:click={guardRestrictedNavigation} class="link-header">
+			<a href="/records" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					id_card
 				</span>
                 전적</a>
-			<a target="_blank" href="https://cafe.naver.com/kkutuio" on:click={guardRestrictedNavigation} class="link-header">
+			<a target="_blank" href="https://cafe.naver.com/kkutuio" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					local_cafe
 				</span>
 				공식카페</a>
-			<a target="_blank" href="https://kkutu.wiki" on:click={guardRestrictedNavigation} class="link-header">
+			<a target="_blank" href="https://kkutu.wiki" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					book_2
 				</span>
 				리오위키</a>
-			<a href="/wordsheet" on:click={guardRestrictedNavigation} class="link-header">
+			<a href="/wordsheet" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					collections_bookmark
 				</span>
                 단어장</a>
-			<a target="_blank" href="https://cs.kkutu.io" on:click={guardRestrictedNavigation} class="link-header">
+			<a target="_blank" href="https://cs.kkutu.io" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					help
 				</span>
@@ -195,7 +195,7 @@
 				게임 시작
 				</a>
 				<a href="/login"
-				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				class:bg-gray-300={accountRestricted} class:text-gray-500={accountRestricted} class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				로그인
 				</a>
 			{:else}

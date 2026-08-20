@@ -107,7 +107,7 @@ class AccountApi(
         return dao.listIdentities(account.id).filter {
             it.revokedAt == null && (it.type == IdentityType.OAUTH || (settings.passwordEnabled && it.type == IdentityType.PASSWORD))
         }.map {
-            mapOf("id" to it.id, "type" to it.type.name, "provider" to it.provider, "display_name" to it.displayName, "verified" to (it.verifiedAt != null), "is_primary" to it.primary, "is_origin" to (it.id == account.originIdentityId), "created_at" to it.createdAt, "last_used_at" to it.lastUsedAt, "revocable" to (!it.primary && it.id != account.originIdentityId && dao.countActiveLoginMethods(account.id, settings.passwordEnabled) > 1))
+            mapOf("id" to it.id, "type" to it.type.name, "provider" to it.provider, "provider_id" to it.provider.trim().lowercase(), "display_name" to it.displayName, "verified" to (it.verifiedAt != null), "is_primary" to it.primary, "is_origin" to (it.id == account.originIdentityId), "created_at" to it.createdAt, "last_used_at" to it.lastUsedAt, "revocable" to (!it.primary && it.id != account.originIdentityId && dao.countActiveLoginMethods(account.id, settings.passwordEnabled) > 1))
         }
     }
     @GetMapping("/connected-applications") fun connectedApplications(session: HttpSession): List<Map<String, Any?>> =

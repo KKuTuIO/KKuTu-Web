@@ -175,18 +175,24 @@
         return typeof value === 'string' ? value.trim().toLowerCase() : '';
     }
 
+    function identityProviderId(identity) {
+        return normalizedProvider(identity?.provider_id || identity?.provider);
+    }
+
     function linkedProviderIds() {
-        return new Set(
-            identities
-                .map(identity => normalizedProvider(identity.provider))
-                .filter(providerId => oauthProviders.some(provider => provider.id === providerId))
-        );
+        return new Set(oauthProviders
+            .filter(provider => identities.some(identity =>
+                String(identity?.type || '').trim().toUpperCase() === 'OAUTH' &&
+                identityProviderId(identity) === provider.id
+            ))
+            .map(provider => provider.id));
     }
 
     function linkedIdentity(provider) {
         const providerId = normalizedProvider(provider?.id);
         const identity = identities.find(identity =>
-            normalizedProvider(identity.provider) === providerId
+            String(identity?.type || '').trim().toUpperCase() === 'OAUTH' &&
+            identityProviderId(identity) === providerId
         );
         if (identity) return identity;
         return null;
@@ -197,8 +203,7 @@
     }
 
     function linkedProviderCount() {
-        const linkedProviders = linkedProviderIds();
-        return oauthProviders.filter(provider => linkedProviders.has(provider.id)).length;
+        return linkedProviderIds().size;
     }
 
     async function copyIdentifier() {

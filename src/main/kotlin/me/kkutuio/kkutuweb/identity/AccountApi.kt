@@ -117,12 +117,7 @@ class AccountApi(
         session: HttpSession
     ) = run {
         val account = accounts.requireCurrentAccount(session)
-        val profile = profileId?.takeIf { it.isNotBlank() }?.let { rawId ->
-            val id = runCatching { java.util.UUID.fromString(rawId) }.getOrElse { throw IdpException("invalid_request", "잘못된 게임 프로필입니다.") }
-            dao.findActiveProfile(account.id, id)
-        } ?: dao.defaultProfile(account.id)
-            ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
-        moderation.accountSanctionHistory(profile["id"]?.toString() ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404))
+        moderation.accountSanctionHistory(account.uuid.toString())
     }
     @DeleteMapping("/connected-applications/{clientId}") fun revokeConnectedApplication(@PathVariable clientId: String, session: HttpSession): ResponseEntity<Void> {
         val account = recent(session)

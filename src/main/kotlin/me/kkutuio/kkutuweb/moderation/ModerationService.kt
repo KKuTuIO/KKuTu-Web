@@ -117,21 +117,23 @@ class ModerationService(
     fun getUserDetail(userId: String): ModerationUserDetail {
         val user = userDao.getUser(userId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
+        val accountUuid = accountUuidForUser(userId)
         val reportsAnchor = Instant.now()
         val reportPage = reports(userId, 0, reportsAnchor)
         return ModerationUserDetail(
             user = toSummary(user),
             flags = user.flags,
-            counters = currentCounters(userId),
-            history = history(userId, 50),
+            counters = currentCounters(accountUuid),
+            history = history(accountUuid, 50),
             reports = reportPage.reports,
             reportsHasMore = reportPage.hasMore,
             reportsAnchor = reportsAnchor
         )
     }
 
-    fun accountSanctionHistory(userId: String): List<AccountSanctionCaseSummary> =
-        jdbcTemplate.query(
+    fun accountSanctionHistory(userId: String): List<AccountSanctionCaseSummary> {
+        val accountUuid = accountUuidForUser(userId)
+        return jdbcTemplate.query(
             """
             SELECT case_id, inquiry_id, primary_category_code, summary, occurred_at, issued_at, revoked_at
             FROM moderation_cases
@@ -153,8 +155,9 @@ class ModerationService(
                     effects = effects(caseId)
                 )
             },
-            userId
+            accountUuid
         )
+    }
 
     fun getUserReports(userId: String, window: Int, anchorMillis: Long?): ModerationReportPage {
         requireUser(userId)
@@ -225,7 +228,14 @@ class ModerationService(
                    CASE WHEN grouped.guest THEN FALSE ELSE EXISTS (
                        SELECT 1
                        FROM moderation_effects effects
-                       WHERE effects.subject_user_id = grouped.grouped_user_id
+                       WHERE effects.subject_user_id IN (
+                           SELECT account.uuid::text
+                           FROM account
+                           JOIN game_profile profile ON profile.account_id = account.id
+                           WHERE profile.id::text = grouped.grouped_user_id
+                              OR profile.legacy_user_id = grouped.grouped_user_id
+                              OR profile.uuid::text = grouped.grouped_user_id
+                       )
                          AND effects.effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
                          AND effects.apply_status = 'APPLIED'
                          AND effects.revoked_at IS NULL
@@ -235,7 +245,14 @@ class ModerationService(
                    CASE WHEN grouped.guest THEN FALSE ELSE EXISTS (
                        SELECT 1
                        FROM moderation_effects effects
-                       WHERE effects.subject_user_id = grouped.grouped_user_id
+                       WHERE effects.subject_user_id IN (
+                           SELECT account.uuid::text
+                           FROM account
+                           JOIN game_profile profile ON profile.account_id = account.id
+                           WHERE profile.id::text = grouped.grouped_user_id
+                              OR profile.legacy_user_id = grouped.grouped_user_id
+                              OR profile.uuid::text = grouped.grouped_user_id
+                       )
                          AND effects.effect_type = 'CHAT_RESTRICTION'
                          AND effects.apply_status = 'APPLIED'
                          AND effects.revoked_at IS NULL
@@ -581,7 +598,8 @@ class ModerationService(
 
     fun preview(request: SanctionPreviewRequest): ModerationPolicyPreview {
         requireUser(request.userId)
-        request.overrideCaseId?.let { requireOverrideSubject(it, "USER", request.userId) }
+        val accountUuid = accountUuidForUser(request.userId)
+        request.overrideCaseId?.let { requireOverrideSubject(it, "USER", accountUuid) }
         request.custom?.let { custom ->
             require(request.categoryCodes.isEmpty()) { "정책 제재와 사용자 지정 제재를 동시에 선택할 수 없습니다." }
             return policyEngine.previewCustom(
@@ -593,7 +611,7 @@ class ModerationService(
         }
         return policyEngine.preview(
             request.categoryCodes,
-            currentCounters(request.userId, request.overrideCaseId),
+            currentCounters(accountUuid, request.overrideCaseId),
             request.occurredAt ?: Instant.now()
         )
     }
@@ -729,11 +747,13 @@ class ModerationService(
     fun issue(request: SanctionIssueRequest, actorId: String, requestIpHash: String?): SanctionIssueResponse {
         require(request.evidenceText.isNotBlank()) { "근거 자료는 필수입니다." }
         val subjectUser = requireUser(request.userId)
+        val accountUuid = accountUuidForUser(request.userId)
         require((request.custom == null) xor request.categoryCodes.isEmpty()) {
             "정책 제재 또는 사용자 지정 제재 중 하나만 선택해야 합니다."
         }
         val relatedUserIds = request.relatedUserIds.distinct().filter { it != request.userId }
-        if ("17" in request.categoryCodes && relatedUserIds.isEmpty()) {
+        val relatedAccountUuids = relatedUserIds.map(::accountUuidForUser).distinct().filter { it != accountUuid }
+        if ("17" in request.categoryCodes && relatedAccountUuids.isEmpty()) {
             throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "이용제한 우회는 연관 계정이 필요합니다.")
         }
         relatedUserIds.forEach(::requireUser)
@@ -751,7 +771,7 @@ class ModerationService(
             )
         } ?: policyEngine.preview(
             request.categoryCodes,
-            currentCounters(request.userId, request.overrideCaseId),
+            currentCounters(accountUuid, request.overrideCaseId),
             request.occurredAt
         )
         if (preview.requiresApproval) {
@@ -767,12 +787,12 @@ class ModerationService(
         validateReports(request.reportIds, request.userId)
         val overriddenInquiryId = request.overrideCaseId?.let(::caseInquiryId)
         request.overrideCaseId?.let {
-            validateOverrideCase(it, "USER", request.userId, request.reportIds)
+            validateOverrideCase(it, "USER", accountUuid, request.reportIds)
             revoke(it, "관리자 제재 변경", actorId, requestIpHash, "USER")
         }
 
         val caseId = try {
-            insertCase(request, actorId, preview, displayReason)
+            insertCase(request, accountUuid, actorId, preview, displayReason)
         } catch (e: DuplicateKeyException) {
             val existing = existingCase(request.requestId) ?: throw e
             return SanctionIssueResponse(existing, previewFromCase(existing), true, caseInquiryId(existing))
@@ -796,29 +816,29 @@ class ModerationService(
         jdbcTemplate.update(
             "INSERT INTO moderation_case_subjects(case_id, user_id, role) VALUES (?, ?, 'PRIMARY')",
             caseId,
-            request.userId
+            accountUuid
         )
-        relatedUserIds.forEach { relatedUserId ->
+        relatedAccountUuids.forEach { relatedAccountUuid ->
             jdbcTemplate.update(
                 """
                 INSERT INTO moderation_case_subjects(case_id, user_id, role, relation_reason)
                 VALUES (?, ?, 'RELATED', '이용제한 우회 연관 계정')
                 """.trimIndent(),
                 caseId,
-                relatedUserId
+                relatedAccountUuid
             )
         }
 
         preview.effects.forEach { effect ->
             if (effect.type == "EXTEND_RELATED_RESTRICTION") {
-                relatedUserIds.forEach { relatedUserId ->
-                    val extended = resolveRelatedExtension(relatedUserId, effect)
-                    val effectId = insertEffect(caseId, relatedUserId, extended)
+                relatedAccountUuids.forEach { relatedAccountUuid ->
+                    val extended = resolveRelatedExtension(relatedAccountUuid, effect)
+                    val effectId = insertEffect(caseId, relatedAccountUuid, extended)
                     markApplied(effectId)
                 }
             } else {
-                val effectId = insertEffect(caseId, request.userId, effect)
-                applyEffect(effectId, request.userId, effect)
+                val effectId = insertEffect(caseId, accountUuid, effect)
+                applyEffect(effectId, accountUuid, effect)
             }
         }
 
@@ -860,7 +880,7 @@ class ModerationService(
             VALUES (?, 'ISSUE_SANCTION', ?, ?, 201, ?)
             """.trimIndent(),
             request.requestId,
-            request.userId,
+            accountUuid,
             actorId,
             json(mapOf("caseId" to caseId))
         )
@@ -872,7 +892,7 @@ class ModerationService(
                 subjectUser.nickname
             )
         }
-        val kickUserIds = linkedSetOf<String>()
+        val kickAccountUuids = linkedSetOf<String>()
         if (preview.effects.any {
             it.type in setOf(
                 "GAME_RESTRICTION",
@@ -881,15 +901,15 @@ class ModerationService(
                 "NICKNAME_CHANGE_RESTRICTION"
             )
         }) {
-            kickUserIds.add(request.userId)
+            kickAccountUuids.add(accountUuid)
         }
         if (preview.effects.any { it.type == "EXTEND_RELATED_RESTRICTION" }) {
-            kickUserIds.addAll(relatedUserIds)
+            kickAccountUuids.addAll(relatedAccountUuids)
         }
-        if (kickUserIds.isNotEmpty()) {
+        if (kickAccountUuids.isNotEmpty()) {
             TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
                 override fun afterCommit() {
-                    kickUserIds.forEach { gameClientManager.kick(it, "") }
+                    kickAccountUuids.flatMap(::profileIdsForAccountUuid).distinct().forEach { gameClientManager.kick(it, "") }
                 }
             })
         }
@@ -917,7 +937,7 @@ class ModerationService(
         if (subject.type != expectedSubjectType) {
             throw ResponseStatusException(HttpStatus.FORBIDDEN, "해당 종류의 제재를 철회할 권한이 없습니다.")
         }
-        val affectedUserIds = jdbcTemplate.query(
+        val affectedAccountKeys = jdbcTemplate.query(
             "SELECT user_id FROM moderation_case_subjects WHERE case_id = ?",
             { rs, _ -> rs.getString("user_id") },
             caseId
@@ -955,6 +975,7 @@ class ModerationService(
         if (subject.type != "IP") {
             val subjectId = subject.userId
                 ?: throw IllegalStateException("사용자 제재에 대상 ID가 없습니다.")
+            val accountUuid = accountUuidForUser(subjectId)
             val hasActiveNicknameLimit = jdbcTemplate.queryForObject(
                 """
                 SELECT EXISTS(
@@ -964,13 +985,12 @@ class ModerationService(
                 )
                 """.trimIndent(),
                 Boolean::class.java,
-                subjectId
+                accountUuid
             )
             if (!hasActiveNicknameLimit) {
-                jdbcTemplate.update(
-                    "UPDATE users SET \"isLimitModifyNick\" = FALSE WHERE _id = ?",
-                    subjectId
-                )
+                profileIdsForAccountUuid(accountUuid).forEach { profileId ->
+                    jdbcTemplate.update("UPDATE users SET \"isLimitModifyNick\" = FALSE WHERE _id = ?", profileId)
+                }
             }
         }
         jdbcTemplate.update(
@@ -984,8 +1004,9 @@ class ModerationService(
             json(mapOf("reason" to reason)),
             auditRequestIpHash(requestIpHash)
         )
-        val disconnectedUsers = affectedUserIds.toMutableSet()
-        subject.userId?.let(disconnectedUsers::add)
+        val disconnectedUsers = (affectedAccountKeys + listOfNotNull(subject.userId))
+            .flatMap { key -> runCatching { profileIdsForAccountUuid(accountUuidForUser(key)) }.getOrDefault(listOf(key)) }
+            .toSet()
         if (disconnectedUsers.isNotEmpty()) {
             TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
                 override fun afterCommit() {
@@ -999,6 +1020,7 @@ class ModerationService(
     fun adjustCounter(userId: String, request: CounterAdjustmentRequest, actorId: String) {
         require(request.value in 0..999) { "누적 횟수는 0에서 999 사이여야 합니다." }
         requireUser(userId)
+        val accountUuid = accountUuidForUser(userId)
         policyLoader.current().document.category(request.categoryCode)
         val alreadyProcessed = jdbcTemplate.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM moderation_command_requests WHERE request_id = ?)",
@@ -1010,9 +1032,9 @@ class ModerationService(
         jdbcTemplate.query(
             "SELECT pg_advisory_xact_lock(hashtext(?))",
             { _, _ -> Unit },
-            userId
+            accountUuid
         )
-        val previousCounters = currentCounters(userId)
+        val previousCounters = currentCounters(accountUuid)
         val previousValue = previousCounters[request.categoryCode] ?: 0
         val adjustedCounters = previousCounters.toMutableMap().apply {
             if (request.value == 0) remove(request.categoryCode)
@@ -1027,7 +1049,7 @@ class ModerationService(
                 counters = EXCLUDED.counters, last_updated_at = NOW(),
                 source = EXCLUDED.source, reset_at = NULL, reset_by = EXCLUDED.reset_by
             """.trimIndent(),
-            userId,
+            accountUuid,
             json(adjustedCounters),
             actorId
         )
@@ -1038,7 +1060,7 @@ class ModerationService(
             VALUES (?, 'ADJUST_COUNTER', ?, ?, 204, ?)
             """.trimIndent(),
             request.requestId,
-            "$userId:${request.categoryCode}",
+            "$accountUuid:${request.categoryCode}",
             actorId,
             json(
                 mapOf(
@@ -1368,6 +1390,7 @@ class ModerationService(
 
     private fun insertCase(
         request: SanctionIssueRequest,
+        accountUuid: String,
         actorId: String,
         preview: ModerationPolicyPreview,
         displayReason: String
@@ -1387,7 +1410,7 @@ class ModerationService(
             ).apply {
                 setObject(1, request.requestId)
                 setString(2, inquiryId)
-                setString(3, request.userId)
+                setString(3, accountUuid)
                 setString(4, preview.primaryCategoryCode)
                 setString(5, preview.policyId)
                 setString(6, preview.policyDigest)
@@ -1488,74 +1511,83 @@ class ModerationService(
 
     private fun applyEffect(
         effectId: Long,
-        userId: String,
+        accountUuid: String,
         effect: ResolvedPolicyEffect
     ) {
+        val profileIds = profileIdsForAccountUuid(accountUuid)
+        if (profileIds.isEmpty()) throw ResponseStatusException(HttpStatus.NOT_FOUND, "계정 프로필을 찾을 수 없습니다.")
         when (effect.type) {
             "GAME_RESTRICTION", "CHAT_RESTRICTION" -> markApplied(effectId)
             "RESOURCE_ADJUSTMENT" -> {
                 val percent = (effect.parameters["percent"] as Number).toInt().coerceIn(0, 100)
-                val before = jdbcTemplate.query(
-                    """
-                    SELECT money, COALESCE((kkutu->>'score')::bigint, 0) AS score
-                    FROM users WHERE _id = ? FOR UPDATE
-                    """.trimIndent(),
-                    { rs, _ -> rs.getLong("money") to rs.getLong("score") },
-                    userId
-                ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
-                val newMoney = BigDecimal.valueOf(before.first)
-                    .multiply(BigDecimal.valueOf((100 - percent).toLong()))
-                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
-                val newScore = BigDecimal.valueOf(before.second)
-                    .multiply(BigDecimal.valueOf((100 - percent).toLong()))
-                    .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
-                jdbcTemplate.update(
-                    """
-                    UPDATE users SET
-                        money = ?,
-                        kkutu = jsonb_set(kkutu::jsonb, '{score}', to_jsonb(?::bigint))::json
-                    WHERE _id = ?
-                    """.trimIndent(),
-                    newMoney,
-                    newScore,
-                    userId
-                )
-                storeEffectRollback(effectId, mapOf(
-                    "moneyDelta" to before.first - newMoney,
-                    "scoreDelta" to before.second - newScore
-                ))
+                val rollbacks = profileIds.mapNotNull { profileId ->
+                    val before = jdbcTemplate.query(
+                        """
+                        SELECT money, COALESCE((kkutu->>'score')::bigint, 0) AS score
+                        FROM users WHERE _id = ? FOR UPDATE
+                        """.trimIndent(),
+                        { rs, _ -> rs.getLong("money") to rs.getLong("score") },
+                        profileId
+                    ).firstOrNull() ?: return@mapNotNull null
+                    val newMoney = BigDecimal.valueOf(before.first)
+                        .multiply(BigDecimal.valueOf((100 - percent).toLong()))
+                        .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
+                    val newScore = BigDecimal.valueOf(before.second)
+                        .multiply(BigDecimal.valueOf((100 - percent).toLong()))
+                        .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
+                    jdbcTemplate.update(
+                        """
+                        UPDATE users SET money = ?,
+                            kkutu = jsonb_set(kkutu::jsonb, '{score}', to_jsonb(?::bigint))::json
+                        WHERE _id = ?
+                        """.trimIndent(),
+                        newMoney, newScore, profileId
+                    )
+                    mapOf(
+                        "profileId" to profileId,
+                        "moneyDelta" to before.first - newMoney,
+                        "scoreDelta" to before.second - newScore
+                    )
+                }
+                storeEffectRollback(effectId, rollbacks)
                 markApplied(effectId)
             }
             "NICKNAME_RESET" -> {
-                val policyNickname = "바른별명#${userId.substringAfter('-', userId).take(5)}"
-                val before = jdbcTemplate.query(
-                    "SELECT nickname, \"meanableNick\", exordial FROM users WHERE _id = ? FOR UPDATE",
-                    { rs, _ -> mapOf(
-                        "nickname" to rs.getString("nickname"),
-                        "meanableNick" to rs.getString("meanableNick"),
-                        "exordial" to rs.getString("exordial"),
-                        "appliedNickname" to policyNickname
-                    ) },
-                    userId
-                ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
-                jdbcTemplate.update(
-                    """
-                    UPDATE users SET nickname = ?, "meanableNick" = LOWER(REPLACE(?, ' ', '')),
-                        exordial = ''
-                    WHERE _id = ?
-                    """.trimIndent(),
-                    policyNickname,
-                    policyNickname,
-                    userId
-                )
-                storeEffectRollback(effectId, before)
+                val rollbacks = profileIds.mapNotNull { profileId ->
+                    val tag = jdbcTemplate.query(
+                        "SELECT nickname_tag FROM game_profile WHERE id::text = ?",
+                        { rs, _ -> rs.getString("nickname_tag") },
+                        profileId
+                    ).firstOrNull()?.takeIf { it.isNotBlank() } ?: profileId.take(5)
+                    val policyNickname = "바른별명#$tag"
+                    val before = jdbcTemplate.query(
+                        "SELECT nickname, \"meanableNick\", exordial FROM users WHERE _id = ? FOR UPDATE",
+                        { rs, _ -> mapOf(
+                            "profileId" to profileId,
+                            "nickname" to rs.getString("nickname"),
+                            "meanableNick" to rs.getString("meanableNick"),
+                            "exordial" to rs.getString("exordial"),
+                            "appliedNickname" to policyNickname
+                        ) },
+                        profileId
+                    ).firstOrNull() ?: return@mapNotNull null
+                    jdbcTemplate.update(
+                        """
+                        UPDATE users SET nickname = ?, "meanableNick" = LOWER(REPLACE(?, ' ', '')),
+                            exordial = ''
+                        WHERE _id = ?
+                        """.trimIndent(),
+                        policyNickname, policyNickname, profileId
+                    )
+                    before
+                }
+                storeEffectRollback(effectId, rollbacks)
                 markApplied(effectId)
             }
             "NICKNAME_CHANGE_RESTRICTION" -> {
-                jdbcTemplate.update(
-                    "UPDATE users SET \"isLimitModifyNick\" = TRUE WHERE _id = ?",
-                    userId
-                )
+                profileIds.forEach { profileId ->
+                    jdbcTemplate.update("UPDATE users SET \"isLimitModifyNick\" = TRUE WHERE _id = ?", profileId)
+                }
                 markApplied(effectId)
             }
             "WARNING" -> markApplied(effectId)
@@ -1614,44 +1646,50 @@ class ModerationService(
         )
     }
 
-    private fun reverseEffect(effectId: Long, effectType: String, userId: String?, parameters: JsonNode) {
+    private fun reverseEffect(effectId: Long, effectType: String, accountUuid: String?, parameters: JsonNode) {
         val rollback = parameters.path("_rollback")
-        if (rollback.isMissingNode || rollback.isNull || userId == null) return
+        if (rollback.isMissingNode || rollback.isNull || accountUuid == null) return
+        val entries = if (rollback.isArray) rollback.elements().asSequence().toList() else listOf(rollback)
         when (effectType) {
             "RESOURCE_ADJUSTMENT" -> {
-                val moneyDelta = rollback.path("moneyDelta").asLong(0)
-                val scoreDelta = rollback.path("scoreDelta").asLong(0)
-                jdbcTemplate.update(
-                    """
-                    UPDATE users SET money = money + ?,
-                        kkutu = jsonb_set(
-                            kkutu::jsonb, '{score}',
-                            to_jsonb(COALESCE((kkutu->>'score')::bigint, 0) + ?)
-                        )::json
-                    WHERE _id = ?
-                    """.trimIndent(),
-                    moneyDelta,
-                    scoreDelta,
-                    userId
-                )
+                entries.forEach { entry ->
+                    val profileId = entry.path("profileId").asText(null)
+                        ?: profileIdsForAccountUuid(accountUuid).firstOrNull()
+                        ?: return@forEach
+                    jdbcTemplate.update(
+                        """
+                        UPDATE users SET money = money + ?,
+                            kkutu = jsonb_set(
+                                kkutu::jsonb, '{score}',
+                                to_jsonb(COALESCE((kkutu->>'score')::bigint, 0) + ?)
+                            )::json
+                        WHERE _id = ?
+                        """.trimIndent(),
+                        entry.path("moneyDelta").asLong(0),
+                        entry.path("scoreDelta").asLong(0),
+                        profileId
+                    )
+                }
             }
             "NICKNAME_RESET" -> {
-                val appliedNickname = rollback.path("appliedNickname").asText("")
-                if (appliedNickname.isBlank()) return
-                fun nullableText(field: String): String? = rollback.get(field)
-                    ?.takeUnless { it.isNull }
-                    ?.asText()
-                jdbcTemplate.update(
-                    """
-                    UPDATE users SET nickname = ?, "meanableNick" = ?, exordial = ?
-                    WHERE _id = ? AND nickname IS NOT DISTINCT FROM ?
-                    """.trimIndent(),
-                    nullableText("nickname"),
-                    nullableText("meanableNick"),
-                    nullableText("exordial"),
-                    userId,
-                    appliedNickname
-                )
+                entries.forEach { entry ->
+                    val profileId = entry.path("profileId").asText(null)
+                        ?: profileIdsForAccountUuid(accountUuid).firstOrNull()
+                        ?: return@forEach
+                    val appliedNickname = entry.path("appliedNickname").asText("")
+                    if (appliedNickname.isBlank()) return@forEach
+                    fun nullableText(field: String): String? = entry.get(field)
+                        ?.takeUnless { it.isNull }
+                        ?.asText()
+                    jdbcTemplate.update(
+                        """
+                        UPDATE users SET nickname = ?, "meanableNick" = ?, exordial = ?
+                        WHERE _id = ? AND nickname IS NOT DISTINCT FROM ?
+                        """.trimIndent(),
+                        nullableText("nickname"), nullableText("meanableNick"), nullableText("exordial"),
+                        profileId, appliedNickname
+                    )
+                }
             }
         }
         jdbcTemplate.update(
@@ -2372,6 +2410,35 @@ class ModerationService(
         )
     }
 
+    private fun accountUuidForUser(userId: String): String = jdbcTemplate.query(
+        """
+        SELECT account.uuid::text
+        FROM account
+        LEFT JOIN game_profile profile ON profile.account_id = account.id
+        WHERE account.uuid::text = ?
+           OR account.id::text = ?
+           OR profile.id::text = ?
+           OR profile.uuid::text = ?
+           OR profile.legacy_user_id = ?
+        ORDER BY profile.status = 'ACTIVE' DESC, profile.created_at
+        LIMIT 1
+        """.trimIndent(),
+        { rs, _ -> rs.getString(1) },
+        userId, userId, userId, userId, userId
+    ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "계정을 찾을 수 없습니다.")
+
+    private fun profileIdsForAccountUuid(accountUuid: String): List<String> = jdbcTemplate.query(
+        """
+        SELECT profile.id::text
+        FROM game_profile profile
+        JOIN account ON account.id = profile.account_id
+        WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+        ORDER BY profile.created_at
+        """.trimIndent(),
+        { rs, _ -> rs.getString(1) },
+        accountUuid
+    )
+
     private fun requireUser(userId: String): User =
         userDao.getUser(userId) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
 
@@ -2380,8 +2447,15 @@ class ModerationService(
         val restricted = jdbcTemplate.queryForObject(
             """
             SELECT EXISTS(
-                SELECT 1 FROM moderation_effects
-                WHERE subject_user_id = ?
+                SELECT 1
+                FROM moderation_effects effects
+                WHERE effects.subject_user_id = (
+                    SELECT account.uuid::text
+                    FROM account
+                    JOIN game_profile profile ON profile.account_id = account.id
+                    WHERE profile.id::text = ?
+                    LIMIT 1
+                )
                   AND effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
                   AND apply_status = 'APPLIED'
                   AND revoked_at IS NULL AND starts_at <= NOW()

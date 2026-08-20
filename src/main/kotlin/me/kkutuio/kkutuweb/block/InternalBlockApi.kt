@@ -29,7 +29,11 @@ class InternalBlockApi(
                    effects.ends_at, effects.permanent, cases.summary, cases.issued_by
             FROM moderation_effects effects
             JOIN moderation_cases cases ON cases.case_id = effects.case_id
-            WHERE effects.subject_user_id = ?
+            JOIN game_profile profile ON (
+                profile.id::text = ? OR profile.legacy_user_id = ? OR profile.uuid::text = ?
+            )
+            JOIN account account ON account.id = profile.account_id
+            WHERE effects.subject_user_id = account.uuid::text
               AND effects.effect_type IN ('GAME_RESTRICTION', 'CHAT_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
               AND effects.apply_status = 'APPLIED'
               AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL
@@ -49,7 +53,7 @@ class InternalBlockApi(
                     admin = rs.getString("issued_by")
                 )
             },
-            userId
+            userId, userId, userId
         )
         return InternalUserBlocks(
             game = blocks.firstOrNull { it.type == "GAME_RESTRICTION" || it.type == "EXTEND_RELATED_RESTRICTION" },

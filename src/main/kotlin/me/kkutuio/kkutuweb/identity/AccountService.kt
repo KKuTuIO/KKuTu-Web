@@ -28,9 +28,12 @@ class AccountService(
         } else {
             val isFreshAfterRevocation = historicalIdentity?.revokedAt != null
             val legacyId = if (isFreshAfterRevocation) UUID.randomUUID().toString() else oauth.getUserId()
-            val canonicalAccount = if (isFreshAfterRevocation) null else dao.findAccountByLegacyId(legacyId)
-            val canonicalUserExists = if (isFreshAfterRevocation || canonicalAccount != null) false else userDao.getUser(legacyId) != null
-            val legacyAccount = if (isFreshAfterRevocation || canonicalAccount != null || canonicalUserExists) {
+            val canonicalAccount = if (isFreshAfterRevocation) {
+                null
+            } else {
+                dao.findAccountByLegacyId(legacyId)?.takeIf { it.status == AccountStatus.PROVISIONED }
+            }
+            val legacyAccount = if (isFreshAfterRevocation || canonicalAccount != null) {
                 null
             } else {
                 dao.findAccountByGameProfileLegacyId(oauth.vendorId)

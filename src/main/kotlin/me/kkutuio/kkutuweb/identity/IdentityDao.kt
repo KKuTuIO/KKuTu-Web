@@ -36,8 +36,9 @@ class IdentityDao(
     fun findAccount(id: UUID): Account? = queryOne("SELECT * FROM account WHERE id = ?", accountMapper, id)
     fun findAccountByLegacyId(legacyUserId: String): Account? = queryOne("SELECT * FROM account WHERE legacy_user_id = ?", accountMapper, legacyUserId)
     fun findAccountByGameProfileLegacyId(legacyUserId: String): Account? = queryOne(
-        "SELECT account.* FROM account WHERE account.legacy_user_id = ? " +
-            "OR EXISTS (SELECT 1 FROM game_profile profile WHERE profile.account_id = account.id AND profile.legacy_user_id = ?) " +
+        "SELECT account.* FROM account WHERE account.status = 'PROVISIONED' " +
+            "AND (account.legacy_user_id = ? " +
+            "OR EXISTS (SELECT 1 FROM game_profile profile WHERE profile.account_id = account.id AND profile.legacy_user_id = ?)) " +
             "ORDER BY account.created_at LIMIT 1",
         accountMapper, legacyUserId, legacyUserId
     )

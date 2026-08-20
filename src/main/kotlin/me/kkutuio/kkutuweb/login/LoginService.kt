@@ -106,6 +106,7 @@ class LoginService(
                 ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
             val reauthenticationAccount = (session.getAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID.attributeName) as? String)
                 ?.let { runCatching { java.util.UUID.fromString(it) }.getOrNull() }
+            val strongReauthentication = session.getAttribute(SessionAttribute.OAUTH_REAUTH_STRONG.attributeName) as? Boolean ?: false
 
             if (linkAccount != null) {
                 val account = accountService.currentAccount(session) ?: return false
@@ -115,6 +116,7 @@ class LoginService(
                 session.removeAttribute(SessionAttribute.OAUTH_STATE)
                 session.removeAttribute(SessionAttribute.OAUTH_LINK_ACCOUNT_ID)
                 session.removeAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID)
+                session.removeAttribute(SessionAttribute.OAUTH_REAUTH_STRONG)
                 return true
             }
 
@@ -127,8 +129,10 @@ class LoginService(
                 // that account with the provider's own legacy account.
                 accountService.verifyExternalReauthentication(account, oAuthUser)
                 session.markRecentlyAuthenticated()
+                if (strongReauthentication) session.markStronglyAuthenticated()
                 session.removeAttribute(SessionAttribute.OAUTH_STATE)
                 session.removeAttribute(SessionAttribute.OAUTH_REAUTH_ACCOUNT_ID)
+                session.removeAttribute(SessionAttribute.OAUTH_REAUTH_STRONG)
                 return true
             }
 

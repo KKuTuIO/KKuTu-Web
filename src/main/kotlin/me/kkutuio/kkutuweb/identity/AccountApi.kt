@@ -3,7 +3,9 @@ package me.kkutuio.kkutuweb.identity
 import me.kkutuio.kkutuweb.extension.getIp
 import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.extension.hasRecentAuthentication
+import me.kkutuio.kkutuweb.extension.hasStrongAuthentication
 import me.kkutuio.kkutuweb.extension.markRecentlyAuthenticated
+import me.kkutuio.kkutuweb.extension.markStronglyAuthenticated
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.moderation.ModerationService
 import me.kkutuio.kkutuweb.moderation.AdminModerationAuthorizer
@@ -125,16 +127,32 @@ class AccountApi(
         session.markRecentlyAuthenticated()
         return ResponseEntity.noContent().build()
     }
+    @PostMapping("/reauthenticate/strong") fun strongReauthenticate(@RequestBody body: ReauthenticateRequest, session: HttpSession): ResponseEntity<Void> {
+        requirePasswordEnabled()
+        val account = accounts.requireCurrentAccount(session)
+        security.reauthenticate(account, body.password.toCharArray(), body.totpCode)
+        session.markRecentlyAuthenticated()
+        session.markStronglyAuthenticated()
+        return ResponseEntity.noContent().build()
+    }
     @GetMapping("/reauthentication/status") fun reauthenticationStatus(session: HttpSession): Map<String, Boolean> {
         accounts.requireCurrentAccount(session)
         return mapOf("required" to !session.hasRecentAuthentication())
+    }
+    @GetMapping("/reauthentication/strong/status") fun strongReauthenticationStatus(session: HttpSession): Map<String, Boolean> {
+        accounts.requireCurrentAccount(session)
+        return mapOf("required" to !session.hasStrongAuthentication())
     }
     @PostMapping("/reauthenticate/email-mfa-code") fun reauthenticationEmailMfaCode(@RequestBody body: ReauthenticateRequest, session: HttpSession): ResponseEntity<Void> {
         requirePasswordEnabled()
         security.requestEmailMfaReauthenticationCode(accounts.requireCurrentAccount(session), body.password.toCharArray())
         return ResponseEntity.accepted().build()
     }
-    @GetMapping("/reauthenticate/oauth/{provider}") fun beginOAuthReauthentication(@PathVariable provider: String, @RequestParam(name = "return", required = false) returnUrl: String?, session: HttpSession): ResponseEntity<Void> {
+    @GetMapping("/reauthenticate/oauth/{provider}") fun beginOAuthReauthentication(@PathVariable provider: String, @RequestParam(name = "return", required = false) returnUrl: String?, session: HttpSession): ResponseEntity<Void> = beginOAuthReauthentication(provider, returnUrl, false, session)
+
+    @GetMapping("/reauthenticate/oauth/{provider}/strong") fun beginStrongOAuthReauthentication(@PathVariable provider: String, @RequestParam(name = "return", required = false) returnUrl: String?, session: HttpSession): ResponseEntity<Void> = beginOAuthReauthentication(provider, returnUrl, true, session)
+
+    private fun beginOAuthReauthentication(provider: String, returnUrl: String?, strong: Boolean, session: HttpSession): ResponseEntity<Void> {
         val account = accounts.requireCurrentAccount(session)
         accounts.ensureLegacyExternalIdentity(account)
         limiter.check("reauthenticate-oauth:${account.id}", 20, 3600)
@@ -142,6 +160,7 @@ class AccountApi(
         val linked = dao.listIdentities(account.id).any { it.type == IdentityType.OAUTH && it.revokedAt == null && it.provider.equals(vendor.name, ignoreCase = true) }
         if (!linked) throw IdpException("forbidden", "연결된 로그인 수단만 사용할 수 있습니다.", 403)
         session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, returnUrl?.takeIf { it.startsWith("/account") && !it.startsWith("//") } ?: "/account")
+        session.setAttribute(SessionAttribute.OAUTH_REAUTH_STRONG.attributeName, strong)
         val url = loginService.beginOAuthReauthentication(session, account, vendor)
             ?: throw IdpException("temporarily_unavailable", "로그인 제공사가 설정되지 않았습니다.", 503)
         return ResponseEntity.status(302).header("Location", url).build()
@@ -169,7 +188,7 @@ class AccountApi(
         dao.listConnectedApplications(accounts.requireCurrentAccount(session).id)
 
     @PostMapping("/profile/{profileId}/deletion") fun requestProfileDeletion(@PathVariable profileId: String, session: HttpSession): Map<String, Any?> {
-        val account = recentMutable(session)
+        val account = strongMutable(session)
         val id = parseProfileId(profileId)
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
         val scheduled = dao.requestProfileDeletion(account.id, id) ?: throw IdpException("profile_deletion_unavailable", "삭제할 수 없는 프로필입니다.", 409)
@@ -178,7 +197,7 @@ class AccountApi(
     }
 
     @DeleteMapping("/profile/{profileId}/deletion") fun cancelProfileDeletion(@PathVariable profileId: String, session: HttpSession): ResponseEntity<Void> {
-        val account = recentMutable(session)
+        val account = strongMutable(session)
         val id = parseProfileId(profileId)
         if (!dao.cancelProfileDeletion(account.id, id)) throw IdpException("not_found", "삭제 신청 중인 프로필을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "GAME_PROFILE_DELETION_CANCELLED", metadata = mapOf("profile_id" to id.toString()))
@@ -186,7 +205,7 @@ class AccountApi(
     }
 
     @PostMapping("/deletion") fun requestAccountDeletion(session: HttpSession): Map<String, Any?> {
-        val account = recentMutable(session)
+        val account = strongMutable(session)
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
         val scheduled = dao.requestAccountDeletion(account.id) ?: throw IdpException("account_deletion_unavailable", "모든 프로필을 먼저 삭제해야 계정 탈퇴를 신청할 수 있습니다.", 409)
         dao.audit(account.id, "ACCOUNT_DELETION_REQUESTED", metadata = mapOf("scheduled_at" to scheduled.toString()))
@@ -194,7 +213,7 @@ class AccountApi(
     }
 
     @DeleteMapping("/deletion") fun cancelAccountDeletion(session: HttpSession): ResponseEntity<Void> {
-        val account = recentMutable(session)
+        val account = strongMutable(session)
         if (!dao.cancelAccountDeletion(account.id)) throw IdpException("not_found", "계정 탈퇴 신청을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "ACCOUNT_DELETION_CANCELLED")
         return ResponseEntity.noContent().build()
@@ -277,6 +296,17 @@ class AccountApi(
         val account = recent(session)
         if (isAccountRestricted(account)) throw IdpException("account_restricted", "이용제한된 계정은 이 작업을 수행할 수 없습니다.", 403)
         if (account.status != AccountStatus.ACTIVE) throw IdpException("account_unavailable", "현재 계정 상태에서는 이 작업을 수행할 수 없습니다.", 403)
+        return account
+    }
+    private fun strongMutable(session: HttpSession): Account {
+        val account = strong(session)
+        if (isAccountRestricted(account)) throw IdpException("account_restricted", "이용제한된 계정은 이 작업을 수행할 수 없습니다.", 403)
+        if (account.status != AccountStatus.ACTIVE) throw IdpException("account_unavailable", "현재 계정 상태에서는 이 작업을 수행할 수 없습니다.", 403)
+        return account
+    }
+    private fun strong(session: HttpSession): Account {
+        val account = accounts.requireCurrentAccount(session)
+        if (!session.hasStrongAuthentication()) throw IdpException("reauthentication_required", "강화된 본인인증이 필요합니다.", 401)
         return account
     }
     private fun isAccountRestricted(account: Account): Boolean =

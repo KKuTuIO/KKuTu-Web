@@ -553,7 +553,8 @@
     }
 
     async function reauthenticate() {
-        const response = await fetch('/api/account/reauthenticate', {
+        const strong = pendingProtectedAction === 'account-delete' || pendingProtectedAction.startsWith('profile-delete:');
+        const response = await fetch(strong ? '/api/account/reauthenticate/strong' : '/api/account/reauthenticate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', ...csrfHeaders()},
             body: JSON.stringify({password: reauthPassword, totpCode: reauthTotpCode || null})
@@ -1012,7 +1013,7 @@
         또는</p>{/if}
     <LoginMethodSelector providerIds={reauthProviderIds} showPasskey={passkeys.length > 0} {passkeySupported}
                          onPasskey={passkeyReauthenticate}
-                         providerUrl={provider => `/api/account/reauthenticate/oauth/${encodeURIComponent(provider)}`}/>
+                         providerUrl={provider => `${pendingProtectedAction === 'account-delete' || pendingProtectedAction.startsWith('profile-delete:') ? '/api/account/reauthenticate/oauth/' + encodeURIComponent(provider) + '/strong' : '/api/account/reauthenticate/oauth/' + encodeURIComponent(provider)}`}/>
 </AccountModal>
 
 <AccountModal open={Boolean(modal)} title={modal?.title || ''}

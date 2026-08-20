@@ -50,8 +50,12 @@ fun HttpSession.getAccountId(): UUID? = (getAttribute(SessionAttribute.ACCOUNT_I
 fun HttpSession.setAccountId(accountId: UUID) = setAttribute(SessionAttribute.ACCOUNT_ID, accountId.toString())
 
 fun HttpSession.markRecentlyAuthenticated() = setAttribute(SessionAttribute.RECENT_AUTH_AT, Instant.now().epochSecond)
+fun HttpSession.markStronglyAuthenticated() = setAttribute(SessionAttribute.STRONG_AUTH_AT, Instant.now().epochSecond)
 fun HttpSession.markAuthenticated() = setAttribute(SessionAttribute.AUTHENTICATED_AT, Instant.now().epochSecond)
 fun HttpSession.authenticatedAt(): Long = (getAttribute(SessionAttribute.AUTHENTICATED_AT.attributeName) as? Long) ?: 0L
 
 fun HttpSession.hasRecentAuthentication(maxAgeSeconds: Long = 300): Boolean =
     ((getAttribute(SessionAttribute.RECENT_AUTH_AT.attributeName) as? Long) ?: 0L) >= Instant.now().epochSecond - maxAgeSeconds
+
+fun HttpSession.hasStrongAuthentication(maxAgeSeconds: Long = 300): Boolean =
+    ((getAttribute(SessionAttribute.STRONG_AUTH_AT.attributeName) as? Long) ?: 0L) >= Instant.now().epochSecond - maxAgeSeconds

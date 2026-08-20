@@ -108,7 +108,7 @@
 
     async function reauthenticate() {
         try {
-            const response = await fetch('/api/account/reauthenticate', {
+            const response = await fetch('/api/account/reauthenticate/strong', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', ...csrfHeaders()},
                 body: JSON.stringify({password: reauthPassword, totpCode: reauthTotpCode || null})
@@ -133,7 +133,7 @@
         const returnUrl = isProfile
             ? `/account/profile-delete?profile_id=${encodeURIComponent(profile?.id || '')}`
             : '/account/delete';
-        return `/api/account/reauthenticate/oauth/${encodeURIComponent(provider)}?return=${encodeURIComponent(returnUrl)}`;
+        return `/api/account/reauthenticate/oauth/${encodeURIComponent(provider)}/strong?return=${encodeURIComponent(returnUrl)}`;
     }
 
     async function cancelDeletion(retry = false) {
@@ -171,7 +171,7 @@
         if (!canSubmit) return;
         error = '';
         try {
-            const response = await fetch('/api/account/reauthentication/status');
+            const response = await fetch('/api/account/reauthentication/strong/status');
             const status = await response.json().catch(() => ({}));
             if (status.required) requestReauthentication('confirm');
             else openConfirmation();

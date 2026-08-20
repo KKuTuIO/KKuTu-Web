@@ -9,6 +9,8 @@
 
   let currentPage = 0;
   let loading = false;
+  let initialized = false;
+  let lastLoadedPage = null;
 
   var topRankData = {
     "data": {
@@ -37,6 +39,8 @@
     const page = urlParams.get('page');
     if(page) currentPage = Number(page) - 1;
     await refreshRanking();
+    lastLoadedPage = currentPage;
+    initialized = true;
   });
 
 
@@ -49,14 +53,13 @@
   async function refreshRanking() {
     loading = true;
     try {
-      const [topResponse, pageResponse] = await Promise.all([
-        fetch('/ranking?page=0'),
-        fetch(`/ranking?page=${currentPage}`)
-      ]);
+      const topResponse = await fetch('/ranking?page=0');
+      const pageResponse = currentPage === 0 ? topResponse : await fetch(`/ranking?page=${currentPage}`);
       if (!topResponse.ok || !pageResponse.ok) throw new Error();
-      topRankData = await topResponse.json();
+      const topData = await topResponse.json();
+      topRankData = topData;
       topRankData.data.data = topRankData.data.data.slice(0, 4);
-      rankData = await pageResponse.json();
+      rankData = currentPage === 0 ? topData : await pageResponse.json();
     } finally {
       loading = false;
     }
@@ -68,7 +71,8 @@
   //on currentPage change
   $: {
     if (currentPage < 0) currentPage = 0;
-    if (browser) {
+    if (browser && initialized && currentPage !== lastLoadedPage) {
+      lastLoadedPage = currentPage;
       fetchRankData(currentPage);
     }
   }

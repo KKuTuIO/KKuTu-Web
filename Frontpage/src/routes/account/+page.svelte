@@ -1006,7 +1006,7 @@
             {#if reauthMfaRequired}
                 <div class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm underline">
                     <button on:click={requestReauthenticationEmailMfaCode}>TOTP 인증 코드를 확인할 수 없나요?</button>
-                    <a href="/account/recovery?mode=one-time" rel="external">일회용 비밀번호 사용</a>
+                    <a href="/account/recovery?mode=one-time">일회용 비밀번호 사용</a>
                 </div>
             {/if}
         </div>

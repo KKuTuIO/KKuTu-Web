@@ -3,6 +3,7 @@
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../lib/getLevelImg.js';
     import { getMoremi } from '../lib/getMoremi.js';
+    import {loadAuth, loadBlock, loadUser} from '$lib/session.js';
 
 	let user = "Guest User";
 	let authVendor = "KKuTu";
@@ -110,8 +111,7 @@
     onMount(async () => {
         
 		try {
-			const res = await fetch('/user/oauth');
-			const jsonData = await res.json();
+			const jsonData = await loadAuth();
 			data = jsonData;
 		} catch (e) {
 			data = { status: "Guest user" };
@@ -133,8 +133,7 @@
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
 			// get user data
-			const userRes = await fetch(`/user/${userId}`);
-			const userData = await userRes.json();
+			const userData = await loadUser(userId);
 
 			ingameName = processNick(userData?.profile?.title);
 			score = Number(userData?.data?.score) || 0;
@@ -155,8 +154,7 @@
             const rankResponse = await fetch('/ranking?p=0');
             rankData = await rankResponse.json();
 
-            const blockResponse = await fetch('/api/block');
-            blockData = await blockResponse.json();
+            blockData = await loadBlock();
         } catch (e) {
             console.error(e);
         }
@@ -286,8 +284,8 @@
 
                     <p class="mt-4 text-gray-300">문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br><strong>이용제한 기간이 연장</strong>될 수 있습니다.</p>
                     <div class="mt-3 flex flex-wrap justify-center gap-2">
-                        <a href="/account" rel="external" class="rounded-full bg-[#55aa55] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#51a351]">계정 관리</a>
-                        <a href="/account/sanctions" rel="external" class="rounded-full border border-slate-500 px-4 py-2 text-sm font-bold text-slate-100 transition hover:border-slate-300 hover:bg-white/10">제재 내역</a>
+                <a href="/account" class="rounded-full bg-[#55aa55] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#51a351]">계정 관리</a>
+                <a href="/account/sanctions" class="rounded-full border border-slate-500 px-4 py-2 text-sm font-bold text-slate-100 transition hover:border-slate-300 hover:bg-white/10">제재 내역</a>
                     </div>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
                         <button class="mt-4 mb-2 font-bold rounded-full bg-green-600 hover:bg-green-700 px-3 py-2">고객센터 문의하기</button>
@@ -427,7 +425,7 @@
                                     <h3 class="text-2xl font-bold text-white truncate w-48">{@html ingameName}</h3>
                                 </div>
                                 <p class="text-gray-300">{score.toLocaleString()}점</p>
-                                <a href="/account" rel="external" class="mt-2 inline-flex w-fit items-center gap-x-1 rounded-none bg-[#55aa55] px-3 py-1 text-sm font-bold text-white transition hover:bg-[#51a351] active:scale-95">
+                                <a href="/account" class="mt-2 inline-flex w-fit items-center gap-x-1 rounded-none bg-[#55aa55] px-3 py-1 text-sm font-bold text-white transition hover:bg-[#51a351] active:scale-95">
                                     <span class="material-symbols-outlined text-base">account_circle</span>
                                     계정 관리
                                 </a>
@@ -597,7 +595,7 @@
                         emoji_events
                     </span>
                     랭킹</h2>
-                <a href="/rank" rel="external">
+                <a href="/rank">
                     <button
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
@@ -648,7 +646,7 @@
                 <span class="material-symbols-outlined icons-header">collections_bookmark</span>
                 <p class="text-sm lg:text-lg">단어장</p>
             </a>
-            <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" rel="external" href="/rank">
+            <a class="flex flex-col lg:hidden items-center justify-center gap-x-2 h-16" href="/rank">
                 <span class="material-symbols-outlined icons-header">emoji_events</span>
                 <p class="text-sm lg:text-lg">랭킹</p>
             </a>

@@ -191,7 +191,7 @@
                 <span class="material-symbols-outlined">account_circle</span>
                 <span>계정 변경</span>
             </a>
-            <a href="/account" rel="external" class="flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-gray-100 dark:hover:bg-gray-700">
+            <a href="/account" class="flex items-center gap-3 rounded-lg px-3 py-2 transition hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="material-symbols-outlined">manage_accounts</span>
                 <span>계정 관리</span>
             </a>

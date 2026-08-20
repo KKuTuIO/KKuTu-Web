@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 
 	import ProfileSwitcher from '$lib/ProfileSwitcher.svelte';
+	import {loadAuth, loadBlock, loadUser} from '$lib/session.js';
 
 	import { showDialog } from './dialogStore';
 
@@ -82,8 +83,7 @@
 		}
 	}*/
 		try {
-			const res = await fetch('/user/oauth');
-			const jsonData = await res.json();
+			const jsonData = await loadAuth();
 			data = jsonData;
 		} catch (e) {
 			data = { status: "Guest user" };
@@ -103,16 +103,14 @@
 			console.log(`User ${name} is logged in with ${authVendor}`);
 
 			try {
-				const blockResponse = await fetch('/api/block', { cache: 'no-store' });
-				const block = blockResponse.ok ? await blockResponse.json() : null;
+				const block = await loadBlock();
 				accountRestricted = block?.blocked === true && block?.onlyGuestPunish !== true;
 			} catch (_) {
 				accountRestricted = false;
 			}
 
 			// get user data
-			const userRes = await fetch(`/user/${userId}`);
-			const userData = await userRes.json();
+			const userData = await loadUser(userId);
 
 			ingameName = processNick(userData?.profile?.title);
 
@@ -155,7 +153,7 @@
 					home
 				</span>
 					홈</a>
-			<a rel="external" href="/rank" on:click={guardRestrictedNavigation} class="link-header">
+			<a href="/rank" on:click={guardRestrictedNavigation} class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					trophy
 				</span>

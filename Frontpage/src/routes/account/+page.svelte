@@ -166,7 +166,7 @@
     }
 
     function avatarUrl() {
-        const seed = selectedProfileData?.id || selectedProfile || summary?.uuid || summary?.legacy_user_id || 'kkutuio';
+        const seed = currentIdentifier || 'kkutuio';
         return `https://api.dicebear.com/10.x/patchwork/svg?seed=${encodeURIComponent(seed)}`;
     }
 

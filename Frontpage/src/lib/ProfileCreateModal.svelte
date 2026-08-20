@@ -3,6 +3,7 @@
     import AccountModal from '$lib/AccountModal.svelte';
 
     export let open = false;
+    export let reauthVersion = 0;
 
     const dispatch = createEventDispatcher();
     let nickname = '';
@@ -11,14 +12,21 @@
     let submitting = false;
     let error = '';
     let wasOpen = false;
+    let consumedReauthVersion = 0;
 
     $: if (open && !wasOpen) {
         wasOpen = true;
         nickname = '';
         error = '';
+        consumedReauthVersion = reauthVersion;
         loadPolicy();
     } else if (!open) {
         wasOpen = false;
+    }
+
+    $: if (open && reauthVersion > consumedReauthVersion) {
+        consumedReauthVersion = reauthVersion;
+        createProfile();
     }
 
     function csrfHeaders() {
@@ -64,6 +72,10 @@
             });
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
+                if (data.error === 'reauthentication_required') {
+                    dispatch('reauthenticationRequired');
+                    return;
+                }
                 throw new Error(data.error_description || data.error || '프로필을 만들지 못했습니다.');
             }
             const data = await response.json();

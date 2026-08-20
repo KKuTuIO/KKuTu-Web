@@ -27,6 +27,7 @@
     let profileSwitching = false;
     let profilePolicy = null;
     let profileCreateOpen = false;
+    let profileCreateReauthVersion = 0;
     let reauthRequired = false;
     let reauthDialogOpen = false;
     let reauthPassword = '';
@@ -121,6 +122,11 @@
     function openProfileCreate() {
         modal = null;
         profileCreateOpen = true;
+    }
+
+    function requestProfileCreateReauthentication() {
+        reauthRequired = true;
+        reauthDialogOpen = true;
     }
 
     async function profileCreated() {
@@ -504,6 +510,7 @@
         reauthPassword = '';
         reauthTotpCode = '';
         notify('본인확인이 완료되었습니다.');
+        profileCreateReauthVersion += 1;
         await resumeProtectedAction();
     }
 
@@ -901,7 +908,7 @@
     </div>
 </main>
 
-<AccountModal open={reauthDialogOpen} title="본인 확인" showFooter={false} on:close={closeReauthentication}>
+<AccountModal open={reauthDialogOpen} title="본인 확인" showFooter={false} priority on:close={closeReauthentication}>
     <div class="text-center">
         <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f5e9] text-[#438c43]"><span
                 class="material-symbols-outlined text-3xl">shield_lock</span></div>
@@ -1027,7 +1034,9 @@
         </div>
     {/if}
 </AccountModal>
-<ProfileCreateModal open={profileCreateOpen} on:close={() => profileCreateOpen = false} on:created={profileCreated}/>
+<ProfileCreateModal open={profileCreateOpen} reauthVersion={profileCreateReauthVersion}
+                    on:reauthenticationRequired={requestProfileCreateReauthentication}
+                    on:close={() => profileCreateOpen = false} on:created={profileCreated}/>
 <ToastStack {toasts} dismiss={dismissToast}/>
 
 <style>

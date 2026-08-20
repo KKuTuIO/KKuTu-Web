@@ -35,7 +35,17 @@
     });
 
     async function setDigit(index, event) {
-        const value = event.currentTarget.value.replace(/\D/g, '').slice(-1);
+        const value = event.currentTarget.value.replace(/\D/g, '');
+        if (value.length > 1) {
+            const nextDigits = [...digits];
+            value.slice(0, digits.length - index).split('').forEach((digit, offset) => {
+                nextDigits[index + offset] = digit;
+            });
+            digits = nextDigits;
+            await tick();
+            inputs[Math.min(index + value.length, digits.length - 1)]?.focus();
+            return;
+        }
         digits[index] = value;
         digits = [...digits];
         if (value && index < digits.length - 1) {
@@ -115,10 +125,10 @@
 </svelte:head>
 
 {#if ready}
-    <section class="mx-auto flex min-h-[calc(100vh-13rem)] max-w-2xl items-center px-5 py-16 sm:px-8">
+    <section class="mx-auto flex min-h-[calc(100vh-13rem)] max-w-2xl items-center px-5 pb-16 pt-24 sm:px-8">
         <div class="w-full text-center">
             <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e8f5e9] text-[#438c43] dark:bg-green-950 dark:text-[#8bcc8d]">
-                <span class="material-symbols-outlined text-4xl" aria-hidden="true">shield_lock</span>
+                <span class="material-symbols-outlined text-5xl" aria-hidden="true">shield_lock</span>
             </div>
             {#if useSecurityCode}
                 <h1 class="mt-10 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">계정 보안코드를 입력하세요</h1>
@@ -130,11 +140,11 @@
                 <input class="mx-auto mt-10 block w-full max-w-md rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-lg tracking-wide text-slate-900 outline-none transition focus:border-[#55aa55] focus:ring-4 focus:ring-green-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:ring-green-950"
                        bind:value={emailCode} autocomplete="one-time-code" placeholder="전자 메일 인증 코드" on:keydown={(event) => event.key === 'Enter' && verify()}/>
             {:else}
-                <h1 class="mt-10 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">인증 앱의 6자리 코드를 입력하세요</h1>
+                <h1 class="mt-10 whitespace-nowrap text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">인증 앱의 6자리 코드를 입력하세요</h1>
                 <div class="mx-auto mt-10 flex max-w-md justify-center gap-2 sm:gap-3">
                     {#each digits as digit, index}
                         <input class="h-14 w-11 rounded-xl border border-slate-300 bg-white text-center text-2xl font-bold text-slate-900 outline-none transition focus:border-[#55aa55] focus:ring-4 focus:ring-green-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:ring-green-950 sm:h-16 sm:w-14"
-                               bind:this={inputs[index]} value={digit} inputmode="numeric" autocomplete={index === 0 ? 'one-time-code' : 'off'} maxlength="1" aria-label={`${index + 1}번째 인증 숫자`}
+                               bind:this={inputs[index]} value={digit} inputmode="numeric" autocomplete={index === 0 ? 'one-time-code' : 'off'} maxlength="6" aria-label={`${index + 1}번째 인증 숫자`}
                                on:input={(event) => setDigit(index, event)} on:keydown={(event) => handleKeydown(index, event)}/>
                     {/each}
                 </div>

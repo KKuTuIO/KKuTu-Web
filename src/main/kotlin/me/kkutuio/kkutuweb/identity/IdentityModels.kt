@@ -17,7 +17,9 @@ data class Account(
     val updatedAt: Instant,
     val sessionNotBefore: Instant,
     val primaryIdentityId: Long?,
-    val originIdentityId: Long?
+    val originIdentityId: Long?,
+    val deletionRequestedAt: Instant? = null,
+    val deletionScheduledAt: Instant? = null
 )
 
 data class AccountIdentity(

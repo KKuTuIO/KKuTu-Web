@@ -83,7 +83,7 @@ class AccountApi(
         val account = recent(session)
         val nickname = body.nickname.trim()
         val validationError = nicknames.validationError(nickname)
-        if (validationError != null) throw IdpException("invalid_nickname", "사용할 수 없는 별명입니다: $validationError")
+        if (validationError != null) throw IdpException("invalid_nickname", nicknames.validationMessage(validationError))
 
         dao.lockAccountForProfileMutation(account.id)
         val count = dao.countActiveProfiles(account.id)
@@ -156,6 +156,38 @@ class AccountApi(
     }
     @GetMapping("/connected-applications") fun connectedApplications(session: HttpSession): List<Map<String, Any?>> =
         dao.listConnectedApplications(accounts.requireCurrentAccount(session).id)
+
+    @PostMapping("/profile/{profileId}/deletion") fun requestProfileDeletion(@PathVariable profileId: String, session: HttpSession): Map<String, Any?> {
+        val account = recent(session)
+        val id = parseProfileId(profileId)
+        if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
+        val scheduled = dao.requestProfileDeletion(account.id, id) ?: throw IdpException("profile_deletion_unavailable", "삭제할 수 없는 프로필입니다.", 409)
+        dao.audit(account.id, "GAME_PROFILE_DELETION_REQUESTED", metadata = mapOf("profile_id" to id.toString(), "scheduled_at" to scheduled.toString()))
+        return mapOf("scheduled_at" to scheduled)
+    }
+
+    @DeleteMapping("/profile/{profileId}/deletion") fun cancelProfileDeletion(@PathVariable profileId: String, session: HttpSession): ResponseEntity<Void> {
+        val account = recent(session)
+        val id = parseProfileId(profileId)
+        if (!dao.cancelProfileDeletion(account.id, id)) throw IdpException("not_found", "삭제 신청 중인 프로필을 찾을 수 없습니다.", 404)
+        dao.audit(account.id, "GAME_PROFILE_DELETION_CANCELLED", metadata = mapOf("profile_id" to id.toString()))
+        return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/deletion") fun requestAccountDeletion(session: HttpSession): Map<String, Any?> {
+        val account = recent(session)
+        if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
+        val scheduled = dao.requestAccountDeletion(account.id) ?: throw IdpException("account_deletion_unavailable", "모든 프로필을 먼저 삭제해야 계정 탈퇴를 신청할 수 있습니다.", 409)
+        dao.audit(account.id, "ACCOUNT_DELETION_REQUESTED", metadata = mapOf("scheduled_at" to scheduled.toString()))
+        return mapOf("scheduled_at" to scheduled)
+    }
+
+    @DeleteMapping("/deletion") fun cancelAccountDeletion(session: HttpSession): ResponseEntity<Void> {
+        val account = recent(session)
+        if (!dao.cancelAccountDeletion(account.id)) throw IdpException("not_found", "계정 탈퇴 신청을 찾을 수 없습니다.", 404)
+        dao.audit(account.id, "ACCOUNT_DELETION_CANCELLED")
+        return ResponseEntity.noContent().build()
+    }
     @GetMapping("/sanctions") fun sanctions(
         @RequestParam(name = "profile_id", required = false) profileId: String?,
         session: HttpSession
@@ -232,6 +264,7 @@ class AccountApi(
     }
     private fun profileLimit(session: HttpSession): Int =
         if (adminAuthorizer.hasPrivilege(session, AdminSetting.Privilege.ADMIN_PROFILE)) 3 else 1
+    private fun parseProfileId(value: String): java.util.UUID = runCatching { java.util.UUID.fromString(value) }.getOrElse { throw IdpException("invalid_request", "잘못된 프로필입니다.") }
     private fun requirePasswordEnabled() {
         if (!settings.passwordEnabled) throw IdpException("password_disabled", "비밀번호 로그인은 비활성화되어 있습니다.", 404)
     }

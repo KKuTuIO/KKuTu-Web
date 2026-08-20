@@ -21,7 +21,8 @@ class IdentityDao(
         Account(
             UUID.fromString(rs.getString("id")), UUID.fromString(rs.getString("uuid")), rs.getString("legacy_user_id"), AccountStatus.valueOf(rs.getString("status")), rs.getBoolean("external_mfa_enabled"),
             rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant(), rs.getTimestamp("session_not_before").toInstant(),
-            rs.getLongOrNull("primary_identity_id"), rs.getLongOrNull("origin_identity_id")
+            rs.getLongOrNull("primary_identity_id"), rs.getLongOrNull("origin_identity_id"),
+            rs.getTimestamp("deletion_requested_at")?.toInstant(), rs.getTimestamp("deletion_scheduled_at")?.toInstant()
         )
     }
     private val identityMapper = RowMapper { rs: ResultSet, _: Int ->
@@ -68,17 +69,20 @@ class IdentityDao(
             "WHERE account.id=? AND NOT EXISTS (SELECT 1 FROM game_profile existing WHERE existing.account_id=account.id AND existing.game_key='kkutu')",
         legacyUserId, UUID.randomUUID(), accountId
     )
+    fun hasAnyProfile(accountId: UUID): Boolean = jdbc.queryForObject(
+        "SELECT EXISTS(SELECT 1 FROM game_profile WHERE account_id=?)", Boolean::class.java, accountId
+    ) == true
     fun lockAccountForProfileMutation(accountId: UUID) {
         jdbc.queryForObject("SELECT id FROM account WHERE id=? FOR UPDATE", UUID::class.java, accountId)
     }
     fun countActiveProfiles(accountId: UUID): Int = jdbc.queryForObject(
-        "SELECT count(*) FROM game_profile WHERE account_id=? AND status='ACTIVE'", Int::class.java, accountId
+        "SELECT count(*) FROM game_profile WHERE account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL", Int::class.java, accountId
     ) ?: 0
     fun previewProfileNicknameTag(profileId: UUID): String = jdbc.queryForObject(
         "SELECT kkutu_nickname_tag(?::varchar)", String::class.java, profileId.toString()
     ) ?: "00000"
     fun nicknameTagForNewProfile(accountId: UUID, fallbackProfileId: UUID): String = jdbc.queryForObject(
-        "SELECT COALESCE((SELECT nickname_tag FROM game_profile WHERE account_id=? ORDER BY created_at, id LIMIT 1), kkutu_nickname_tag(?::varchar))",
+        "SELECT COALESCE((SELECT nickname_tag FROM game_profile WHERE account_id=? AND status <> 'DELETED' ORDER BY created_at, id LIMIT 1), kkutu_nickname_tag(?::varchar))",
         String::class.java, accountId, fallbackProfileId.toString()
     ) ?: "00000"
     fun createKkutuProfile(accountId: UUID, profileId: UUID, nickname: String?, nicknameTag: String): Boolean = jdbc.update(
@@ -87,12 +91,12 @@ class IdentityDao(
             "FROM account WHERE account.id=?",
         profileId, profileId.toString(), nickname, nicknameTag, accountId
     ) == 1
-    fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND status='ACTIVE' ORDER BY created_at", accountId)
-    fun findActiveProfile(accountId: UUID, profileId: UUID): Map<String, Any?>? = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE account_id=? AND id=? AND status='ACTIVE'", accountId, profileId).firstOrNull()
+    fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at FROM game_profile WHERE account_id=? AND status <> 'DELETED' ORDER BY created_at", accountId)
+    fun findActiveProfile(accountId: UUID, profileId: UUID): Map<String, Any?>? = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at FROM game_profile WHERE account_id=? AND id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL", accountId, profileId).firstOrNull()
     fun defaultProfile(accountId: UUID): Map<String, Any?>? = jdbc.queryForList(
-        "SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status FROM game_profile WHERE id = COALESCE(" +
-            "(SELECT a.selected_profile_id FROM account a JOIN game_profile selected ON selected.id=a.selected_profile_id AND selected.account_id=a.id AND selected.status='ACTIVE' WHERE a.id=?), " +
-            "(SELECT id FROM game_profile WHERE account_id=? AND status='ACTIVE' ORDER BY created_at LIMIT 1))",
+            "SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at FROM game_profile WHERE id = COALESCE(" +
+            "(SELECT a.selected_profile_id FROM account a JOIN game_profile selected ON selected.id=a.selected_profile_id AND selected.account_id=a.id AND selected.status='ACTIVE' AND selected.deletion_scheduled_at IS NULL WHERE a.id=?), " +
+            "(SELECT id FROM game_profile WHERE account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL ORDER BY created_at LIMIT 1))",
         accountId, accountId
     ).firstOrNull()
 
@@ -114,7 +118,7 @@ class IdentityDao(
         return profile?.get("nickname_tag")?.toString() ?: userId.substringAfter('-', userId).take(5)
     }
     fun setSelectedProfile(accountId: UUID, profileId: UUID): Boolean = jdbc.update(
-        "UPDATE account SET selected_profile_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND EXISTS (SELECT 1 FROM game_profile WHERE id=? AND account_id=? AND status='ACTIVE')",
+        "UPDATE account SET selected_profile_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND EXISTS (SELECT 1 FROM game_profile WHERE id=? AND account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL)",
         profileId, accountId, profileId, accountId
     ) == 1
     fun updateProfileNickname(accountId: UUID, legacyUserId: String, nickname: String) = jdbc.update(
@@ -153,6 +157,46 @@ class IdentityDao(
     fun updateNicknameTimestamp(accountId: UUID) = jdbc.update("UPDATE account SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", accountId)
     fun setStatus(accountId: UUID, status: AccountStatus) = jdbc.update("UPDATE account SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", status.name, accountId)
     fun setExternalMfaEnabled(accountId: UUID, enabled: Boolean) = jdbc.update("UPDATE account SET external_mfa_enabled=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", enabled, accountId)
+
+    fun requestProfileDeletion(accountId: UUID, profileId: UUID): Instant? = jdbc.queryForList(
+        "UPDATE game_profile SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=CURRENT_TIMESTAMP + INTERVAL '14 days', updated_at=CURRENT_TIMESTAMP " +
+            "WHERE id=? AND account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL RETURNING deletion_scheduled_at",
+        profileId, accountId
+    ).firstOrNull()?.get("deletion_scheduled_at")?.let { (it as Timestamp).toInstant() }
+
+    fun cancelProfileDeletion(accountId: UUID, profileId: UUID): Boolean = jdbc.update(
+        "UPDATE game_profile SET deletion_requested_at=NULL, deletion_scheduled_at=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=? AND account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NOT NULL",
+        profileId, accountId
+    ) == 1
+
+    fun requestAccountDeletion(accountId: UUID): Instant? = jdbc.queryForList(
+        "UPDATE account SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=CURRENT_TIMESTAMP + INTERVAL '14 days', updated_at=CURRENT_TIMESTAMP " +
+            "WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL AND NOT EXISTS (SELECT 1 FROM game_profile WHERE account_id=? AND status='ACTIVE') RETURNING deletion_scheduled_at",
+        accountId, accountId
+    ).firstOrNull()?.get("deletion_scheduled_at")?.let { (it as Timestamp).toInstant() }
+
+    fun cancelAccountDeletion(accountId: UUID): Boolean = jdbc.update(
+        "UPDATE account SET deletion_requested_at=NULL, deletion_scheduled_at=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NOT NULL",
+        accountId
+    ) == 1
+
+    fun dueProfileIds(): List<Map<String, Any?>> = jdbc.queryForList(
+        "SELECT id, legacy_user_id FROM game_profile WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100"
+    )
+    fun dueAccountIds(): List<UUID> = jdbc.queryForList(
+        "SELECT id FROM account WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100",
+        UUID::class.java
+    )
+    fun completeProfileDeletion(profileId: UUID) {
+        jdbc.update("UPDATE account SET selected_profile_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE selected_profile_id=?", profileId)
+        jdbc.update("UPDATE game_profile SET status='DELETED', updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE'", profileId)
+    }
+    fun completeAccountDeletion(accountId: UUID) {
+        jdbc.update("UPDATE account SET status='DELETED', session_not_before=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE'", accountId)
+        revokeRefreshTokens(accountId)
+        jdbc.update("UPDATE idp_access_token SET revoked_at=CURRENT_TIMESTAMP WHERE account_id=? AND revoked_at IS NULL", accountId)
+        jdbc.update("DELETE FROM idp_consent WHERE account_id=?", accountId)
+    }
 
     fun audit(accountId: UUID?, event: String, identityId: Long? = null, ipHash: String? = null, metadata: Map<String, Any?> = emptyMap()) {
         jdbc.update("INSERT INTO account_audit_log(account_id, event_type, identity_id, ip_hash, metadata) VALUES (?, ?, ?, ?, CAST(? AS jsonb))",

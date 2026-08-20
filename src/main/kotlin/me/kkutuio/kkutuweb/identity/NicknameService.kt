@@ -22,10 +22,11 @@ class NicknameService(
     private val identityDao: IdentityDao
 ) {
     fun validationError(nickname: String): String? = setup.nicknameValidationError(nickname)
+    fun validationMessage(code: String): String = setup.nicknameValidationMessage(code)
 
     @Transactional
     fun createInitial(profileId: String, baseNickname: String, nicknameTag: String): String {
-        setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", "사용할 수 없는 별명입니다: $it") }
+        setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", setup.nicknameValidationMessage(it)) }
         val nickname = "$baseNickname#$nicknameTag"
         val meanable = normalize(nickname)
         users.lockNicknameKey(meanable)
@@ -39,7 +40,17 @@ class NicknameService(
     fun status(account: Account): Map<String, Any?> {
         val userId = identityDao.selectedProfileId(account.id) ?: account.legacyUserId
         val user = users.nicknameState(userId)
-            ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
+        if (user == null) return mapOf(
+            "nickname" to null,
+            "suffix" to "00000",
+            "last_modified_at" to null,
+            "fixed" to false,
+            "ping_balance" to 0,
+            "change_restricted" to false,
+            "game_connected" to false,
+            "can_change" to false,
+            "profile_deleted" to true
+        )
         val nextChangeAt = user.lastModifiedAt?.plus(NICKNAME_CHANGE_INTERVAL_MS)
         return mapOf(
             "nickname" to user.nickname,
@@ -57,7 +68,7 @@ class NicknameService(
     @Transactional
     fun change(account: Account, requestedNickname: String, fixed: Boolean): NicknameChangeResult {
         val baseNickname = requestedNickname.trim()
-        setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", "사용할 수 없는 별명입니다: $it") }
+        setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", setup.nicknameValidationMessage(it)) }
         val userId = identityDao.selectedProfileId(account.id) ?: account.legacyUserId
         val profileLegacyUserId = identityDao.selectedProfileLegacyUserId(account.id) ?: account.legacyUserId
         val state = users.lockNicknameState(userId)

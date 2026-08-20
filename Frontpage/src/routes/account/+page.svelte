@@ -46,7 +46,11 @@
     let modalPasskeyName = '';
     let linkedIdentityMap = new Map();
     let linkedProviderCount = 0;
+    let connectedApps = [];
+    let deletionConsent = false;
     $: selectedProfileData = summary?.profiles?.find(profile => String(profile.id) === String(selectedProfile)) || null;
+    $: selectedProfileDeletionAt = selectedProfileData?.deletion_scheduled_at || null;
+    $: activeProfileCount = (summary?.profiles || []).filter(profile => profile.status === 'ACTIVE' && !profile.deletion_scheduled_at).length;
     $: currentIdentifier = selectedProfileData?.id || selectedProfile || summary?.uuid || '';
     $: accountIdentifier = summary?.uuid || '';
     const oauthProviders = [
@@ -62,12 +66,12 @@
         loading = true;
         try {
             await fetch('/api/account/csrf');
-            const [summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes] = await Promise.all([fetch('/api/account/summary'), fetch('/api/account/identities'), fetch('/api/account/passkeys'), fetch('/api/account/nickname-policy'), fetch('/api/account/mfa'), fetch('/api/account/profile-policy')]);
+            const [summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes, connectedAppsRes] = await Promise.all([fetch('/api/account/summary'), fetch('/api/account/identities'), fetch('/api/account/passkeys'), fetch('/api/account/nickname-policy'), fetch('/api/account/mfa'), fetch('/api/account/profile-policy'), fetch('/api/account/connected-applications')]);
             if (summaryRes.status === 401) {
                 location.href = '/login';
                 return;
             }
-            if (![summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes].every(response => response.ok)) {
+            if (![summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes, connectedAppsRes].every(response => response.ok)) {
                 throw new Error('account api request failed');
             }
             summary = await summaryRes.json();
@@ -76,6 +80,7 @@
             nicknamePolicy = await nicknamePolicyRes.json();
             mfa = await mfaRes.json();
             profilePolicy = await profilePolicyRes.json();
+            connectedApps = await connectedAppsRes.json();
             passwordEnabled = summary.password_enabled !== false;
             const linkedProviders = linkedProviderIdsFor(identities);
             reauthProviderIds = oauthProviders.filter(provider => linkedProviders.has(provider.id)).map(provider => provider.id);
@@ -185,6 +190,8 @@
             if (identity) await revoke(identity, true);
         }
         if (action.startsWith('identity-link:')) await linkProvider(action.slice('identity-link:'.length), true);
+        if (action.startsWith('profile-delete:')) await requestProfileDeletion(action.slice('profile-delete:'.length), true);
+        if (action === 'account-delete') await requestAccountDeletion(true);
     }
 
     function avatarUrl(seed = currentIdentifier) {
@@ -195,6 +202,58 @@
         if (profile?.nickname) return profile.nickname;
         if (String(profile?.id) === String(selectedProfile) && summary?.nickname) return summary.nickname;
         return `프로필 ${index + 1}`;
+    }
+
+    function formatDeletionDate(value) {
+        return value ? new Date(value).toLocaleString() : '';
+    }
+
+    function openProfileDeletion(profile = selectedProfileData) {
+        deletionConsent = false;
+        modal = {type: 'profile-delete', title: '프로필 삭제', profile};
+    }
+
+    function openAccountDeletion() {
+        deletionConsent = false;
+        modal = {type: 'account-delete', title: '계정 탈퇴'};
+    }
+
+    async function requestProfileDeletion(profileId, afterReauthentication = false) {
+        const response = await call(`/api/account/profile/${encodeURIComponent(profileId)}/deletion`, {method: 'POST'});
+        if (response) {
+            clearProtectedAction();
+            closeModal();
+            await load();
+        } else if (reauthRequired && !afterReauthentication) {
+            rememberProtectedAction(`profile-delete:${profileId}`);
+        }
+    }
+
+    async function cancelProfileDeletion(profileId) {
+        const response = await call(`/api/account/profile/${encodeURIComponent(profileId)}/deletion`, {method: 'DELETE'});
+        if (response) {
+            closeModal();
+            await load();
+        }
+    }
+
+    async function requestAccountDeletion(afterReauthentication = false) {
+        const response = await call('/api/account/deletion', {method: 'POST'});
+        if (response) {
+            clearProtectedAction();
+            closeModal();
+            await load();
+        } else if (reauthRequired && !afterReauthentication) {
+            rememberProtectedAction('account-delete');
+        }
+    }
+
+    async function cancelAccountDeletion() {
+        const response = await call('/api/account/deletion', {method: 'DELETE'});
+        if (response) {
+            closeModal();
+            await load();
+        }
     }
 
     function useFallbackAvatar(event) {
@@ -657,6 +716,19 @@
                                     class="material-symbols-outlined text-lg">content_copy</span></button>
                         </div>
                     </div>
+                    <div class="border-t border-gray-200 p-5 dark:border-gray-700">
+                        {#if selectedProfileDeletionAt}
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <p class="font-bold text-red-700 dark:text-red-300">프로필 삭제 신청 중</p>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">{formatDeletionDate(selectedProfileDeletionAt)}에 자동 삭제됩니다. 그 전까지 삭제 신청을 해제할 수 있습니다.</p>
+                                </div>
+                                <button class="rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]" on:click={() => cancelProfileDeletion(selectedProfileData.id)}>삭제 신청 해제</button>
+                            </div>
+                        {:else}
+                            <button class="rounded-xl border border-red-300 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-950" on:click={() => openProfileDeletion(selectedProfileData)}>프로필 삭제</button>
+                        {/if}
+                    </div>
                 </div>
             </section>
 
@@ -697,6 +769,9 @@
                        href="/account/apps"><span>연결된 앱</span><span
                             class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span
                             class="material-symbols-outlined">chevron_right</span></span></a>
+                    <button type="button" class="flex w-full items-center justify-between gap-3 border-t border-gray-200 p-5 text-left font-bold text-red-700 transition hover:bg-red-50 dark:border-gray-700 dark:text-red-300 dark:hover:bg-red-950" on:click={openAccountDeletion}>
+                        <span>계정 탈퇴</span><span class="material-symbols-outlined">chevron_right</span>
+                    </button>
                 </div>
             </section>
 
@@ -943,14 +1018,14 @@
 </AccountModal>
 
 <AccountModal open={Boolean(modal)} title={modal?.title || ''}
-              showFooter={!['fixed-nickname-confirm', 'totp-rename', 'passkey-rename', 'profile-switch'].includes(modal?.type)}
+              showFooter={!['fixed-nickname-confirm', 'totp-rename', 'passkey-rename', 'profile-switch', 'profile-delete', 'account-delete'].includes(modal?.type)}
               on:close={closeModal}>
     {#if modal?.type === 'profile-switch'}
         <div class="space-y-2">
-            {#each summary?.profiles || [] as profile, index (profile.id)}
-                <button type="button"
+                    {#each summary?.profiles || [] as profile, index (profile.id)}
+                        <button type="button"
                         class={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-gray-100 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-gray-700 ${String(profile.id) === String(selectedProfile) ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
-                        disabled={profileSwitching}
+                        disabled={profileSwitching || Boolean(profile.deletion_scheduled_at)}
                         on:click={() => selectProfile(profile)}>
                     <img class="h-11 w-11 shrink-0 rounded-xl" src={avatarUrl(profile.id)} alt={profileDisplayName(profile, index)}
                          on:error={useFallbackAvatar}/>
@@ -958,10 +1033,15 @@
                         <span class="block truncate font-semibold">{profileDisplayName(profile, index)}</span>
                         <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
                     </span>
-                    {#if String(profile.id) === String(selectedProfile)}
-                        <span class="material-symbols-outlined text-xl text-gray-700 dark:text-gray-100" aria-label="현재 프로필">check</span>
+                        {#if String(profile.id) === String(selectedProfile)}
+                            <span class="material-symbols-outlined text-xl text-gray-700 dark:text-gray-100" aria-label="현재 프로필">check</span>
+                        {:else if profile.deletion_scheduled_at}
+                            <span class="text-xs font-bold text-red-600 dark:text-red-300">삭제 신청 중</span>
+                        {/if}
+                    </button>
+                    {#if profile.deletion_scheduled_at}
+                        <button type="button" class="-mt-2 mb-1 w-full px-3 text-right text-xs font-bold text-[#438c43]" on:click={() => cancelProfileDeletion(profile.id)}>삭제 신청 해제</button>
                     {/if}
-                </button>
             {/each}
             <button type="button" class="mt-2 flex w-full items-center justify-between gap-3 rounded-xl border-t border-gray-200 px-3 py-3 text-left text-sm font-semibold text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
                     disabled={!profilePolicy?.can_create || profileSwitching} on:click={openProfileCreate}>
@@ -972,6 +1052,42 @@
                 <span class="text-xs font-normal text-gray-500 dark:text-gray-400">{summary?.profiles?.length || 0}/{profilePolicy?.limit || 1}</span>
             </button>
         </div>
+    {:else if modal?.type === 'profile-delete'}
+        {@const profile = modal.profile}
+        {#if profile?.deletion_scheduled_at}
+            <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">이 프로필은 {formatDeletionDate(profile.deletion_scheduled_at)}에 자동 삭제됩니다. 삭제 신청을 해제하면 즉시 다시 사용할 수 있습니다.</p>
+            <button class="mt-5 w-full rounded-xl border border-[#55aa55] px-4 py-3 font-bold text-[#438c43]" on:click={() => cancelProfileDeletion(profile.id)}>삭제 신청 해제</button>
+        {:else}
+            <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">더 이상 이 프로필을 사용하지 않으면 삭제를 신청할 수 있습니다. 신청 후 14일 동안은 게임에 접속할 수 없으며, 기간이 지나면 프로필과 게임 데이터가 삭제됩니다.</p>
+            {#if connectedApps.length}
+                <div class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+                    <p class="font-bold">연결된 앱을 먼저 해제해 주세요.</p>
+                    <p class="mt-1">프로필 삭제를 신청하기 전에 연결된 앱을 모두 해제해야 합니다.</p>
+                    <a class="mt-3 inline-block font-bold underline" href="/account/apps">연결된 앱 관리</a>
+                </div>
+            {:else}
+                <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 text-sm leading-6 dark:border-gray-700"><input class="mt-1" type="checkbox" bind:checked={deletionConsent}/><span>14일의 삭제 유예기간과 유예기간 종료 후 복구할 수 없다는 내용을 확인했습니다.</span></label>
+                <button class="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={!deletionConsent} on:click={() => requestProfileDeletion(profile.id)}>프로필 삭제 신청</button>
+            {/if}
+        {/if}
+    {:else if modal?.type === 'account-delete'}
+        {#if summary?.deletion_scheduled_at}
+            <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">계정 탈퇴 신청이 {formatDeletionDate(summary.deletion_scheduled_at)}에 완료됩니다. 그 전까지 신청을 해제할 수 있습니다.</p>
+            <button class="mt-5 w-full rounded-xl border border-[#55aa55] px-4 py-3 font-bold text-[#438c43]" on:click={cancelAccountDeletion}>계정 탈퇴 신청 해제</button>
+        {:else}
+            <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">계정 탈퇴를 신청하면 14일 동안 서비스에 접속할 수 없으며, 유예기간이 지나면 계정과 남은 계정 정보가 삭제됩니다.</p>
+            {#if activeProfileCount > 0}
+                <div class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">계정 탈퇴 전에 모든 프로필을 먼저 삭제 신청하고 유예기간을 완료해야 합니다.</div>
+            {:else if connectedApps.length}
+                <div class="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+                    <p class="font-bold">연결된 앱을 먼저 해제해 주세요.</p>
+                    <a class="mt-3 inline-block font-bold underline" href="/account/apps">연결된 앱 관리</a>
+                </div>
+            {:else}
+                <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 text-sm leading-6 dark:border-gray-700"><input class="mt-1" type="checkbox" bind:checked={deletionConsent}/><span>14일의 탈퇴 유예기간과 유예기간 종료 후 복구할 수 없다는 내용을 확인했습니다.</span></label>
+                <button class="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={!deletionConsent} on:click={() => requestAccountDeletion()}>계정 탈퇴 신청</button>
+            {/if}
+        {/if}
     {:else if modal?.type === 'totp-setup'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">2단계 인증 앱에 아래 비밀키를 등록한 뒤 표시되는 6자리 인증번호를 입력하세요.</p>
         {#if totpQr}<img

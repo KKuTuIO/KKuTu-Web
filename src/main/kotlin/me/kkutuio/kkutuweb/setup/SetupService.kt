@@ -60,6 +60,15 @@ class SetupService(
         else -> null
     }
 
+    fun nicknameValidationMessage(code: String): String = when (code) {
+        NickChangeResult.INVALID_LENGTH.errorCode -> "별명은 2~16자로 입력해 주세요."
+        NickChangeResult.INVALID_PATTERN.errorCode -> "별명은 한글, 영문, 숫자, 공백, 밑줄, 하이픈만 사용할 수 있습니다."
+        NickChangeResult.HAS_BAD_WORDS.errorCode -> "별명에 사용이 제한된 단어가 포함되어 있습니다."
+        NickChangeResult.HAS_BANNED_WORDS.errorCode -> "별명에 사용할 수 없는 문자가 포함되어 있습니다."
+        NickChangeResult.ALREADY_USING.errorCode -> "이미 사용 중인 별명입니다."
+        else -> "별명을 사용할 수 없습니다."
+    }
+
     fun setupNick(request: HttpServletRequest, session: HttpSession, nick: String): ActionResult {
         val isGuest = session.isGuest()
         val sessionProfile = loginService.getSessionProfile(session)

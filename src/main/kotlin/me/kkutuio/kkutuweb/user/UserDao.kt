@@ -170,4 +170,18 @@ class UserDao(
 
         jdbcTemplate.update(sql, *valueString.toTypedArray())
     }
+
+    fun archiveAndDelete(id: String): Boolean {
+        val archived = jdbcTemplate.update(
+            "INSERT INTO users_deleted SELECT users.*, CURRENT_TIMESTAMP FROM users WHERE _id=? ON CONFLICT (_id) DO UPDATE SET archived_at=EXCLUDED.archived_at",
+            id
+        )
+        if (archived == 0) return false
+        jdbcTemplate.update("DELETE FROM users WHERE _id=?", id)
+        return true
+    }
+
+    fun purgeDeletedUsers(): Int = jdbcTemplate.update(
+        "DELETE FROM users_deleted WHERE archived_at <= CURRENT_TIMESTAMP - INTERVAL '1 year'"
+    )
 }

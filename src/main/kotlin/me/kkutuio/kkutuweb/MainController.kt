@@ -48,6 +48,7 @@ import kotlin.streams.asSequence
 class MainController(
     @Autowired private val kKuTuSetting: KKuTuSetting,
     @Autowired private val loginService: LoginService,
+    @Autowired private val accountService: me.kkutuio.kkutuweb.identity.AccountService,
     @Autowired private val setupService: SetupService,
     @Autowired private val blockService: BlockService,
     @Autowired private val ipCheckService: IpCheckService,
@@ -85,6 +86,11 @@ class MainController(
 
         val sessionProfile = loginService.getSessionProfile(session)
         val isGuest = sessionProfile == null
+
+        if (!isGuest) {
+            val account = accountService.currentAccount(session)
+            if (account != null && accountService.isServiceAccessBlocked(account)) return "redirect:/account"
+        }
 
         if (!isGuest && setupService.needSetup(sessionProfile!!)) {
             return "redirect:/setup"

@@ -58,7 +58,7 @@ class AccountService(
             )
             created
         }
-        dao.createKkutuProfile(account.id, account.legacyUserId)
+        if (!dao.hasAnyProfile(account.id)) dao.createKkutuProfile(account.id, account.legacyUserId)
         val profileLegacyUserId = selectedGameProfileLegacyUserId(account)
         userDao.getUser(selectedGameProfileId(account))?.nickname?.let { dao.updateProfileNickname(account.id, profileLegacyUserId, it) }
         dao.findActiveIdentity(provider, subject)?.let { dao.touchIdentity(it.id) }
@@ -169,6 +169,14 @@ class AccountService(
         if (account.status != AccountStatus.ACTIVE) throw IdpException("access_denied", "로그인할 수 없는 계정입니다.", 403)
     }
 
+    fun isServiceAccessBlocked(account: Account): Boolean =
+        account.deletionScheduledAt != null || (dao.defaultProfile(account.id) == null && dao.hasAnyProfile(account.id))
+
+    fun hasProfileHistory(account: Account): Boolean = dao.hasAnyProfile(account.id)
+
+    fun isDeletionPending(account: Account): Boolean =
+        account.deletionScheduledAt != null || dao.listProfiles(account.id).any { it["deletion_scheduled_at"] != null }
+
     private fun providerDisplayName(provider: AuthVendor): String = when (provider) {
         AuthVendor.NAVER -> "네이버"
         AuthVendor.KAKAO -> "카카오"
@@ -236,6 +244,8 @@ class AccountService(
             "login_methods" to dao.countActiveLoginMethods(account.id, settings.passwordEnabled),
             "passkeys" to dao.listPasskeys(account.id).size,
             "support_pin_issued_at" to dao.supportPinIssuedAt(account.id)?.toString(),
+            "deletion_requested_at" to account.deletionRequestedAt?.toString(),
+            "deletion_scheduled_at" to account.deletionScheduledAt?.toString(),
             "selected_profile_id" to dao.defaultProfile(account.id)?.get("id")?.toString()
             ,"profiles" to dao.listProfiles(account.id)
         )

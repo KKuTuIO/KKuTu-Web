@@ -321,6 +321,8 @@ class LoginService(
     }
 
     fun needsSetup(session: HttpSession): Boolean {
+        val account = accountService.currentAccount(session)
+        if (account != null && (accountService.isDeletionPending(account) || accountService.hasProfileHistory(account))) return false
         val profile = getSessionProfile(session) ?: return false
         return userDao.getUser(profile.id)?.nickname == null
     }

@@ -716,19 +716,19 @@
                                     class="material-symbols-outlined text-lg">content_copy</span></button>
                         </div>
                     </div>
-                    <div class="border-t border-gray-200 p-5 dark:border-gray-700">
-                        {#if selectedProfileDeletionAt}
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <p class="font-bold text-red-700 dark:text-red-300">프로필 삭제 신청 중</p>
-                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">{formatDeletionDate(selectedProfileDeletionAt)}에 자동 삭제됩니다. 그 전까지 삭제 신청을 해제할 수 있습니다.</p>
-                                </div>
-                                <button class="rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]" on:click={() => cancelProfileDeletion(selectedProfileData.id)}>삭제 신청 해제</button>
-                            </div>
-                        {:else}
-                            <button class="rounded-xl border border-red-300 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-50 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-950" on:click={() => openProfileDeletion(selectedProfileData)}>프로필 삭제</button>
-                        {/if}
-                    </div>
+                    <details class="group border-t border-gray-200 dark:border-gray-700">
+                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold">
+                            <span>프로필 삭제</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span>
+                        </summary>
+                        <div class="flex items-center justify-between gap-5 px-5 pb-5">
+                            <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">더 이상 해당 프로필 이용을 원하지 않으신다면 프로필을 삭제할 수 있습니다.</p>
+                            {#if selectedProfileDeletionAt}
+                                <a class="shrink-0 bg-black px-6 py-3 text-lg font-bold text-white transition hover:bg-gray-800" href={`/account/profile-delete?profile_id=${encodeURIComponent(selectedProfileData.id)}`}>관리</a>
+                            {:else}
+                                <a class="shrink-0 bg-black px-6 py-3 text-lg font-bold text-white transition hover:bg-gray-800" href={`/account/profile-delete?profile_id=${encodeURIComponent(selectedProfileData?.id || '')}`}>삭제</a>
+                            {/if}
+                        </div>
+                    </details>
                 </div>
             </section>
 
@@ -769,9 +769,9 @@
                        href="/account/apps"><span>연결된 앱</span><span
                             class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span
                             class="material-symbols-outlined">chevron_right</span></span></a>
-                    <button type="button" class="flex w-full items-center justify-between gap-3 border-t border-gray-200 p-5 text-left font-bold text-red-700 transition hover:bg-red-50 dark:border-gray-700 dark:text-red-300 dark:hover:bg-red-950" on:click={openAccountDeletion}>
+                    <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold text-gray-500 underline transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700" href="/account/delete">
                         <span>계정 탈퇴</span><span class="material-symbols-outlined">chevron_right</span>
-                    </button>
+                    </a>
                 </div>
             </section>
 

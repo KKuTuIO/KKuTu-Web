@@ -181,7 +181,7 @@ class IdentityDao(
     ) == 1
 
     fun dueProfileIds(): List<Map<String, Any?>> = jdbc.queryForList(
-        "SELECT id, legacy_user_id FROM game_profile WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100"
+        "SELECT id, legacy_user_id, id::text AS profile_user_id FROM game_profile WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100"
     )
     fun dueAccountIds(): List<UUID> = jdbc.queryForList(
         "SELECT id FROM account WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100",

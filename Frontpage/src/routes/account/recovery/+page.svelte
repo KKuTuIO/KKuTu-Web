@@ -191,4 +191,5 @@
             </div>
         </div>
     </section>
+    <a class="mx-auto mt-6 block w-full max-w-lg px-2 text-sm font-semibold text-gray-500 underline underline-offset-4 transition hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100" href="/account/delete">계정 탈퇴</a>
 </main>

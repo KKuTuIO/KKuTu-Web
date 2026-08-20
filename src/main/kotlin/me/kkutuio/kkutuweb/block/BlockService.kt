@@ -22,6 +22,22 @@ class BlockService(
     private val jdbcTemplate: JdbcTemplate,
     private val loginService: LoginService
 ) {
+    fun hasAccountRestriction(accountUuid: String): Boolean = jdbcTemplate.queryForObject(
+        """
+        SELECT EXISTS(
+            SELECT 1
+            FROM moderation_effects effects
+            JOIN moderation_cases cases ON cases.case_id = effects.case_id
+            WHERE effects.subject_user_id = ?
+              AND effects.effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
+              AND effects.apply_status = 'APPLIED'
+              AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL
+              AND effects.starts_at <= NOW()
+              AND (effects.permanent OR effects.ends_at > NOW())
+        )
+        """.trimIndent(), Boolean::class.java, accountUuid
+    ) == true
+
     fun getBlockStatus(request: HttpServletRequest): BlockStatus {
         val session = request.session
         val ip = request.getIp()

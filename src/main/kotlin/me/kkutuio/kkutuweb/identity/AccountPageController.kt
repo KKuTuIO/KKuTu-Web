@@ -23,6 +23,10 @@ class AccountPageController(
     fun connectedApplications(session: HttpSession): String = if (accounts.currentAccount(session) == null) "redirect:/login" else "forward:/account/apps.html"
     @GetMapping("/account/sanctions")
     fun sanctions(session: HttpSession): String = if (accounts.currentAccount(session) == null) "redirect:/login" else "forward:/account/sanctions.html"
+    @GetMapping("/account/profile-delete")
+    fun profileDelete(session: HttpSession): String = if (accounts.currentAccount(session) == null) "redirect:/login" else "forward:/account/profile-delete.html"
+    @GetMapping("/account/delete")
+    fun accountDelete(session: HttpSession): String = if (accounts.currentAccount(session) == null) "redirect:/login" else "forward:/account/delete.html"
     @GetMapping("/account/recovery") fun recovery(): String = "forward:/account/recovery.html"
     @GetMapping("/account/recovery/login")
     fun recoveryLogin(): String = "forward:/account/recovery.html"

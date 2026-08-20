@@ -7,6 +7,7 @@ import me.kkutuio.kkutuweb.extension.markRecentlyAuthenticated
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.moderation.ModerationService
 import me.kkutuio.kkutuweb.moderation.AdminModerationAuthorizer
+import me.kkutuio.kkutuweb.block.BlockService
 import me.kkutuio.kkutuweb.SessionAttribute
 import me.kkutuio.kkutuweb.setting.AdminSetting
 import org.springframework.http.ResponseEntity
@@ -50,23 +51,29 @@ class AccountApi(
     private val webAuthn: WebAuthnService,
     private val settings: IdentityProviderSettings,
     private val moderation: ModerationService,
-    private val adminAuthorizer: AdminModerationAuthorizer
+    private val adminAuthorizer: AdminModerationAuthorizer,
+    private val blockService: BlockService
 ) {
     @GetMapping("/csrf") fun csrf(request: HttpServletRequest): Map<String, String> {
         val token = (request.getAttribute(CsrfToken::class.java.name) ?: request.getAttribute("_csrf")) as? CsrfToken
             ?: throw IdpException("temporarily_unavailable", "CSRF 토큰을 만들 수 없습니다.", 503)
         return mapOf("token" to token.token, "header" to token.headerName, "parameter" to token.parameterName)
     }
-    @GetMapping("/summary") fun summary(session: HttpSession): Map<String, Any?> = accounts.summary(accounts.requireCurrentAccount(session))
+    @GetMapping("/summary") fun summary(session: HttpSession): Map<String, Any?> {
+        val account = accounts.requireCurrentAccount(session)
+        return accounts.summary(account) + ("account_restricted" to isAccountRestricted(account))
+    }
     @GetMapping("/profile-policy") fun profilePolicy(session: HttpSession): Map<String, Any?> {
         val account = accounts.requireCurrentAccount(session)
         val count = dao.countActiveProfiles(account.id)
         val limit = profileLimit(session)
         val previewId = java.util.UUID.randomUUID()
+        val restricted = isAccountRestricted(account)
         return mapOf(
             "count" to count,
             "limit" to limit,
-            "can_create" to (count < limit),
+            "can_create" to (count < limit && !restricted),
+            "restricted" to restricted,
             "preview_profile_id" to previewId.toString(),
             "nickname_tag" to dao.nicknameTagForNewProfile(account.id, previewId)
         )
@@ -80,7 +87,7 @@ class AccountApi(
     }
     @Transactional
     @PostMapping("/profile") fun createProfile(@RequestBody body: ProfileCreationRequest, session: HttpSession): Map<String, Any?> {
-        val account = recent(session)
+        val account = recentMutable(session)
         val nickname = body.nickname.trim()
         val validationError = nicknames.validationError(nickname)
         if (validationError != null) throw IdpException("invalid_nickname", nicknames.validationMessage(validationError))
@@ -118,19 +125,23 @@ class AccountApi(
         session.markRecentlyAuthenticated()
         return ResponseEntity.noContent().build()
     }
+    @GetMapping("/reauthentication/status") fun reauthenticationStatus(session: HttpSession): Map<String, Boolean> {
+        accounts.requireCurrentAccount(session)
+        return mapOf("required" to !session.hasRecentAuthentication())
+    }
     @PostMapping("/reauthenticate/email-mfa-code") fun reauthenticationEmailMfaCode(@RequestBody body: ReauthenticateRequest, session: HttpSession): ResponseEntity<Void> {
         requirePasswordEnabled()
         security.requestEmailMfaReauthenticationCode(accounts.requireCurrentAccount(session), body.password.toCharArray())
         return ResponseEntity.accepted().build()
     }
-    @GetMapping("/reauthenticate/oauth/{provider}") fun beginOAuthReauthentication(@PathVariable provider: String, session: HttpSession): ResponseEntity<Void> {
+    @GetMapping("/reauthenticate/oauth/{provider}") fun beginOAuthReauthentication(@PathVariable provider: String, @RequestParam(name = "return", required = false) returnUrl: String?, session: HttpSession): ResponseEntity<Void> {
         val account = accounts.requireCurrentAccount(session)
         accounts.ensureLegacyExternalIdentity(account)
         limiter.check("reauthenticate-oauth:${account.id}", 20, 3600)
         val vendor = me.kkutuio.kkutuweb.oauth.AuthVendor.fromName(provider) ?: throw IdpException("invalid_request", "지원하지 않는 제공사입니다.")
         val linked = dao.listIdentities(account.id).any { it.type == IdentityType.OAUTH && it.revokedAt == null && it.provider.equals(vendor.name, ignoreCase = true) }
         if (!linked) throw IdpException("forbidden", "연결된 로그인 수단만 사용할 수 있습니다.", 403)
-        session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, "/account")
+        session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, returnUrl?.takeIf { it.startsWith("/account") && !it.startsWith("//") } ?: "/account")
         val url = loginService.beginOAuthReauthentication(session, account, vendor)
             ?: throw IdpException("temporarily_unavailable", "로그인 제공사가 설정되지 않았습니다.", 503)
         return ResponseEntity.status(302).header("Location", url).build()
@@ -158,7 +169,7 @@ class AccountApi(
         dao.listConnectedApplications(accounts.requireCurrentAccount(session).id)
 
     @PostMapping("/profile/{profileId}/deletion") fun requestProfileDeletion(@PathVariable profileId: String, session: HttpSession): Map<String, Any?> {
-        val account = recent(session)
+        val account = recentMutable(session)
         val id = parseProfileId(profileId)
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
         val scheduled = dao.requestProfileDeletion(account.id, id) ?: throw IdpException("profile_deletion_unavailable", "삭제할 수 없는 프로필입니다.", 409)
@@ -167,7 +178,7 @@ class AccountApi(
     }
 
     @DeleteMapping("/profile/{profileId}/deletion") fun cancelProfileDeletion(@PathVariable profileId: String, session: HttpSession): ResponseEntity<Void> {
-        val account = recent(session)
+        val account = recentMutable(session)
         val id = parseProfileId(profileId)
         if (!dao.cancelProfileDeletion(account.id, id)) throw IdpException("not_found", "삭제 신청 중인 프로필을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "GAME_PROFILE_DELETION_CANCELLED", metadata = mapOf("profile_id" to id.toString()))
@@ -175,7 +186,7 @@ class AccountApi(
     }
 
     @PostMapping("/deletion") fun requestAccountDeletion(session: HttpSession): Map<String, Any?> {
-        val account = recent(session)
+        val account = recentMutable(session)
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
         val scheduled = dao.requestAccountDeletion(account.id) ?: throw IdpException("account_deletion_unavailable", "모든 프로필을 먼저 삭제해야 계정 탈퇴를 신청할 수 있습니다.", 409)
         dao.audit(account.id, "ACCOUNT_DELETION_REQUESTED", metadata = mapOf("scheduled_at" to scheduled.toString()))
@@ -183,7 +194,7 @@ class AccountApi(
     }
 
     @DeleteMapping("/deletion") fun cancelAccountDeletion(session: HttpSession): ResponseEntity<Void> {
-        val account = recent(session)
+        val account = recentMutable(session)
         if (!dao.cancelAccountDeletion(account.id)) throw IdpException("not_found", "계정 탈퇴 신청을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "ACCOUNT_DELETION_CANCELLED")
         return ResponseEntity.noContent().build()
@@ -262,6 +273,14 @@ class AccountApi(
         if (!session.hasRecentAuthentication()) throw IdpException("reauthentication_required", "본인인증이 필요합니다.", 401)
         return account
     }
+    private fun recentMutable(session: HttpSession): Account {
+        val account = recent(session)
+        if (isAccountRestricted(account)) throw IdpException("account_restricted", "이용제한된 계정은 이 작업을 수행할 수 없습니다.", 403)
+        if (account.status != AccountStatus.ACTIVE) throw IdpException("account_unavailable", "현재 계정 상태에서는 이 작업을 수행할 수 없습니다.", 403)
+        return account
+    }
+    private fun isAccountRestricted(account: Account): Boolean =
+        account.status != AccountStatus.ACTIVE || blockService.hasAccountRestriction(account.uuid.toString())
     private fun profileLimit(session: HttpSession): Int =
         if (adminAuthorizer.hasPrivilege(session, AdminSetting.Privilege.ADMIN_PROFILE)) 3 else 1
     private fun parseProfileId(value: String): java.util.UUID = runCatching { java.util.UUID.fromString(value) }.getOrElse { throw IdpException("invalid_request", "잘못된 프로필입니다.") }

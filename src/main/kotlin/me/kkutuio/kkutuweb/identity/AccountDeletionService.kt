@@ -17,7 +17,10 @@ class AccountDeletionService(
     fun processDueDeletions() {
         dao.dueProfileIds().forEach { row ->
             val profileId = UUID.fromString(row["id"].toString())
-            row["legacy_user_id"]?.toString()?.takeIf { it.isNotBlank() }?.let(users::archiveAndDelete)
+            val legacyUserId = row["legacy_user_id"]?.toString()?.takeIf { it.isNotBlank() }
+            val profileUserId = row["profile_user_id"]?.toString()?.takeIf { it.isNotBlank() }
+            val archived = legacyUserId?.let(users::archiveAndDelete) == true
+            if (!archived && profileUserId != legacyUserId) profileUserId?.let(users::archiveAndDelete)
             dao.completeProfileDeletion(profileId)
         }
         dao.dueAccountIds().forEach(dao::completeAccountDeletion)

@@ -102,7 +102,7 @@
         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">프로필 {policy.count}/{policy.limit}</p>
     {/if}
     {#if !loading && policy && !policy.can_create}
-        <p class="mt-3 text-sm text-red-600 dark:text-red-400">프로필 생성 한도에 도달했습니다.</p>
+        <p class="mt-3 text-sm text-red-600 dark:text-red-400">{policy.restricted ? '이용제한된 계정은 프로필을 만들 수 없습니다.' : '프로필 생성 한도에 도달했습니다.'}</p>
     {/if}
     {#if error}
         <p class="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>

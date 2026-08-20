@@ -160,8 +160,10 @@ class IdentityDao(
 
     fun requestProfileDeletion(accountId: UUID, profileId: UUID): Instant? = jdbc.queryForList(
         "UPDATE game_profile SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=CURRENT_TIMESTAMP + INTERVAL '14 days', updated_at=CURRENT_TIMESTAMP " +
-            "WHERE id=? AND account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL RETURNING deletion_scheduled_at",
-        profileId, accountId
+            "WHERE id=? AND account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL " +
+            "AND (SELECT count(*) FROM game_profile remaining WHERE remaining.account_id=? AND remaining.status='ACTIVE' AND remaining.deletion_scheduled_at IS NULL) > 1 " +
+            "RETURNING deletion_scheduled_at",
+        profileId, accountId, accountId
     ).firstOrNull()?.get("deletion_scheduled_at")?.let { (it as Timestamp).toInstant() }
 
     fun cancelProfileDeletion(accountId: UUID, profileId: UUID): Boolean = jdbc.update(
@@ -170,15 +172,25 @@ class IdentityDao(
     ) == 1
 
     fun requestAccountDeletion(accountId: UUID): Instant? = jdbc.queryForList(
-        "UPDATE account SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=CURRENT_TIMESTAMP + INTERVAL '14 days', updated_at=CURRENT_TIMESTAMP " +
-            "WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL AND NOT EXISTS (SELECT 1 FROM game_profile WHERE account_id=? AND status='ACTIVE') RETURNING deletion_scheduled_at",
+        "WITH scheduled AS (" +
+            "UPDATE account SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=CURRENT_TIMESTAMP + INTERVAL '14 days', updated_at=CURRENT_TIMESTAMP " +
+            "WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL RETURNING deletion_scheduled_at" +
+        "), profiles AS (" +
+            "UPDATE game_profile SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=(SELECT deletion_scheduled_at FROM scheduled), updated_at=CURRENT_TIMESTAMP " +
+            "WHERE account_id=? AND status='ACTIVE'" +
+        ") SELECT deletion_scheduled_at FROM scheduled",
         accountId, accountId
     ).firstOrNull()?.get("deletion_scheduled_at")?.let { (it as Timestamp).toInstant() }
 
-    fun cancelAccountDeletion(accountId: UUID): Boolean = jdbc.update(
-        "UPDATE account SET deletion_requested_at=NULL, deletion_scheduled_at=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NOT NULL",
-        accountId
-    ) == 1
+    fun cancelAccountDeletion(accountId: UUID): Boolean = jdbc.queryForObject(
+        "WITH cancelled AS (" +
+            "UPDATE account SET deletion_requested_at=NULL, deletion_scheduled_at=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NOT NULL RETURNING id" +
+        "), cleared AS (" +
+            "UPDATE game_profile SET deletion_requested_at=NULL, deletion_scheduled_at=NULL, updated_at=CURRENT_TIMESTAMP " +
+            "WHERE account_id IN (SELECT id FROM cancelled) AND status='ACTIVE' AND deletion_scheduled_at IS NOT NULL" +
+        ") SELECT EXISTS (SELECT 1 FROM cancelled)",
+        Boolean::class.java, accountId
+    ) == true
 
     fun dueProfileIds(): List<Map<String, Any?>> = jdbc.queryForList(
         "SELECT id, legacy_user_id, id::text AS profile_user_id FROM game_profile WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100"
@@ -187,11 +199,17 @@ class IdentityDao(
         "SELECT id FROM account WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100",
         UUID::class.java
     )
+    fun activeProfileDeletionRows(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList(
+        "SELECT id, legacy_user_id, id::text AS profile_user_id FROM game_profile WHERE account_id=? AND status='ACTIVE'",
+        accountId
+    )
     fun completeProfileDeletion(profileId: UUID) {
         jdbc.update("UPDATE account SET selected_profile_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE selected_profile_id=?", profileId)
         jdbc.update("UPDATE game_profile SET status='DELETED', updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE'", profileId)
     }
     fun completeAccountDeletion(accountId: UUID) {
+        jdbc.update("UPDATE account SET selected_profile_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?", accountId)
+        jdbc.update("UPDATE game_profile SET status='DELETED', updated_at=CURRENT_TIMESTAMP WHERE account_id=? AND status='ACTIVE'", accountId)
         jdbc.update("UPDATE account SET status='DELETED', session_not_before=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE'", accountId)
         revokeRefreshTokens(accountId)
         jdbc.update("UPDATE idp_access_token SET revoked_at=CURRENT_TIMESTAMP WHERE account_id=? AND revoked_at IS NULL", accountId)

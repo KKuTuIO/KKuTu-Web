@@ -31,9 +31,9 @@
     $: scheduledAt = isProfile ? profile?.deletion_scheduled_at : summary?.deletion_scheduled_at;
     $: pending = Boolean(scheduledAt);
     $: activeProfiles = (summary?.profiles || []).filter(item => item.status === 'ACTIVE' && !item.deletion_scheduled_at);
-    $: accountBlockedByProfiles = !isProfile && activeProfiles.length > 0;
+    $: profileDeletionBlocked = isProfile && activeProfiles.length <= 1;
     $: accountRestricted = Boolean(summary?.account_restricted);
-    $: canSubmit = consentService && consentIrreversible && !submitting && !accountBlockedByProfiles && !accountRestricted;
+    $: canSubmit = consentService && consentIrreversible && !submitting && !profileDeletionBlocked && !accountRestricted;
     $: deletionSubject = isProfile ? profile : summary?.profiles?.find(item => String(item.id) === String(summary?.selected_profile_id)) || summary?.profiles?.[0];
     $: originalName = deletionSubject?.nickname || summary?.nickname || deletionSubject?.id || summary?.uuid || '현재 계정';
     $: deletionTag = deletionSubject?.nickname_tag || '';
@@ -271,8 +271,8 @@
                 {#if accountRestricted}
                     <div class="blocking-notice">이용제한된 계정은 프로필 추가·삭제 및 계정 탈퇴를 진행할 수 없습니다.</div>
                 {/if}
-                {#if accountBlockedByProfiles}
-                    <div class="blocking-notice">계정 탈퇴를 신청하려면 기본 프로필을 제외한 모든 프로필을 먼저 삭제해야 합니다. 프로필 관리에서 각 프로필의 삭제 신청을 진행해 주세요.</div>
+                {#if profileDeletionBlocked}
+                    <div class="blocking-notice">계정에 프로필이 하나만 남아 있어 프로필을 삭제할 수 없습니다. 계정 탈퇴를 신청하거나 새 프로필을 만든 후 다시 시도해 주세요.</div>
                 {/if}
                 <label class="consent-row">
                     <span>끄투리오 {isProfile ? '프로필' : '계정'}을 삭제하면 끄투리오 {isProfile ? '프로필로 가입한' : '계정으로 이용한'} 모든 서비스에서 동시에 탈퇴 처리되어, 더 이상 해당 {isProfile ? '프로필' : '계정'}을 사용한 제휴 서비스에 접근할 수 없습니다.</span>
@@ -333,7 +333,7 @@
         <h3 style="font-weight: bold;">{formatDeletionDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000))} 이후</h3>
         <div class="confirmation-list">
             <p><span class="material-symbols-outlined">delete_forever</span><span>{isProfile ? '회원님의 전적, 경험치, 핑, 아이템 등 모든 게임 데이터가' : '회원님의 모든 프로필과 전적, 경험치, 핑, 아이템 등 모든 계정 데이터가'} 영구히 삭제됩니다.</span></p>
-            <p><span class="material-symbols-outlined">badge</span><span>사용하신 원천 로그인사 식별번호는 삭제되지 않으며 30일간 재가입이 불가능합니다.</span></p>
+            {#if !isProfile}<p><span class="material-symbols-outlined">badge</span><span>사용하신 원천 로그인사 식별번호는 삭제되지 않으며 30일간 재가입이 불가능합니다.</span></p>{/if}
             <p><span class="material-symbols-outlined">restore</span><span>삭제된 {isProfile ? '프로필' : '계정'}은 <strong>어떠한 경우에도 복구가 불가능</strong>합니다.</span></p>
         </div>
         <p class="confirmation-prompt">이에 동의하신다면 아래 글상자에 <strong>{confirmationPhrase}</strong>를 입력해 주세요.</p>

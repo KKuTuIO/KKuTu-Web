@@ -23,7 +23,15 @@ class AccountDeletionService(
             if (!archived && profileUserId != legacyUserId) profileUserId?.let(users::archiveAndDelete)
             dao.completeProfileDeletion(profileId)
         }
-        dao.dueAccountIds().forEach(dao::completeAccountDeletion)
+        dao.dueAccountIds().forEach { accountId ->
+            dao.activeProfileDeletionRows(accountId).forEach { row ->
+                val legacyUserId = row["legacy_user_id"]?.toString()?.takeIf { it.isNotBlank() }
+                val profileUserId = row["profile_user_id"]?.toString()?.takeIf { it.isNotBlank() }
+                val archived = legacyUserId?.let(users::archiveAndDelete) == true
+                if (!archived && profileUserId != legacyUserId) profileUserId?.let(users::archiveAndDelete)
+            }
+            dao.completeAccountDeletion(accountId)
+        }
         users.purgeDeletedUsers()
     }
 }

@@ -81,7 +81,7 @@ class AccountApi(
         )
     }
     @PutMapping("/profile") fun selectProfile(@RequestBody body: ProfileSelectionRequest, session: HttpSession): ResponseEntity<Void> {
-        val account = recent(session)
+        val account = accounts.requireCurrentAccount(session)
         val profileId = runCatching { java.util.UUID.fromString(body.profileId) }.getOrElse { throw IdpException("invalid_request", "잘못된 게임 프로필입니다.") }
         if (!dao.setSelectedProfile(account.id, profileId)) throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "GAME_PROFILE_SELECTED", metadata = mapOf("profile_id" to profileId.toString()))
@@ -190,6 +190,7 @@ class AccountApi(
     @PostMapping("/profile/{profileId}/deletion") fun requestProfileDeletion(@PathVariable profileId: String, session: HttpSession): Map<String, Any?> {
         val account = strongMutable(session)
         val id = parseProfileId(profileId)
+        if (dao.countActiveProfiles(account.id) <= 1) throw IdpException("profile_deletion_unavailable", "계정에 프로필이 하나만 남아 있어 삭제할 수 없습니다. 계정 탈퇴를 신청하거나 새 프로필을 먼저 만들어 주세요.", 409)
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
         val scheduled = dao.requestProfileDeletion(account.id, id) ?: throw IdpException("profile_deletion_unavailable", "삭제할 수 없는 프로필입니다.", 409)
         dao.audit(account.id, "GAME_PROFILE_DELETION_REQUESTED", metadata = mapOf("profile_id" to id.toString(), "scheduled_at" to scheduled.toString()))
@@ -207,7 +208,7 @@ class AccountApi(
     @PostMapping("/deletion") fun requestAccountDeletion(session: HttpSession): Map<String, Any?> {
         val account = strongMutable(session)
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
-        val scheduled = dao.requestAccountDeletion(account.id) ?: throw IdpException("account_deletion_unavailable", "모든 프로필을 먼저 삭제해야 계정 탈퇴를 신청할 수 있습니다.", 409)
+        val scheduled = dao.requestAccountDeletion(account.id) ?: throw IdpException("account_deletion_unavailable", "계정 탈퇴 신청을 처리할 수 없습니다.", 409)
         dao.audit(account.id, "ACCOUNT_DELETION_REQUESTED", metadata = mapOf("scheduled_at" to scheduled.toString()))
         return mapOf("scheduled_at" to scheduled)
     }

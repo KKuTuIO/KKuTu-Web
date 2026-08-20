@@ -623,15 +623,7 @@
             <section>
                 <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">계정 정보</h2>
                 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    <div class="flex items-center justify-between gap-5 p-5"><span class="font-bold">식별번호</span>
-                        <div class="flex max-w-[65%] items-center gap-2"><span
-                                class="break-all text-right font-mono text-sm text-gray-500 dark:text-gray-300">{accountIdentifier}</span>
-                            <button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white"
-                                    on:click={copyAccountIdentifier} aria-label="계정 식별번호 복사"><span
-                                    class="material-symbols-outlined text-lg">content_copy</span></button>
-                        </div>
-                    </div>
-                    <details class="group border-t border-gray-200 dark:border-gray-700">
+                    <details class="group">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>전자 메일 주소</span><span
                                 class="flex items-center gap-2 text-sm font-normal text-gray-500">{summary.email ? (summary.email_verified ? '인증됨' : '미인증') : '미등록'}
                             <span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span>
@@ -653,6 +645,14 @@
                             </div>
                         </div>
                     </details>
+                    <div class="flex items-center justify-between gap-5 border-t border-gray-200 p-5 dark:border-gray-700"><span class="font-bold">식별번호</span>
+                        <div class="flex max-w-[65%] items-center gap-2"><span
+                                class="break-all text-right font-mono text-sm text-gray-500 dark:text-gray-300">{accountIdentifier}</span>
+                            <button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white"
+                                    on:click={copyAccountIdentifier} aria-label="계정 식별번호 복사"><span
+                                    class="material-symbols-outlined text-lg">content_copy</span></button>
+                        </div>
+                    </div>
                     <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
                        href="/account/apps"><span>연결된 앱</span><span
                             class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span

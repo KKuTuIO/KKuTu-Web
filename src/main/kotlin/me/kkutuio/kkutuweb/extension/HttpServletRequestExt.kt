@@ -21,26 +21,17 @@ package me.kkutuio.kkutuweb.extension
 import javax.servlet.http.HttpServletRequest
 
 fun HttpServletRequest.getIp(): String {
-    val cfHeader = this.getHeader("HTTP_CF_CONNECTING_IP")
-    val forwardedForHeader = this.getHeader("X-FORWARDED-FOR")
+    val cfHeader = this.getHeader("CF-Connecting-IP")
+        ?: this.getHeader("HTTP_CF_CONNECTING_IP")
+    val realIpHeader = this.getHeader("X-Real-IP")
+    val forwardedForHeader = this.getHeader("X-Forwarded-For")
 
     return when {
-        cfHeader != null -> {
-            if (cfHeader.contains(",")) {
-                cfHeader.split(",")[0].trim()
-            } else {
-                cfHeader
-            }
-        }
-        forwardedForHeader != null -> {
-            if (forwardedForHeader.contains(",")) {
-                forwardedForHeader.split(",")[0].trim()
-            } else {
-                forwardedForHeader
-            }
-        }
-        else -> {
-            this.remoteAddr
-        }
+        !cfHeader.isNullOrBlank() -> cfHeader.firstForwardedIp()
+        !realIpHeader.isNullOrBlank() -> realIpHeader.firstForwardedIp()
+        !forwardedForHeader.isNullOrBlank() -> forwardedForHeader.firstForwardedIp()
+        else -> this.remoteAddr
     }
 }
+
+private fun String.firstForwardedIp(): String = substringBefore(',').trim()

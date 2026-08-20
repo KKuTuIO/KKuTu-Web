@@ -77,13 +77,23 @@ class AccountSecurityService(
     }
 
     @Transactional
-    fun consumeOneTimeLoginCode(code: String): Account {
-        val accountId = dao.consumeRecoveryCodeByHash(SecretTools.sha256(code.trim().uppercase()))
-            ?: throw IdpException("invalid_one_time_login_code", "일회용 비밀번호가 올바르지 않거나 이미 사용되었습니다.")
-        val account = dao.findAccount(accountId)
-            ?: throw IdpException("invalid_one_time_login_code", "일회용 비밀번호가 올바르지 않거나 이미 사용되었습니다.")
+    fun consumeOneTimeLoginCode(identifier: String, code: String): Account {
+        val account = findRecoveryAccount(identifier)
+            ?: throw IdpException("invalid_one_time_login_code", "식별번호 또는 전자 메일 주소가 올바르지 않습니다.")
+        if (!dao.consumeRecoveryCodeByHash(account.id, SecretTools.sha256(code.trim().uppercase()))) {
+            throw IdpException("invalid_one_time_login_code", "일회용 비밀번호가 이미 사용되었거나 올바르지 않습니다.")
+        }
         dao.audit(account.id, "ONE_TIME_LOGIN_CODE_USED")
         return account
+    }
+
+    private fun findRecoveryAccount(identifier: String): Account? {
+        val normalized = identifier.trim()
+        if (normalized.isBlank()) return null
+        dao.findAccountByLegacyId(normalized)?.let { return it }
+        val emailIdentity = dao.findIdentity("EMAIL", normalized.lowercase())
+            ?.takeIf { it.type == IdentityType.EMAIL && it.verifiedAt != null && it.revokedAt == null }
+        return emailIdentity?.let { dao.findAccount(it.accountId) }
     }
 
     private fun replacePassword(account: Account, password: CharArray, auditEvent: String) {

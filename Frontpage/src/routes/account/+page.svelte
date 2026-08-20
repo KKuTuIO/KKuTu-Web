@@ -565,13 +565,14 @@
                         </div>
                     </details>
                     <div class="flex items-center justify-between gap-5 p-5"><span class="font-bold">식별번호</span><div class="flex max-w-[65%] items-center gap-2"><span class="break-all text-right font-mono text-sm text-gray-500 dark:text-gray-300">{summary.legacy_user_id}</span><button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white" on:click={copyIdentifier} aria-label="식별번호 복사"><span class="material-symbols-outlined text-lg">content_copy</span></button></div></div>
-                    {#if passwordEnabled}
-                        <details class="group border-t border-gray-200 dark:border-gray-700">
-                            <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>전자 메일 주소</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary>
-                            <div class="px-5 pb-5"><div class="flex items-center justify-between gap-3"><p class="text-sm text-gray-500 dark:text-gray-300">{summary.email || '미등록'}</p>{#if summary.email}<button class="text-sm font-bold text-red-700" on:click={removeEmail}>삭제</button>{/if}</div>
-                                <div class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" type="email" placeholder="새 전자 메일 주소" bind:value={email}/><button class="rounded-xl border border-[#55aa55] px-4 py-3 text-sm font-bold text-[#438c43]" on:click={addEmail}>인증</button></div></div>
-                        </details>
-                    {/if}
+                    <details class="group border-t border-gray-200 dark:border-gray-700">
+                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>전자 메일 주소</span><span class="flex items-center gap-2 text-sm font-normal text-gray-500">{summary.email ? (summary.email_verified ? '인증됨' : '미인증') : '미등록'}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
+                        <div class="px-5 pb-5">
+                            <div class="flex items-center justify-between gap-3"><p class="text-sm text-gray-500 dark:text-gray-300">{summary.email || '등록된 전자 메일 주소가 없습니다.'}</p>{#if summary.email}<button class="shrink-0 text-sm font-bold text-red-700" on:click={removeEmail}>삭제</button>{/if}</div>
+                            <p class="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-300">새 전자 메일 주소를 입력하면 인증 완료 후 기존 전자 메일 주소가 변경됩니다.</p>
+                            <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" type="email" placeholder="새 전자 메일 주소" bind:value={email} autocomplete="email"/><button class="rounded-xl border border-[#55aa55] px-4 py-3 text-sm font-bold text-[#438c43]" on:click={addEmail}>인증 메일 보내기</button></div>
+                        </div>
+                    </details>
                     <details class="group border-t border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>계정 연동</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{linkedProviderCount}/{oauthProviders.length}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
                         <div class="border-t border-gray-100 px-5 dark:border-gray-700">
@@ -589,7 +590,7 @@
                                         {/if}
                                     </div>
                                     {#if identity?.revocable}
-                                        <button class="shrink-0 rounded-xl border border-red-300 px-4 py-2 text-sm font-bold text-red-700 dark:border-red-900" on:click={() => revoke(identity)}>연동 해제</button>
+                                        <button class="shrink-0 rounded-xl border border-red-300 px-4 py-2 text-sm font-bold text-red-700 dark:border-red-900" on:click={() => revoke(identity)}>연동해제</button>
                                     {:else if identity}
                                         <span class="shrink-0 text-sm text-gray-500">기본 로그인 수단</span>
                                     {:else}

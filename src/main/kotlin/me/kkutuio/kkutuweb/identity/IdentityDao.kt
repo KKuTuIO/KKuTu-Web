@@ -227,10 +227,10 @@ class IdentityDao(
 
     fun revokeRecoveryCodes(accountId: UUID) = jdbc.update("UPDATE account_recovery_code SET revoked_at=CURRENT_TIMESTAMP WHERE account_id=? AND revoked_at IS NULL", accountId)
     fun insertRecoveryCode(accountId: UUID, hash: String) = jdbc.update("INSERT INTO account_recovery_code(account_id, code_hash) VALUES (?, ?)", accountId, hash)
-    fun consumeRecoveryCodeByHash(hash: String): UUID? = jdbc.queryForList(
-        "UPDATE account_recovery_code SET used_at=CURRENT_TIMESTAMP WHERE code_hash=? AND used_at IS NULL AND revoked_at IS NULL RETURNING account_id",
-        hash
-    ).firstOrNull()?.get("account_id")?.toString()?.let(UUID::fromString)
+    fun consumeRecoveryCodeByHash(accountId: UUID, hash: String): Boolean = jdbc.queryForList(
+        "UPDATE account_recovery_code SET used_at=CURRENT_TIMESTAMP WHERE account_id=? AND code_hash=? AND used_at IS NULL AND revoked_at IS NULL RETURNING account_id",
+        accountId, hash
+    ).isNotEmpty()
     fun activeRecoveryCodeCount(accountId: UUID): Int = jdbc.queryForObject("SELECT count(*) FROM account_recovery_code WHERE account_id=? AND used_at IS NULL AND revoked_at IS NULL", Int::class.java, accountId) ?: 0
 
     fun upsertSupportPin(accountId: UUID, hash: String) = jdbc.update("INSERT INTO account_support_pin(account_id, pin_hash) VALUES (?, ?) ON CONFLICT(account_id) DO UPDATE SET pin_hash=EXCLUDED.pin_hash, issued_at=CURRENT_TIMESTAMP, revoked_at=NULL", accountId, hash)

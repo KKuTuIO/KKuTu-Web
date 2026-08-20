@@ -26,7 +26,7 @@ data class TotpSetupRequest(val name: String? = null)
 data class TotpRenameRequest(val name: String)
 data class RecoveryRequest(val email: String, val recaptchaToken: String? = null)
 data class ResetPasswordRequest(val token: String, val password: String, val recaptchaToken: String? = null)
-data class OneTimeLoginCodeRequest(val code: String, val recaptchaToken: String? = null)
+data class OneTimeLoginCodeRequest(val identifier: String, val code: String, val recaptchaToken: String? = null)
 data class ExternalSecondFactorRequest(val totpCode: String? = null, val securityCode: String? = null, val emailCode: String? = null)
 data class ExternalMfaSettingRequest(val enabled: Boolean)
 data class ProfileSelectionRequest(val profileId: String)
@@ -213,7 +213,7 @@ class AccountRecoveryApi(
         return ResponseEntity.accepted().body(mapOf("message" to "입력한 정보가 등록되어 있다면 복구 안내를 보냈습니다."))
     }
     @PostMapping("/api/account/recovery/reset") fun reset(@RequestBody body: ResetPasswordRequest, request: HttpServletRequest): ResponseEntity<Void> { requirePasswordEnabled(); captcha.verify(body.recaptchaToken, request.getIp(), "account_recovery_reset"); limiter.check("reset-ip:" + request.getIp(), 10, 3600); security.resetPassword(body.token, body.password.toCharArray()); return ResponseEntity.noContent().build() }
-    @PostMapping("/api/account/recovery/one-time-login-code") fun oneTimeLoginCode(@RequestBody body: OneTimeLoginCodeRequest, request: HttpServletRequest): ResponseEntity<Void> { captcha.verify(body.recaptchaToken, request.getIp(), "account_one_time_login_code"); limiter.check("one-time-login-code-ip:" + request.getIp(), 10, 3600); loginService.loginWithAccount(request, security.consumeOneTimeLoginCode(body.code)); return ResponseEntity.noContent().build() }
+    @PostMapping("/api/account/recovery/one-time-login-code") fun oneTimeLoginCode(@RequestBody body: OneTimeLoginCodeRequest, request: HttpServletRequest): ResponseEntity<Void> { captcha.verify(body.recaptchaToken, request.getIp(), "account_one_time_login_code"); limiter.check("one-time-login-code-ip:" + request.getIp(), 10, 3600); loginService.loginWithAccount(request, security.consumeOneTimeLoginCode(body.identifier, body.code)); return ResponseEntity.noContent().build() }
     @GetMapping("/api/account/login/mfa") fun pendingExternalSecondFactor(session: HttpSession): Map<String, Boolean> {
         val account = loginService.pendingSecondFactorAccount(session)
         return mapOf("pending" to (account != null), "email_backup_available" to (account?.let(security::isEmailMfaBackupAvailable) ?: false))

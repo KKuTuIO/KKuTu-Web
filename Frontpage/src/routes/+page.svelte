@@ -427,7 +427,10 @@
                                     <h3 class="text-2xl font-bold text-white truncate w-48">{@html ingameName}</h3>
                                 </div>
                                 <p class="text-gray-300">{score.toLocaleString()}점</p>
-                                <p class="text-gray-300">{authVendor === 'LOCAL' ? '계정 로그인' : `${authVendor} 계정`}</p>
+                                <a href="/account" rel="external" class="mt-2 inline-flex w-fit items-center gap-x-1 rounded-none bg-[#55aa55] px-3 py-1 text-sm font-bold text-white transition hover:bg-[#51a351] active:scale-95">
+                                    <span class="material-symbols-outlined text-base">account_circle</span>
+                                    계정 관리
+                                </a>
                             </div>
                         {:else}
                             <div class="w-[120px] h-[120px]">
@@ -447,6 +450,18 @@
                     {/await}
                 </div>
             {/if}
+            </div>
+            <div class="col-span-2 w-full">
+                {#each finalData.slice(4, 5) as cafeNotice}
+                    <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="flex items-center justify-start gap-x-4 w-full h-full">
+                        <img src={`https://cdn.kkutu.io/img/front/notice/${cafeNotice.bannerName}.png`} class="h-32 bg-white aspect-video" alt="Patch note"/>
+                        <div class="flex flex-col">
+                            <h3 class="text-2xl font-bold text-white">{cafeNotice.subject}</h3>
+                            <p class="text-gray-300">{cafeNotice.content}</p>
+                            <p class="text-[#55aa55] hover:text-[#51a351] font-bold">자세히 보기</p>
+                        </div>
+                    </a>
+                {/each}
             </div>
 
         </div>

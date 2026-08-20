@@ -245,7 +245,7 @@
                     <p class="mt-4 text-lg leading-8 text-gray-300">
                         문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.
                         이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,
-                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.
+                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.<br>
                         문의 시 <span class="text-xl font-bold text-white">{blockData.inquiryId}</span> 문구와 함께
                         문의를 접수해 주세요.
                     </p>
@@ -287,7 +287,7 @@
                     <p class="mt-4 text-lg leading-8 text-gray-300">
                         문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.
                         이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,
-                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.
+                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.<br>
                         문의 시 <span class="text-xl font-bold text-white">{blockData.inquiryId}</span> 문구와 함께
                         문의를 접수해 주세요.
                     </p>

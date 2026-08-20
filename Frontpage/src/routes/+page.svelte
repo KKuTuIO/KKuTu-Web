@@ -242,18 +242,18 @@
                         </tr>
                     </table>
 
-                    <p class="mt-4 text-base leading-8 text-gray-300">
-                        문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>
-                        이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br>
-                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.<br>
-                        문의 시 <span class="text-xl font-black text-white">{blockData.inquiryId}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                    <p class="mt-4 text-lg leading-8 text-gray-300">
+                        문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.
+                        이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,
+                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.
+                        문의 시 <span class="text-xl font-bold text-white">{blockData.inquiryId}</span> 문구와 함께
+                        문의를 접수해 주세요.
                     </p>
                     <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
                         <button class="mt-4 rounded-full bg-green-600 px-5 py-2.5 text-base font-bold hover:bg-green-700">고객센터 문의하기</button>
                     </a>
-                    <br>
                     <a href="https://kkutu.io/login" rel="external">
-                        <button class="text-gray-300">로그인 (게임 이용 가능)</button>
+                        <button class="mt-2 text-gray-300">로그인 (게임 이용 가능)</button>
                     </a>
                 </div>
             {:else}
@@ -284,11 +284,12 @@
                         </tr>
                     </table>
 
-                    <p class="mt-4 text-base leading-8 text-gray-300">
-                        문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.<br>
-                        이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,<br>
-                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.<br>
-                        문의 시 <span class="text-xl font-black text-white">{blockData.inquiryId}</span> 문구와 함께 자세한 문의 내용을 작성해주시기 바랍니다.
+                    <p class="mt-4 text-lg leading-8 text-gray-300">
+                        문의가 있으실 경우 고객센터로 문의해주시기 바랍니다.
+                        이용제한 기간 중 다른 계정을 이용하여 게임을 플레이할 경우,
+                        <strong>이용제한 기간이 연장</strong>될 수 있습니다.
+                        문의 시 <span class="text-xl font-bold text-white">{blockData.inquiryId}</span> 문구와 함께
+                        문의를 접수해 주세요.
                     </p>
                     <div class="mt-4 flex flex-wrap justify-center gap-3">
                         <a href="/account/sanctions" class="inline-flex items-center justify-center rounded-full border border-slate-500 px-5 py-2.5 text-base font-bold text-slate-100 transition hover:border-slate-300 hover:bg-white/10">제재 내역</a>
@@ -296,9 +297,8 @@
                             <button class="rounded-full bg-green-600 px-5 py-2.5 text-base font-bold hover:bg-green-700">고객센터 문의하기</button>
                         </a>
                     </div>
-                    <br>
                     <a href="https://kkutu.io/logout" rel="external">
-                        <button class="text-gray-300 mb-4">로그아웃</button>
+                        <button class="mt-2 text-gray-300">로그아웃</button>
                     </a>
                 </div>
             {/if}

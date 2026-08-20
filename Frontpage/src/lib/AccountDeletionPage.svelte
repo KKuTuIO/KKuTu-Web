@@ -272,7 +272,7 @@
                     <div class="blocking-notice">이용제한된 계정은 프로필 추가·삭제 및 계정 탈퇴를 진행할 수 없습니다.</div>
                 {/if}
                 {#if accountBlockedByProfiles}
-                    <div class="blocking-notice">계정 탈퇴를 신청하려면 모든 프로필을 먼저 삭제해야 합니다. 프로필 관리에서 각 프로필의 삭제 신청을 진행해 주세요.</div>
+                    <div class="blocking-notice">계정 탈퇴를 신청하려면 기본 프로필을 제외한 모든 프로필을 먼저 삭제해야 합니다. 프로필 관리에서 각 프로필의 삭제 신청을 진행해 주세요.</div>
                 {/if}
                 <label class="consent-row">
                     <span>끄투리오 {isProfile ? '프로필' : '계정'}을 삭제하면 끄투리오 {isProfile ? '프로필로 가입한' : '계정으로 이용한'} 모든 서비스에서 동시에 탈퇴 처리되어, 더 이상 해당 {isProfile ? '프로필' : '계정'}을 사용한 제휴 서비스에 접근할 수 없습니다.</span>
@@ -314,7 +314,7 @@
             <input id="deletion-reauth-password" type="password" bind:value={reauthPassword} autocomplete="current-password" placeholder="비밀번호"/>
             <input type="text" inputmode="numeric" bind:value={reauthTotpCode} autocomplete="one-time-code" placeholder="TOTP 인증 코드 또는 보안코드"/>
             <button class="reauth-submit" on:click={reauthenticate}>확인</button>
-            {#if reauthMfaRequired}<p class="reauth-help">TOTP 또는 보안코드를 입력해 주세요.</p>{/if}
+            {#if reauthMfaRequired}<p class="reauth-help">TOTP 인증 코드 또는 보안코드를 입력해 주세요.</p>{/if}
         </div>
     {/if}
     <LoginMethodSelector providerIds={reauthProviderIds} showPasskey={false} providerUrl={providerUrl}/>
@@ -322,15 +322,15 @@
 
 <AccountModal open={confirmationOpen} title={title} wide showFooter={false} priority on:close={() => confirmationOpen = false}>
     <div class="confirmation-content">
-        <h2>{title}을 진행하면 다음과 같은 작업이 실행됩니다.</h2>
-        <h3>즉시 적용</h3>
+        <h2>{title}를 진행하면 다음과 같은 작업이 실행됩니다.</h2>
+        <h3 style="font-weight: bold;">즉시 적용</h3>
         <div class="confirmation-list">
             <p><span class="material-symbols-outlined">emoji_events</span><span>{isProfile ? '회원님의 프로필이 랭킹에서 삭제됩니다.' : '회원님의 모든 프로필이 랭킹에서 삭제됩니다.'}</span></p>
             <p><span class="material-symbols-outlined">edit</span><span>{isProfile ? '회원님의 프로필 별명이' : '회원님의 계정에 속한 별명이'} <strong>{deletionAlias}</strong>(으)로 변경됩니다.</span></p>
             <p><span class="material-symbols-outlined">person_off</span><span><strong>{originalName}</strong>(으)로 더 이상 게임에 접속할 수 없습니다.</span></p>
             <p><span class="material-symbols-outlined">link_off</span><span>{isProfile ? '이 프로필을 연결한 앱' : '이 계정에 연결한 앱'} {applications.length}개의 연결이 즉시 해제됩니다.</span></p>
         </div>
-        <h3>{formatDeletionDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000))} 이후</h3>
+        <h3 style="font-weight: bold;">{formatDeletionDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000))} 이후</h3>
         <div class="confirmation-list">
             <p><span class="material-symbols-outlined">delete_forever</span><span>{isProfile ? '회원님의 전적, 경험치, 핑, 아이템 등 모든 게임 데이터가' : '회원님의 모든 프로필과 전적, 경험치, 핑, 아이템 등 모든 계정 데이터가'} 영구히 삭제됩니다.</span></p>
             <p><span class="material-symbols-outlined">badge</span><span>사용하신 원천 로그인사 식별번호는 삭제되지 않으며 30일간 재가입이 불가능합니다.</span></p>

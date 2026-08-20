@@ -970,7 +970,7 @@
             </section>
         {:else if loading}
             <section
-                    class="rounded-lg bg-white p-8 text-center text-sm text-gray-500 shadow-md dark:bg-gray-800 dark:text-gray-300">
+                    class="rounded-2xl bg-white p-8 text-center text-sm text-gray-500 shadow-md dark:bg-gray-800 dark:text-gray-300">
                 계정 정보를 불러오는 중입니다.
             </section>
         {:else}

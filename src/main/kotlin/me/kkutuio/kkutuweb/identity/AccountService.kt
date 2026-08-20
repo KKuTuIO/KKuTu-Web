@@ -28,15 +28,30 @@ class AccountService(
         } else {
             val isFreshAfterRevocation = historicalIdentity?.revokedAt != null
             val legacyId = if (isFreshAfterRevocation) UUID.randomUUID().toString() else oauth.getUserId()
-            val created = dao.findAccountByLegacyId(legacyId) ?: dao.createAccount(legacyId)
-            val identity = dao.insertIdentity(created.id, IdentityType.OAUTH, provider, subject, oauth.name, verified = true, primary = true)
-            dao.setOriginAndPrimary(created.id, identity.id)
+            val canonicalAccount = if (isFreshAfterRevocation) null else dao.findAccountByLegacyId(legacyId)
+            val canonicalUserExists = if (isFreshAfterRevocation || canonicalAccount != null) false else userDao.getUser(legacyId) != null
+            val legacyAccount = if (isFreshAfterRevocation || canonicalAccount != null || canonicalUserExists) {
+                null
+            } else {
+                dao.findAccountByGameProfileLegacyId(oauth.vendorId)
+            }
+            val created = canonicalAccount ?: legacyAccount ?: dao.createAccount(legacyId)
+            val makePrimary = created.primaryIdentityId == null || created.primaryIdentityId == 0L
+            val identity = dao.insertIdentity(created.id, IdentityType.OAUTH, provider, subject, oauth.name, verified = true, primary = makePrimary)
+            if (makePrimary) {
+                dao.setOriginAndPrimary(created.id, identity.id)
+            }
             if (created.status == AccountStatus.PROVISIONED) {
                 dao.setStatus(created.id, AccountStatus.ACTIVE)
             }
             dao.audit(
                 created.id, "IDENTITY_CREATED", identity.id, request?.getIp()?.let(SecretTools::sha256),
-                mapOf("type" to "OAUTH", "provider" to provider, "fresh_after_revocation" to isFreshAfterRevocation)
+                mapOf(
+                    "type" to "OAUTH",
+                    "provider" to provider,
+                    "fresh_after_revocation" to isFreshAfterRevocation,
+                    "legacy_account_claimed" to (legacyAccount != null)
+                )
             )
             created
         }
@@ -140,6 +155,7 @@ class AccountService(
      */
     fun isKnownExternalAccount(oauth: OAuthUser): Boolean =
         findExternalAccount(oauth) != null ||
+            dao.findAccountByGameProfileLegacyId(oauth.vendorId) != null ||
             dao.findAccountByLegacyId(oauth.getUserId()) != null ||
             userDao.getUser(oauth.getUserId()) != null
 

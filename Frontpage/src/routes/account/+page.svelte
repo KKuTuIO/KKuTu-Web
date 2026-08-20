@@ -553,7 +553,7 @@
             </section>
 
             <section>
-                <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">계정 개요</h2>
+                <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">계정 정보</h2>
                 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     <details open class="group border-b border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>별명</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary>
@@ -569,11 +569,20 @@
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>전자 메일 주소</span><span class="flex items-center gap-2 text-sm font-normal text-gray-500">{summary.email ? (summary.email_verified ? '인증됨' : '미인증') : '미등록'}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
                         <div class="px-5 pb-5">
                             <div class="flex items-center justify-between gap-3"><p class="text-sm text-gray-500 dark:text-gray-300">{summary.email || '등록된 전자 메일 주소가 없습니다.'}</p>{#if summary.email}<button class="shrink-0 text-sm font-bold text-red-700" on:click={removeEmail}>삭제</button>{/if}</div>
-                            <p class="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-300">새 전자 메일 주소를 입력하면 인증 완료 후 기존 전자 메일 주소가 변경됩니다.</p>
                             <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" type="email" placeholder="새 전자 메일 주소" bind:value={email} autocomplete="email"/><button class="rounded-xl border border-[#55aa55] px-4 py-3 text-sm font-bold text-[#438c43]" on:click={addEmail}>인증 메일 보내기</button></div>
                         </div>
                     </details>
-                    <details class="group border-t border-gray-200 dark:border-gray-700">
+                    <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700" href="/account/apps"><span>연결된 앱</span><span class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span class="material-symbols-outlined">chevron_right</span></span></a>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">로그인 정보</h2>
+                <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    {#if passwordEnabled}
+                        <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>비밀번호</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><div class="grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" type="password" minlength="12" placeholder="새 비밀번호 (12자 이상)" bind:value={password}/><button class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-white dark:bg-gray-700" on:click={setPassword}>{identities.some(identity => identity.type === 'PASSWORD') ? '변경' : '설정'}</button></div></div></details>
+                    {/if}
+                    <details class="group border-b border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>계정 연동</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{linkedProviderCount}/{oauthProviders.length}<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
                         <div class="border-t border-gray-100 px-5 dark:border-gray-700">
                             {#each oauthProviders as provider}
@@ -600,16 +609,6 @@
                             {/each}
                         </div>
                     </details>
-                    <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700" href="/account/apps"><span>연결된 앱</span><span class="flex items-center gap-2 text-sm font-normal text-gray-500">보기<span class="material-symbols-outlined">chevron_right</span></span></a>
-                </div>
-            </section>
-
-            <section>
-                <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">로그인 수단</h2>
-                <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                    {#if passwordEnabled}
-                        <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>비밀번호</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><div class="grid gap-2 sm:grid-cols-[1fr_auto]"><input class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900" type="password" minlength="12" placeholder="새 비밀번호 (12자 이상)" bind:value={password}/><button class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-white dark:bg-gray-700" on:click={setPassword}>{identities.some(identity => identity.type === 'PASSWORD') ? '변경' : '설정'}</button></div></div></details>
-                    {/if}
                     <details class="group border-b border-gray-200 dark:border-gray-700">
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>패스키</span><span class="flex items-center gap-3 text-sm font-normal text-gray-500">{passkeys.length}/10<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span></summary>
                         <div class="px-5 pb-5">
@@ -654,7 +653,7 @@
             </section>
 
             <section>
-                <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">지원 · 복구</h2>
+                <h2 class="mb-3 text-2xl font-bold text-gray-700 dark:text-gray-100">고객지원 · 복구</h2>
                 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     <details class="group border-b border-gray-200 dark:border-gray-700"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>지원 PIN</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><p class="text-sm text-gray-500 dark:text-gray-300">고객센터 상담 시 본인 확인에 사용합니다.</p><button class="mt-3 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700" on:click={issuePin}>발급</button></div></details>
                     <details class="group"><summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>보안 코드</span><span class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span></summary><div class="px-5 pb-5"><p class="text-sm text-gray-500 dark:text-gray-300">계정 복구에 필요한 보안 코드를 확인합니다.</p><button class="mt-3 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600" on:click={revealSecurityCode}>보기</button></div></details>

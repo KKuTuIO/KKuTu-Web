@@ -925,9 +925,9 @@
                                 class="flex items-center gap-3 text-sm font-normal text-gray-500">{mfa?.one_time_login_codes_remaining || 0}
                             개<span class="material-symbols-outlined transition group-open:rotate-180">expand_more</span></span>
                         </summary>
-                        <div class="px-5 pb-5"><p class="mb-3 text-sm text-gray-500 dark:text-gray-300">각 코드는 한 번만 로그인에
+                        <div class="flex items-center justify-between gap-5 px-5 pb-5"><p class="min-w-0 flex-1 text-sm text-gray-500 dark:text-gray-300">각 코드는 한 번만 로그인에
                             사용할 수 있습니다.</p>
-                            <button class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
+                            <button class="shrink-0 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
                                     on:click={rotateOneTimeLoginCodes}>새 코드 발급
                             </button>
                         </div>
@@ -942,9 +942,9 @@
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>지원 PIN</span><span
                                 class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span>
                         </summary>
-                        <div class="px-5 pb-5"><p class="text-sm text-gray-500 dark:text-gray-300">고객센터 상담 시 본인 확인에
+                        <div class="flex items-center justify-between gap-5 px-5 pb-5"><p class="min-w-0 flex-1 text-sm text-gray-500 dark:text-gray-300">고객센터 상담 시 본인 확인에
                             사용합니다.</p>
-                            <button class="mt-3 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700"
+                            <button class="shrink-0 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700"
                                     on:click={issuePin}>발급
                             </button>
                         </div>
@@ -953,9 +953,9 @@
                         <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>보안 코드</span><span
                                 class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span>
                         </summary>
-                        <div class="px-5 pb-5"><p class="text-sm text-gray-500 dark:text-gray-300">계정 복구에 필요한 보안 코드를
+                        <div class="flex items-center justify-between gap-5 px-5 pb-5"><p class="min-w-0 flex-1 text-sm text-gray-500 dark:text-gray-300">계정 복구에 필요한 보안 코드를
                             확인합니다.</p>
-                            <button class="mt-3 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
+                            <button class="shrink-0 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
                                     on:click={revealSecurityCode}>보기
                             </button>
                         </div>

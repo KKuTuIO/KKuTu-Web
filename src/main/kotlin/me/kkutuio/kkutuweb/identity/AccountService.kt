@@ -184,7 +184,7 @@ class AccountService(
         else -> provider.name.lowercase().replaceFirstChar { it.uppercase() }
     }
 
-    fun bindSession(session: HttpSession, account: Account, recentlyAuthenticated: Boolean = false) {
+    fun bindSession(session: HttpSession, account: Account, recentlyAuthenticated: Boolean = true) {
         session.setAccountId(account.id)
         session.markAuthenticated()
         if (recentlyAuthenticated) session.markRecentlyAuthenticated()

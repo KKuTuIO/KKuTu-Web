@@ -31,6 +31,9 @@ class AccountService(
             val created = dao.findAccountByLegacyId(legacyId) ?: dao.createAccount(legacyId)
             val identity = dao.insertIdentity(created.id, IdentityType.OAUTH, provider, subject, oauth.name, verified = true, primary = true)
             dao.setOriginAndPrimary(created.id, identity.id)
+            if (created.status == AccountStatus.PROVISIONED) {
+                dao.setStatus(created.id, AccountStatus.ACTIVE)
+            }
             dao.audit(
                 created.id, "IDENTITY_CREATED", identity.id, request?.getIp()?.let(SecretTools::sha256),
                 mapOf("type" to "OAUTH", "provider" to provider, "fresh_after_revocation" to isFreshAfterRevocation)
@@ -38,7 +41,8 @@ class AccountService(
             created
         }
         dao.createKkutuProfile(account.id, account.legacyUserId)
-        userDao.getUser(account.legacyUserId)?.nickname?.let { dao.updateProfileNickname(account.id, account.legacyUserId, it) }
+        val profileLegacyUserId = selectedGameProfileLegacyUserId(account)
+        userDao.getUser(selectedGameProfileId(account))?.nickname?.let { dao.updateProfileNickname(account.id, profileLegacyUserId, it) }
         dao.findActiveIdentity(provider, subject)?.let { dao.touchIdentity(it.id) }
         val verifiedEmail = oauth.email?.trim()?.lowercase()?.takeIf { oauth.emailVerified }
         val hasEverRegisteredEmail = dao.listIdentities(account.id).any { it.type == IdentityType.EMAIL }
@@ -59,7 +63,7 @@ class AccountService(
     }
 
     fun revealSecurityCode(account: Account): String {
-        val value = userDao.getUser(account.legacyUserId)?.flags?.path("uid")?.path("value")?.asText()
+        val value = userDao.getUser(selectedGameProfileId(account))?.flags?.path("uid")?.path("value")?.asText()
         if (value.isNullOrBlank()) throw IdpException("not_found", "표시할 보안코드가 없습니다.", 404)
         dao.audit(account.id, "SECURITY_CODE_REVEALED")
         return value
@@ -84,6 +88,9 @@ class AccountService(
     fun selectedGameProfileLegacyUserId(account: Account): String =
         dao.defaultProfile(account.id)?.get("legacy_user_id")?.toString()?.takeIf { it.isNotBlank() }
             ?: account.legacyUserId
+
+    fun selectedGameProfileId(account: Account): String =
+        dao.selectedProfileId(account.id) ?: account.legacyUserId
 
     fun selectedGameProfileNicknameSuffix(account: Account): String = dao.nicknameSuffix(account.id)
 
@@ -194,7 +201,7 @@ class AccountService(
     }
 
     fun summary(account: Account): Map<String, Any?> {
-        val selectedUserId = selectedGameProfileLegacyUserId(account)
+        val selectedUserId = selectedGameProfileId(account)
         val user = userDao.getUser(selectedUserId)
         val nicknameState = userDao.nicknameState(selectedUserId)
         val identities = dao.listIdentities(account.id).filter { it.revokedAt == null && (settings.passwordEnabled || it.type != IdentityType.PASSWORD) }

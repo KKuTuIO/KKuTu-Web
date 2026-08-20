@@ -265,8 +265,9 @@ class LoginService(
     }
 
     private fun localOAuthUser(account: Account): OAuthUser {
-        val nickname = userDao.getUser(account.legacyUserId)?.nickname ?: account.legacyUserId
-        return OAuthUser(AuthVendor.LOCAL, account.legacyUserId, nickname, null, null, null, null)
+        val userId = accountService.selectedGameProfileId(account)
+        val nickname = userDao.getUser(userId)?.nickname ?: userId
+        return OAuthUser(AuthVendor.LOCAL, userId, nickname, null, null, null, null)
     }
 
     private fun providerDisplayName(vendor: AuthVendor): String = when (vendor) {
@@ -296,7 +297,7 @@ class LoginService(
         if (session.isGuest()) return null
         val account = accountService.currentAccount(session) ?: return null
         val oAuthUser = runCatching { session.getOAuthUser() }.getOrNull() ?: return null
-        val userId = accountService.selectedGameProfileLegacyUserId(account)
+        val userId = accountService.selectedGameProfileId(account)
         val nicknameSuffix = accountService.selectedGameProfileNicknameSuffix(account)
         val user = userDao.getUser(userId)
 

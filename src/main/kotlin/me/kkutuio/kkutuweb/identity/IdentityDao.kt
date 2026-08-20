@@ -73,6 +73,9 @@ class IdentityDao(
     fun selectedProfileLegacyUserId(accountId: UUID): String? =
         defaultProfile(accountId)?.get("legacy_user_id")?.toString()?.takeIf { it.isNotBlank() }
 
+    fun selectedProfileId(accountId: UUID): String? =
+        defaultProfile(accountId)?.get("id")?.toString()?.takeIf { it.isNotBlank() }
+
     fun nicknameSuffix(accountId: UUID): String {
         val profile = defaultProfile(accountId)
         return profile?.get("nickname_tag")?.toString() ?: "00000"

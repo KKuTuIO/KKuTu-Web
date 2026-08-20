@@ -107,14 +107,15 @@ class OidcService(
     }
 
     private fun claims(account: Account, scopes: Set<String>, selectedProfileId: UUID? = null): Map<String, Any?> {
-        val user = userDao.getUser(account.legacyUserId)
+        val profile = selectedProfileId?.let { dao.findActiveProfile(account.id, it) } ?: dao.defaultProfile(account.id)
+        val gameUserId = profile?.get("id")?.toString() ?: account.legacyUserId
+        val user = userDao.getUser(gameUserId)
         val verifiedEmail = dao.listIdentities(account.id).firstOrNull { it.type == IdentityType.EMAIL && it.verifiedAt != null && it.revokedAt == null }?.subject
         val out = linkedMapOf<String, Any?>("sub" to account.id.toString())
         if ("profile" in scopes) out += mapOf("preferred_username" to user?.nickname, "legacy_user_id" to account.legacyUserId)
         if ("email" in scopes) out += mapOf("email" to verifiedEmail, "email_verified" to (verifiedEmail != null))
         if ("account" in scopes) out += mapOf("account_status" to account.status.name, "uuid" to account.uuid.toString())
         if ("game:kkutu" in scopes) {
-            val profile = selectedProfileId?.let { dao.findActiveProfile(account.id, it) } ?: dao.defaultProfile(account.id)
             if (profile != null) out += mapOf("game_profile_id" to profile["id"].toString(), "game_key" to profile["game_key"], "game_profile_legacy_user_id" to profile["legacy_user_id"])
         }
         return out

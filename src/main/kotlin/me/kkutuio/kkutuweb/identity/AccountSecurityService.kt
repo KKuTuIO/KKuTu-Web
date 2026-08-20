@@ -241,7 +241,8 @@ class AccountSecurityService(
     }
 
     private fun matchesSecurityCode(account: Account, code: String): Boolean {
-        val expected = userDao.getUser(account.legacyUserId)?.flags?.path("uid")?.path("value")?.asText()
+        val gameUserId = dao.selectedProfileId(account.id) ?: account.legacyUserId
+        val expected = userDao.getUser(gameUserId)?.flags?.path("uid")?.path("value")?.asText()
         return !expected.isNullOrBlank() && MessageDigest.isEqual(expected.toByteArray(), code.trim().toByteArray())
     }
 

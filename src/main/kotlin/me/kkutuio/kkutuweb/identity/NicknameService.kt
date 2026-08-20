@@ -22,7 +22,7 @@ class NicknameService(
     private val identityDao: IdentityDao
 ) {
     fun status(account: Account): Map<String, Any?> {
-        val userId = identityDao.selectedProfileLegacyUserId(account.id) ?: account.legacyUserId
+        val userId = identityDao.selectedProfileId(account.id) ?: account.legacyUserId
         val user = users.nicknameState(userId)
             ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
         val nextChangeAt = user.lastModifiedAt?.plus(NICKNAME_CHANGE_INTERVAL_MS)
@@ -43,7 +43,8 @@ class NicknameService(
     fun change(account: Account, requestedNickname: String, fixed: Boolean): NicknameChangeResult {
         val baseNickname = requestedNickname.trim()
         setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", "사용할 수 없는 별명입니다: $it") }
-        val userId = identityDao.selectedProfileLegacyUserId(account.id) ?: account.legacyUserId
+        val userId = identityDao.selectedProfileId(account.id) ?: account.legacyUserId
+        val profileLegacyUserId = identityDao.selectedProfileLegacyUserId(account.id) ?: account.legacyUserId
         val state = users.lockNicknameState(userId)
             ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
         val now = System.currentTimeMillis()
@@ -84,7 +85,7 @@ class NicknameService(
 
         val updatedMoney = state.money - if (fixed) FIXED_NICKNAME_COST else 0L
         users.updateNickname(state.id, nextNickname, nextMeanable, updatedMoney, now)
-        identityDao.updateProfileNickname(account.id, userId, nextNickname)
+        identityDao.updateProfileNickname(account.id, profileLegacyUserId, nextNickname)
         identityDao.updateNicknameTimestamp(account.id)
         identityDao.audit(account.id, "NICKNAME_CHANGED", metadata = mapOf("fixed" to fixed, "ping_spent" to (if (fixed) FIXED_NICKNAME_COST else 0)))
         return NicknameChangeResult(nextNickname, fixed, updatedMoney)

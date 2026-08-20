@@ -3,7 +3,7 @@ package me.kkutuio.kkutuweb.identity
 import java.time.Instant
 import java.util.UUID
 
-enum class AccountStatus { ACTIVE, LOCKED, DELETED }
+enum class AccountStatus { ACTIVE, LOCKED, DELETED, PROVISIONED }
 enum class IdentityType { PASSWORD, EMAIL, PASSKEY, OAUTH }
 enum class ClientType { CONFIDENTIAL, PUBLIC }
 

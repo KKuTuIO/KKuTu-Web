@@ -68,7 +68,8 @@ class DiscordInternalApi(
         val rewardKey = "2023_attendance_bronze"
         val eventKey = "discord-attendance:" + account.id + ":" + date + ":" + rewardKey
         if (!dao.reserveRewardEvent(eventKey, account.id, rewardKey)) return false
-        rewards.grantItem(account.legacyUserId, rewardKey)
+        val profileId = dao.selectedProfileId(account.id) ?: account.legacyUserId
+        rewards.grantItem(profileId, rewardKey)
         dao.completeRewardEvent(eventKey)
         return true
     }

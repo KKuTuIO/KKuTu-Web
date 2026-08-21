@@ -648,7 +648,17 @@
 
     onMount(async () => {
         passkeySupported = !!window.PublicKeyCredential;
+        const url = new URL(window.location.href);
+        const openProfileCreateOnLoad = url.searchParams.get('create_profile') === '1';
+
         await load();
+
+        if (openProfileCreateOnLoad && summary) {
+            url.searchParams.delete('create_profile');
+            window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+            openProfileCreate();
+        }
+
         await resumeProtectedAction();
     });
 </script>

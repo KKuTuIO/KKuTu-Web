@@ -1,7 +1,6 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { onMount } from 'svelte';
-    import ProfileCreateModal from '$lib/ProfileCreateModal.svelte';
 
     export let profileSeed = '';
     export let profileName = '계정 설정 필요';
@@ -14,7 +13,6 @@
     let summary = null;
     let error = '';
     let profilePolicy = null;
-    let profileCreateOpen = false;
 
     $: profiles = summary?.profiles || [];
     $: selectedProfileId = summary?.selected_profile_id || profiles[0]?.id || '';
@@ -64,13 +62,7 @@
 
     function openProfileCreate() {
         open = false;
-        profileCreateOpen = true;
-    }
-
-    async function profileCreated() {
-        profileCreateOpen = false;
-        summary = null;
-        await loadSummary();
+        window.location.href = '/account?create_profile=1';
     }
 
     async function toggleMenu() {
@@ -203,4 +195,3 @@
     {/if}
 </div>
 
-<ProfileCreateModal open={profileCreateOpen} on:close={() => profileCreateOpen = false} on:created={profileCreated}/>

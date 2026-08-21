@@ -46,6 +46,36 @@ class UserDao(
         return if (users.isEmpty()) null else users.first()
     }
 
+    fun getUserByIdentifier(id: String): User? {
+        getUser(id)?.let { return it }
+
+        val sql = """
+            SELECT users.*
+            FROM account
+            JOIN game_profile profile ON profile.account_id = account.id
+            JOIN users ON (users._id = profile.id::text OR users._id = profile.legacy_user_id)
+            WHERE (
+                account.uuid::text = ?
+                OR account.id::text = ?
+                OR profile.id::text = ?
+                OR profile.uuid::text = ?
+                OR profile.legacy_user_id = ?
+            )
+              AND account.status <> 'DELETED'
+              AND profile.status <> 'DELETED'
+            ORDER BY
+                CASE WHEN account.selected_profile_id = profile.id
+                           AND profile.status = 'ACTIVE'
+                           AND profile.deletion_scheduled_at IS NULL THEN 0 ELSE 1 END,
+                CASE WHEN profile.status = 'ACTIVE'
+                           AND profile.deletion_scheduled_at IS NULL THEN 0 ELSE 1 END,
+                profile.created_at
+            LIMIT 1
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, userMapper, id, id, id, id, id).firstOrNull()
+    }
+
     fun getNicknames(ids: List<String>): Map<String, String?> {
         if (ids.isEmpty()) return emptyMap()
 
@@ -78,7 +108,9 @@ class UserDao(
             ORDER BY CASE WHEN _id = ? THEN 0 WHEN nickname = ? THEN 1 ELSE 2 END, nickname
             LIMIT ?
         """.trimIndent()
-        return jdbcTemplate.query(sql, userMapper, query, "%$query%", query, query, limit.coerceIn(1, 50))
+        val users = jdbcTemplate.query(sql, userMapper, query, "%$query%", query, query, limit.coerceIn(1, 50))
+        if (users.isNotEmpty()) return users
+        return getUserByIdentifier(query)?.let(::listOf) ?: emptyList()
     }
 
     fun getSimilarityNicks(): List<String> {

@@ -115,11 +115,11 @@ class ModerationService(
     }
 
     fun getUserDetail(userId: String): ModerationUserDetail {
-        val user = userDao.getUser(userId)
+        val user = userDao.getUserByIdentifier(userId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
         val accountUuid = accountUuidForUser(userId)
         val reportsAnchor = Instant.now()
-        val reportPage = reports(userId, 0, reportsAnchor)
+        val reportPage = reports(accountUuid, 0, reportsAnchor)
         return ModerationUserDetail(
             user = toSummary(user),
             flags = user.flags,
@@ -163,7 +163,8 @@ class ModerationService(
         requireUser(userId)
         require(anchorMillis == null || anchorMillis > 0) { "올바른 신고 조회 기준 시각이 필요합니다." }
         val anchor = anchorMillis?.let(Instant::ofEpochMilli) ?: Instant.now()
-        return reports(userId, window, anchor)
+        val accountUuid = accountUuidForUser(userId)
+        return reports(accountUuid, window, anchor)
     }
 
     fun getRelatedAccess(
@@ -2440,7 +2441,7 @@ class ModerationService(
     )
 
     private fun requireUser(userId: String): User =
-        userDao.getUser(userId) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
+        userDao.getUserByIdentifier(userId) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
 
     private fun toSummary(user: User): ModerationUserSummary {
         val score = user.kkutu.path("score").asLong(0)

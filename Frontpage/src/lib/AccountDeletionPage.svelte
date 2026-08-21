@@ -274,7 +274,7 @@
                 </div>
             {:else}
                 {#if accountRestricted}
-                    <div class="blocking-notice">이용제한된 계정은 프로필 추가·삭제 및 계정 탈퇴를 진행할 수 없습니다.</div>
+                    <div class="blocking-notice">이용제한된 계정은 웹에서 프로필 추가·삭제 및 계정 탈퇴를 진행할 수 없습니다. 고객센터로 문의해 주세요.</div>
                 {/if}
                 {#if profileDeletionBlocked}
                     <div class="blocking-notice">계정에 프로필이 하나만 남아 있어 프로필을 삭제할 수 없습니다. 계정 탈퇴를 신청하거나 새 프로필을 만든 후 다시 시도해 주세요.</div>

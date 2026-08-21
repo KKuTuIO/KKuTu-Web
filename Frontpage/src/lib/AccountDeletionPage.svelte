@@ -32,12 +32,14 @@
     $: pending = Boolean(scheduledAt);
     $: activeProfiles = (summary?.profiles || []).filter(item => item.status === 'ACTIVE' && !item.deletion_scheduled_at);
     $: profileDeletionBlocked = isProfile && activeProfiles.length <= 1;
+    $: accountDeletionBlocked = !isProfile && activeProfiles.length > 1;
     $: accountRestricted = Boolean(summary?.account_restricted);
-    $: canSubmit = consentService && consentIrreversible && !submitting && !profileDeletionBlocked && !accountRestricted;
+    $: restrictionBlocksDeletion = isProfile && accountRestricted;
+    $: canSubmit = consentService && consentIrreversible && !submitting && !profileDeletionBlocked && !accountDeletionBlocked && !restrictionBlocksDeletion;
     $: deletionSubject = isProfile ? profile : summary?.profiles?.find(item => String(item.id) === String(summary?.selected_profile_id)) || summary?.profiles?.[0];
     $: originalName = deletionSubject?.nickname || summary?.nickname || deletionSubject?.id || summary?.uuid || '현재 계정';
     $: deletionTag = deletionSubject?.nickname_tag || '';
-    $: confirmationPhrase = `${originalName} ${isProfile ? '계정 탈퇴' : '프로필 삭제'}`;
+    $: confirmationPhrase = `${originalName} ${isProfile ? '프로필 삭제' : '계정 탈퇴'}`;
     $: deletionAlias = `${isProfile ? '계정삭제대기' : '계정탈퇴대기'}${deletionTag ? `#${deletionTag}` : ''}`;
 
     function profileDisplayHtml(value) {
@@ -270,14 +272,20 @@
                 <div class="pending-notice">
                     <strong>{formatDate(scheduledAt)}에 {isProfile ? '프로필이' : '계정이'} 삭제됩니다.</strong>
                     <p>삭제 유예기간에는 서비스를 이용할 수 없습니다. 삭제를 원하지 않으면 아래에서 신청을 해제하세요.</p>
-                    <button class="cancel-button" on:click={cancelDeletion} disabled={submitting || accountRestricted}>삭제 신청 해제</button>
+                    <button class="cancel-button" on:click={cancelDeletion} disabled={submitting || restrictionBlocksDeletion}>삭제 신청 해제</button>
                 </div>
             {:else}
-                {#if accountRestricted}
-                    <div class="blocking-notice">이용제한된 계정은 웹에서 프로필 추가·삭제 및 계정 탈퇴를 진행할 수 없습니다. 고객센터로 문의해 주세요.</div>
+                {#if accountRestricted && isProfile}
+                    <div class="blocking-notice">이용제한된 계정은 프로필 추가·삭제를 진행할 수 없습니다.</div>
+                {/if}
+                {#if accountRestricted && !isProfile}
+                    <div class="pending-notice">현재 계정에 적용된 이용제한 조치는 계정 탈퇴 및 재가입 시에도 해제되지 않습니다.</div>
                 {/if}
                 {#if profileDeletionBlocked}
-                    <div class="blocking-notice">계정에 프로필이 하나만 남아 있어 프로필을 삭제할 수 없습니다. 계정 탈퇴를 신청하거나 새 프로필을 만든 후 다시 시도해 주세요.</div>
+                    <div class="blocking-notice">계정 프로필이 하나만 남아 있어 프로필을 삭제할 수 없습니다. 계정 탈퇴를 신청하거나 새 프로필을 만든 후 다시 시도해 주세요.</div>
+                {/if}
+                {#if accountDeletionBlocked}
+                    <div class="blocking-notice">게임 프로필을 2개 이상 가지고 있어 계정을 탈퇴할 수 없습니다. 게임 프로필이 하나만 남도록 게임 프로필을 먼저 삭제해 주세요.</div>
                 {/if}
                 <label class="consent-row">
                     <span>끄투리오 {isProfile ? '프로필' : '계정'}을 삭제하면 끄투리오 {isProfile ? '프로필로 가입한' : '계정으로 이용한'} 모든 서비스에서 동시에 탈퇴 처리되어, 더 이상 해당 {isProfile ? '프로필' : '계정'}을 사용한 제휴 서비스에 접근할 수 없습니다.</span>

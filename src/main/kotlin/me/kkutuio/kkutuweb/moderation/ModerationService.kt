@@ -118,13 +118,14 @@ class ModerationService(
         val user = userDao.getUserByIdentifier(userId)
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다.")
         val accountUuid = accountUuidForUser(userId)
+        val moderationSubject = moderationSubjectForUser(userId)
         val reportsAnchor = Instant.now()
         val reportPage = reports(accountUuid, 0, reportsAnchor)
         return ModerationUserDetail(
             user = toSummary(user),
             flags = user.flags,
-            counters = currentCounters(accountUuid),
-            history = history(accountUuid, 50),
+            counters = currentCounters(moderationSubject),
+            history = history(moderationSubject, 50),
             reports = reportPage.reports,
             reportsHasMore = reportPage.hasMore,
             reportsAnchor = reportsAnchor
@@ -132,7 +133,7 @@ class ModerationService(
     }
 
     fun accountSanctionHistory(userId: String): List<AccountSanctionCaseSummary> {
-        val accountUuid = accountUuidForUser(userId)
+        val accountUuid = moderationSubjectForUser(userId)
         return jdbcTemplate.query(
             """
             SELECT case_id, inquiry_id, primary_category_code, summary, occurred_at, issued_at, revoked_at
@@ -230,7 +231,7 @@ class ModerationService(
                        SELECT 1
                        FROM moderation_effects effects
                        WHERE effects.subject_user_id IN (
-                           SELECT account.uuid::text
+                           SELECT COALESCE(account.moderation_subject_uuid, account.uuid)::text
                            FROM account
                            JOIN game_profile profile ON profile.account_id = account.id
                            WHERE profile.id::text = grouped.grouped_user_id
@@ -247,7 +248,7 @@ class ModerationService(
                        SELECT 1
                        FROM moderation_effects effects
                        WHERE effects.subject_user_id IN (
-                           SELECT account.uuid::text
+                           SELECT COALESCE(account.moderation_subject_uuid, account.uuid)::text
                            FROM account
                            JOIN game_profile profile ON profile.account_id = account.id
                            WHERE profile.id::text = grouped.grouped_user_id
@@ -599,7 +600,7 @@ class ModerationService(
 
     fun preview(request: SanctionPreviewRequest): ModerationPolicyPreview {
         requireUser(request.userId)
-        val accountUuid = accountUuidForUser(request.userId)
+        val accountUuid = moderationSubjectForUser(request.userId)
         request.overrideCaseId?.let { requireOverrideSubject(it, "USER", accountUuid) }
         request.custom?.let { custom ->
             require(request.categoryCodes.isEmpty()) { "정책 제재와 사용자 지정 제재를 동시에 선택할 수 없습니다." }
@@ -748,12 +749,12 @@ class ModerationService(
     fun issue(request: SanctionIssueRequest, actorId: String, requestIpHash: String?): SanctionIssueResponse {
         require(request.evidenceText.isNotBlank()) { "근거 자료는 필수입니다." }
         val subjectUser = requireUser(request.userId)
-        val accountUuid = accountUuidForUser(request.userId)
+        val accountUuid = moderationSubjectForUser(request.userId)
         require((request.custom == null) xor request.categoryCodes.isEmpty()) {
             "정책 제재 또는 사용자 지정 제재 중 하나만 선택해야 합니다."
         }
         val relatedUserIds = request.relatedUserIds.distinct().filter { it != request.userId }
-        val relatedAccountUuids = relatedUserIds.map(::accountUuidForUser).distinct().filter { it != accountUuid }
+        val relatedAccountUuids = relatedUserIds.map(::moderationSubjectForUser).distinct().filter { it != accountUuid }
         if ("17" in request.categoryCodes && relatedAccountUuids.isEmpty()) {
             throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "이용제한 우회는 연관 계정이 필요합니다.")
         }
@@ -976,7 +977,7 @@ class ModerationService(
         if (subject.type != "IP") {
             val subjectId = subject.userId
                 ?: throw IllegalStateException("사용자 제재에 대상 ID가 없습니다.")
-            val accountUuid = accountUuidForUser(subjectId)
+            val accountUuid = subjectId
             val hasActiveNicknameLimit = jdbcTemplate.queryForObject(
                 """
                 SELECT EXISTS(
@@ -1006,7 +1007,7 @@ class ModerationService(
             auditRequestIpHash(requestIpHash)
         )
         val disconnectedUsers = (affectedAccountKeys + listOfNotNull(subject.userId))
-            .flatMap { key -> runCatching { profileIdsForAccountUuid(accountUuidForUser(key)) }.getOrDefault(listOf(key)) }
+            .flatMap { key -> runCatching { profileIdsForAccountUuid(key) }.getOrDefault(emptyList()) }
             .toSet()
         if (disconnectedUsers.isNotEmpty()) {
             TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
@@ -1021,7 +1022,7 @@ class ModerationService(
     fun adjustCounter(userId: String, request: CounterAdjustmentRequest, actorId: String) {
         require(request.value in 0..999) { "누적 횟수는 0에서 999 사이여야 합니다." }
         requireUser(userId)
-        val accountUuid = accountUuidForUser(userId)
+        val accountUuid = moderationSubjectForUser(userId)
         policyLoader.current().document.category(request.categoryCode)
         val alreadyProcessed = jdbcTemplate.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM moderation_command_requests WHERE request_id = ?)",
@@ -2411,13 +2412,14 @@ class ModerationService(
         )
     }
 
-    private fun accountUuidForUser(userId: String): String = jdbcTemplate.query(
+    private fun moderationSubjectForUser(userId: String): String = jdbcTemplate.query(
         """
-        SELECT account.uuid::text
+        SELECT COALESCE(account.moderation_subject_uuid, account.uuid)::text
         FROM account
         LEFT JOIN game_profile profile ON profile.account_id = account.id
         WHERE account.uuid::text = ?
            OR account.id::text = ?
+           OR account.moderation_subject_uuid::text = ?
            OR profile.id::text = ?
            OR profile.uuid::text = ?
            OR profile.legacy_user_id = ?
@@ -2425,7 +2427,25 @@ class ModerationService(
         LIMIT 1
         """.trimIndent(),
         { rs, _ -> rs.getString(1) },
-        userId, userId, userId, userId, userId
+        userId, userId, userId, userId, userId, userId
+    ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "계정을 찾을 수 없습니다.")
+
+    private fun accountUuidForUser(userId: String): String = jdbcTemplate.query(
+        """
+        SELECT account.uuid::text
+        FROM account
+        LEFT JOIN game_profile profile ON profile.account_id = account.id
+        WHERE account.uuid::text = ?
+           OR account.id::text = ?
+           OR account.moderation_subject_uuid::text = ?
+           OR profile.id::text = ?
+           OR profile.uuid::text = ?
+           OR profile.legacy_user_id = ?
+        ORDER BY profile.status = 'ACTIVE' DESC, profile.created_at
+        LIMIT 1
+        """.trimIndent(),
+        { rs, _ -> rs.getString(1) },
+        userId, userId, userId, userId, userId, userId
     ).firstOrNull() ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "계정을 찾을 수 없습니다.")
 
     private fun profileIdsForAccountUuid(accountUuid: String): List<String> = jdbcTemplate.query(
@@ -2433,11 +2453,12 @@ class ModerationService(
         SELECT profile.id::text
         FROM game_profile profile
         JOIN account ON account.id = profile.account_id
-        WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+        WHERE (account.uuid::text = ? OR COALESCE(account.moderation_subject_uuid, account.uuid)::text = ?)
+          AND profile.status <> 'DELETED'
         ORDER BY profile.created_at
         """.trimIndent(),
         { rs, _ -> rs.getString(1) },
-        accountUuid
+        accountUuid, accountUuid
     )
 
     private fun requireUser(userId: String): User =
@@ -2451,7 +2472,7 @@ class ModerationService(
                 SELECT 1
                 FROM moderation_effects effects
                 WHERE effects.subject_user_id = (
-                    SELECT account.uuid::text
+                    SELECT COALESCE(account.moderation_subject_uuid, account.uuid)::text
                     FROM account
                     JOIN game_profile profile ON profile.account_id = account.id
                     WHERE profile.id::text = ?

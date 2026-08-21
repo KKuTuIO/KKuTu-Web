@@ -54,7 +54,8 @@ class AccountApi(
     private val settings: IdentityProviderSettings,
     private val moderation: ModerationService,
     private val adminAuthorizer: AdminModerationAuthorizer,
-    private val blockService: BlockService
+    private val blockService: BlockService,
+    private val moderationRetention: ModerationRetentionService
 ) {
     @GetMapping("/csrf") fun csrf(request: HttpServletRequest): Map<String, String> {
         val token = (request.getAttribute(CsrfToken::class.java.name) ?: request.getAttribute("_csrf")) as? CsrfToken
@@ -205,16 +206,24 @@ class AccountApi(
         return ResponseEntity.noContent().build()
     }
 
+    @Transactional
     @PostMapping("/deletion") fun requestAccountDeletion(session: HttpSession): Map<String, Any?> {
-        val account = strongMutable(session)
+        val account = strong(session)
+        if (account.status != AccountStatus.ACTIVE) throw IdpException("account_unavailable", "현재 계정 상태에서는 탈퇴할 수 없습니다.", 403)
+        dao.lockAccountForProfileMutation(account.id)
+        if (dao.countActiveProfiles(account.id) > 1) {
+            throw IdpException("account_deletion_multiple_profiles", "활성 프로필이 2개 이상이면 계정을 탈퇴할 수 없습니다. 프로필을 먼저 삭제해 주세요.", 409)
+        }
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
+        moderationRetention.assertDeletionCanPreserveRestrictions(account)
         val scheduled = dao.requestAccountDeletion(account.id) ?: throw IdpException("account_deletion_unavailable", "계정 탈퇴 신청을 처리할 수 없습니다.", 409)
         dao.audit(account.id, "ACCOUNT_DELETION_REQUESTED", metadata = mapOf("scheduled_at" to scheduled.toString()))
         return mapOf("scheduled_at" to scheduled)
     }
 
     @DeleteMapping("/deletion") fun cancelAccountDeletion(session: HttpSession): ResponseEntity<Void> {
-        val account = strongMutable(session)
+        val account = strong(session)
+        if (account.status != AccountStatus.ACTIVE) throw IdpException("account_unavailable", "현재 계정 상태에서는 탈퇴 신청을 해제할 수 없습니다.", 403)
         if (!dao.cancelAccountDeletion(account.id)) throw IdpException("not_found", "계정 탈퇴 신청을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "ACCOUNT_DELETION_CANCELLED")
         return ResponseEntity.noContent().build()
@@ -311,7 +320,7 @@ class AccountApi(
         return account
     }
     private fun isAccountRestricted(account: Account): Boolean =
-        account.status != AccountStatus.ACTIVE || blockService.hasAccountRestriction(account.uuid.toString())
+        account.status != AccountStatus.ACTIVE || blockService.hasAccountRestriction(moderationRetention.effectiveSubject(account).toString())
     private fun profileLimit(session: HttpSession): Int =
         if (adminAuthorizer.hasPrivilege(session, AdminSetting.Privilege.ADMIN_PROFILE)) 3 else 1
     private fun parseProfileId(value: String): java.util.UUID = runCatching { java.util.UUID.fromString(value) }.getOrElse { throw IdpException("invalid_request", "잘못된 프로필입니다.") }

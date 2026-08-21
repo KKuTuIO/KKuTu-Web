@@ -10,7 +10,8 @@ import java.util.UUID
 @Service
 class AccountDeletionService(
     private val dao: IdentityDao,
-    private val users: UserDao
+    private val users: UserDao,
+    private val moderationRetention: ModerationRetentionService
 ) {
     @Scheduled(fixedDelay = 60_000, initialDelay = 60_000)
     @Transactional
@@ -24,6 +25,7 @@ class AccountDeletionService(
             dao.completeProfileDeletion(profileId)
         }
         dao.dueAccountIds().forEach { accountId ->
+            moderationRetention.prepareForDeletion(accountId)
             dao.activeProfileDeletionRows(accountId).forEach { row ->
                 val legacyUserId = row["legacy_user_id"]?.toString()?.takeIf { it.isNotBlank() }
                 val profileUserId = row["profile_user_id"]?.toString()?.takeIf { it.isNotBlank() }
@@ -33,5 +35,6 @@ class AccountDeletionService(
             dao.completeAccountDeletion(accountId)
         }
         users.purgeDeletedUsers()
+        dao.purgeDeletedProfileMetadata()
     }
 }

@@ -16,6 +16,7 @@ class AccountService(
     private val dao: IdentityDao,
     private val userDao: UserDao,
     private val settings: IdentityProviderSettings,
+    private val moderationRetention: ModerationRetentionService,
 ) {
     @Transactional
     fun ensureExternalAccount(oauth: OAuthUser, request: HttpServletRequest? = null): Account {
@@ -23,6 +24,13 @@ class AccountService(
         val subject = oauth.vendorId
         val historicalIdentity = dao.findIdentity(provider, subject)
         val existingIdentity = historicalIdentity?.takeIf { it.revokedAt == null }
+        val verifiedEmail = oauth.email?.trim()?.lowercase()?.takeIf { oauth.emailVerified }
+        val retentionIdentities = mutableListOf(provider to subject).apply {
+            verifiedEmail?.let { add("EMAIL" to it) }
+        }
+        val heldModerationSubject = if (existingIdentity == null) {
+            moderationRetention.heldSubjectForIdentities(retentionIdentities)
+        } else null
         val account = if (existingIdentity != null) {
             dao.findAccount(existingIdentity.accountId) ?: throw IdpException("server_error", "Identity points to a missing account", 500)
         } else {
@@ -47,13 +55,15 @@ class AccountService(
             if (created.status == AccountStatus.PROVISIONED) {
                 dao.setStatus(created.id, AccountStatus.ACTIVE)
             }
+            heldModerationSubject?.let { moderationRetention.attachHeldSubject(created, it) }
             dao.audit(
                 created.id, "IDENTITY_CREATED", identity.id, request?.getIp()?.let(SecretTools::sha256),
                 mapOf(
                     "type" to "OAUTH",
                     "provider" to provider,
                     "fresh_after_revocation" to isFreshAfterRevocation,
-                    "legacy_account_claimed" to (legacyAccount != null)
+                    "legacy_account_claimed" to (legacyAccount != null),
+                    "moderation_subject_restored" to (heldModerationSubject != null)
                 )
             )
             created
@@ -62,9 +72,11 @@ class AccountService(
         val profileLegacyUserId = selectedGameProfileLegacyUserId(account)
         userDao.getUser(selectedGameProfileId(account))?.nickname?.let { dao.updateProfileNickname(account.id, profileLegacyUserId, it) }
         dao.findActiveIdentity(provider, subject)?.let { dao.touchIdentity(it.id) }
-        val verifiedEmail = oauth.email?.trim()?.lowercase()?.takeIf { oauth.emailVerified }
         val hasEverRegisteredEmail = dao.listIdentities(account.id).any { it.type == IdentityType.EMAIL }
         if (verifiedEmail != null && !hasEverRegisteredEmail && dao.findIdentity("EMAIL", verifiedEmail) == null) {
+            moderationRetention.heldSubjectForIdentities(listOf("EMAIL" to verifiedEmail))?.let { held ->
+                moderationRetention.attachHeldSubject(dao.findAccount(account.id)!!, held)
+            }
             dao.insertIdentity(account.id, IdentityType.EMAIL, "EMAIL", verifiedEmail, verified = true)
             dao.audit(account.id, "EMAIL_ADDED_FROM_OAUTH", metadata = mapOf("provider" to provider))
         }
@@ -205,6 +217,9 @@ class AccountService(
 
         val existing = dao.findIdentity(provider, oauth.vendorId)
         if (existing != null && existing.accountId != account.id) throw IdpException("identity_conflict", "이미 다른 계정에 연결된 로그인 수단입니다.")
+        moderationRetention.heldSubjectForIdentities(listOf(provider to oauth.vendorId))?.let { held ->
+            moderationRetention.attachHeldSubject(dao.findAccount(account.id)!!, held)
+        }
         if (existing == null) {
             val identity = dao.insertIdentity(account.id, IdentityType.OAUTH, provider, oauth.vendorId, oauth.name, verified = true)
             dao.audit(account.id, "IDENTITY_LINKED", identity.id, metadata = mapOf("provider" to provider))

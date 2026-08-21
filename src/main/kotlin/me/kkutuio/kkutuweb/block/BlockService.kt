@@ -64,7 +64,7 @@ class BlockService(
             profile.id::text = ? OR profile.legacy_user_id = ? OR profile.uuid::text = ?
         )
         JOIN account account ON account.id = profile.account_id
-        WHERE effects.subject_user_id = account.uuid::text
+        WHERE effects.subject_user_id = COALESCE(account.moderation_subject_uuid, account.uuid)::text
           AND effects.effect_type IN ('GAME_RESTRICTION', 'EXTEND_RELATED_RESTRICTION')
           AND effects.apply_status = 'APPLIED'
           AND effects.revoked_at IS NULL AND cases.revoked_at IS NULL

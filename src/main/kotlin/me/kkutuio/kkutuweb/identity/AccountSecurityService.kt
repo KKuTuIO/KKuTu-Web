@@ -17,7 +17,8 @@ class AccountSecurityService(
     private val mailSender: JavaMailSender,
     private val cipher: SecretCipher,
     private val limiter: AccountRateLimiter,
-    private val userDao: UserDao
+    private val userDao: UserDao,
+    private val moderationRetention: ModerationRetentionService
 ) {
     private val secureRandom = SecureRandom()
     @Transactional
@@ -40,6 +41,10 @@ class AccountSecurityService(
         val payload = row["payload"].toString()
         val email = Regex("\"email\"\\s*:\\s*\"([^\"]+)\"").find(payload)?.groupValues?.get(1) ?: throw IdpException("invalid_token", "잘못된 인증 링크입니다.")
         val existing = dao.findIdentity("EMAIL", email)
+        moderationRetention.heldSubjectForIdentities(listOf("EMAIL" to email))?.let { held ->
+            val account = dao.findAccount(accountId) ?: throw IdpException("invalid_token", "계정을 찾을 수 없습니다.")
+            moderationRetention.attachHeldSubject(account, held)
+        }
         if (existing == null) {
             dao.revokeActiveEmailIdentitiesExcept(accountId)
             dao.insertIdentity(accountId, IdentityType.EMAIL, "EMAIL", email, verified = true)

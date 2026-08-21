@@ -22,7 +22,8 @@ class IdentityDao(
             UUID.fromString(rs.getString("id")), UUID.fromString(rs.getString("uuid")), rs.getString("legacy_user_id"), AccountStatus.valueOf(rs.getString("status")), rs.getBoolean("external_mfa_enabled"),
             rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant(), rs.getTimestamp("session_not_before").toInstant(),
             rs.getLongOrNull("primary_identity_id"), rs.getLongOrNull("origin_identity_id"),
-            rs.getTimestamp("deletion_requested_at")?.toInstant(), rs.getTimestamp("deletion_scheduled_at")?.toInstant()
+            rs.getTimestamp("deletion_requested_at")?.toInstant(), rs.getTimestamp("deletion_scheduled_at")?.toInstant(),
+            rs.getString("moderation_subject_uuid")?.let(UUID::fromString)
         )
     }
     private val identityMapper = RowMapper { rs: ResultSet, _: Int ->
@@ -174,12 +175,14 @@ class IdentityDao(
     fun requestAccountDeletion(accountId: UUID): Instant? = jdbc.queryForList(
         "WITH scheduled AS (" +
             "UPDATE account SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=CURRENT_TIMESTAMP + INTERVAL '14 days', updated_at=CURRENT_TIMESTAMP " +
-            "WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL RETURNING deletion_scheduled_at" +
+            "WHERE id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL " +
+            "AND (SELECT count(*) FROM game_profile remaining WHERE remaining.account_id=? AND remaining.status='ACTIVE' AND remaining.deletion_scheduled_at IS NULL) <= 1 " +
+            "RETURNING deletion_scheduled_at" +
         "), profiles AS (" +
             "UPDATE game_profile SET deletion_requested_at=CURRENT_TIMESTAMP, deletion_scheduled_at=(SELECT deletion_scheduled_at FROM scheduled), updated_at=CURRENT_TIMESTAMP " +
             "WHERE account_id=? AND status='ACTIVE'" +
         ") SELECT deletion_scheduled_at FROM scheduled",
-        accountId, accountId
+        accountId, accountId, accountId
     ).firstOrNull()?.get("deletion_scheduled_at")?.let { (it as Timestamp).toInstant() }
 
     fun cancelAccountDeletion(accountId: UUID): Boolean = jdbc.queryForObject(
@@ -210,11 +213,41 @@ class IdentityDao(
     fun completeAccountDeletion(accountId: UUID) {
         jdbc.update("UPDATE account SET selected_profile_id=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=?", accountId)
         jdbc.update("UPDATE game_profile SET status='DELETED', updated_at=CURRENT_TIMESTAMP WHERE account_id=? AND status='ACTIVE'", accountId)
-        jdbc.update("UPDATE account SET status='DELETED', session_not_before=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE'", accountId)
-        revokeRefreshTokens(accountId)
-        jdbc.update("UPDATE idp_access_token SET revoked_at=CURRENT_TIMESTAMP WHERE account_id=? AND revoked_at IS NULL", accountId)
-        jdbc.update("DELETE FROM idp_consent WHERE account_id=?", accountId)
+        scrubAccountAuthenticationData(accountId)
+        jdbc.update("UPDATE account SET status='DELETED', legacy_user_id=id::text, external_mfa_enabled=FALSE, session_not_before=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='ACTIVE'", accountId)
     }
+
+    private fun scrubAccountAuthenticationData(accountId: UUID) {
+        jdbc.update("DELETE FROM account_passkey WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM account_totp WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM account_recovery_code WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM account_support_pin WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM account_one_time_token WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM idp_authorization_code WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM idp_access_token WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM idp_refresh_token WHERE account_id=?", accountId)
+        jdbc.update("DELETE FROM idp_consent WHERE account_id=?", accountId)
+        jdbc.update(
+            """
+            UPDATE account_identity
+            SET subject='deleted:' || account_id::text || ':' || id::text,
+                display_name=NULL, credential_hash=NULL, verified_at=NULL,
+                last_used_at=NULL, revoked_at=COALESCE(revoked_at, CURRENT_TIMESTAMP)
+            WHERE account_id=?
+            """.trimIndent(),
+            accountId
+        )
+    }
+
+    fun purgeDeletedProfileMetadata(): Int = jdbc.update(
+        """
+        UPDATE game_profile
+        SET legacy_user_id=id::text, nickname=NULL, updated_at=CURRENT_TIMESTAMP
+        WHERE status='DELETED'
+          AND updated_at <= CURRENT_TIMESTAMP - INTERVAL '1 year'
+          AND (legacy_user_id IS DISTINCT FROM id::text OR nickname IS NOT NULL)
+        """.trimIndent()
+    )
 
     fun audit(accountId: UUID?, event: String, identityId: Long? = null, ipHash: String? = null, metadata: Map<String, Any?> = emptyMap()) {
         jdbc.update("INSERT INTO account_audit_log(account_id, event_type, identity_id, ip_hash, metadata) VALUES (?, ?, ?, ?, CAST(? AS jsonb))",

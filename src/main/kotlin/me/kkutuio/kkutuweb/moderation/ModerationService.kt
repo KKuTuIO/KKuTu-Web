@@ -1879,30 +1879,10 @@ class ModerationService(
         val toDays = (window + 1) * 90
         val items = jdbcTemplate.query(
             """
-            WITH account_identifiers AS (
-                SELECT profile.id::text AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT profile.uuid::text AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT profile.legacy_user_id AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT account.uuid::text AS identifier
-                FROM account
-                WHERE account.uuid::text = ?
-            )
             SELECT report_id, target_id, host(target_ip) AS target_ip,
                    category_code, reason, detail, status, time
             FROM report_log
-            WHERE target_id IN (SELECT identifier FROM account_identifiers)
+            WHERE target_account_uuid = CAST(? AS UUID)
               AND time >= CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
               AND time < CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
             ORDER BY time DESC, report_id DESC
@@ -1919,7 +1899,7 @@ class ModerationService(
                     rs.getString("target_ip")
                 )
             },
-            userId, userId, userId, userId,
+            userId,
             Timestamp.from(anchor),
             toDays,
             Timestamp.from(anchor),
@@ -1927,34 +1907,14 @@ class ModerationService(
         )
         val hasMore = jdbcTemplate.queryForObject(
             """
-            WITH account_identifiers AS (
-                SELECT profile.id::text AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT profile.uuid::text AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT profile.legacy_user_id AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT account.uuid::text AS identifier
-                FROM account
-                WHERE account.uuid::text = ?
-            )
             SELECT EXISTS(
                 SELECT 1 FROM report_log
-                WHERE target_id IN (SELECT identifier FROM account_identifiers)
+                WHERE target_account_uuid = CAST(? AS UUID)
                   AND time < CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
             )
             """.trimIndent(),
             Boolean::class.java,
-            userId, userId, userId, userId,
+            userId,
             Timestamp.from(anchor),
             toDays
         ) == true
@@ -2036,38 +1996,10 @@ class ModerationService(
         if (reportIds.isEmpty()) return
         val ids = reportIds.distinct()
         val placeholders = ids.joinToString(",") { "?" }
-        val arguments = mutableListOf<Any>().apply {
-            repeat(4) { add(accountUuid) }
-            addAll(ids)
-        }
         val count = jdbcTemplate.queryForObject(
-            """
-            WITH account_identifiers AS (
-                SELECT profile.id::text AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT profile.uuid::text AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT profile.legacy_user_id AS identifier
-                FROM game_profile profile
-                JOIN account ON account.id = profile.account_id
-                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
-                UNION
-                SELECT account.uuid::text AS identifier
-                FROM account
-                WHERE account.uuid::text = ?
-            )
-            SELECT COUNT(*) FROM report_log
-            WHERE target_id IN (SELECT identifier FROM account_identifiers)
-              AND report_id IN ($placeholders)
-            """.trimIndent(),
+            "SELECT COUNT(*) FROM report_log WHERE target_account_uuid = CAST(? AS UUID) AND report_id IN ($placeholders)",
             Int::class.java,
-            *arguments.toTypedArray()
+            *(listOf<Any>(accountUuid) + ids).toTypedArray()
         )
         require(count == ids.size) { "대상과 일치하지 않는 신고가 포함되어 있습니다." }
     }

@@ -185,6 +185,7 @@
         if (action === 'support-pin') await issuePin();
         if (action === 'one-time-login-codes') await rotateOneTimeLoginCodes();
         if (action === 'security-code') await revealSecurityCode();
+        if (action === 'security-code-reissue') await reissueSecurityCode(true);
         if (action.startsWith('identity-revoke:')) {
             const identity = identities.find(item => item.id === Number(action.slice('identity-revoke:'.length)));
             if (identity) await revoke(identity, true);
@@ -401,6 +402,21 @@
             }
             modal = {type: 'security-code', title: '보안 코드'};
         } else if (reauthRequired) rememberProtectedAction('security-code');
+    }
+
+    async function reissueSecurityCode(afterReauthentication = false) {
+        if (!afterReauthentication && !confirm('기존 보안코드를 무효화하고 새로 발급할까요?')) return;
+        const r = await call('/api/account/security-code/reissue', {method: 'POST'});
+        if (r) {
+            clearProtectedAction();
+            const data = await r.json();
+            securityCode = data?.securityCode || data?.security_code || '';
+            if (!securityCode) {
+                notify('보안 코드를 발급하지 못했습니다.', 'error');
+                return;
+            }
+            modal = {type: 'security-code', title: '새 보안 코드'};
+        } else if (reauthRequired) rememberProtectedAction('security-code-reissue');
     }
 
     async function revoke(identity, confirmed = false) {
@@ -968,10 +984,15 @@
                                 class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span>
                         </summary>
                         <div class="flex items-center justify-between gap-5 px-5 pb-5"><p class="min-w-0 flex-1 text-sm text-gray-500 dark:text-gray-300">계정 복구에 필요한 보안 코드를
-                            확인합니다.</p>
-                            <button class="shrink-0 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
-                                    on:click={revealSecurityCode}>보기
-                            </button>
+                            확인하거나 재발급합니다.</p>
+                            <div class="flex shrink-0 gap-2">
+                                <button class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
+                                        on:click={revealSecurityCode}>보기
+                                </button>
+                                <button class="rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700"
+                                        on:click={() => reissueSecurityCode()}>재발급
+                                </button>
+                            </div>
                         </div>
                     </details>
                     <a class="flex items-center justify-between gap-3 border-t border-gray-200 p-5 font-bold transition hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"

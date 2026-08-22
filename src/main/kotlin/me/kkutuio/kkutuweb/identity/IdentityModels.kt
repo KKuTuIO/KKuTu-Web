@@ -1,5 +1,7 @@
 package me.kkutuio.kkutuweb.identity
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import java.time.Instant
 import java.util.UUID
 
@@ -18,6 +20,7 @@ data class Account(
     val sessionNotBefore: Instant,
     val primaryIdentityId: Long?,
     val originIdentityId: Long?,
+    val flags: JsonNode = JsonNodeFactory.instance.objectNode(),
     val deletionRequestedAt: Instant? = null,
     val deletionScheduledAt: Instant? = null,
     val moderationSubjectUuid: UUID? = null

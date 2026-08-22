@@ -22,6 +22,7 @@ class IdentityDao(
             UUID.fromString(rs.getString("id")), UUID.fromString(rs.getString("uuid")), rs.getString("legacy_user_id"), AccountStatus.valueOf(rs.getString("status")), rs.getBoolean("external_mfa_enabled"),
             rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant(), rs.getTimestamp("session_not_before").toInstant(),
             rs.getLongOrNull("primary_identity_id"), rs.getLongOrNull("origin_identity_id"),
+            objectMapper.readTree(rs.getString("flags") ?: "{}"),
             rs.getTimestamp("deletion_requested_at")?.toInstant(), rs.getTimestamp("deletion_scheduled_at")?.toInstant(),
             rs.getString("moderation_subject_uuid")?.let(UUID::fromString)
         )
@@ -37,6 +38,10 @@ class IdentityDao(
 
     fun findAccount(id: UUID): Account? = queryOne("SELECT * FROM account WHERE id = ?", accountMapper, id)
     fun findAccountByLegacyId(legacyUserId: String): Account? = queryOne("SELECT * FROM account WHERE legacy_user_id = ?", accountMapper, legacyUserId)
+    fun updateAccountFlags(accountId: UUID, flags: com.fasterxml.jackson.databind.JsonNode): Boolean = jdbc.update(
+        "UPDATE account SET flags = CAST(? AS jsonb), updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        flags.toString(), accountId
+    ) == 1
     fun findAccountByGameProfileLegacyId(legacyUserId: String): Account? = queryOne(
         "SELECT account.* FROM account WHERE account.status = 'PROVISIONED' " +
             "AND (account.legacy_user_id = ? " +

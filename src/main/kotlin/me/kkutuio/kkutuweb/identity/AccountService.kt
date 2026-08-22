@@ -4,6 +4,7 @@ import me.kkutuio.kkutuweb.extension.*
 import me.kkutuio.kkutuweb.oauth.AuthVendor
 import me.kkutuio.kkutuweb.oauth.OAuthUser
 import me.kkutuio.kkutuweb.user.UserDao
+import com.fasterxml.jackson.databind.JsonNode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -93,11 +94,13 @@ class AccountService(
     }
 
     fun revealSecurityCode(account: Account): String {
-        val value = userDao.getUser(selectedGameProfileId(account))?.flags?.path("uid")?.path("value")?.asText()
+        val value = account.flags.path("uid").path("value").asText(null)
         if (value.isNullOrBlank()) throw IdpException("not_found", "표시할 보안코드가 없습니다.", 404)
         dao.audit(account.id, "SECURITY_CODE_REVEALED")
         return value
     }
+
+    fun accountFlags(account: Account): JsonNode = account.flags
 
     fun currentAccount(session: HttpSession): Account? = session.getAccountId()?.let(dao::findAccount)
         ?.takeIf { it.sessionNotBefore.epochSecond <= session.authenticatedAt() }

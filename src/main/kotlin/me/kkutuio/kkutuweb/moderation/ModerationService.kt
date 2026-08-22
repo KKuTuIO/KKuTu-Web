@@ -123,6 +123,8 @@ class ModerationService(
         val reportPage = reports(accountUuid, 0, reportsAnchor)
         return ModerationUserDetail(
             user = toSummary(user),
+            accountUuid = accountUuid,
+            profiles = profilesForAccountUuid(accountUuid),
             flags = user.flags,
             counters = currentCounters(moderationSubject),
             history = history(moderationSubject, 50),
@@ -786,7 +788,7 @@ class ModerationService(
             ?: request.summary.trim()
         require(displayReason.isNotBlank()) { "표시할 제재 사유를 결정할 수 없습니다." }
         policyRegistry.register(policyLoader.current())
-        validateReports(request.reportIds, request.userId)
+        validateReports(request.reportIds, accountUuid)
         val overriddenInquiryId = request.overrideCaseId?.let(::caseInquiryId)
         request.overrideCaseId?.let {
             validateOverrideCase(it, "USER", accountUuid, request.reportIds)
@@ -1877,10 +1879,30 @@ class ModerationService(
         val toDays = (window + 1) * 90
         val items = jdbcTemplate.query(
             """
+            WITH account_identifiers AS (
+                SELECT profile.id::text AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT profile.uuid::text AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT profile.legacy_user_id AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT account.uuid::text AS identifier
+                FROM account
+                WHERE account.uuid::text = ?
+            )
             SELECT report_id, target_id, host(target_ip) AS target_ip,
                    category_code, reason, detail, status, time
             FROM report_log
-            WHERE target_id = ?
+            WHERE target_id IN (SELECT identifier FROM account_identifiers)
               AND time >= CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
               AND time < CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
             ORDER BY time DESC, report_id DESC
@@ -1897,21 +1919,72 @@ class ModerationService(
                     rs.getString("target_ip")
                 )
             },
-            userId,
+            userId, userId, userId, userId,
             Timestamp.from(anchor),
             toDays,
             Timestamp.from(anchor),
             fromDays
         )
         val hasMore = jdbcTemplate.queryForObject(
-            "SELECT EXISTS(SELECT 1 FROM report_log WHERE target_id = ? AND time < CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day'))",
+            """
+            WITH account_identifiers AS (
+                SELECT profile.id::text AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT profile.uuid::text AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT profile.legacy_user_id AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT account.uuid::text AS identifier
+                FROM account
+                WHERE account.uuid::text = ?
+            )
+            SELECT EXISTS(
+                SELECT 1 FROM report_log
+                WHERE target_id IN (SELECT identifier FROM account_identifiers)
+                  AND time < CAST(? AS TIMESTAMP) - (? * INTERVAL '1 day')
+            )
+            """.trimIndent(),
             Boolean::class.java,
-            userId,
+            userId, userId, userId, userId,
             Timestamp.from(anchor),
             toDays
         ) == true
         return ModerationReportPage(window, fromDays, toDays, items, hasMore, anchor)
     }
+
+    private fun profilesForAccountUuid(accountUuid: String): List<ModerationProfileSummary> = jdbcTemplate.query(
+        """
+        SELECT profile.id::text,
+               COALESCE(primary_user._id, legacy_user._id, profile.id::text) AS user_id,
+               profile.legacy_user_id, profile.status,
+               COALESCE(primary_user.nickname, legacy_user.nickname) AS nickname
+        FROM game_profile profile
+        JOIN account ON account.id = profile.account_id
+        LEFT JOIN users primary_user ON primary_user._id = profile.id::text
+        LEFT JOIN users legacy_user ON legacy_user._id = profile.legacy_user_id
+        WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+        ORDER BY profile.status = 'ACTIVE' DESC, profile.created_at, profile.id
+        """.trimIndent(),
+        { rs, _ ->
+            ModerationProfileSummary(
+                id = rs.getString("id"),
+                userId = rs.getString("user_id"),
+                nickname = rs.getString("nickname"),
+                legacyUserId = rs.getString("legacy_user_id"),
+                status = rs.getString("status")
+            )
+        },
+        accountUuid
+    )
 
     private fun ipReports(ip: String, window: Int, anchor: Instant): ModerationReportPage {
         require(window in 0..100) { "신고 조회 구간은 0에서 100 사이여야 합니다." }
@@ -1959,14 +2032,42 @@ class ModerationService(
         return ModerationReportPage(window, fromDays, toDays, items, hasMore, anchor)
     }
 
-    private fun validateReports(reportIds: List<Long>, userId: String) {
+    private fun validateReports(reportIds: List<Long>, accountUuid: String) {
         if (reportIds.isEmpty()) return
         val ids = reportIds.distinct()
         val placeholders = ids.joinToString(",") { "?" }
+        val arguments = mutableListOf<Any>().apply {
+            repeat(4) { add(accountUuid) }
+            addAll(ids)
+        }
         val count = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM report_log WHERE target_id = ? AND report_id IN ($placeholders)",
+            """
+            WITH account_identifiers AS (
+                SELECT profile.id::text AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT profile.uuid::text AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT profile.legacy_user_id AS identifier
+                FROM game_profile profile
+                JOIN account ON account.id = profile.account_id
+                WHERE account.uuid::text = ? AND profile.status <> 'DELETED'
+                UNION
+                SELECT account.uuid::text AS identifier
+                FROM account
+                WHERE account.uuid::text = ?
+            )
+            SELECT COUNT(*) FROM report_log
+            WHERE target_id IN (SELECT identifier FROM account_identifiers)
+              AND report_id IN ($placeholders)
+            """.trimIndent(),
             Int::class.java,
-            *(listOf<Any>(userId) + ids).toTypedArray()
+            *arguments.toTypedArray()
         )
         require(count == ids.size) { "대상과 일치하지 않는 신고가 포함되어 있습니다." }
     }

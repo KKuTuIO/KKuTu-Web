@@ -23,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.data.redis.core.script.DefaultRedisScript
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import com.fasterxml.jackson.databind.JsonNode
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicLong
 
@@ -39,12 +40,14 @@ class GameSessionTicketStore(
         profile: SessionProfile?,
         serverId: String,
         ttlMillis: Long = 5 * 60 * 1000L,
-        accountUuid: String? = null
+        accountUuid: String? = null,
+        accountFlags: JsonNode? = null
     ) {
         require(ttlMillis in 1..(10 * 60 * 1000L)) { "invalid game ticket TTL" }
         val key = KEY_PREFIX + sha256(ticket)
         val profileJson = objectMapper.writeValueAsString(profile)
         val accountUuidValue = accountUuid.orEmpty()
+        val accountFlagsJson = objectMapper.writeValueAsString(accountFlags ?: objectMapper.createObjectNode())
         try {
             val result = redisTemplate.execute(
                 ISSUE_SCRIPT,
@@ -52,6 +55,7 @@ class GameSessionTicketStore(
                 serverId,
                 profileJson,
                 accountUuidValue,
+                accountFlagsJson,
                 ttlMillis.toString()
             )
             check(result == 1L) { "game session ticket collision" }
@@ -79,8 +83,8 @@ class GameSessionTicketStore(
             if redis.call("EXISTS", KEYS[1]) == 1 then
                 return 0
             end
-            redis.call("HSET", KEYS[1], "server_id", ARGV[1], "profile", ARGV[2], "account_uuid", ARGV[3])
-            redis.call("PEXPIRE", KEYS[1], ARGV[4])
+            redis.call("HSET", KEYS[1], "server_id", ARGV[1], "profile", ARGV[2], "account_uuid", ARGV[3], "account_flags", ARGV[4])
+            redis.call("PEXPIRE", KEYS[1], ARGV[5])
             return 1
             """.trimIndent(),
             Long::class.java

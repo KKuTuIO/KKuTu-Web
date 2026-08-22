@@ -1,10 +1,11 @@
 package me.kkutuio.kkutuweb.identity
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import me.kkutuio.kkutuweb.user.UserDao
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Instant
@@ -13,14 +14,35 @@ import java.util.UUID
 @Service
 class AccountSecurityService(
     private val dao: IdentityDao,
+    private val objectMapper: ObjectMapper,
     private val settings: IdentityProviderSettings,
     private val mailSender: JavaMailSender,
     private val cipher: SecretCipher,
     private val limiter: AccountRateLimiter,
-    private val userDao: UserDao,
     private val moderationRetention: ModerationRetentionService
 ) {
     private val secureRandom = SecureRandom()
+
+    @Transactional
+    fun reissueSecurityCode(account: Account): String {
+        val current = dao.lockAccount(account.id)
+            ?: throw IdpException("account_unavailable", "계정을 찾을 수 없습니다.", 404)
+        val now = Instant.now().epochSecond
+        val existingTime = current.flags.path("uid").path("time").asLong(0)
+        if (existingTime > 0 && existingTime + SECURITY_CODE_REISSUE_COOLDOWN_SECONDS > now) {
+            throw IdpException("security_code_rate_limited", "보안코드는 30분마다 재발급할 수 있습니다.", 429)
+        }
+
+        val flags = if (current.flags.isObject) current.flags.deepCopy<ObjectNode>() else objectMapper.createObjectNode()
+        flags.set<ObjectNode>("uid", objectMapper.createObjectNode().put("value", generateSecurityCode()).put("time", now))
+        val currentRevision = flags.path(ACCOUNT_REVISION_FLAG).path("value").asLong(0).coerceAtLeast(0)
+        flags.set<ObjectNode>(ACCOUNT_REVISION_FLAG, objectMapper.createObjectNode().put("value", currentRevision + 1).put("time", now))
+        if (!dao.updateAccountFlags(current.id, flags)) throw IdpException("account_unavailable", "보안코드를 저장하지 못했습니다.", 503)
+
+        dao.audit(current.id, "SECURITY_CODE_REISSUED")
+        return flags.path("uid").path("value").asText()
+    }
+
     @Transactional
     fun sendEmailVerification(account: Account, email: String) {
         val normalized = email.trim().lowercase()
@@ -167,6 +189,10 @@ class AccountSecurityService(
         dao.upsertSupportPin(account.id, SecretTools.hashPassword(pin.toCharArray())); dao.audit(account.id, "SUPPORT_PIN_ISSUED")
         return pin
     }
+
+    private fun generateSecurityCode(): String = buildString(SECURITY_CODE_LENGTH) {
+        repeat(SECURITY_CODE_LENGTH) { append(SECURITY_CODE_ALPHABET[secureRandom.nextInt(SECURITY_CODE_ALPHABET.length)]) }
+    }
     fun authenticate(identifier: String, password: CharArray, totpCode: String?): Account {
         requirePasswordEnabled()
         val account = findPasswordAccount(identifier, password)
@@ -246,8 +272,7 @@ class AccountSecurityService(
     }
 
     private fun matchesSecurityCode(account: Account, code: String): Boolean {
-        val gameUserId = dao.selectedProfileId(account.id) ?: account.legacyUserId
-        val expected = userDao.getUser(gameUserId)?.flags?.path("uid")?.path("value")?.asText()
+        val expected = account.flags.path("uid").path("value").asText(null)
         return !expected.isNullOrBlank() && MessageDigest.isEqual(expected.toByteArray(), code.trim().toByteArray())
     }
 
@@ -274,5 +299,12 @@ class AccountSecurityService(
 
     private fun deliver(to: String, subject: String, text: String) {
         mailSender.send(SimpleMailMessage().apply { setFrom(settings.mailFrom); setTo(to); setSubject(subject); setText(text) })
+    }
+
+    private companion object {
+        private const val ACCOUNT_REVISION_FLAG = "kkac2AccountRevision"
+        private const val SECURITY_CODE_REISSUE_COOLDOWN_SECONDS = 1800L
+        private const val SECURITY_CODE_LENGTH = 24
+        private const val SECURITY_CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz-"
     }
 }

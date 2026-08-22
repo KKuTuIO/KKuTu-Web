@@ -295,6 +295,7 @@ class AccountApi(
     @PostMapping("/one-time-login-codes/rotate") fun oneTimeLoginCodes(session: HttpSession): Map<String, Any> = mapOf("codes" to security.rotateOneTimeLoginCodes(recent(session)))
     @PostMapping("/support-pin/issue") fun supportPin(session: HttpSession): Map<String, String> = mapOf("pin" to security.issueSupportPin(recent(session)))
     @PostMapping("/security-code/reveal") fun revealSecurityCode(session: HttpSession): Map<String, String> = mapOf("securityCode" to accounts.revealSecurityCode(recent(session)))
+    @PostMapping("/security-code/reissue") fun reissueSecurityCode(session: HttpSession): Map<String, String> = mapOf("securityCode" to security.reissueSecurityCode(recentMutable(session)))
     @PostMapping("/email/confirm") fun emailConfirm(@RequestParam token: String): ResponseEntity<Void> { security.confirmEmail(token); return ResponseEntity.noContent().build() }
 
     private fun recent(session: HttpSession): Account {

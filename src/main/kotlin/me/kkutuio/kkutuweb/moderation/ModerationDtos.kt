@@ -17,12 +17,22 @@ data class ModerationUserSummary(
 
 data class ModerationUserDetail(
     val user: ModerationUserSummary,
+    val accountUuid: String,
+    val profiles: List<ModerationProfileSummary>,
     val flags: JsonNode,
     val counters: Map<String, Int>,
     val history: List<ModerationCaseSummary>,
     val reports: List<ModerationReportSummary>,
     val reportsHasMore: Boolean,
     val reportsAnchor: Instant
+)
+
+data class ModerationProfileSummary(
+    val id: String,
+    val userId: String,
+    val nickname: String?,
+    val legacyUserId: String?,
+    val status: String
 )
 
 data class ModerationRelatedAccessEntry(

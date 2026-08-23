@@ -22,36 +22,47 @@ import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Profile
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 import springfox.documentation.builders.ApiInfoBuilder
 import springfox.documentation.builders.PathSelectors
 import springfox.documentation.builders.RequestHandlerSelectors
 import springfox.documentation.service.ApiInfo
+import springfox.documentation.service.ApiKey
+import springfox.documentation.service.AuthorizationScope
+import springfox.documentation.service.SecurityReference
 import springfox.documentation.spi.DocumentationType
+import springfox.documentation.spi.service.contexts.SecurityContext
 import springfox.documentation.spring.web.plugins.Docket
 import springfox.documentation.swagger2.annotations.EnableSwagger2
 
 @Configuration
-@Profile("dev")
 @EnableSwagger2
 class SwaggerConfig(
     @Autowired private val setting: KKuTuSetting
-) : WebMvcConfigurer {
+) {
     @Bean
     fun api(): Docket {
         return Docket(DocumentationType.SWAGGER_2)
             .select()
-            .apis(RequestHandlerSelectors.any())
-            .paths(PathSelectors.ant("/**"))
+            .apis(RequestHandlerSelectors.basePackage("me.kkutuio.kkutuweb"))
+            .paths(PathSelectors.ant("/api/**"))
             .build()
             .apiInfo(apiInfo())
+            .useDefaultResponseMessages(false)
+            .securitySchemes(listOf(ApiKey("Bearer", "Authorization", "header")))
+            .securityContexts(listOf(
+                SecurityContext.builder()
+                    .securityReferences(listOf(
+                        SecurityReference("Bearer", arrayOf(AuthorizationScope("global", "KKuTuIO-Admin OAuth access token")))
+                    ))
+                    .forPaths(PathSelectors.ant("/api/admin/**"))
+                    .build()
+            ))
     }
 
     private fun apiInfo(): ApiInfo {
         return ApiInfoBuilder()
-            .title("끄투리오")
-            .description("끄투리오 API 명세")
+            .title("끄투리오 API")
+            .description("서버 컨트롤러에서 자동 생성되는 끄투리오 API 명세")
             .version(setting.getVersion())
             .build()
     }

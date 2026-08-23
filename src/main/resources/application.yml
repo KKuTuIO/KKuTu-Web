@@ -16,6 +16,9 @@ server:
 spring:
   application:
     name: kkutu-web
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   thymeleaf:
     cache: true
   messages:
@@ -116,3 +119,9 @@ idp:
     previous-key-grace-days: 30
   legacy-migration:
     enabled: false
+
+springfox:
+  documentation:
+    swagger:
+      v2:
+        path: /api/admin/api-docs

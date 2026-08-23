@@ -99,7 +99,6 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:2.9.3")
 
     implementation("io.springfox:springfox-swagger2:2.9.2")
-    implementation("io.springfox:springfox-swagger-ui:2.9.2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")

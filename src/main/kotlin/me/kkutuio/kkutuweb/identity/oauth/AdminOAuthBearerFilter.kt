@@ -2,6 +2,8 @@ package me.kkutuio.kkutuweb.identity.oauth
 
 import me.kkutuio.kkutuweb.identity.IdentityProviderSettings
 import me.kkutuio.kkutuweb.login.LoginService
+import me.kkutuio.kkutuweb.setting.AdminSetting
+import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -23,7 +25,8 @@ import javax.servlet.http.HttpServletResponse
 class AdminOAuthBearerFilter(
     private val oidc: OidcService,
     private val settings: IdentityProviderSettings,
-    private val loginService: LoginService
+    private val loginService: LoginService,
+    private val kkutuSetting: KKuTuSetting
 ) : OncePerRequestFilter() {
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
         request.method == "OPTIONS" ||
@@ -51,6 +54,16 @@ class AdminOAuthBearerFilter(
             response.sendError(HttpStatus.FORBIDDEN.value(), "OAuth 권한이 부족합니다.")
             return
         }
+        val path = request.requestURI.removePrefix(request.contextPath)
+        if (path == API_DOCUMENTATION_PATH) {
+            val administrator = kkutuSetting.getAdmins().firstOrNull {
+                it.id == principal.account.uuid.toString()
+            }
+            if (administrator == null || AdminSetting.Privilege.API_ACCESS !in administrator.privileges) {
+                response.sendError(HttpStatus.FORBIDDEN.value(), "API 문서 조회 권한이 부족합니다.")
+                return
+            }
+        }
         val existingSession = request.getSession(false)
         val session = request.session
         val originalAttributes = Collections.list(session.attributeNames).associateWith(session::getAttribute)
@@ -71,5 +84,9 @@ class AdminOAuthBearerFilter(
                 originalAttributes.forEach(session::setAttribute)
             }
         }
+    }
+
+    private companion object {
+        const val API_DOCUMENTATION_PATH = "/api/admin/api-docs"
     }
 }

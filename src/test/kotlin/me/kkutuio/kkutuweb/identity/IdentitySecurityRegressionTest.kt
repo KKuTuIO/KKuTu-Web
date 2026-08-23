@@ -5,6 +5,8 @@ import me.kkutuio.kkutuweb.identity.oauth.OidcService
 import me.kkutuio.kkutuweb.identity.oauth.TokenSigner
 import me.kkutuio.kkutuweb.identity.oauth.AdminOAuthBearerFilter
 import me.kkutuio.kkutuweb.login.LoginService
+import me.kkutuio.kkutuweb.setting.KKuTuSetting
+import me.kkutuio.kkutuweb.setting.AdminSetting
 import me.kkutuio.kkutuweb.user.UserDao
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -93,7 +95,8 @@ class IdentitySecurityRegressionTest {
         val filter = AdminOAuthBearerFilter(
             mock(OidcService::class.java),
             mock(IdentityProviderSettings::class.java),
-            mock(LoginService::class.java)
+            mock(LoginService::class.java),
+            mock(KKuTuSetting::class.java)
         )
         val request = MockHttpServletRequest("GET", "/api/admin/profile")
         val response = MockHttpServletResponse()
@@ -103,6 +106,56 @@ class IdentitySecurityRegressionTest {
 
         assertEquals(401, response.status)
         verifyNoInteractions(chain)
+    }
+
+    @Test
+    fun `admin API documentation requires API access privilege`() {
+        val oidc = mock(OidcService::class.java)
+        val login = mock(LoginService::class.java)
+        val kkutu = mock(KKuTuSetting::class.java)
+        val account = account(UUID.randomUUID())
+        val principal = AccessTokenPrincipal(account, "kkutuio-admin", setOf("admin:access"))
+        `when`(settings.adminClientId).thenReturn("kkutuio-admin")
+        `when`(oidc.authenticateAccessToken("test-token")).thenReturn(principal)
+        `when`(kkutu.getAdmins()).thenReturn(listOf(AdminSetting(
+            account.uuid.toString(), "관리자", "운영팀", emptyList()
+        )))
+        val filter = AdminOAuthBearerFilter(oidc, settings, login, kkutu)
+        val request = MockHttpServletRequest("GET", "/api/admin/api-docs").apply {
+            addHeader("Authorization", "Bearer test-token")
+        }
+        val response = MockHttpServletResponse()
+        val chain = mock(FilterChain::class.java)
+
+        filter.doFilter(request, response, chain)
+
+        assertEquals(403, response.status)
+        verifyNoInteractions(chain, login)
+    }
+
+    @Test
+    fun `admin API documentation accepts admin scope with API access privilege`() {
+        val oidc = mock(OidcService::class.java)
+        val login = mock(LoginService::class.java)
+        val kkutu = mock(KKuTuSetting::class.java)
+        val account = account(UUID.randomUUID())
+        val principal = AccessTokenPrincipal(account, "kkutuio-admin", setOf("admin:access"))
+        `when`(settings.adminClientId).thenReturn("kkutuio-admin")
+        `when`(oidc.authenticateAccessToken("test-token")).thenReturn(principal)
+        `when`(kkutu.getAdmins()).thenReturn(listOf(AdminSetting(
+            account.uuid.toString(), "관리자", "운영팀", listOf(AdminSetting.Privilege.API_ACCESS)
+        )))
+        val filter = AdminOAuthBearerFilter(oidc, settings, login, kkutu)
+        val request = MockHttpServletRequest("GET", "/api/admin/api-docs").apply {
+            addHeader("Authorization", "Bearer test-token")
+        }
+        val response = MockHttpServletResponse()
+        val chain = mock(FilterChain::class.java)
+
+        filter.doFilter(request, response, chain)
+
+        assertEquals(200, response.status)
+        verify(chain).doFilter(request, response)
     }
 
     private fun account(id: UUID) = Account(

@@ -38,6 +38,7 @@ data class AdminSetting(
         REPORT_RESOLVE,
         SANCTION_POLICY_OVERRIDE,
         SANCTION_COUNTER_RESET,
+        API_ACCESS,
         IDP_CLIENT_MANAGE,
         ADMIN_PROFILE,
         ADMIN_MANAGE

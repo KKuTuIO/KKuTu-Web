@@ -33,9 +33,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
 class WebConfig(
-    @Value("\${spring.cors.pattern}") private val pathPattern: String,
-    @Value("#{'\${spring.cors.methods}'.split(',')}") private val methods: Array<String>,
-    @Value("#{'\${spring.cors.allowed-origins}'.split(',')}") private val allowedOrigins: Array<String>,
+    @Value("#{'\${spring.cors.allowed-origins}'.split(',')}") private val corsAllowedOrigins: Array<String>,
     private val moderationMutationInterceptor: ModerationMutationInterceptor
 ) : WebMvcConfigurer {
     @Bean
@@ -43,11 +41,11 @@ class WebConfig(
         val source = UrlBasedCorsConfigurationSource()
 
         source.registerCorsConfiguration(
-            pathPattern,
+            "/api/admin/**",
             CorsConfiguration().apply {
                 allowCredentials = true
-                allowedMethods = methods.toList()
-                allowedOrigins = allowedOrigins.toList()
+                allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE")
+                allowedOrigins = corsAllowedOrigins.toList()
                 allowedHeaders = listOf("*")
             }
         )
@@ -56,7 +54,7 @@ class WebConfig(
             "/oauth/token",
             CorsConfiguration().apply {
                 allowedMethods = listOf("POST")
-                allowedOrigins = allowedOrigins.toList()
+                allowedOrigins = corsAllowedOrigins.toList()
                 allowedHeaders = listOf("*")
             }
         )

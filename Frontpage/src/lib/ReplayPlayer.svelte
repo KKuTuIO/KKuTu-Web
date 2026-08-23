@@ -47,6 +47,7 @@
     if (!sounds.has(key)) {
       const audio = new Audio(`${AUDIO_BASE}${key}.mp3`);
       audio.preload = 'auto';
+      audio.load();
       sounds.set(key, audio);
     }
     return sounds.get(key);
@@ -101,6 +102,12 @@
     if (!model || muted || toMs < fromMs) return;
     for (const cue of model.audioCues) {
       if (cue.type === 'turn' || cue.time <= fromMs || cue.time > toMs) continue;
+      if (cue.type === 'letter' && activeTurnSound) {
+        activeTurnSound.pause();
+        try { activeTurnSound.currentTime = 0; } catch (_) {}
+        activeTurnSound = null;
+        activeTurnId = '';
+      }
       playSound(cue.sound);
     }
   }
@@ -235,9 +242,9 @@
 
   function levelIconStyle(level) {
     const spriteLevel = Math.max(0, Math.floor(Number(level) || 1) - 1);
-    const x = (spriteLevel % 25) * -18;
-    const y = Math.floor(spriteLevel / 25) * -18;
-    return `transform: translate(${x}px, ${y}px)`;
+    const x = (spriteLevel % 25) * -100;
+    const y = Math.floor(spriteLevel / 25) * -100;
+    return `background-position: ${x}% ${y}%; background-size: 2560%`;
   }
 
   function scoreText(value) {
@@ -257,7 +264,12 @@
       resizeObserver = new ResizeObserver(updateStageScale);
       if (stageViewport) resizeObserver.observe(stageViewport);
     }
-    for (const key of ['round_start', 'fail', 'timeout', 'mission', 'kung', 'Al']) audioFor(key);
+    for (const key of ['game_start', 'round_start', 'fail', 'timeout', 'mission', 'kung', 'Al']) audioFor(key);
+    for (let speed = 0; speed <= 10; speed++) {
+      audioFor(`T${speed}`);
+      audioFor(`As${speed}`);
+      audioFor(`K${speed}`);
+    }
   });
 
   onDestroy(() => {
@@ -389,9 +401,7 @@
                     {/if}
                   </div>
                   <div class="game-user-title">
-                    <span class="game-user-level" title={`레벨 ${player.level || 1}`}>
-                      <img src="https://cdn.kkutu.io/img/kkutu/lv/newlv.png" referrerpolicy="no-referrer" style={levelIconStyle(player.level)} alt="" />
-                    </span>
+                    <span class="game-user-level" title={`레벨 ${player.level || 1}`} style={levelIconStyle(player.level)}></span>
                     <strong class="game-user-name" title={player.nickname}>{player.nickname}</strong>
                   </div>
                   <div class="game-user-score" aria-label={`${state.scores[player.index] || 0}점`}>
@@ -694,9 +704,8 @@
     height: 18px;
     flex: 0 0 18px;
     margin: 1px;
-    overflow: hidden;
+    background-image: url('https://cdn.kkutu.io/img/kkutu/lv/newlv.png');
   }
-  .game-user-level img { position: absolute; top: 0; left: 0; width: 450px; max-width: none; height: auto; }
   .game-user-name {
     width: 87px;
     height: 20px;

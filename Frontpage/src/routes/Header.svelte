@@ -190,7 +190,7 @@
 				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</button>--->
-				<a href="/game/server/0" rel="external" on:click={guardRestrictedNavigation}
+				<a href="/game/recommended" rel="external" on:click={guardRestrictedNavigation}
 				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</a>
@@ -203,7 +203,7 @@
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</button>-->
-				<a href="/game/server/0" rel="external" on:click={guardRestrictedNavigation}
+				<a href="/game/recommended" rel="external" on:click={guardRestrictedNavigation}
 				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</a>

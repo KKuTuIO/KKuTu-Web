@@ -23,14 +23,29 @@ import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.servlet.view.RedirectView
 
 @RestController
 class ServersApi(
     @Autowired private val kKuTuSetting: KKuTuSetting,
-    @Autowired private val gameClientManager: GameClientManager
+    @Autowired private val gameClientManager: GameClientManager,
+    @Autowired private val recommendedChannelService: RecommendedChannelService
 ) {
     @GetMapping("/servers")
     fun getServers(): ServersResponse {
         return ServersResponse(gameClientManager.getPlayers(), kKuTuSetting.getMaxPlayers())
+    }
+
+    @GetMapping("/game/recommended")
+    fun redirectToRecommendedServer(): RedirectView {
+        val servers = gameClientManager.getPlayers()
+        val preferredChannel = recommendedChannelService.getRecommendedChannel()
+        val channel = if (servers.getOrNull(preferredChannel) != null) {
+            preferredChannel
+        } else {
+            servers.indexOfFirst { it != null }.takeIf { it >= 0 } ?: preferredChannel
+        }
+
+        return RedirectView("/game/server/$channel")
     }
 }

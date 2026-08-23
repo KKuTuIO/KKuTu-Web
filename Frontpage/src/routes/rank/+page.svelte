@@ -13,6 +13,9 @@
   let lastLoadedPage = null;
   let searchQuery = '';
   let resultLabel = '';
+  let openMenuKey = '';
+  let copiedId = '';
+  let copyTimer;
 
   var topRankData = {
     "data": {
@@ -118,6 +121,36 @@
     if (value === '0') return { text: '-', className: 'text-gray-400 dark:text-gray-400' };
     return { text: value, className: 'text-gray-400 dark:text-gray-400' };
   }
+
+  function togglePlayerMenu(key) {
+    openMenuKey = openMenuKey === key ? '' : key;
+  }
+
+  function viewRecords(id) {
+    window.location.href = `/records?type=id&q=${encodeURIComponent(id)}`;
+  }
+
+  async function copyIdentifier(id) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        const input = document.createElement('textarea');
+        input.value = id;
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        input.remove();
+      }
+      copiedId = id;
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => (copiedId = ''), 1800);
+    } finally {
+      openMenuKey = '';
+    }
+  }
   //on currentPage change
   $: {
     if (currentPage < 0) currentPage = 0;
@@ -143,6 +176,7 @@
 <svelte:head>
   <title>끄투리오 - {title}</title>
 </svelte:head>
+<svelte:window on:click={() => (openMenuKey = '')} />
 <div class="min-h-screen bg-slate-950 py-4 text-slate-100">
   <section class="rankBg relative flex min-h-[340px] flex-col items-center justify-center overflow-hidden px-4 pb-24 pt-28 md:pt-36">
     <div class="absolute inset-0 bg-gradient-to-b from-slate-950/30 via-slate-950/25 to-slate-950"></div>
@@ -163,8 +197,9 @@
     <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
     {#each topRankData.data.data as rank, i}
       {@const delta = displayDelta(rank.delta)}
-      <article class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+      <article class="group relative rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
         <div class="absolute inset-x-0 top-0 h-1" style={`background-color: ${rankColor[Number(rank.rank)]}`}></div>
+        <button type="button" aria-label={`${rank.name || '플레이어'} 메뉴`} on:click|stopPropagation={() => togglePlayerMenu(`top-${rank.id}`)} class="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-lg bg-white/80 text-slate-500 shadow-sm backdrop-blur transition hover:bg-slate-100 hover:text-slate-900 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
         <div class="flex items-start justify-between gap-3">
           <div>
             <span class="inline-flex rounded-full bg-slate-900 px-2.5 py-1 text-xs font-black text-white dark:bg-slate-700">{rank.rank + 1}위</span>
@@ -199,6 +234,12 @@
           {/await}
         </div>
         </div>
+        {#if openMenuKey === `top-${rank.id}`}
+          <div role="menu" on:click|stopPropagation class="absolute right-3 top-12 z-30 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-sm shadow-xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-800">
+            <button on:click={() => viewRecords(rank.id)} class="w-full rounded-xl px-3 py-2.5 text-left font-bold transition hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-slate-700 dark:hover:text-sky-300">전적 보기</button>
+            <button on:click={() => copyIdentifier(rank.id)} class="w-full rounded-xl px-3 py-2.5 text-left font-bold transition hover:bg-slate-100 dark:hover:bg-slate-700">{copiedId === rank.id ? '식별번호 복사 완료' : '식별번호 복사'}</button>
+          </div>
+        {/if}
         <div class="mt-4 flex items-end justify-between border-t border-slate-100 pt-3 dark:border-slate-700">
           <div><p class="text-xs font-medium text-slate-500 dark:text-slate-400">누적 점수</p><p class="mt-0.5 text-lg font-black">{Number(rank.score).toLocaleString()}<small class="ml-0.5 text-xs font-medium">점</small></p></div>
           <span class={`rounded-lg bg-slate-100 px-2.5 py-1 text-sm font-black dark:bg-slate-800 ${delta.className}`} aria-label={`순위 변동 ${delta.text}`}>{delta.text}</span>
@@ -230,11 +271,20 @@
           {@const delta = displayDelta(rank.delta)}
           <tr class="border-t border-slate-100 transition hover:bg-sky-50/60 dark:border-slate-800 dark:hover:bg-slate-800/70">
             <td class="px-4 py-3 text-center font-black">{rank.rank + 1}<small class="ml-0.5 font-medium text-slate-500">위</small></td>
-            <td class="px-4 py-3 font-bold">
-              {#if rank.name && rank.name.includes('#')}
-                  {rank.name.split('#')[0]}<small class="font-normal">#{rank.name.split('#')[1]}</small>
-              {:else}
-                  {rank.name || '알 수 없음'}
+            <td class="relative px-4 py-3">
+              <div class="flex items-center justify-between gap-2">
+                <span class="min-w-0 truncate font-bold">{#if rank.name && rank.name.includes('#')}
+                    {rank.name.split('#')[0]}<small class="font-normal">#{rank.name.split('#')[1]}</small>
+                  {:else}
+                    {rank.name || '알 수 없음'}
+                  {/if}</span>
+                <button type="button" aria-label={`${rank.name || '플레이어'} 메뉴`} on:click|stopPropagation={() => togglePlayerMenu(`table-${rank.id}`)} class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"><span class="material-symbols-outlined">more_vert</span></button>
+              </div>
+              {#if openMenuKey === `table-${rank.id}`}
+                <div role="menu" on:click|stopPropagation class="absolute right-3 top-11 z-30 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 text-sm shadow-xl shadow-slate-950/20 dark:border-slate-700 dark:bg-slate-800">
+                  <button on:click={() => viewRecords(rank.id)} class="w-full rounded-xl px-3 py-2.5 text-left font-bold transition hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-slate-700 dark:hover:text-sky-300">전적 보기</button>
+                  <button on:click={() => copyIdentifier(rank.id)} class="w-full rounded-xl px-3 py-2.5 text-left font-bold transition hover:bg-slate-100 dark:hover:bg-slate-700">{copiedId === rank.id ? '식별번호 복사 완료' : '식별번호 복사'}</button>
+                </div>
               {/if}
             </td>
             <td class="px-4 py-3"><div class="flex justify-center">

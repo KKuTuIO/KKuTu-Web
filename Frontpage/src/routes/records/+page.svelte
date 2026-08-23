@@ -3,6 +3,7 @@
   import { fade, fly } from 'svelte/transition';
   import { browser } from '$app/environment';
   import { getLevel } from '../../lib/getLevelImg.js';
+  import { loadAuth } from '../../lib/session.js';
   import AccountModal from '../../lib/AccountModal.svelte';
   import AdminKeyTrace from '../../lib/AdminKeyTrace.svelte';
   import ReplayPlayer from '../../lib/ReplayPlayer.svelte';
@@ -114,6 +115,10 @@
   let uid = '';
   let loading = false;
   let loadingHistory = false;
+  let authStateLoaded = false;
+  let isGuest = true;
+  let dashboardLoading = false;
+  let currentUserId = '';
   let errorMessage = '';
   let toasts = [];
   let toastId = 0;
@@ -345,6 +350,66 @@
     if (hour < 24) return `${hour}시간 전`;
     const day = Math.floor(hour / 24);
     return `${day}일 전`;
+  }
+
+  function getRecommendedMode() {
+    return modeStats
+      .filter((stat) => stat.games >= 10)
+      .slice()
+      .sort((a, b) => b.winRate - a.winRate || b.games - a.games)[0] || modeStats[0] || null;
+  }
+
+  function getNeedsWorkMode() {
+    const candidates = modeStats.filter((stat) => stat.games >= 10);
+    return candidates
+      .slice()
+      .sort((a, b) => a.winRate - b.winRate || b.games - a.games)[0] || null;
+  }
+
+  function getRecentForm() {
+    const recent = historyRows.slice(0, 10);
+    const placements = recent
+      .map((row) => Number(row?.placement || 0))
+      .filter((placement) => placement > 0);
+    const averagePlacement = placements.length
+      ? placements.reduce((sum, placement) => sum + placement, 0) / placements.length
+      : 0;
+    return {
+      rows: recent,
+      games: recent.length,
+      wins: recent.filter((row) => row?.won).length,
+      averagePlacement,
+      latest: recent[0] || null
+    };
+  }
+
+  function showMyRecords(tab = 'profile') {
+    if (!profile) return;
+    selectedTab = tab;
+    currentStatus = 'user';
+  }
+
+  async function loadPersonalDashboard(userId) {
+    if (!userId) return;
+    dashboardLoading = true;
+    uid = userId;
+    page = 1;
+    pageSize = 10;
+    try {
+      const [loadedProfile, replayModeStats, ranking] = await Promise.all([
+        loadProfile(),
+        loadModeStats(),
+        loadUserRanking(userId)
+      ]);
+      await loadHistory(1);
+      loadedProfile.rank = ranking;
+      profile = { ...loadedProfile };
+      modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
+    } catch (err) {
+      if (err.name !== 'AbortError') showError('내 전적 요약을 불러오지 못했습니다.');
+    } finally {
+      dashboardLoading = false;
+    }
   }
 
   function formatDuration(ms) {
@@ -1070,6 +1135,16 @@
   }
 
   onMount(async () => {
+    try {
+      const auth = await loadAuth();
+      isGuest = auth?.status === 'Guest user' || !auth?.profileId;
+      currentUserId = isGuest ? '' : auth.profileId;
+    } catch {
+      isGuest = true;
+    } finally {
+      authStateLoaded = true;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const typeParam = normalizeSearchType(params.get('type') || SEARCH_TYPE.nickname);
     const qParam = params.get('q') || params.get('nick') || '';
@@ -1088,6 +1163,8 @@
     else if (uidParam) {
       uid = uidParam;
       await loadAll(false);
+    } else if (!isGuest && currentUserId) {
+      await loadPersonalDashboard(currentUserId);
     }
   });
 
@@ -1128,6 +1205,84 @@
         <i class="material-symbols-outlined icons-header">search</i>
       </button>
     </div>
+    {#if authStateLoaded && isGuest && currentStatus === 'main' && !searchNick.trim()}
+      <div in:fade={{ duration: 180 }} class="relative z-[1] mt-5 flex w-full max-w-3xl flex-col items-center justify-between gap-3 rounded-2xl border border-white/15 bg-slate-950/45 px-4 py-3 text-center shadow-lg backdrop-blur sm:flex-row sm:px-5 sm:text-left">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-2xl text-sky-300">insights</span>
+          <p class="text-sm font-medium text-slate-100 sm:text-base">로그인하면 내 전적을 쉽고 빠르게 확인할 수 있어요.</p>
+        </div>
+        <a href="/login" class="inline-flex shrink-0 items-center gap-1 rounded-xl bg-white px-4 py-2 text-sm font-extrabold text-slate-900 transition hover:bg-sky-100">
+          로그인하기
+          <span class="material-symbols-outlined text-base">arrow_forward</span>
+        </a>
+      </div>
+    {/if}
+    {#if authStateLoaded && !isGuest && currentStatus === 'main' && !searchNick.trim()}
+      {#if dashboardLoading}
+        <div class="relative z-[1] mt-5 flex w-full max-w-3xl items-center justify-center gap-2 rounded-2xl border border-white/15 bg-slate-950/45 px-5 py-5 text-sm font-medium text-slate-100 backdrop-blur">
+          <span class="material-symbols-outlined animate-spin">progress_activity</span>
+          내 전적 요약을 불러오는 중이에요.
+        </div>
+      {:else if profile}
+        <div in:fade={{ duration: 180 }} class="relative z-[1] mt-5 w-full max-w-5xl rounded-2xl border border-white/15 bg-slate-950/55 p-4 shadow-xl backdrop-blur sm:p-5">
+          <div class="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p class="text-sm font-medium text-sky-200">내 전적 한눈에 보기</p>
+              <h2 class="mt-1 text-2xl font-black text-white sm:text-3xl">{@html processNick(profile.nickname)}님, 반가워요!</h2>
+              <p class="mt-1 text-sm text-slate-300">
+                {#if profile.rank}{Number(profile.rank).toLocaleString()}등 · {/if}레벨 {profile.level} · 경험치 {Number(profile.score).toLocaleString()}점
+              </p>
+            </div>
+            <button class="inline-flex shrink-0 items-center justify-center gap-1 rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-slate-900 transition hover:bg-sky-100" on:click={() => showMyRecords('profile')}>
+              내 전체 전적
+              <span class="material-symbols-outlined text-base">arrow_forward</span>
+            </button>
+          </div>
+
+          <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <article class="rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-left">
+              <div class="flex items-center gap-2 text-sm font-bold text-emerald-200"><span class="material-symbols-outlined text-lg">recommend</span>오늘의 추천 모드</div>
+              {#if getRecommendedMode()}
+                {@const recommended = getRecommendedMode()}
+                <p class="mt-3 text-xl font-black text-white">{recommended.modeName}</p>
+                <p class="mt-1 text-sm text-slate-200">승률 {recommended.winRate.toFixed(2)}% · {recommended.games.toLocaleString()}판 · {recommended.playHours.toFixed(1)}시간</p>
+                <button class="mt-4 text-sm font-bold text-emerald-200 transition hover:text-white" on:click={() => showMyRecords('stats')}>모드 통계 보기 →</button>
+              {:else}
+                <p class="mt-3 text-sm text-slate-200">추천을 만들 만큼 기록된 경기가 아직 없어요.</p>
+              {/if}
+            </article>
+
+            <article class="rounded-xl border border-sky-300/20 bg-sky-400/10 p-4 text-left">
+              <div class="flex items-center gap-2 text-sm font-bold text-sky-200"><span class="material-symbols-outlined text-lg">monitoring</span>최근 폼</div>
+              {#if getRecentForm().games}
+                {@const form = getRecentForm()}
+                <p class="mt-3 text-xl font-black text-white">최근 {form.games}판 평균 {form.averagePlacement.toFixed(1)}등</p>
+                <div class="mt-3 flex flex-wrap gap-1.5" aria-label="최근 경기 순위">
+                  {#each form.rows as row (row.gameId)}
+                    <span class={`inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1 text-xs font-black ${row.won ? 'bg-amber-300 text-slate-900' : 'bg-white/15 text-white'}`}>{row.placement}</span>
+                  {/each}
+                </div>
+                <p class="mt-3 text-sm text-slate-200">우승 {form.wins}회 · 직전 경기 {form.latest?.placement || '-'}등</p>
+              {:else}
+                <p class="mt-3 text-sm text-slate-200">아직 최근 경기 기록이 없어요.</p>
+              {/if}
+            </article>
+
+            <article class="rounded-xl border border-violet-300/20 bg-violet-400/10 p-4 text-left md:col-span-2 xl:col-span-1">
+              <div class="flex items-center gap-2 text-sm font-bold text-violet-200"><span class="material-symbols-outlined text-lg">school</span>보완할 모드</div>
+              {#if getNeedsWorkMode()}
+                {@const needsWork = getNeedsWorkMode()}
+                <p class="mt-3 text-xl font-black text-white">{needsWork.modeName}</p>
+                <p class="mt-1 text-sm text-slate-200">승률 {needsWork.winRate.toFixed(2)}% · {needsWork.games.toLocaleString()}판</p>
+                <button class="mt-4 text-sm font-bold text-violet-200 transition hover:text-white" on:click={() => showMyRecords('history')}>경기 내역 보기 →</button>
+              {:else}
+                <p class="mt-3 text-sm text-slate-200">10판 이상 기록된 모드가 생기면 알려드릴게요.</p>
+              {/if}
+            </article>
+          </div>
+        </div>
+      {/if}
+    {/if}
   </div>
 
   {#if currentStatus === 'user' && profile}

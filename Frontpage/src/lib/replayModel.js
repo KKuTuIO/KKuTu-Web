@@ -1,11 +1,28 @@
 const REJECT_REASON_LABEL = {
   NCH: '체인 불일치',
   DUP: '이미 사용한 단어',
-  NFD: '사용 가능한 단어 없음',
-  RUL: '이 게임에서 사용할 수 없는 단어',
-  MNR: '매너/안전 규칙에 맞지 않는 단어',
+  NFD: '사용 가능 단어 없음',
+  RUL: '단어 제한!',
+  MNR: '단어 제한!',
   TUR: '현재 턴이 아님',
   OTH: '입력 오류'
+};
+
+const TURN_ERROR_LABEL = {
+  402: '첫 차례 한방 금지',
+  403: '한방 단어',
+  405: '외래어',
+  406: '깐깐!',
+  407: '다른 주제',
+  408: '사용 가능 단어 없음',
+  409: '이미 쓰인 단어',
+  410: '첫 차례 50자 제한',
+  411: '단어 제한!',
+  412: '젠틀!',
+  420: '아이템 연속 사용 불가!',
+  421: '첫 턴 아이템 사용 불가!',
+  422: '제한시간 초과!',
+  429: '아이템 부족!'
 };
 
 const BEAT = [null, '10000000', '10001000', '10010010', '10011010', '11011010', '11011110', '11011111', '11111111'];
@@ -13,6 +30,17 @@ const SUPPORTED_MODE_CODES = new Set(['EKT', 'ESH', 'EAP', 'KKT', 'KFT', 'KSH', 
 const SUPPORTED_RULES = new Set(['Classic', 'Daneo', 'Hunmin']);
 const REVERSE_MODE_CODES = new Set(['KAP', 'EAP']);
 const KKT_MODE_CODES = new Set(['KKT', 'KFT']);
+const AUDIO_DURATION_MS = {
+  game_start: 2532,
+  round_start: 2472,
+  fail: 836,
+  timeout: 2195,
+  mission: 1018,
+  kung: 3475,
+  Al: 1149
+};
+const K_DURATION_MS = [2012, 1751, 1646, 1437, 1333, 1098, 1045, 941, 941, 340, 209];
+const AS_DURATION_MS = 408;
 
 export function getReplaySupport(detail) {
   const payload = detail?.replayView?.payload;
@@ -176,8 +204,8 @@ function getTurnSpeed(roundTimeMs) {
 }
 
 function initialRoundTitles(raw, totalRounds) {
-  const values = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-  return Array.from({ length: totalRounds }, (_, index) => String(values[index] ?? index + 1));
+  const values = Array.isArray(raw) ? raw : [...String(raw || '')];
+  return Array.from({ length: totalRounds }, (_, index) => String(values[index] ?? ''));
 }
 
 function promptFromWord(word, reverse) {
@@ -243,11 +271,17 @@ function buildTurnsAndCues(events, model) {
   let estimateRound = -1;
   let estimateRemaining = model.roomTimeMs;
   let estimateChain = 0;
+  let previousAcceptedTurn = null;
   for (const turn of turns) {
     if (turn.round !== estimateRound) {
       estimateRound = turn.round;
       estimateRemaining = model.roomTimeMs;
       estimateChain = 0;
+      previousAcceptedTurn = null;
+    } else if (previousAcceptedTurn) {
+      // The next live turn begins after turnTime / 6. This is more accurate
+      // for legacy rows whose accepted-event timestamp includes DB latency.
+      turn.startTime = previousAcceptedTurn.transitionEnd;
     }
     estimateRemaining = Math.min(estimateRemaining, Math.max(10000, 150000 - estimateChain * 1500));
     const estimateSpeed = getTurnSpeed(estimateRemaining);
@@ -257,6 +291,7 @@ function buildTurnsAndCues(events, model) {
     if (accepted) {
       estimateRemaining = Math.max(0, estimateRemaining - accepted.elapsedTurnMs);
       estimateChain++;
+      previousAcceptedTurn = turn;
     }
   }
 
@@ -281,7 +316,7 @@ function buildTurnsAndCues(events, model) {
   }
   turns.sort((a, b) => a.startTime - b.startTime || a.turnIndex - b.turnIndex);
 
-  const audioCues = [];
+  const audioCues = [{ id: 'game-start', time: 0, sound: 'game_start', type: 'effect' }];
   const roundReadyTimes = new Map();
   const roundEndTimes = new Map();
   let lastRound = -1;
@@ -310,7 +345,7 @@ function buildTurnsAndCues(events, model) {
     turn.endEvent = turn.events.find((event) => event.kind === 'input' && event.accepted)
       || turn.events.find((event) => event.kind === 'CTO')
       || null;
-    turn.endTime = turn.endEvent?.time ?? Math.min(model.durationMs, turn.startTime + Math.min(turn.turnTimeMs, roundRemaining));
+    turn.endTime = turn.endEvent?.time ?? Math.min(model.gameDurationMs, turn.startTime + Math.min(turn.turnTimeMs, roundRemaining));
     turn.transitionEnd = turn.endEvent?.kind === 'input'
       ? Math.min(model.durationMs, turn.endTime + turn.turnTimeMs / 6)
       : turn.endTime;
@@ -349,7 +384,7 @@ function buildTurnsAndCues(events, model) {
           id: `letter-${event.id}-${item.letterIndex}`,
           time: event.time + item.at,
           sound: item.sound || `As${turn.speed}`,
-          type: 'effect'
+          type: 'letter'
         });
       }
       if (event.bonusScore > 0) {
@@ -387,7 +422,9 @@ function buildTurnsAndCues(events, model) {
 }
 
 function failureText(event) {
-  const prefix = REJECT_REASON_LABEL[event.rejectReason] || REJECT_REASON_LABEL.OTH;
+  const prefix = TURN_ERROR_LABEL[event.errorCode]
+    || REJECT_REASON_LABEL[event.rejectReason]
+    || REJECT_REASON_LABEL.OTH;
   if (event.kind === 'CRJ') return prefix;
   return event.label && event.label !== '(알 수 없음)' ? `${prefix}: ${event.label}` : prefix;
 }
@@ -397,6 +434,32 @@ function scoreAnimationValue(before, after, elapsedMs) {
   const frames = Math.floor(elapsedMs / (1000 / 60));
   const remainder = (after - before) * Math.pow(0.8, frames);
   return Math.abs(remainder) < 1 ? after : Math.round(after - remainder);
+}
+
+function audioDurationMs(sound) {
+  if (Object.prototype.hasOwnProperty.call(AUDIO_DURATION_MS, sound)) return AUDIO_DURATION_MS[sound];
+  if (/^As\d+$/.test(sound)) return AS_DURATION_MS;
+  const finish = /^K(\d+)$/.exec(sound);
+  return finish ? (K_DURATION_MS[numberOr(finish[1])] || 0) : 0;
+}
+
+function playbackDurationMs(model) {
+  let endTime = model.gameDurationMs;
+  for (const cue of model.audioCues) {
+    if (cue.type === 'turn') continue;
+    endTime = Math.max(endTime, cue.time + audioDurationMs(cue.sound));
+  }
+  for (const turn of model.turns) endTime = Math.max(endTime, turn.transitionEnd || turn.endTime || 0);
+  for (const event of model.events) {
+    if (event.kind === 'input' && event.accepted) {
+      endTime = Math.max(endTime, event.time + (event.bonusScore ? 2500 : 2000));
+    } else if (event.showsFailure) {
+      endTime = Math.max(endTime, event.time + 1800);
+    } else if (event.kind === 'CTO') {
+      endTime = Math.max(endTime, event.time + 3000);
+    }
+  }
+  return Math.ceil(endTime);
 }
 
 export function createReplayModel(detail) {
@@ -429,7 +492,8 @@ export function createReplayModel(detail) {
   }
 
   const lastEventTime = events.length ? events[events.length - 1].time : 0;
-  const durationMs = Math.max(1, numberOr(detail?.durationMs), numberOr(payload.d), lastEventTime);
+  const gameDurationMs = Math.max(1, numberOr(detail?.durationMs), numberOr(payload.d), lastEventTime);
+  const durationMs = gameDurationMs + 5000;
   const totalRounds = Math.max(1, numberOr(payload.rm?.[5], 1));
   const roomTimeMs = Math.max(1000, numberOr(payload.rm?.[6], 60) * 1000);
   const model = {
@@ -443,11 +507,13 @@ export function createReplayModel(detail) {
     totalRounds,
     roomTimeMs,
     roundTitles: initialRoundTitles(payload.rm?.[8], totalRounds),
+    gameDurationMs,
     durationMs,
     players,
     events
   };
   Object.assign(model, buildTurnsAndCues(events, model));
+  model.durationMs = playbackDurationMs(model);
   return model;
 }
 
@@ -481,7 +547,7 @@ export function getReplayState(model, requestedTimeMs) {
       scores[playerIndex] = scoreAnimationValue(recent.scoreBefore, recent.scoreAfter, timeMs - recent.time);
     }
   }
-  if (timeMs >= model.durationMs) {
+  if (timeMs >= model.gameDurationMs) {
     for (const player of model.players) scores[player.index] = player.finalScore;
   }
 
@@ -496,7 +562,11 @@ export function getReplayState(model, requestedTimeMs) {
   let displayMode = 'prompt';
   let displayText = activeTurn?.prompt || lastTurn?.prompt || model.roundTitles[currentRound - 1] || '';
   let displayLetters = [];
-  if (latestFailure && (!latestAccepted || latestFailure.time > latestAccepted.time)) {
+  const firstReadyTime = model.roundReadyTimes.get(model.turns[0]?.round) ?? 0;
+  if (timeMs < firstReadyTime) {
+    displayMode = 'starting';
+    displayText = '잠시 후 게임이 시작됩니다!';
+  } else if (latestFailure && (!latestAccepted || latestFailure.time > latestAccepted.time)) {
     displayMode = 'failure';
     displayText = failureText(latestFailure);
   } else if (latestAccepted) {
@@ -507,7 +577,7 @@ export function getReplayState(model, requestedTimeMs) {
       .filter((item) => item.at <= elapsed)
       .map((item) => item.letterIndex));
     displayLetters = [...latestAccepted.label].map((char, index) => ({ char, visible: visibleIndices.has(index), index }));
-  } else if (timeMs >= model.durationMs) {
+  } else if (timeMs >= model.gameDurationMs) {
     displayText = '경기 종료';
   }
 

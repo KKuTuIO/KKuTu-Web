@@ -339,7 +339,7 @@
         
         <div class="-mt-[400px] h-[400px] hidden lg:flex items-center min-w-screen-lg max-w-screen-xl mx-auto justify-end pr-4 z-50">
             <div class="w-[260px] mx-4">
-                <a href="/game/server/0" rel="external" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-8 px-12 transform ease-in duration-100 items-center justify-center">
+                <a href="/game/recommended" rel="external" class="shadow-lg w-full rounded-t-xl membershipBGScroll text-4xl border-[#51a351] border-b bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex flex-col py-8 px-12 transform ease-in duration-100 items-center justify-center">
                     게임 시작
                 </a>
                 <!--

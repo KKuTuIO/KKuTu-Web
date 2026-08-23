@@ -147,8 +147,65 @@
                 <button id="setting-ok" class="confirm-btn" th:text="#{kkutu.dialog.setting.save}"></button>
                 <button id="setting-server" th:text="#{kkutu.dialog.setting.change-server}"></button>
                 <button id="setting-load" th:text="#{kkutu.dialog.setting.load}"></button>
-                <input id="setting-file" type="file" accept=".kkis" style="display: none;">
             </div>
+        </th:block>
+    </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='KkisImportDiag',width=360,height=500,title=#{kkutu.dialog.setting.load})}">
+        <th:block layout:fragment="content">
+            <details class="kkis-import-section">
+                <summary th:text="#{kkutu.dialog.accountOptions.import.code.title}"></summary>
+                <div class="dialog-bar">
+                    <input id="kkis-import-code" type="text" maxlength="8"
+                           th:attr="placeholder=#{kkutu.dialog.accountOptions.import.code.placeholder}">
+                    <button id="kkis-import-code-ok" type="button"
+                            th:text="#{kkutu.dialog.accountOptions.import.code.ok}"></button>
+                </div>
+            </details>
+            <hr>
+            <details class="kkis-import-section" open>
+                <summary th:text="#{kkutu.dialog.accountOptions.import.file.title}"></summary>
+                <div class="dialog-bar">
+                    <button id="kkis-import-file-button" type="button"
+                            th:text="#{kkutu.dialog.accountOptions.import.file.button}"></button>
+                    <span id="kkis-import-file-name" class="ellipse"
+                          th:text="#{kkutu.dialog.accountOptions.import.file.none}"></span>
+                    <input id="setting-file" type="file" accept=".kkis" style="display: none;">
+                </div>
+                <div class="dialog-bar theme-preset-controls">
+                    <button id="kkis-import-toggle-all" type="button"></button>
+                </div>
+                <div class="dialog-bar" id="kkis-import-list">
+                    <div class="dialog-opt">
+                        <input id="kkis-import-kks" data-import-key="kks" type="checkbox" checked>
+                        <label for="kkis-import-kks" th:text="#{kkutu.dialog.accountOptions.export.kks}"></label>
+                    </div>
+                    <div class="dialog-opt">
+                        <input id="kkis-import-block" data-import-key="block" type="checkbox" checked>
+                        <label for="kkis-import-block" th:text="#{kkutu.dialog.accountOptions.export.block}"></label>
+                    </div>
+                    <div class="dialog-opt">
+                        <input id="kkis-import-shut" data-import-key="shut" type="checkbox" checked>
+                        <label for="kkis-import-shut" th:text="#{kkutu.dialog.accountOptions.export.shut}"></label>
+                    </div>
+                    <div class="dialog-opt">
+                        <input id="kkis-import-notes" data-import-key="notes" type="checkbox" checked>
+                        <label for="kkis-import-notes" th:text="#{kkutu.dialog.accountOptions.export.notes}"></label>
+                    </div>
+                    <div class="dialog-opt">
+                        <input id="kkis-import-theme-presets" data-import-key="themePresets" type="checkbox" checked>
+                        <label for="kkis-import-theme-presets" th:text="#{kkutu.dialog.accountOptions.export.themePresets}"></label>
+                    </div>
+                    <div class="dialog-opt">
+                        <input id="kkis-import-wardrobe" data-import-key="wardrobePresets" type="checkbox" checked>
+                        <label for="kkis-import-wardrobe" th:text="#{kkutu.dialog.accountOptions.export.wardrobePresets}"></label>
+                    </div>
+                </div>
+                <div class="dialog-bar tail-button">
+                    <button id="kkis-import-ok" class="confirm-btn" type="button" disabled
+                            th:text="#{kkutu.dialog.accountOptions.import.file.ok}"></button>
+                </div>
+            </details>
         </th:block>
     </th:block>
     <th:block layout:replace="~{view/kkutu/dialog::dialog(id='AccountOptionsDiag',width=300,height=245,title=#{kkutu.dialog.accountOptions.title})}">
@@ -184,6 +241,44 @@
                         <div th:text="#{kkutu.dialog.accountOptions.useCoupon.expl}"></div>
                     </div>
                 </div>
+            </div>
+        </th:block>
+    </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='KkisExportDiag',width=340,height=410,title=#{kkutu.dialog.accountOptions.export.title})}">
+        <th:block layout:fragment="content">
+            <h4 th:text="#{kkutu.dialog.accountOptions.export.expl}"></h4>
+            <div class="dialog-bar theme-preset-controls">
+                <button id="kkis-export-toggle-all" type="button"></button>
+            </div>
+            <div class="dialog-bar" id="kkis-export-list">
+                <div class="dialog-opt">
+                    <input id="kkis-export-kks" data-export-key="kks" type="checkbox" checked>
+                    <label for="kkis-export-kks" th:text="#{kkutu.dialog.accountOptions.export.kks}"></label>
+                </div>
+                <div class="dialog-opt">
+                    <input id="kkis-export-block" data-export-key="block" type="checkbox" checked>
+                    <label for="kkis-export-block" th:text="#{kkutu.dialog.accountOptions.export.block}"></label>
+                </div>
+                <div class="dialog-opt">
+                    <input id="kkis-export-shut" data-export-key="shut" type="checkbox" checked>
+                    <label for="kkis-export-shut" th:text="#{kkutu.dialog.accountOptions.export.shut}"></label>
+                </div>
+                <div class="dialog-opt">
+                    <input id="kkis-export-notes" data-export-key="notes" type="checkbox" checked>
+                    <label for="kkis-export-notes" th:text="#{kkutu.dialog.accountOptions.export.notes}"></label>
+                </div>
+                <div class="dialog-opt">
+                    <input id="kkis-export-theme-presets" data-export-key="themePresets" type="checkbox" checked>
+                    <label for="kkis-export-theme-presets" th:text="#{kkutu.dialog.accountOptions.export.themePresets}"></label>
+                </div>
+                <div class="dialog-opt">
+                    <input id="kkis-export-wardrobe" data-export-key="wardrobePresets" type="checkbox" checked>
+                    <label for="kkis-export-wardrobe" th:text="#{kkutu.dialog.accountOptions.export.wardrobePresets}"></label>
+                </div>
+            </div>
+            <div class="dialog-bar tail-button">
+                <button id="kkis-export-ok" class="confirm-btn" th:text="#{kkutu.dialog.accountOptions.export.ok}"></button>
             </div>
         </th:block>
     </th:block>

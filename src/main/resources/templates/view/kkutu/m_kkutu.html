@@ -166,9 +166,9 @@
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='KkisImportDiag',width=300,height=515,title=#{kkutu.dialog.setting.load})}">
         <th:block layout:fragment="content">
-            <details class="kkis-import-section kkis-import-card">
+            <details class="kkis-import-section kkis-import-card" open>
                 <summary th:text="#{kkutu.dialog.accountOptions.import.code.title}"></summary>
-                <div class="dialog-bar">
+                <div class="dialog-bar kkis-code-entry">
                     <input id="kkis-import-code" type="text" maxlength="8"
                            th:attr="placeholder=#{kkutu.dialog.accountOptions.import.code.placeholder}">
                     <button id="kkis-import-code-ok" type="button"

@@ -151,11 +151,11 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='KkisImportDiag',width=360,height=500,title=#{kkutu.dialog.setting.load})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='KkisImportDiag',width=300,height=500,title=#{kkutu.dialog.setting.load})}">
         <th:block layout:fragment="content">
-            <details class="kkis-import-section kkis-import-card">
+            <details class="kkis-import-section kkis-import-card" open>
                 <summary th:text="#{kkutu.dialog.accountOptions.import.code.title}"></summary>
-                <div class="dialog-bar">
+                <div class="dialog-bar kkis-code-entry">
                     <input id="kkis-import-code" type="text" maxlength="8"
                            th:attr="placeholder=#{kkutu.dialog.accountOptions.import.code.placeholder}">
                     <button id="kkis-import-code-ok" type="button"
@@ -240,7 +240,7 @@
         </th:block>
     </th:block>
     <th:block
-            layout:replace="~{view/kkutu/dialog::dialog(id='KkisExportDiag',width=340,height=410,title=#{kkutu.dialog.accountOptions.export.title})}">
+            layout:replace="~{view/kkutu/dialog::dialog(id='KkisExportDiag',width=300,height=410,title=#{kkutu.dialog.accountOptions.export.title})}">
         <th:block layout:fragment="content">
             <h4 th:text="#{kkutu.dialog.accountOptions.export.expl}"></h4>
             <div class="dialog-bar theme-preset-controls">

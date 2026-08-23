@@ -38,6 +38,7 @@ const AUDIO_DURATION_MS = {
   timeout: 2195,
   mission: 1018,
   kung: 3475,
+  horr: 3000,
   Al: 1149
 };
 const K_DURATION_MS = [2012, 1751, 1646, 1437, 1333, 1098, 1045, 941, 941, 340, 209];
@@ -473,8 +474,30 @@ function buildTurnsAndCues(events, model) {
     }
   }
 
+  // Wordstack records have attack/end rows but not the transient roundReady and
+  // turnStart packets. Reconstruct them from the recorded 60-second round.
+  // This follows the live client order: round_start -> JaqwiBGM ->
+  // JaqwiFastBGM (10 seconds remaining) -> stopBGM + horr at round end.
+  const wordstackRoundTimings = [];
+  if (model.boardType === 'wordstack') {
+    const summariesByRound = new Map();
+    for (const event of events) {
+      if (event.kind !== 'WSS' || summariesByRound.has(event.round)) continue;
+      summariesByRound.set(event.round, event.time);
+    }
+    for (let round = 1; round <= model.totalRounds; round++) {
+      const endTime = summariesByRound.get(round);
+      if (!Number.isFinite(endTime)) continue;
+      const turnStartTime = Math.max(0, endTime - model.roomTimeMs);
+      const readyTime = Math.max(0, turnStartTime - AUDIO_DURATION_MS.round_start);
+      wordstackRoundTimings.push({ round, readyTime, turnStartTime, endTime });
+      audioCues.push({ id: `wordstack-round-${round}`, time: readyTime, sound: 'round_start', type: 'effect' });
+      audioCues.push({ id: `wordstack-end-${round}`, time: endTime, sound: 'horr', type: 'effect' });
+    }
+  }
+
   audioCues.sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
-  return { turns, audioCues, roundReadyTimes, roundEndTimes };
+  return { turns, audioCues, roundReadyTimes, roundEndTimes, wordstackRoundTimings };
 }
 
 function failureText(event) {
@@ -596,7 +619,7 @@ export function getReplayState(model, requestedTimeMs) {
       scorePopups.push({ id: `${event.id}-bonus`, playerIndex: event.playerIndex, value: event.bonusScore, bonus: true });
     }
   }
-  visibleEvents.splice(6);
+  visibleEvents.splice(9);
 
   for (let playerIndex = 0; playerIndex < scores.length; playerIndex++) {
     const recent = [...model.events].reverse().find((event) => event.playerIndex === playerIndex
@@ -614,7 +637,7 @@ export function getReplayState(model, requestedTimeMs) {
       .filter((event) => event.kind === 'WSA' && event.time <= timeMs);
     const attacks = activeAttacks
       .filter((event) => timeMs >= (event.historyAt ?? event.time))
-      .slice(-6)
+      .slice(-9)
       .reverse();
     const latestAttack = activeAttacks.at(-1) || null;
     const activeFlight = latestAttack && timeMs < latestAttack.time + 720 ? latestAttack : null;
@@ -627,6 +650,9 @@ export function getReplayState(model, requestedTimeMs) {
       : previousRoundEnd;
     const inferredRoundEnd = currentRoundEnd || inferredRoundStart + model.roomTimeMs;
     const roundRemainingMs = Math.max(0, inferredRoundEnd - timeMs);
+    const activeWordstackRound = (model.wordstackRoundTimings || []).find((timing) => (
+      timeMs >= timing.turnStartTime && timeMs < timing.endTime
+    ));
     const roundSummaries = model.events.filter((event) => event.kind === 'WSS'
       && event.round === currentRound && event.time <= timeMs);
 
@@ -649,7 +675,10 @@ export function getReplayState(model, requestedTimeMs) {
       wordstackAttacks: attacks,
       wordstackLatestAttack: latestAttack,
       wordstackFlight: activeFlight,
-      wordstackSummaries: roundSummaries
+      wordstackSummaries: roundSummaries,
+      wordstackBgmKey: activeWordstackRound
+        ? (timeMs >= activeWordstackRound.endTime - 10000 ? 'JaqwiFastBGM' : 'JaqwiBGM')
+        : ''
     };
   }
 

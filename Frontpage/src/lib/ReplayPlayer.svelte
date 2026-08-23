@@ -127,7 +127,7 @@
 
   function wordstackBgmKey() {
     if (!playing || muted || model?.boardType !== 'wordstack') return '';
-    return getReplayState(model, currentMs).roundRemainingMs <= 10000 ? 'JaqwiFastBGM' : 'JaqwiBGM';
+    return getReplayState(model, currentMs).wordstackBgmKey || '';
   }
 
   function syncBackgroundMusic() {
@@ -401,7 +401,7 @@
   }
 
   function expandHistoryItem(node) {
-    const targetWidth = 128;
+    const targetWidth = 102;
     node.style.width = '0px';
     node.style.flexBasis = '0px';
     node.style.transition = 'none';
@@ -878,14 +878,14 @@
     height: 40px;
     overflow: hidden;
   }
-  .history { display: flex; align-items: center; width: 1200px; height: 42px; }
+  .history { display: flex; align-items: center; width: 990px; height: 42px; }
   .history-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 128px;
+    width: 102px;
     height: 30px;
-    flex: 0 0 128px;
+    flex: 0 0 102px;
     padding: 4px 0;
     margin: 3px;
     overflow: hidden;

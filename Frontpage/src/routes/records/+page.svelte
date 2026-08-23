@@ -820,6 +820,17 @@
     replayDownloadOpen = true;
     replayDownloadProgress = 12;
     try {
+      const displayedDetail = detailMap[gameId];
+      // includeDetail has already delivered the replay-safe event projection
+      // used by the accordion. It contains WSA/WSS for public Wordstack
+      // replays, while /payload is intentionally redacted for rank games.
+      // Prefer it so the player sees the same attack log as the detail view.
+      const displayedReplayView = buildReplayView(displayedDetail?.detailPayload);
+      if (displayedReplayView?.payload && getReplaySupport({ ...displayedDetail, replayView: displayedReplayView }).supported) {
+        replayDetail = { ...displayedDetail, replayView: displayedReplayView };
+        replayDownloadProgress = 100;
+        return;
+      }
       // 랭크 게임의 공개 페이로드는 상세 입력 기록을 의도적으로 제거한다.
       // 참가자는 인증된 조회로 원본 기록을 받아 실제 리플레이를 재생한다.
       const endpoint = canUseParticipantReplayPayload(gameId)

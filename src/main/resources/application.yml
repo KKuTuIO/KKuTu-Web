@@ -51,8 +51,6 @@ spring:
     host: <Host>
     port: <Port>
   cors:
-    pattern: /api/admin/**
-    methods: GET,POST,PUT,PATCH,DELETE
     allowed-origins: <Origin>
   security:
     user:

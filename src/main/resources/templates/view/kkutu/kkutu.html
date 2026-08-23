@@ -405,8 +405,8 @@
             <span id="theme-preset-count" style="display: none;">0/10</span>
             <div id="theme-preset-list" class="theme-preset-list"></div>
             <div class="dialog-bar tail-button theme-preset-footer">
-                <button id="theme-preset-export" type="button"><i class="fa-solid fa-file-export"></i> 내보내기</button>
-                <button id="theme-preset-add" type="button"><i class="fa-solid fa-plus"></i> 프리셋 추가</button>
+                <button id="theme-preset-export" type="button" th:utext="#{kkutu.dialog.preset.export}"></button>
+                <button id="theme-preset-add" type="button" th:utext="#{kkutu.dialog.preset.save}"></button>
             </div>
         </th:block>
     </th:block>
@@ -416,7 +416,8 @@
             <span id="wardrobe-preset-count" style="display: none;">0/10</span>
             <div id="wardrobe-preset-list" class="wardrobe-preset-list"></div>
             <div class="dialog-bar tail-button wardrobe-preset-footer">
-                <button id="wardrobe-preset-add" type="button" th:utext="#{kkutu.dialog.wardrobe.save}"></button>
+                <button id="wardrobe-preset-export" type="button" th:utext="#{kkutu.dialog.preset.export}"></button>
+                <button id="wardrobe-preset-add" type="button" th:utext="#{kkutu.dialog.preset.save}"></button>
             </div>
         </th:block>
     </th:block>

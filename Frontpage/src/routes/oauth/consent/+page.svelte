@@ -77,7 +77,7 @@
                             {#each consent.scopes as scope}
                                 <div class="flex gap-3 p-4">
                                     <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-green-50 font-bold text-[#438c43] dark:bg-green-950">✓</span>
-                                    <div>
+                                    <div class="text-left">
                                         <h3 class="text-sm font-bold text-slate-900 dark:text-white">{scopeCopy[scope]?.[0] || scope}</h3>
                                         <p class="mt-1 text-sm leading-5 text-slate-600 dark:text-gray-300">{scopeCopy[scope]?.[1] || '이 서비스에서 요청된 권한입니다.'}</p>
                                     </div>

@@ -3,7 +3,10 @@
   import { fade, fly } from 'svelte/transition';
   import { browser } from '$app/environment';
   import { getLevel } from '../../lib/getLevelImg.js';
+  import AccountModal from '../../lib/AccountModal.svelte';
   import AdminKeyTrace from '../../lib/AdminKeyTrace.svelte';
+  import ReplayPlayer from '../../lib/ReplayPlayer.svelte';
+  import { getReplaySupport } from '../../lib/replayModel.js';
 
   const title = 'Records';
   const ALLOWED_PAGE_SIZES = [10, 30, 50];
@@ -36,6 +39,8 @@
     EDG: '영어 그림퀴즈',
     KMT: '수학 대결',
     KQZ: '퀴즈 대결',
+    KLT: '한국어 잇땅',
+    ELT: '영어 잇땅',
     UNKNOWN: '기타'
   };
   const OPTION_BADGE_LABEL = {
@@ -100,7 +105,7 @@
     removehint: '힌트 제거',
     noobserver: '도중 입장 불가'
   };
-  const CHAIN_MODE_SET = new Set(['KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT', 'HUN', 'KDA', 'EDA', 'KSS', 'ESS']);
+  const CHAIN_MODE_SET = new Set(['EKT', 'KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT', 'HUN', 'KDA', 'EDA']);
 
   let searchType = SEARCH_TYPE.nickname;
   let searchNick = '';
@@ -131,6 +136,8 @@
   let showItemEntriesByGame = {};
   let participantNicknameCache = {};
   let gameSearchResult = null;
+  let replayDetail = null;
+  let unsupportedReplayOpen = false;
   let hasResultView = false;
   let currAbortController = null;
 
@@ -733,72 +740,20 @@
     return `${n > 0 ? '+' : ''}${n}`;
   }
 
-  let recordScriptPromise = null;
-  const RECORD_SCRIPT_URL = 'https://cdn.kkutu.io/js/in_record.min.js?v=4.2.0';
-
-  function resolveRecordApi() {
-    if (!browser) return null;
-    const candidates = [
-      window?.KKuTuRecord,
-      window?.inRecord,
-      window?.InRecord,
-      window?.in_record,
-      window?.KKUTU_RECORD
-    ];
-    for (const candidate of candidates) {
-      if (candidate && typeof candidate.downloadKkio === 'function') return { fn: candidate.downloadKkio, ctx: candidate };
-      if (candidate && typeof candidate.download === 'function') return { fn: candidate.download, ctx: candidate };
-    }
-    if (typeof window?.downloadKkio === 'function') return { fn: window.downloadKkio, ctx: window };
-    return null;
-  }
-
-  function loadRecordScript() {
-    if (!browser) return Promise.resolve(false);
-    if (resolveRecordApi()) return Promise.resolve(true);
-    if (recordScriptPromise) return recordScriptPromise;
-
-    recordScriptPromise = new Promise((resolve) => {
-      const existing = document.querySelector('script[data-kkutu-record="1"]');
-      if (existing) {
-        existing.addEventListener('load', () => resolve(Boolean(resolveRecordApi())), { once: true });
-        existing.addEventListener('error', () => resolve(false), { once: true });
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = RECORD_SCRIPT_URL;
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.dataset.kkutuRecord = '1';
-      script.addEventListener('load', () => resolve(Boolean(resolveRecordApi())), { once: true });
-      script.addEventListener('error', () => resolve(false), { once: true });
-      document.head.appendChild(script);
-    });
-
-    return recordScriptPromise;
-  }
-
-  async function downloadKkio(detail) {
-    if (!browser) return;
-    const loaded = await loadRecordScript();
-    if (!loaded) {
-      recordScriptPromise = null;
-      showError('리플레이 내보내기 모듈 로드에 실패했습니다.');
+  function openReplay(detail) {
+    if (!detail?.replayView?.payload) {
+      showError('이 경기의 리플레이를 재생할 수 없습니다.');
       return;
     }
-    try {
-      const recordApi = resolveRecordApi();
-      if (!recordApi) {
-        showError('리플레이 내보내기 모듈을 찾을 수 없습니다.');
-        return;
-      }
-      const ok = recordApi.fn.call(recordApi.ctx, detail);
-      if (ok === false) showError('리플레이 파일 생성에 실패했습니다.');
-    } catch (err) {
-      console.error(err);
-      showError('리플레이 파일 생성에 실패했습니다.');
+    if (!getReplaySupport(detail).supported) {
+      unsupportedReplayOpen = true;
+      return;
     }
+    replayDetail = detail;
+  }
+
+  function closeReplay() {
+    replayDetail = null;
   }
 
   async function loadProfile(signal) {
@@ -1336,8 +1291,8 @@
                       {:else if detailMap[row.gameId]}
                         <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
                           <div class="cursor-text select-text" on:click={selectTextFromCurrentTarget}>경기번호: <code data-select-text>{row.gameId}</code></div>
-                          <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white dark:bg-gray-700" on:click={() => downloadKkio(detailMap[row.gameId])}>
-                            <span class="material-symbols-outlined text-base">download</span> 리플레이 내려받기
+                          <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => openReplay(detailMap[row.gameId])}>
+                            <span class="material-symbols-outlined text-base">play_circle</span> 리플레이 보기
                           </button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
@@ -1595,9 +1550,9 @@
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
               </div>
               <div class="mt-3 flex justify-end">
-                <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white dark:bg-gray-700" on:click={() => downloadKkio(detailMap[gameSearchResult.gameId])}>
-                  <span class="material-symbols-outlined text-base">download</span>
-                    리플레이 내려받기
+                <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => openReplay(detailMap[gameSearchResult.gameId])}>
+                  <span class="material-symbols-outlined text-base">play_circle</span>
+                    리플레이 보기
                 </button>
               </div>
               <div class="mt-3 text-sm">
@@ -1794,4 +1749,15 @@
       {/each}
     </div>
   {/if}
+
+  {#if replayDetail}
+    <ReplayPlayer detail={replayDetail} on:close={closeReplay} />
+  {/if}
+
+  <AccountModal open={unsupportedReplayOpen} title="리플레이 안내" on:close={() => (unsupportedReplayOpen = false)}>
+    <div class="flex flex-col items-center gap-3 py-3 text-center">
+      <span class="material-symbols-outlined text-4xl text-amber-500">videocam_off</span>
+      <p class="font-bold">다시보기를 지원하지 않는 게임 유형입니다.</p>
+    </div>
+  </AccountModal>
 </div>

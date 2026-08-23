@@ -18,6 +18,7 @@
 
 package me.kkutuio.kkutuweb.ranking
 
+import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.ranking.response.RankResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
@@ -25,10 +26,12 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+import javax.servlet.http.HttpSession
 
 @RestController
 class RankingApi(
-    @Autowired private val rankingService: RankingService
+    @Autowired private val rankingService: RankingService,
+    @Autowired private val loginService: LoginService
 ) {
     sealed class RankingResult {
         data class Success(val data: RankResponse) : RankingResult()
@@ -39,14 +42,22 @@ class RankingApi(
     fun ranking(
         @RequestParam(required = false) page: Long?,
         @RequestParam(required = false) id: String?,
+        @RequestParam(required = false) query: String?,
+        @RequestParam(required = false, defaultValue = "false") me: Boolean,
         request: HttpServletRequest,
-        response: HttpServletResponse
+        response: HttpServletResponse,
+        session: HttpSession
     ): RankingResult {
         if (request.getHeader("referer") == null || !request.getHeader("referer").contains("kkutu.io")) {
             response.status = HttpServletResponse.SC_FORBIDDEN
             return RankingResult.Error(403)
         }
-        val rankingResponse = rankingService.getRanking(page, id)
+        val rankingResponse = when {
+            me -> loginService.gameUserId(session)?.let(rankingService::getRankingAroundUser)
+                ?: RankResponse(0, emptyList())
+            !query.isNullOrBlank() -> rankingService.searchRanking(query)
+            else -> rankingService.getRanking(page, id)
+        }
         return RankingResult.Success(rankingResponse)
     }
 }

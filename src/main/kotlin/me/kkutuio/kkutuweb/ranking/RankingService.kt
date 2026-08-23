@@ -49,6 +49,31 @@ class RankingService(
         return RankResponse(pageIndex, responseData)
     }
 
+    /** Returns the ranked user plus nearby entries, suitable for the "my rank" view. */
+    fun getRankingAroundUser(id: String): RankResponse = getRanking(null, id)
+
+    /** Searches public game profiles by nickname or any supported UUID/legacy identifier. */
+    fun searchRanking(query: String): RankResponse {
+        val users = userDao.searchUsers(query.trim())
+        if (users.isEmpty()) return RankResponse(0, emptyList())
+
+        val ranks = users.mapNotNull { user ->
+            rankDao.getRank(user.id)?.let { rank -> Rank(user.id, (rank - 1).toInt(), 0) }
+        }
+        if (ranks.isEmpty()) return RankResponse(0, emptyList())
+
+        val scores = rankDao.getScores(ranks.map { it.id })
+        val snapshotRanks = rankDao.getSnapshotRanks(ranks.map { it.id })
+        val response = ranks.mapIndexed { index, rank ->
+            ResponseRank.fromRank(
+                current = rank.copy(score = scores[rank.id] ?: 0),
+                nickname = users.firstOrNull { it.id == rank.id }?.nickname,
+                prevRank = snapshotRanks[index]
+            )
+        }
+        return RankResponse(0, response)
+    }
+
     private fun getValidRanks(pageIndex: Long, id: String?): List<ResolvedRank> {
         while (true) {
             val ranks = getRanks(pageIndex, id)

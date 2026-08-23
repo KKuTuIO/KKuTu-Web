@@ -21,8 +21,9 @@
  import org.springframework.beans.factory.annotation.Autowired
  import org.springframework.http.MediaType
  import org.springframework.web.bind.annotation.*
- import javax.servlet.http.HttpSession
- import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpSession
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
  import me.kkutuio.kkutuweb.extension.isGuest
  import me.kkutuio.kkutuweb.extension.getOAuthUser
  import me.kkutuio.kkutuweb.record.RecordCheckRateLimiter
@@ -59,8 +60,11 @@
      @GetMapping("/user/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
      fun getUserData(
          @PathVariable id: String,
-         session: HttpSession
+         session: HttpSession,
+         response: HttpServletResponse
      ): String {
+         response.setHeader("Cache-Control", "public, max-age=60, s-maxage=600, stale-while-revalidate=600")
+         response.setHeader("CDN-Cache-Control", "max-age=600, stale-while-revalidate=600")
          return userService.getUserData(id)
      }
  

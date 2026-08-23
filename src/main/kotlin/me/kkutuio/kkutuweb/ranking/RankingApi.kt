@@ -52,6 +52,12 @@ class RankingApi(
             response.status = HttpServletResponse.SC_FORBIDDEN
             return RankingResult.Error(403)
         }
+        if (me) {
+            response.setHeader("Cache-Control", "private, no-store")
+        } else {
+            response.setHeader("Cache-Control", "public, max-age=15, s-maxage=60, stale-while-revalidate=300")
+            response.setHeader("CDN-Cache-Control", "max-age=60, stale-while-revalidate=300")
+        }
         val rankingResponse = when {
             me -> loginService.gameUserId(session)?.let(rankingService::getRankingAroundUser)
                 ?: RankResponse(0, emptyList())

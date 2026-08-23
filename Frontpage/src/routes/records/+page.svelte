@@ -128,6 +128,7 @@
   let page = 1;
   let pageSize = 10;
   let hasNext = false;
+  let historyLoaded = false;
 
   let profile = null;
   let moremi = {};
@@ -143,6 +144,8 @@
   let participantNicknameCache = {};
   let gameSearchResult = null;
   let replayDetail = null;
+  let replayDownloadOpen = false;
+  let replayDownloadProgress = 0;
   let unsupportedReplayOpen = false;
   let hasResultView = false;
   let currAbortController = null;
@@ -384,10 +387,11 @@
     };
   }
 
-  function showMyRecords(tab = 'profile') {
+  async function showMyRecords(tab = 'profile') {
     if (!profile) return;
     selectedTab = tab;
     currentStatus = 'user';
+    if (tab === 'history') await ensureHistoryLoaded();
   }
 
   async function loadPersonalDashboard(userId) {
@@ -397,13 +401,10 @@
     page = 1;
     pageSize = 10;
     try {
-      const [loadedProfile, replayModeStats, ranking] = await Promise.all([
+      const [loadedProfile, replayModeStats] = await Promise.all([
         loadProfile(),
-        loadModeStats(),
-        loadUserRanking(userId)
+        loadModeStats()
       ]);
-      await loadHistory(1);
-      loadedProfile.rank = ranking;
       profile = { ...loadedProfile };
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
     } catch (err) {
@@ -806,16 +807,33 @@
     return `${n > 0 ? '+' : ''}${n}`;
   }
 
-  function openReplay(detail) {
-    if (!detail?.replayView?.payload) {
-      showError('이 경기의 리플레이를 재생할 수 없습니다.');
-      return;
+  async function downloadAndOpenReplay(gameId) {
+    if (!gameId) return;
+    replayDownloadOpen = true;
+    replayDownloadProgress = 12;
+    try {
+      const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(gameId)}/payload`);
+      if (!body?.ok || !body?.game) {
+        throwKnownReplayFailure(body, '리플레이 다운로드');
+        throw new Error('리플레이를 불러오지 못했습니다.');
+      }
+      replayDownloadProgress = 62;
+      const game = body.game;
+      const payload = game.payloadDecoded || await decodeReplayPayload(game.payload, game.payloadCodec);
+      const replayView = buildReplayView(payload);
+      const detail = { ...game, replayView };
+      replayDownloadProgress = 88;
+      if (!replayView?.payload || !getReplaySupport(detail).supported) {
+        unsupportedReplayOpen = true;
+        return;
+      }
+      replayDetail = detail;
+      replayDownloadProgress = 100;
+    } catch (err) {
+      showError(err.message || '리플레이를 불러오지 못했습니다.');
+    } finally {
+      replayDownloadOpen = false;
     }
-    if (!getReplaySupport(detail).supported) {
-      unsupportedReplayOpen = true;
-      return;
-    }
-    replayDetail = detail;
   }
 
   function closeReplay() {
@@ -834,23 +852,13 @@
       lastLoginTs: toEpochMs(body?.profile?.lastLogin),
       score: Number(body?.data?.score || 0),
       level: getLevel(Number(body?.data?.score || 0)),
-      rank: null,
+      rank: Number(body?.rank || 0) || null,
       record: body?.data?.record || {},
       raw: body
     };
     profile = nextProfile;
     moremi = normalizeEquip(body.equip);
     return nextProfile;
-  }
-
-  async function loadUserRanking(userId, signal) {
-    const { body } = await fetchJson(`/ranking?id=${encodeURIComponent(userId)}`, { signal });
-    const rankRows = Array.isArray(body?.data?.data) ? body.data.data : [];
-    const current = rankRows.find((row) => row?.id === userId) || rankRows[0];
-    if (!current) return null;
-    const rank = Number(current.rank);
-    if (!Number.isFinite(rank)) return null;
-    return rank + 1;
   }
 
   function throwKnownReplayFailure(body, label) {
@@ -873,15 +881,24 @@
 
   async function loadHistory(targetPage = page, signal) {
     loadingHistory = true;
-    const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}?page=${targetPage}&pageSize=${pageSize}`, { signal });
-    if (!body?.ok) {
-      throwKnownReplayFailure(body, '경기 내역 조회');
-      throw new Error('경기 내역 조회 실패입니다: 알 수 없는 오류가 발생했습니다. 고객센터에 문의해 주세요.');
+    try {
+      const { body } = await fetchJson(`/api/replay/user/${encodeURIComponent(uid)}?page=${targetPage}&pageSize=${pageSize}`, { signal });
+      if (!body?.ok) {
+        throwKnownReplayFailure(body, '경기 내역 조회');
+        throw new Error('경기 내역 조회 실패입니다: 알 수 없는 오류가 발생했습니다. 고객센터에 문의해 주세요.');
+      }
+      historyRows = body.history || [];
+      hasNext = Boolean(body?.pagination?.hasNext);
+      page = Number(body?.pagination?.page || targetPage);
+      historyLoaded = true;
+    } finally {
+      loadingHistory = false;
     }
-    historyRows = body.history || [];
-    hasNext = Boolean(body?.pagination?.hasNext);
-    page = Number(body?.pagination?.page || targetPage);
-    loadingHistory = false;
+  }
+
+  async function ensureHistoryLoaded() {
+    if (historyLoaded || loadingHistory) return;
+    await loadHistory(1);
   }
 
   async function loadAll(resetPage = false) {
@@ -892,11 +909,14 @@
     loading = true;
     showError('');
     currentStatus = 'user';
-    if (resetPage) page = 1;
+    if (resetPage) {
+      page = 1;
+      selectedTab = 'profile';
+      historyLoaded = false;
+    }
     syncQuery();
     try {
-      const [loadedProfile, , replayModeStats, ranking] = await Promise.all([loadProfile(signal), loadHistory(page, signal), loadModeStats(signal), loadUserRanking(uid, signal)]);
-      loadedProfile.rank = ranking;
+      const [loadedProfile, replayModeStats] = await Promise.all([loadProfile(signal), loadModeStats(signal)]);
       profile = { ...loadedProfile };
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
       syncQuery();
@@ -919,6 +939,7 @@
     showItemEntriesByGame = {};
     historyRows = [];
     hasNext = false;
+    historyLoaded = false;
     gameSearchResult = null;
   }
 
@@ -934,18 +955,13 @@
     currentStatus = 'game';
     syncQuery();
     try {
-      const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(keyword)}?includePayload=true`);
+      const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(keyword)}`);
       if (!body?.ok || !body?.game) {
         throwKnownReplayFailure(body, '경기 조회');
         throw new Error('경기 조회 실패입니다: 입력한 경기번호를 찾을 수 없습니다.');
       }
       const game = body.game;
-      const payload = game.payloadDecoded || await decodeReplayPayload(game.payload, game.payloadCodec);
-      const replayView = buildReplayView(payload);
-      const participants = await hydrateParticipants(buildParticipants(game, replayView));
-      const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
-      selectedRoundByGame = { ...selectedRoundByGame, [game.gameId]: firstRound };
-      detailMap = { ...detailMap, [game.gameId]: { ...game, participants, replayView } };
+      detailMap = { ...detailMap, [game.gameId]: game };
       expandedGameId = game.gameId;
       gameSearchResult = {
         gameId: game.gameId,
@@ -1001,15 +1017,16 @@
   }
 
   async function movePage(nextPage) {
-    if (!uid || nextPage < 1) return;
+    if (!uid || nextPage < 1 || loadingHistory) return;
     page = nextPage;
-    await loadAll(false);
+    await loadHistory(nextPage);
   }
 
   async function changePageSize(event) {
     pageSize = normalizePageSize(event.target.value);
     page = 1;
-    await loadAll(true);
+    historyLoaded = false;
+    await loadHistory(1);
   }
 
   async function toggleDetail(gameId) {
@@ -1020,20 +1037,15 @@
     expandedGameId = gameId;
     if (detailMap[gameId] || detailLoading[gameId]) return;
     detailLoading = { ...detailLoading, [gameId]: true };
-    const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(gameId)}?includePayload=true`);
+    const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(gameId)}`);
     if (!body?.ok || !body?.game) {
       detailLoading = { ...detailLoading, [gameId]: false };
       detailMap = { ...detailMap, [gameId]: { error: body?.error || 'failed' } };
       return;
     }
     const game = body.game;
-    const payload = game.payloadDecoded || await decodeReplayPayload(game.payload, game.payloadCodec);
-    const replayView = buildReplayView(payload);
-    const participants = await hydrateParticipants(buildParticipants(game, replayView));
-    const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
-    selectedRoundByGame = { ...selectedRoundByGame, [gameId]: firstRound };
     detailLoading = { ...detailLoading, [gameId]: false };
-    detailMap = { ...detailMap, [gameId]: { ...game, participants, replayView } };
+    detailMap = { ...detailMap, [gameId]: game };
   }
 
   function getModeLabel(row) {
@@ -1265,7 +1277,12 @@
                 </div>
                 <p class="mt-3 text-sm text-slate-200">우승 {form.wins}회 · 직전 경기 {form.latest?.placement || '-'}등</p>
               {:else}
-                <p class="mt-3 text-sm text-slate-200">아직 최근 경기 기록이 없어요.</p>
+                {#if !historyLoaded}
+                  <p class="mt-3 text-sm text-slate-200">최근 전적은 필요할 때만 불러와요.</p>
+                  <button class="mt-auto pt-4 text-sm font-bold text-sky-200 transition hover:text-white" on:click={() => showMyRecords('history')}>경기 내역 보기 →</button>
+                {:else}
+                  <p class="mt-3 text-sm text-slate-200">아직 최근 경기 기록이 없어요.</p>
+                {/if}
               {/if}
             </article>
 
@@ -1341,7 +1358,7 @@
           <button class={getTabClass(selectedTab === 'stats')} on:click={() => (selectedTab = 'stats')}>
             <span class="material-symbols-outlined text-base">query_stats</span> 통계
           </button>
-          <button class={getTabClass(selectedTab === 'history')} on:click={() => (selectedTab = 'history')}>
+          <button class={getTabClass(selectedTab === 'history')} on:click={async () => { selectedTab = 'history'; await ensureHistoryLoaded(); }}>
             <span class="material-symbols-outlined text-base">history</span> 경기 내역
           </button>
         </div>
@@ -1384,7 +1401,7 @@
         </section>
       {/if}
 
-      {#if selectedTab === 'profile' || selectedTab === 'history'}
+      {#if selectedTab === 'history'}
         <section class="mt-6">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-2xl font-bold">경기 내역</h3>
@@ -1415,7 +1432,7 @@
           {:else}
             <div class="space-y-3">
               {#each historyRows as row}
-                <article class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+                <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
                   <div class={`absolute inset-x-0 top-0 h-1 ${row.won ? 'bg-amber-400' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
                   <button class="w-full text-left p-4 pt-5" on:click={() => toggleDetail(row.gameId)} aria-expanded={expandedGameId === row.gameId}>
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
@@ -1448,7 +1465,7 @@
                       {:else if detailMap[row.gameId]}
                         <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
                           <div class="cursor-text select-text" on:click={selectTextFromCurrentTarget}>경기번호: <code data-select-text>{row.gameId}</code></div>
-                          <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => openReplay(detailMap[row.gameId])}>
+                          <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => downloadAndOpenReplay(row.gameId)}>
                             <span class="material-symbols-outlined text-base">play_circle</span> 리플레이 보기
                           </button>
                         </div>
@@ -1656,9 +1673,9 @@
             </div>
 
             <div class="mt-4 flex items-center justify-center gap-3">
-              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="이전 페이지" on:click={() => movePage(page - 1)} disabled={page <= 1 || loading}><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'chevron_left'}</span></button>
+              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="이전 페이지" on:click={() => movePage(page - 1)} disabled={page <= 1 || loadingHistory}><span class:animate-spin={loadingHistory} class="material-symbols-outlined">{loadingHistory ? 'progress_activity' : 'chevron_left'}</span></button>
               <span class="min-w-20 text-center text-sm font-bold text-slate-600 dark:text-slate-300">{page} 페이지</span>
-              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="다음 페이지" on:click={() => movePage(page + 1)} disabled={!hasNext || loading}><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'chevron_right'}</span></button>
+              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="다음 페이지" on:click={() => movePage(page + 1)} disabled={!hasNext || loadingHistory}><span class:animate-spin={loadingHistory} class="material-symbols-outlined">{loadingHistory ? 'progress_activity' : 'chevron_right'}</span></button>
             </div>
           {/if}
         </section>
@@ -1670,7 +1687,7 @@
     <div in:fly={{ y: 18, duration: 220 }} class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="mt-2">
         <h3 class="text-2xl font-bold mb-3">경기 조회 결과</h3>
-        <article class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+        <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
           <div class="absolute inset-x-0 top-0 h-1 bg-sky-500"></div>
           <button class="w-full text-left p-4 pt-5" on:click={() => toggleDetail(gameSearchResult.gameId)} aria-expanded={expandedGameId === gameSearchResult.gameId}>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
@@ -1710,7 +1727,7 @@
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
               </div>
               <div class="mt-3 flex justify-end">
-                <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => openReplay(detailMap[gameSearchResult.gameId])}>
+                <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => downloadAndOpenReplay(gameSearchResult.gameId)}>
                   <span class="material-symbols-outlined text-base">play_circle</span>
                     리플레이 보기
                 </button>
@@ -1887,6 +1904,19 @@
   {/if}
 
   <ToastStack {toasts} dismiss={removeToast}/>
+
+  {#if replayDownloadOpen}
+    <div class="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" role="status" aria-live="polite">
+      <div class="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <span class="material-symbols-outlined animate-spin text-4xl text-sky-500">progress_activity</span>
+        <h2 class="mt-4 text-xl font-black">게임 리플레이를 내려받는 중이에요!</h2>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-300">잠시만 기다려 주세요.</p>
+        <div class="mt-5 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div class="h-full rounded-full bg-sky-500 transition-all duration-300" style={`width: ${replayDownloadProgress}%`}></div>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   {#if replayDetail}
     <ReplayPlayer detail={replayDetail} on:close={closeReplay} />

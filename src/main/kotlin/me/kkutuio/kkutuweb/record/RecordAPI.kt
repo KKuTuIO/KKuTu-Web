@@ -23,6 +23,11 @@ class RecordAPI(
     @Autowired private val kKuTuSetting: KKuTuSetting,
     @Autowired private val loginService: LoginService
 ) {
+    private fun setPublicImmutablePayloadCache(response: HttpServletResponse) {
+        response.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable")
+        response.setHeader("CDN-Cache-Control", "max-age=31536000, immutable")
+    }
+
     private fun resolveRequester(session: HttpSession): Triple<String?, String?, Boolean> {
         if (session.isGuest()) return Triple(null, null, false)
         val userId = loginService.gameUserId(session) ?: return Triple(null, null, false)
@@ -42,11 +47,33 @@ class RecordAPI(
         session: HttpSession
     ): RecordGameLookupResponse {
         response.setHeader("Cache-Control", "private, no-store")
+        if (includePayload && !recordCheckRateLimiter.allowReplayPayloadDownload(request, session)) {
+            return RecordGameLookupResponse(ok = false, code = 429, error = "payload-rate-limited")
+        }
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordGameLookupResponse(ok = false, code = 429, error = "rate-limited")
         }
         val (requesterId, requesterAccountUuid, isAdmin) = resolveRequester(session)
         return recordService.findByGameId(gameId, includePayload, includeAdminKeyTrace, requesterId, requesterAccountUuid, isAdmin)
+    }
+
+    /** Public replay payload, always using the game server's public redaction policy. */
+    @RateLimiter(name = "recordFindByGameId", fallbackMethod = "onPublicPayloadRateLimited")
+    @GetMapping("/game/{gameId}/payload")
+    fun findPublicReplayPayload(
+        @PathVariable gameId: String,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        session: HttpSession
+    ): RecordGameLookupResponse {
+        if (!recordCheckRateLimiter.allowReplayPayloadDownload(request, session)) {
+            response.setHeader("Cache-Control", "private, no-store")
+            return RecordGameLookupResponse(ok = false, code = 429, error = "payload-rate-limited")
+        }
+        val result = recordService.findByGameId(gameId, true, false, null, null, false)
+        if (result.ok && result.game != null) setPublicImmutablePayloadCache(response)
+        else response.setHeader("Cache-Control", "private, no-store")
+        return result
     }
 
     @RateLimiter(name = "recordFindUserHistory", fallbackMethod = "onUserHistoryRateLimited")
@@ -56,8 +83,10 @@ class RecordAPI(
         @RequestParam(defaultValue = "1") page: Int,
         @RequestParam(defaultValue = "10") pageSize: Int,
         request: HttpServletRequest,
+        response: HttpServletResponse,
         session: HttpSession
     ): RecordUserHistoryResponse {
+        response.setHeader("Cache-Control", "private, no-store")
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordUserHistoryResponse(ok = false, code = 429, error = "rate-limited")
         }
@@ -70,8 +99,10 @@ class RecordAPI(
     fun findUserModeStats(
         @PathVariable userId: String,
         request: HttpServletRequest,
+        response: HttpServletResponse,
         session: HttpSession
     ): RecordUserModeStatsResponse {
+        response.setHeader("Cache-Control", "private, no-store")
         if (!recordCheckRateLimiter.allow(request, session)) {
             return RecordUserModeStatsResponse(ok = false, code = 429, error = "rate-limited")
         }
@@ -93,11 +124,23 @@ class RecordAPI(
     }
 
     @Suppress("UNUSED_PARAMETER")
+    fun onPublicPayloadRateLimited(
+        gameId: String,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        session: HttpSession,
+        throwable: RequestNotPermitted
+    ): RecordGameLookupResponse {
+        return RecordGameLookupResponse(ok = false, code = 429, error = "payload-rate-limited")
+    }
+
+    @Suppress("UNUSED_PARAMETER")
     fun onUserHistoryRateLimited(
         userId: String,
         page: Int,
         pageSize: Int,
         request: HttpServletRequest,
+        response: HttpServletResponse,
         session: HttpSession,
         throwable: RequestNotPermitted
     ): RecordUserHistoryResponse {
@@ -108,6 +151,7 @@ class RecordAPI(
     fun onUserModeStatsRateLimited(
         userId: String,
         request: HttpServletRequest,
+        response: HttpServletResponse,
         session: HttpSession,
         throwable: RequestNotPermitted
     ): RecordUserModeStatsResponse {

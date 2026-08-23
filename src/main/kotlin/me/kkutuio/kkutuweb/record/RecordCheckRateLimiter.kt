@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Component
 import java.time.Duration
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpSession
 
@@ -19,6 +21,9 @@ class RecordCheckRateLimiter(
         private const val KEY_PREFIX = "kkutu:web:record:checks:ratelimit"
         private const val PER_MINUTE_LIMIT = 20L
         private const val PER_FIVE_MINUTE_LIMIT = 60L
+        private const val GUEST_PAYLOAD_DAILY_LIMIT = 10L
+        private const val MEMBER_PAYLOAD_HOURLY_LIMIT = 60L
+        private val KOREA_ZONE = ZoneId.of("Asia/Seoul")
     }
 
     fun allow(request: HttpServletRequest, session: HttpSession): Boolean {
@@ -34,6 +39,28 @@ class RecordCheckRateLimiter(
             return false
         }
         return true
+    }
+
+    fun allowReplayPayloadDownload(request: HttpServletRequest, session: HttpSession): Boolean {
+        val now = ZonedDateTime.now(KOREA_ZONE)
+        val userId = if (!session.isGuest()) loginService.gameUserId(session).orEmpty() else ""
+        if (userId.isNotBlank()) {
+            val bucket = now.toEpochSecond() / 3600
+            return consume(
+                "$KEY_PREFIX:payload:member:$userId:$bucket",
+                MEMBER_PAYLOAD_HOURLY_LIMIT,
+                Duration.ofHours(2)
+            )
+        }
+
+        val ip = request.getIp().ifBlank { "unknown" }
+        val nextDay = now.toLocalDate().plusDays(1).atStartOfDay(KOREA_ZONE)
+        val ttl = Duration.between(now, nextDay).plusMinutes(5)
+        return consume(
+            "$KEY_PREFIX:payload:guest:$ip:${now.toLocalDate()}",
+            GUEST_PAYLOAD_DAILY_LIMIT,
+            ttl
+        )
     }
 
     private fun resolveRequesterKey(request: HttpServletRequest, session: HttpSession): String {

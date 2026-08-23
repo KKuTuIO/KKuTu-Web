@@ -27,6 +27,7 @@ import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.shop.ShopDao
 import me.kkutuio.kkutuweb.shop.ShopService
 import me.kkutuio.kkutuweb.config.CacheConfig
+import me.kkutuio.kkutuweb.ranking.RankDao
 import org.postgresql.util.PGobject
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,7 +50,8 @@ class UserService(
     @Autowired private val shopService: ShopService,
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val cacheManager: CacheManager,
-    @Autowired private val loginService: LoginService
+    @Autowired private val loginService: LoginService,
+    @Autowired private val rankDao: RankDao
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
     private val similarityRegex = "[-_ ]*".toRegex()
@@ -95,6 +97,7 @@ class UserService(
         return objectMapper.writeValueAsString(mapOf(
             "result" to 200,
             "id" to user.id,
+            "rank" to rankDao.getRank(user.id),
             "data" to objectMapper.readTree(user.kkutu.toJson()),
             "equip" to objectMapper.readTree(user.equip.toJson()),
             "exordial" to (user.exordial ?: ""),

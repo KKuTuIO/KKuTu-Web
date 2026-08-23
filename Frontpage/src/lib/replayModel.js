@@ -467,6 +467,10 @@ function buildTurnsAndCues(events, model) {
     if (event.kind === 'CRJ' && event.showsFailure) {
       audioCues.push({ id: `fail-${event.id}`, time: event.time, sound: 'fail', type: 'effect' });
     }
+    if (event.kind === 'WSA') {
+      event.historyAt = event.time + 720;
+      audioCues.push({ id: `mission-${event.id}`, time: event.time, sound: 'mission', type: 'effect' });
+    }
   }
 
   audioCues.sort((a, b) => a.time - b.time || a.id.localeCompare(b.id));
@@ -606,13 +610,23 @@ export function getReplayState(model, requestedTimeMs) {
   }
 
   if (model.boardType === 'wordstack') {
-    const attacks = model.events
-      .filter((event) => event.kind === 'WSA' && event.time <= timeMs)
+    const activeAttacks = model.events
+      .filter((event) => event.kind === 'WSA' && event.time <= timeMs);
+    const attacks = activeAttacks
+      .filter((event) => timeMs >= (event.historyAt ?? event.time))
       .slice(-6)
       .reverse();
-    const latestAttack = attacks[0] || null;
+    const latestAttack = activeAttacks.at(-1) || null;
+    const activeFlight = latestAttack && timeMs < latestAttack.time + 720 ? latestAttack : null;
     const latestEvent = [...model.events].reverse().find((event) => event.time <= timeMs) || null;
     const currentRound = latestEvent?.round || model.events[0]?.round || 1;
+    const currentRoundEnd = model.events.find((event) => event.kind === 'WSS' && event.round === currentRound)?.time;
+    const previousRoundEnd = [...model.events].reverse().find((event) => event.kind === 'WSS' && event.round < currentRound)?.time || 0;
+    const inferredRoundStart = currentRoundEnd
+      ? Math.max(previousRoundEnd, currentRoundEnd - model.roomTimeMs)
+      : previousRoundEnd;
+    const inferredRoundEnd = currentRoundEnd || inferredRoundStart + model.roomTimeMs;
+    const roundRemainingMs = Math.max(0, inferredRoundEnd - timeMs);
     const roundSummaries = model.events.filter((event) => event.kind === 'WSS'
       && event.round === currentRound && event.time <= timeMs);
 
@@ -629,11 +643,12 @@ export function getReplayState(model, requestedTimeMs) {
       displayText: latestAttack?.label || '저장된 워드스택 공격 기록이 없습니다.',
       displayLetters: [],
       turnRemainingMs: 0,
-      roundRemainingMs: 0,
+      roundRemainingMs,
       turnRatio: 0,
-      roundRatio: 0,
+      roundRatio: Math.max(0, Math.min(1, roundRemainingMs / model.roomTimeMs)),
       wordstackAttacks: attacks,
       wordstackLatestAttack: latestAttack,
+      wordstackFlight: activeFlight,
       wordstackSummaries: roundSummaries
     };
   }

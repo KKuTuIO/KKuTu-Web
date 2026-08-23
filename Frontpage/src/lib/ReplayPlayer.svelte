@@ -1,6 +1,9 @@
+<script context="module">
+  const sharedSounds = new Map();
+</script>
+
 <script>
   import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
-  import { flip } from 'svelte/animate';
   import { fade, scale } from 'svelte/transition';
   import { createReplayModel, formatReplayTime, getReplayState } from './replayModel.js';
 
@@ -9,9 +12,9 @@
   const AUDIO_BASE = 'https://cdn.kkutu.io/media/kkutuio/';
   const speedOptions = [0.5, 1, 1.5, 2];
   const dispatch = createEventDispatcher();
-  const sounds = new Map();
   let dialog;
   let stageViewport;
+  let gameSurface;
   let playerControls;
   let resizeObserver;
   let stageScale = 1;
@@ -30,6 +33,9 @@
   let previousBodyOverflow = '';
   let activeTurnSound = null;
   let activeTurnId = '';
+  let activeBgm = null;
+  let activeBgmKey = '';
+  const playerElements = [];
 
   $: if (detail && detail !== loadedDetail) {
     loadedDetail = detail;
@@ -87,13 +93,12 @@
 
   function audioFor(key) {
     if (typeof Audio === 'undefined') return null;
-    if (!sounds.has(key)) {
+    if (!sharedSounds.has(key)) {
       const audio = new Audio(`${AUDIO_BASE}${key}.mp3`);
       audio.preload = 'auto';
-      audio.load();
-      sounds.set(key, audio);
+      sharedSounds.set(key, audio);
     }
-    return sounds.get(key);
+    return sharedSounds.get(key);
   }
 
   function playSound(key, offsetMs = 0) {
@@ -110,12 +115,49 @@
   }
 
   function stopAllAudio() {
-    for (const audio of sounds.values()) {
+    for (const audio of sharedSounds.values()) {
       audio.pause();
       try { audio.currentTime = 0; } catch (_) {}
     }
     activeTurnSound = null;
     activeTurnId = '';
+    activeBgm = null;
+    activeBgmKey = '';
+  }
+
+  function wordstackBgmKey() {
+    if (!playing || muted || model?.boardType !== 'wordstack') return '';
+    return getReplayState(model, currentMs).roundRemainingMs <= 10000 ? 'JaqwiFastBGM' : 'JaqwiBGM';
+  }
+
+  function syncBackgroundMusic() {
+    const nextKey = wordstackBgmKey();
+    if (!nextKey) {
+      if (activeBgm) activeBgm.pause();
+      activeBgm = null;
+      activeBgmKey = '';
+      return;
+    }
+    if (activeBgm && activeBgmKey === nextKey) {
+      activeBgm.playbackRate = playbackRate;
+      return;
+    }
+    const previousRatio = activeBgm && Number.isFinite(activeBgm.duration) && activeBgm.duration > 0
+      ? activeBgm.currentTime / activeBgm.duration
+      : 0;
+    if (activeBgm) activeBgm.pause();
+    const next = audioFor(nextKey);
+    if (!next) return;
+    next.loop = true;
+    next.volume = 0.5;
+    next.playbackRate = playbackRate;
+    next.preservesPitch = true;
+    if (previousRatio > 0 && Number.isFinite(next.duration) && next.duration > 0) {
+      try { next.currentTime = next.duration * previousRatio; } catch (_) {}
+    }
+    activeBgm = next;
+    activeBgmKey = nextKey;
+    next.play().catch(() => {});
   }
 
   function syncTurnSound() {
@@ -173,6 +215,7 @@
     currentMs = Math.min(model.durationMs, currentMs + elapsed * playbackRate);
     processAudioCues(previousMs, currentMs);
     syncTurnSound();
+    syncBackgroundMusic();
     if (currentMs >= model.durationMs) {
       playing = false;
       stopAllAudio();
@@ -189,6 +232,7 @@
     lastFrameAt = performance.now();
     processAudioCues(currentMs - 1, currentMs);
     syncTurnSound();
+    syncBackgroundMusic();
     frameId = requestAnimationFrame(animationFrame);
   }
 
@@ -208,13 +252,17 @@
   function toggleMute() {
     muted = !muted;
     if (muted) stopAllAudio();
-    else syncTurnSound();
+    else {
+      syncTurnSound();
+      syncBackgroundMusic();
+    }
   }
 
   function changePlaybackRate(event) {
     playbackRate = Number(event.currentTarget.value) || 1;
     if (activeTurnSound) activeTurnSound.playbackRate = playbackRate;
-    for (const [key, audio] of sounds) if (!key.startsWith('T') && !audio.paused) audio.playbackRate = playbackRate;
+    for (const [key, audio] of sharedSounds) if (!key.startsWith('T') && !audio.paused) audio.playbackRate = playbackRate;
+    syncBackgroundMusic();
   }
 
   function seekTo(value) {
@@ -224,6 +272,7 @@
     if (playing) {
       lastFrameAt = performance.now();
       syncTurnSound();
+      syncBackgroundMusic();
     }
   }
 
@@ -321,6 +370,56 @@
     return positions[index] || String(index + 1);
   }
 
+  function wordstackFallbackPosition(index) {
+    const column = Math.max(0, index) % 8;
+    const row = Math.floor(Math.max(0, index) / 8);
+    return { x: 62 + column * 124, y: 280 + row * 187 };
+  }
+
+  function wordstackFlightStyle(attack) {
+    const fallbackFrom = wordstackFallbackPosition(attack.playerIndex);
+    const fallbackTo = wordstackFallbackPosition(attack.targetIndex);
+    const surfaceRect = gameSurface?.getBoundingClientRect();
+    const sourceRect = playerElements[attack.playerIndex]?.getBoundingClientRect();
+    const targetRect = playerElements[attack.targetIndex]?.getBoundingClientRect();
+    const toStagePoint = (rect, fallback) => (rect && surfaceRect)
+      ? {
+          x: (rect.left + rect.width / 2 - surfaceRect.left) / stageScale,
+          y: (rect.top + rect.height / 2 - surfaceRect.top) / stageScale
+        }
+      : fallback;
+    const from = toStagePoint(sourceRect, fallbackFrom);
+    const to = toStagePoint(targetRect, fallbackTo);
+    const progress = Math.max(0, Math.min(1, (currentMs - attack.time) / 720));
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const arc = -42 * 4 * progress * (1 - progress);
+    const scale = progress < 0.5
+      ? 0.75 + (0.43 * progress * 2)
+      : 1.18 - (0.36 * (progress - 0.5) * 2);
+    const opacity = progress < 0.12 ? 0.15 + progress * 7 : 1 - Math.max(0, progress - 0.75) * 3.6;
+    return `left: ${from.x - 17}px; top: ${from.y - 17}px; transform: translate(${(to.x - from.x) * eased}px, ${(to.y - from.y) * eased + arc}px) scale(${scale}); opacity: ${Math.max(0, opacity)};`;
+  }
+
+  function expandHistoryItem(node) {
+    const targetWidth = 128;
+    node.style.width = '0px';
+    node.style.flexBasis = '0px';
+    node.style.transition = 'none';
+    let timer;
+    requestAnimationFrame(() => {
+      node.getBoundingClientRect();
+      node.style.transition = 'width 500ms ease-out, flex-basis 500ms ease-out';
+      node.style.width = `${targetWidth}px`;
+      node.style.flexBasis = `${targetWidth}px`;
+      timer = window.setTimeout(() => { node.style.transition = ''; }, 500);
+    });
+    return {
+      destroy() {
+        if (timer) window.clearTimeout(timer);
+      }
+    };
+  }
+
   onMount(async () => {
     previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -332,12 +431,6 @@
       if (stageViewport) resizeObserver.observe(stageViewport);
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    for (const key of ['game_start', 'round_start', 'fail', 'timeout', 'mission', 'kung', 'Al']) audioFor(key);
-    for (let speed = 0; speed <= 10; speed++) {
-      audioFor(`T${speed}`);
-      audioFor(`As${speed}`);
-      audioFor(`K${speed}`);
-    }
   });
 
   onDestroy(() => {
@@ -386,7 +479,7 @@
             <span>[{model.gameId ? model.gameId.slice(0, 8) : '-'}] {model.roomTitle}</span>
             <span>{model.modeName} · 참가자 {model.players.length}명 · 라운드 {state.currentRound}/{model.totalRounds} · {Math.round(model.roomTimeMs / 1000)}초</span>
           </div>
-          <div class="game-surface">
+          <div class="game-surface" bind:this={gameSurface}>
             <div class="game-background" aria-hidden="true">
               {#each Array(10) as _}
                 <img src="https://cdn.kkutu.io/img/kkutu/gamebg.png" referrerpolicy="no-referrer" alt="" />
@@ -443,12 +536,11 @@
                   <div
                     class:wordstack-history-item={model.boardType === 'wordstack'}
                     class="history-item"
-                    animate:flip={{ duration: 340, easing: (t) => 1 - Math.pow(1 - t, 3) }}
+                    use:expandHistoryItem
                     title={replayEvent.description}
                   >
                     {#if model.boardType === 'wordstack'}
-                      <b>{wordstackPosition(replayEvent.playerIndex)}→{wordstackPosition(replayEvent.targetIndex)}</b>
-                      <span>{replayEvent.label}</span>
+                      {wordstackPosition(replayEvent.playerIndex)}→{wordstackPosition(replayEvent.targetIndex)} {replayEvent.label}
                     {:else}
                       {replayEvent.label}
                     {/if}
@@ -456,10 +548,15 @@
                 {/each}
               </div>
             </div>
+            {#if state.wordstackFlight}
+              <div class="wordstack-flying-piece replay-wordstack-flying-piece" style={wordstackFlightStyle(state.wordstackFlight)} aria-hidden="true">
+                {state.wordstackFlight.transferredChar}
+              </div>
+            {/if}
 
             <div class="game-body">
               {#each model.players as player}
-                <article class={playerCardClass(player)}>
+                <article class={playerCardClass(player)} bind:this={playerElements[player.index]}>
                   {#if player.placement > 0 && currentMs >= model.durationMs}
                     <span class="placement">{player.placement}위</span>
                   {/if}
@@ -774,45 +871,54 @@
   .history-holder {
     position: absolute;
     top: 150px;
-    left: 26px;
+    left: 5px;
     display: flex;
     align-items: center;
-    width: 948px;
+    width: 990px;
     height: 40px;
     overflow: hidden;
   }
-  .history { display: flex; align-items: center; width: auto; height: 40px; gap: 6px; }
+  .history { display: flex; align-items: center; width: 1200px; height: 42px; }
   .history-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: auto;
-    min-width: 0;
+    width: 128px;
     height: 30px;
     flex: 0 0 128px;
-    padding: 0 8px;
-    margin: 0;
+    padding: 4px 0;
+    margin: 3px;
     overflow: hidden;
-    border: 2px solid rgba(0, 0, 0, 0.7);
-    border-radius: 13px;
+    border: 0;
+    border-radius: 10px;
     color: #eee;
-    background: rgba(27, 29, 31, 0.95);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    background: #232323;
     font-size: 12px;
-    line-height: normal;
+    line-height: 28px;
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
+    box-sizing: content-box;
+  }
+  .history-item.wordstack-history-item { font-weight: normal; }
+  .replay-wordstack-flying-piece {
+    position: absolute;
+    z-index: 30;
+    width: 34px;
+    height: 34px;
+    border: 2px solid #fff2a8;
+    border-radius: 9px;
+    color: #fff;
+    background: linear-gradient(145deg, #ffb33e, #e5523a);
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.42);
+    font-size: 22px;
+    font-weight: bold;
+    line-height: 30px;
+    text-align: center;
+    pointer-events: none;
+    will-change: transform, opacity;
     box-sizing: border-box;
-    animation: history-in 420ms cubic-bezier(.2, .8, .25, 1) both;
   }
-  .history-item.wordstack-history-item {
-    justify-content: flex-start;
-    gap: 4px;
-    text-align: left;
-  }
-  .wordstack-history-item b { flex: none; color: #f7ef75; font-size: 11px; letter-spacing: -1px; }
-  .wordstack-history-item span { overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
 
   .game-body {
     position: absolute;
@@ -933,7 +1039,6 @@
 
   @keyframes current-blink { 0%, 100% { border-color: #3eff3e; } 50% { border-color: #009000; } }
   @keyframes wordstack-target-blink { 0%, 100% { box-shadow: 0 0 0 1px #56b5f0; } 50% { box-shadow: 0 0 14px 4px #56b5f0; } }
-  @keyframes history-in { from { flex-basis: 0; padding-inline: 0; opacity: 0; } to { flex-basis: 128px; padding-inline: 8px; opacity: 1; } }
   @keyframes fail-blink { 0%, 50% { text-decoration: line-through; } 25%, 75%, 100% { text-decoration: inherit; } }
   @keyframes word-hit { from { margin-top: -6px; font-size: 36px; } to { margin-top: 0; font-size: 20px; } }
   @keyframes score-going {

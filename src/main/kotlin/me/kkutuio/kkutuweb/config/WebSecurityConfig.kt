@@ -15,6 +15,7 @@ class WebSecurityConfig : WebSecurityConfigurerAdapter() {
             setCookiePath("/")
         }
         http
+            .cors().and()
             .authorizeRequests {
                 it
                     .antMatchers("/actuator/**").authenticated()

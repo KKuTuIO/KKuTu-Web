@@ -95,6 +95,9 @@ resilience4j:
 # Identity Provider secrets must be injected by deployment configuration; never commit real values.
 idp:
   issuer: https://kkutu.io
+  admin:
+    # Must equal the Public OAuth client_id used by KKuTuIO-Admin.
+    client-id: kkutuio-admin
   rp-id: kkutu.io
   allowed-origins: https://kkutu.io
   internal-api-key: ""

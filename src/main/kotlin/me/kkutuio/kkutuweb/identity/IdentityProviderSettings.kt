@@ -10,6 +10,7 @@ class IdentityProviderSettings(
     @Value("\${idp.rp-id:kkutu.io}") val rpId: String,
     @Value("\${idp.allowed-origins:https://kkutu.io}") allowedOrigins: String,
     @Value("\${idp.internal-api-key:}") val internalApiKey: String,
+    @Value("\${idp.admin.client-id:kkutuio-admin}") val adminClientId: String,
     @Value("\${idp.recaptcha.site-key:}") val recaptchaSiteKey: String,
     @Value("\${idp.recaptcha.secret:}") val recaptchaSecret: String,
     @Value("\${idp.recaptcha.minimum-score:0.5}") val recaptchaMinimumScore: Double,

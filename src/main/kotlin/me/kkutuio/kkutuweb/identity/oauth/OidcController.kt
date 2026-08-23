@@ -36,7 +36,7 @@ class OidcMetadataController(private val settings: IdentityProviderSettings, pri
             "grant_types_supported" to listOf("authorization_code", "refresh_token"),
             "subject_types_supported" to listOf("public"),
             "id_token_signing_alg_values_supported" to listOf("RS256"),
-            "scopes_supported" to listOf("openid", "profile", "email", "account", "offline", "game:kkutu"),
+            "scopes_supported" to listOf("openid", "profile", "email", "account", "offline", "game:kkutu", "admin:access"),
             "code_challenge_methods_supported" to listOf("S256"),
             "token_endpoint_auth_methods_supported" to listOf("client_secret_basic", "client_secret_post", "none")
         )

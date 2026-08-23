@@ -353,6 +353,14 @@ class LoginService(
         accountService.bindSession(session, account)
     }
 
+    /** Binds an already verified OAuth bearer to a request-scoped compatibility session. */
+    fun bindOAuthBearerSession(session: HttpSession, account: Account) {
+        accountService.requireLoginAllowed(account)
+        session.setAttribute(SessionAttribute.IS_GUEST, false)
+        session.setOAuthUser(localOAuthUser(account))
+        accountService.bindSession(session, account, recentlyAuthenticated = false)
+    }
+
     private fun getOAuthService(authVendor: AuthVendor): OAuthService {
         return when (authVendor) {
             AuthVendor.DALDALSO -> daldalsoOAuthService

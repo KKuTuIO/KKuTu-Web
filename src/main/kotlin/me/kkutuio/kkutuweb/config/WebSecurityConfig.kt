@@ -45,6 +45,7 @@ class WebSecurityConfig : WebSecurityConfigurerAdapter() {
 
         override fun matches(request: HttpServletRequest): Boolean {
             if (request.method !in unsafeMethods) return false
+            if (request.getHeader("Authorization")?.startsWith("Bearer ") == true) return false
             val path = request.requestURI.removePrefix(request.contextPath)
             return path == "/oauth/authorize/consent" || path == "/account/recovery/login" ||
                 path.startsWith("/api/admin/oauth-clients") ||

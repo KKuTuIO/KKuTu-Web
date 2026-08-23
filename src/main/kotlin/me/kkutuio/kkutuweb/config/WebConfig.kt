@@ -40,6 +40,11 @@ class WebConfig(
             .allowCredentials(true)
             .allowedMethods(*methods)
             .allowedOrigins(*allowedOrigins)
+            .allowedHeaders("*")
+        registry.addMapping("/oauth/token")
+            .allowedMethods("POST")
+            .allowedOrigins(*allowedOrigins)
+            .allowedHeaders("*")
     }
 
     override fun addInterceptors(registry: InterceptorRegistry) {

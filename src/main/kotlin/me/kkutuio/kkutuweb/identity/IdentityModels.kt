@@ -65,3 +65,10 @@ data class TokenSet(
     val idToken: String? = null,
     val refreshToken: String? = null
 )
+
+/** A verified bearer token bound to an active KKuTu account. */
+data class AccessTokenPrincipal(
+    val account: Account,
+    val clientId: String,
+    val scopes: Set<String>
+)

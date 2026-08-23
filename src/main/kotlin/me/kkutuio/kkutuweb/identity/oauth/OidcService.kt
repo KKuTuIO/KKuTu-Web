@@ -17,7 +17,7 @@ class OidcService(
     private val userDao: UserDao,
     private val objectMapper: ObjectMapper
 ) {
-    val supportedScopes = setOf("openid", "profile", "email", "account", "offline", "game:kkutu")
+    val supportedScopes = setOf("openid", "profile", "email", "account", "offline", "game:kkutu", "admin:access")
 
     fun validateAuthorization(clientId: String, redirectUri: String, scopes: Set<String>, codeChallenge: String, method: String): RegisteredClient {
         val client = dao.findClient(clientId) ?: throw IdpException("unauthorized_client", "등록되지 않은 클라이언트입니다.", 400)
@@ -74,10 +74,20 @@ class OidcService(
     }
 
     fun userInfo(accessToken: String): Map<String, Any?> {
-        val row = dao.findActiveAccessToken(SecretTools.sha256(accessToken)) ?: throw IdpException("invalid_token", "유효하지 않은 access token입니다.", 401)
+        val row = dao.findActiveAccessToken(SecretTools.sha256(accessToken)) ?: throw IdpException("invalid_token", "유효하지 않은 인증 토큰입니다. 다시 로그인해 주세요.", 401)
         val account = dao.findAccount(UUID.fromString(row["account_id"].toString())) ?: throw IdpException("invalid_token", "계정을 찾을 수 없습니다.", 401)
         requireActive(account)
         return claims(account, readScopes(row["scopes"]), row["selected_profile_id"]?.toString()?.let(UUID::fromString))
+    }
+
+    /** Verifies an opaque access token for resource-server use. */
+    fun authenticateAccessToken(accessToken: String): AccessTokenPrincipal {
+        val row = dao.findActiveAccessToken(SecretTools.sha256(accessToken))
+            ?: throw IdpException("invalid_token", "유효하지 않은 인증 토큰입니다. 다시 로그인해 주세요.", 401)
+        val account = dao.findAccount(UUID.fromString(row["account_id"].toString()))
+            ?: throw IdpException("invalid_token", "계정을 찾을 수 없습니다.", 401)
+        requireActive(account)
+        return AccessTokenPrincipal(account, row["client_id"].toString(), readScopes(row["scopes"]))
     }
 
     fun introspect(clientId: String, secret: String?, token: String): Map<String, Any?> {

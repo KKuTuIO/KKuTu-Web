@@ -18,15 +18,18 @@
 
 package me.kkutuio.kkutuweb.config
 
+import me.kkutuio.kkutuweb.moderation.ModerationMutationInterceptor
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.io.Resource
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver
-import org.springframework.web.servlet.config.annotation.CorsRegistry
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry
-import me.kkutuio.kkutuweb.moderation.ModerationMutationInterceptor
 
 @Configuration
 class WebConfig(
@@ -35,16 +38,30 @@ class WebConfig(
     @Value("#{'\${spring.cors.allowed-origins}'.split(',')}") private val allowedOrigins: Array<String>,
     private val moderationMutationInterceptor: ModerationMutationInterceptor
 ) : WebMvcConfigurer {
-    override fun addCorsMappings(registry: CorsRegistry) {
-        registry.addMapping(pathPattern)
-            .allowCredentials(true)
-            .allowedMethods(*methods)
-            .allowedOrigins(*allowedOrigins)
-            .allowedHeaders("*")
-        registry.addMapping("/oauth/token")
-            .allowedMethods("POST")
-            .allowedOrigins(*allowedOrigins)
-            .allowedHeaders("*")
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val source = UrlBasedCorsConfigurationSource()
+
+        source.registerCorsConfiguration(
+            pathPattern,
+            CorsConfiguration().apply {
+                allowCredentials = true
+                allowedMethods = methods.toList()
+                allowedOrigins = allowedOrigins.toList()
+                allowedHeaders = listOf("*")
+            }
+        )
+
+        source.registerCorsConfiguration(
+            "/oauth/token",
+            CorsConfiguration().apply {
+                allowedMethods = listOf("POST")
+                allowedOrigins = allowedOrigins.toList()
+                allowedHeaders = listOf("*")
+            }
+        )
+
+        return source
     }
 
     override fun addInterceptors(registry: InterceptorRegistry) {

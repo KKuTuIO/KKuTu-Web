@@ -166,7 +166,7 @@
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='KkisImportDiag',width=300,height=515,title=#{kkutu.dialog.setting.load})}">
         <th:block layout:fragment="content">
-            <details class="kkis-import-section">
+            <details class="kkis-import-section kkis-import-card">
                 <summary th:text="#{kkutu.dialog.accountOptions.import.code.title}"></summary>
                 <div class="dialog-bar">
                     <input id="kkis-import-code" type="text" maxlength="8"
@@ -175,15 +175,10 @@
                             th:text="#{kkutu.dialog.accountOptions.import.code.ok}"></button>
                 </div>
             </details>
-            <hr>
-            <details class="kkis-import-section" open>
+            <details class="kkis-import-section kkis-import-card" open>
                 <summary th:text="#{kkutu.dialog.accountOptions.import.file.title}"></summary>
                 <div class="dialog-bar">
-                    <button id="kkis-import-file-button" type="button"
-                            th:text="#{kkutu.dialog.accountOptions.import.file.button}"></button>
-                    <span id="kkis-import-file-name" class="ellipse"
-                          th:text="#{kkutu.dialog.accountOptions.import.file.none}"></span>
-                    <input id="setting-file" type="file" accept=".kkis" style="display: none;">
+                    <input id="setting-file" class="kkis-import-file" type="file" accept=".kkis">
                 </div>
                 <div class="dialog-bar theme-preset-controls">
                     <button id="kkis-import-toggle-all" type="button"></button>

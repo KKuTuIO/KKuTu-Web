@@ -423,6 +423,16 @@
             </div>
         </th:block>
     </th:block>
+    <th:block
+            layout:replace="~{view/kkutu/dialog::dialog(id='WardrobePresetDiag',width=300,height=390,title=#{kkutu.dialog.wardrobe.title})}">
+        <th:block layout:fragment="content">
+            <span id="wardrobe-preset-count" style="display: none;">0/10</span>
+            <div id="wardrobe-preset-list" class="wardrobe-preset-list"></div>
+            <div class="dialog-bar tail-button wardrobe-preset-footer">
+                <button id="wardrobe-preset-add" type="button" th:utext="#{kkutu.dialog.wardrobe.save}"></button>
+            </div>
+        </th:block>
+    </th:block>
     <th:block layout:replace="~{view/kkutu/dialog::dialog(id='PracticeDiag',width=300,height=135)}">
         <th:block layout:fragment="content">
             <div class="dialog-bar">
@@ -813,6 +823,7 @@
                 <span id="dress-membership" th:text="#{kkutu.membership.0}"></span>
                 <button id="dress-ok" class="confirm-btn" th:text="#{kkutu.dialog.dress.ok}"></button>
                 <button id="dress-cf" th:text="#{kkutu.dialog.dress.charFactory}"></button>
+                <button id="dress-wardrobe" type="button" th:utext="#{kkutu.dialog.dress.wardrobe}"></button>
                 <!-- <button id="dress-sell"
                         th:text="#{kkutu.dialog.dress.payback}"
                         th:with="paybackHelp=#{kkutu.dialog.dress.paybackHelp}"></button> -->

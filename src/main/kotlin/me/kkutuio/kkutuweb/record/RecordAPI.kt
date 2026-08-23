@@ -36,6 +36,7 @@ class RecordAPI(
     fun findByGameId(
         @PathVariable gameId: String,
         @RequestParam(defaultValue = "false") includePayload: Boolean,
+        @RequestParam(defaultValue = "false") includeAdminKeyTrace: Boolean,
         request: HttpServletRequest,
         response: HttpServletResponse,
         session: HttpSession
@@ -45,7 +46,7 @@ class RecordAPI(
             return RecordGameLookupResponse(ok = false, code = 429, error = "rate-limited")
         }
         val (requesterId, requesterAccountUuid, isAdmin) = resolveRequester(session)
-        return recordService.findByGameId(gameId, includePayload, requesterId, requesterAccountUuid, isAdmin)
+        return recordService.findByGameId(gameId, includePayload, includeAdminKeyTrace, requesterId, requesterAccountUuid, isAdmin)
     }
 
     @RateLimiter(name = "recordFindUserHistory", fallbackMethod = "onUserHistoryRateLimited")
@@ -82,6 +83,7 @@ class RecordAPI(
     fun onGameRateLimited(
         gameId: String,
         includePayload: Boolean,
+        includeAdminKeyTrace: Boolean,
         request: HttpServletRequest,
         response: HttpServletResponse,
         session: HttpSession,

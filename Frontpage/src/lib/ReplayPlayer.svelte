@@ -11,8 +11,12 @@
   const sounds = new Map();
   let dialog;
   let stageViewport;
+  let playerControls;
   let resizeObserver;
   let stageScale = 1;
+  let stageViewportHeight = 410;
+  let isFullscreen = false;
+  let pseudoFullscreen = false;
   let model = null;
   let state = null;
   let currentMs = 0;
@@ -35,11 +39,49 @@
     tick().then(updateStageScale);
   }
   $: state = model ? getReplayState(model, currentMs) : null;
-  $: stageHeight = 410 * stageScale;
-
+  $: fullscreenActive = isFullscreen || pseudoFullscreen;
   function updateStageScale() {
     if (!stageViewport) return;
-    stageScale = Math.min(1, stageViewport.clientWidth / 1000);
+    const widthScale = stageViewport.clientWidth / 1000;
+    if (fullscreenActive && typeof window !== 'undefined') {
+      const controlsHeight = playerControls?.offsetHeight || 76;
+      stageViewportHeight = Math.max(1, window.innerHeight - controlsHeight);
+      stageScale = Math.max(0.1, Math.min(widthScale, stageViewportHeight / 410));
+    } else {
+      stageScale = Math.min(1, widthScale);
+      stageViewportHeight = 410 * stageScale;
+    }
+  }
+
+  async function toggleFullscreen() {
+    if (!dialog || typeof document === 'undefined') return;
+    if (pseudoFullscreen) {
+      pseudoFullscreen = false;
+      tick().then(updateStageScale);
+      return;
+    }
+    try {
+      if (document.fullscreenElement === dialog) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (!dialog.requestFullscreen) throw new Error('Fullscreen API is unavailable');
+      await dialog.requestFullscreen({ navigationUI: 'hide' });
+      if (typeof screen !== 'undefined' && screen.orientation?.lock) {
+        try { await screen.orientation.lock('landscape'); } catch (_) {}
+      }
+    } catch (_) {
+      pseudoFullscreen = true;
+      tick().then(updateStageScale);
+    }
+  }
+
+  function handleFullscreenChange() {
+    isFullscreen = typeof document !== 'undefined' && document.fullscreenElement === dialog;
+    if (!isFullscreen && typeof screen !== 'undefined' && screen.orientation?.unlock) {
+      try { screen.orientation.unlock(); } catch (_) {}
+    }
+    tick().then(updateStageScale);
   }
 
   function audioFor(key) {
@@ -114,6 +156,10 @@
 
   function close() {
     pause();
+    pseudoFullscreen = false;
+    if (typeof document !== 'undefined' && document.fullscreenElement === dialog) {
+      document.exitFullscreen().catch(() => {});
+    }
     dispatch('close');
   }
 
@@ -198,6 +244,15 @@
   function handleKeydown(event) {
     if (event.key === 'Escape') {
       event.preventDefault();
+      if (pseudoFullscreen) {
+        pseudoFullscreen = false;
+        tick().then(updateStageScale);
+        return;
+      }
+      if (isFullscreen && typeof document !== 'undefined') {
+        document.exitFullscreen().catch(() => {});
+        return;
+      }
       close();
     } else if (event.key === ' ' && !['INPUT', 'SELECT', 'BUTTON'].includes(event.target?.tagName)) {
       event.preventDefault();
@@ -264,6 +319,7 @@
       resizeObserver = new ResizeObserver(updateStageScale);
       if (stageViewport) resizeObserver.observe(stageViewport);
     }
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
     for (const key of ['game_start', 'round_start', 'fail', 'timeout', 'mission', 'kung', 'Al']) audioFor(key);
     for (let speed = 0; speed <= 10; speed++) {
       audioFor(`T${speed}`);
@@ -275,16 +331,21 @@
   onDestroy(() => {
     pause();
     resizeObserver?.disconnect();
-    if (typeof document !== 'undefined') document.body.style.overflow = previousBodyOverflow;
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (document.fullscreenElement === dialog) document.exitFullscreen().catch(() => {});
+      document.body.style.overflow = previousBodyOverflow;
+    }
   });
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window on:keydown={handleKeydown} on:resize={updateStageScale} />
 
 <div class="replay-overlay" transition:fade={{ duration: 150 }} on:click|self={close} role="presentation">
   <section
     bind:this={dialog}
     class="replay-modal"
+    class:fullscreen-active={fullscreenActive}
     in:scale={{ duration: 180, start: 0.97 }}
     out:fade={{ duration: 100 }}
     role="dialog"
@@ -306,8 +367,9 @@
     </header>
 
     {#if model && state}
-      <div class="game-stage-viewport" bind:this={stageViewport} style={`height: ${stageHeight}px`}>
-        <div class="game-stage" style={`transform: scale(${stageScale})`}>
+      <div class="game-stage-viewport" bind:this={stageViewport} style={`height: ${stageViewportHeight}px`}>
+        <div class="game-stage-shell" style={`width: ${1000 * stageScale}px; height: ${410 * stageScale}px`}>
+          <div class="game-stage" style={`transform: scale(${stageScale})`}>
           <div class="room-strip">
             <span>[{model.gameId ? model.gameId.slice(0, 8) : '-'}] {model.roomTitle}</span>
             <span>{model.modeName} · 참가자 {model.players.length}명 · 라운드 {state.currentRound}/{model.totalRounds} · {Math.round(model.roomTimeMs / 1000)}초</span>
@@ -423,10 +485,11 @@
               {/each}
             </div>
           </div>
+          </div>
         </div>
       </div>
 
-      <div class="player-controls">
+      <div class="player-controls" bind:this={playerControls}>
         <input
           class="seek-bar"
           style={`--seek-progress: ${(currentMs / model.durationMs) * 100}%`}
@@ -456,6 +519,15 @@
               {#each speedOptions as speed}<option value={speed}>{speed}×</option>{/each}
             </select>
           </label>
+          <button
+            class="fullscreen-button"
+            type="button"
+            title={fullscreenActive ? '전체화면 종료' : '전체화면'}
+            aria-label={fullscreenActive ? '전체화면 종료' : '전체화면'}
+            on:click={toggleFullscreen}
+          >
+            <span class="material-symbols-outlined">{fullscreenActive ? 'fullscreen_exit' : 'fullscreen'}</span>
+          </button>
         </div>
       </div>
     {:else}
@@ -489,6 +561,27 @@
     outline: none;
   }
 
+  .replay-modal:fullscreen,
+  .replay-modal.fullscreen-active {
+    width: 100vw;
+    height: 100vh;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: #000;
+    overscroll-behavior: none;
+  }
+  .replay-modal.fullscreen-active:not(:fullscreen) {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+  .replay-modal:fullscreen .replay-header,
+  .replay-modal.fullscreen-active .replay-header { display: none; }
+
   .replay-header {
     display: flex;
     align-items: center;
@@ -517,7 +610,18 @@
   .close-button { width: 38px; height: 38px; border-radius: 9px; }
   .close-button:hover, .control-buttons button:hover { background: rgba(255, 255, 255, 0.12); }
 
-  .game-stage-viewport { width: 100%; overflow: hidden; background: #4caf58; }
+  .game-stage-viewport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    flex: none;
+    overflow: hidden;
+    background: #4caf58;
+  }
+  .replay-modal:fullscreen .game-stage-viewport,
+  .replay-modal.fullscreen-active .game-stage-viewport { flex: 1 1 auto; background: #000; }
+  .game-stage-shell { position: relative; flex: none; overflow: hidden; }
   .game-stage {
     width: 1000px;
     height: 410px;
@@ -576,7 +680,7 @@
   .jjoriping { position: absolute; top: 0; left: 250px; width: 500px; height: 145px; }
   .jjoriping > img { position: absolute; z-index: 1; }
   .jjo-eye-left { top: 11px; left: 0; width: 58px; height: 46px; }
-  .jjo-nose { top: 9px; left: 239px; width: 23px; height: 6px; }
+  .jjo-nose { top: 49px; left: 239px; width: 23px; height: 6px; }
   .jjo-eye-right { top: 11px; left: 442px; width: 58px; height: 46px; }
   .jjo-display-bar {
     position: absolute;
@@ -746,7 +850,7 @@
   .delta-score.bonus { color: #66f; }
   .delta-score.lost { color: #f59e9e; }
 
-  .player-controls { padding: 8px 14px 13px; background: #090e1a; }
+  .player-controls { flex: none; padding: 8px 14px 13px; background: #090e1a; }
   .seek-bar { width: 100%; height: 18px; margin: 0; appearance: none; background: transparent; cursor: pointer; }
   .seek-bar::-webkit-slider-runnable-track { height: 5px; border-radius: 999px; background: linear-gradient(to right, #ef4444 var(--seek-progress), #475569 var(--seek-progress)); }
   .seek-bar::-moz-range-track { height: 5px; border-radius: 999px; background: #475569; }
@@ -761,6 +865,20 @@
   .time-label { flex: 1; color: #cbd5e1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
   .speed-control { display: flex; align-items: center; gap: 8px; color: #cbd5e1; font-size: 12px; }
   .speed-control select { padding: 5px 7px; border: 1px solid #475569; border-radius: 7px; color: #f8fafc; background: #1e293b; }
+  .fullscreen-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: none;
+    border: 0;
+    border-radius: 50%;
+    color: #f8fafc;
+    background: transparent;
+    cursor: pointer;
+  }
+  .fullscreen-button:hover { background: rgba(255, 255, 255, 0.12); }
   .unavailable { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 360px; color: #cbd5e1; }
   .unavailable .material-symbols-outlined { color: #fb7185; font-size: 42px; }
 
@@ -782,6 +900,7 @@
     .control-buttons { order: 1; }
     .time-label { order: 2; flex: none; min-width: 96px; }
     .speed-control { order: 3; }
+    .fullscreen-button { order: 4; }
     .control-buttons button { width: 32px; height: 32px; }
     .control-buttons .play-button { width: 38px; height: 38px; }
   }

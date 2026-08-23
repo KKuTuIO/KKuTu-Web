@@ -34,6 +34,7 @@ data class RecordGame(
     val payloadVersion: Int,
     val payloadSize: Int,
     val rawSize: Int,
+    val adminKeyTraceAvailable: Boolean = false,
     val payload: String? = null,
     val payloadDecoded: JsonNode? = null,
     val keyTraceDecoded: JsonNode? = null

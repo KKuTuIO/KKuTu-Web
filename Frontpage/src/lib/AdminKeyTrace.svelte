@@ -1,7 +1,13 @@
 <script>
-  export let payload = null;
+  export let gameId = '';
+  export let available = false;
   export let players = [];
 
+  let isOpen = false;
+  let loading = false;
+  let loaded = false;
+  let loadError = '';
+  let payload = null;
   let selectedRound = null;
   let expandedKey = '';
 
@@ -98,7 +104,7 @@
     };
   }
 
-  $: entries = Array.isArray(payload?.e)
+  $: entries = isOpen && Array.isArray(payload?.e)
     ? payload.e.map(decodeEntry).filter(Boolean)
     : [];
   $: rounds = [...new Set(entries.map((entry) => entry.round))].sort((a, b) => a - b);
@@ -119,26 +125,58 @@
       ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200'
       : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200';
   }
+
+  async function toggleOpen() {
+    isOpen = !isOpen;
+    if (!isOpen || loaded || loading || !gameId) return;
+
+    loading = true;
+    loadError = '';
+    try {
+      const response = await fetch(`/api/replay/game/${encodeURIComponent(gameId)}?includeAdminKeyTrace=true`);
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.ok || !body?.game?.keyTraceDecoded) {
+        throw new Error('입력 내역을 불러오지 못했습니다.');
+      }
+      payload = body.game.keyTraceDecoded;
+      loaded = true;
+    } catch (error) {
+      loadError = error?.message || '입력 내역을 불러오지 못했습니다.';
+    } finally {
+      loading = false;
+    }
+  }
 </script>
 
-{#if entries.length}
+{#if available}
   <section class="mt-5 rounded-xl border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-700 dark:bg-amber-950/20">
-    <div class="flex flex-wrap items-center justify-between gap-2">
+    <button class="flex w-full flex-wrap items-center justify-between gap-2 text-left" on:click={toggleOpen} aria-expanded={isOpen}>
       <div>
         <div class="font-semibold">Key 입력 내역</div>
         <div class="text-xs text-amber-800 dark:text-amber-200">하기 입력 내역은 단순 참고 용도로만 사용되어야 합니다.</div>
       </div>
-      <span class="rounded-full bg-amber-200 px-2 py-1 text-xs font-bold text-amber-900 dark:bg-amber-800 dark:text-amber-100">
-        {entries.length}회
+      <span class="flex items-center gap-2">
+        {#if isOpen && entries.length}
+          <span class="rounded-full bg-amber-200 px-2 py-1 text-xs font-bold text-amber-900 dark:bg-amber-800 dark:text-amber-100">{entries.length}회</span>
+        {/if}
+        <span class={`material-symbols-outlined text-amber-800 transition-transform duration-200 dark:text-amber-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
       </span>
-    </div>
+    </button>
 
-    {#if payload?.o === 1}
+    {#if isOpen && loading}
+      <div class="mt-3 flex min-h-24 flex-col items-center justify-center gap-2 rounded-lg bg-white/70 text-sm text-amber-900 dark:bg-slate-900/60 dark:text-amber-100">
+        <span class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+        입력 내역을 불러오는 중이에요.
+      </div>
+    {:else if isOpen && loadError}
+      <div class="mt-3 rounded bg-red-100 px-2 py-2 text-xs font-semibold text-red-700 dark:bg-red-950/60 dark:text-red-200">{loadError}</div>
+    {:else if isOpen && payload?.o === 1}
       <div class="mt-2 rounded bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 dark:bg-red-950/60 dark:text-red-200">
         경기 정보를 불러올 수 없습니다
       </div>
     {/if}
 
+    {#if isOpen && entries.length}
     <div class="mt-3 flex flex-wrap gap-2">
       <button
         class={roundButtonClass(selectedRound === null)}
@@ -227,5 +265,6 @@
         </article>
       {/each}
     </div>
+    {/if}
   </section>
 {/if}

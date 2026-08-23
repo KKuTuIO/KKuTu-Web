@@ -22,11 +22,12 @@ class RecordService(
     fun findByGameId(
         gameId: String,
         includePayload: Boolean,
+        includeAdminKeyTrace: Boolean,
         requesterId: String?,
         requesterAccountUuid: String?,
         isAdmin: Boolean
     ): RecordGameLookupResponse {
-        return recordDao.findByGameId(gameId, includePayload, requesterId, requesterAccountUuid, isAdmin)
+        return recordDao.findByGameId(gameId, includePayload, includeAdminKeyTrace, requesterId, requesterAccountUuid, isAdmin)
             ?: RecordGameLookupResponse(ok = false, code = 761, error = "game-server-unavailable")
     }
 

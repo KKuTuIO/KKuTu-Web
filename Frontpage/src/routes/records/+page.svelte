@@ -1,9 +1,10 @@
 <script nonce="kkutuio">
   import { onDestroy, onMount } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
+  import { fade, fly, slide } from 'svelte/transition';
   import { browser } from '$app/environment';
   import { getLevel } from '../../lib/getLevelImg.js';
   import { loadAuth } from '../../lib/session.js';
+  import ToastStack from '../../lib/ToastStack.svelte';
   import AccountModal from '../../lib/AccountModal.svelte';
   import AdminKeyTrace from '../../lib/AdminKeyTrace.svelte';
   import ReplayPlayer from '../../lib/ReplayPlayer.svelte';
@@ -1240,20 +1241,20 @@
           </div>
 
           <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <article class="rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-left">
-              <div class="flex items-center gap-2 text-sm font-bold text-emerald-200"><span class="material-symbols-outlined text-lg">recommend</span>오늘의 추천 모드</div>
+            <article class="flex h-full flex-col rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-left">
+              <div class="flex items-center gap-2 text-sm font-bold text-emerald-200"><span class="material-symbols-outlined text-lg">recommend</span>오늘의 추천 게임 유형</div>
               {#if getRecommendedMode()}
                 {@const recommended = getRecommendedMode()}
                 <p class="mt-3 text-xl font-black text-white">{recommended.modeName}</p>
                 <p class="mt-1 text-sm text-slate-200">승률 {recommended.winRate.toFixed(2)}% · {recommended.games.toLocaleString()}판 · {recommended.playHours.toFixed(1)}시간</p>
-                <button class="mt-4 text-sm font-bold text-emerald-200 transition hover:text-white" on:click={() => showMyRecords('stats')}>모드 통계 보기 →</button>
+                <button class="mt-auto pt-4 text-sm font-bold text-emerald-200 transition hover:text-white" on:click={() => showMyRecords('stats')}>게임 유형 통계 보기 →</button>
               {:else}
                 <p class="mt-3 text-sm text-slate-200">추천을 만들 만큼 기록된 경기가 아직 없어요.</p>
               {/if}
             </article>
 
-            <article class="rounded-xl border border-sky-300/20 bg-sky-400/10 p-4 text-left">
-              <div class="flex items-center gap-2 text-sm font-bold text-sky-200"><span class="material-symbols-outlined text-lg">monitoring</span>최근 폼</div>
+            <article class="flex h-full flex-col rounded-xl border border-sky-300/20 bg-sky-400/10 p-4 text-left">
+              <div class="flex items-center gap-2 text-sm font-bold text-sky-200"><span class="material-symbols-outlined text-lg">monitoring</span>최근 전적</div>
               {#if getRecentForm().games}
                 {@const form = getRecentForm()}
                 <p class="mt-3 text-xl font-black text-white">최근 {form.games}판 평균 {form.averagePlacement.toFixed(1)}등</p>
@@ -1268,13 +1269,13 @@
               {/if}
             </article>
 
-            <article class="rounded-xl border border-violet-300/20 bg-violet-400/10 p-4 text-left md:col-span-2 xl:col-span-1">
-              <div class="flex items-center gap-2 text-sm font-bold text-violet-200"><span class="material-symbols-outlined text-lg">school</span>보완할 모드</div>
+            <article class="flex h-full flex-col rounded-xl border border-violet-300/20 bg-violet-400/10 p-4 text-left md:col-span-2 xl:col-span-1">
+              <div class="flex items-center gap-2 text-sm font-bold text-violet-200"><span class="material-symbols-outlined text-lg">school</span>보완할 게임 유형</div>
               {#if getNeedsWorkMode()}
                 {@const needsWork = getNeedsWorkMode()}
                 <p class="mt-3 text-xl font-black text-white">{needsWork.modeName}</p>
                 <p class="mt-1 text-sm text-slate-200">승률 {needsWork.winRate.toFixed(2)}% · {needsWork.games.toLocaleString()}판</p>
-                <button class="mt-4 text-sm font-bold text-violet-200 transition hover:text-white" on:click={() => showMyRecords('history')}>경기 내역 보기 →</button>
+                <button class="mt-auto pt-4 text-sm font-bold text-violet-200 transition hover:text-white" on:click={() => showMyRecords('history')}>경기 내역 보기 →</button>
               {:else}
                 <p class="mt-3 text-sm text-slate-200">10판 이상 기록된 모드가 생기면 알려드릴게요.</p>
               {/if}
@@ -1328,7 +1329,7 @@
             </div>
           </div>
           <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-extrabold text-slate-900 shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[150px]" on:click={() => loadAll(false)} disabled={loading}>
-            <span class="material-symbols-outlined text-xl">{loading ? 'progress_activity' : 'refresh'}</span>
+            <span class:animate-spin={loading} class="material-symbols-outlined text-xl">{loading ? 'progress_activity' : 'refresh'}</span>
             {loading ? '불러오는 중...' : '새로고침'}
           </button>
         </div>
@@ -1351,42 +1352,28 @@
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {#if modeStats.length}
               {#each modeStats.slice(0, selectedTab === 'stats' ? modeStats.length : 3) as stat (stat.key)}
-                <article in:fade={{ duration: 180 }} class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
-                  <div class="text-xl font-bold text-blue-600 dark:text-blue-300 flex items-center gap-2">
+                <article in:fly={{ y: 10, duration: 180 }} class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+                  <div class="flex items-center gap-2 text-lg font-black text-sky-700 dark:text-sky-300">
                     <span class="material-symbols-outlined">stadia_controller</span>
                     {stat.modeName}
                   </div>
-                  <div class="text-5xl font-black mt-3 flex items-end gap-1">
-                    {stat.playHours.toFixed(1)}
-                    <span class="text-xl font-medium">시간</span>
+                  <div class="mt-4 flex items-end gap-1">
+                    <span class="text-5xl font-black tracking-tight">{stat.playHours.toFixed(1)}</span>
+                    <span class="mb-1 text-base font-semibold text-slate-500 dark:text-slate-400">시간 플레이</span>
                   </div>
-                  <div class="mt-4 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">emoji_events</span>우승</span>
-                    <b>{stat.wins.toLocaleString()}회</b>
+                  <div class="mt-4 grid grid-cols-2 overflow-hidden rounded-xl border border-slate-100 text-sm dark:border-slate-700">
+                    <div class="border-b border-r border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60"><p class="text-xs text-slate-500 dark:text-slate-400">경기</p><p class="mt-0.5 text-base font-black">{stat.games.toLocaleString()}회</p></div>
+                    <div class="border-b border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60"><p class="text-xs text-slate-500 dark:text-slate-400">승률</p><p class="mt-0.5 text-base font-black">{stat.winRate.toFixed(2)}%</p></div>
+                    <div class="border-r border-slate-100 px-3 py-2.5 dark:border-slate-700"><p class="text-xs text-slate-500 dark:text-slate-400">우승</p><p class="mt-0.5 text-base font-black">{stat.wins.toLocaleString()}회</p></div>
+                    <div class="px-3 py-2.5"><p class="text-xs text-slate-500 dark:text-slate-400">낱말 입력</p><p class="mt-0.5 text-base font-black">{stat.acceptedWords.toLocaleString()}회</p></div>
                   </div>
-                  <div class="mt-2 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">balance</span>반타작</span>
-                    <b>{Math.max(0, stat.games - stat.wins - stat.losses).toLocaleString()}회</b>
-                  </div>
-                  <div class="mt-2 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">trending_down</span>패배</span>
-                    <b>{stat.losses.toLocaleString()}회</b>
-                  </div>
-                  <div class="mt-2 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">sports_esports</span>경기</span>
-                    <b>{stat.games.toLocaleString()}회</b>
-                  </div>
-                  <div class="mt-2 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>승률</span>
-                    <b>{stat.winRate.toFixed(2)}%</b>
-                  </div>
-                  <div class="mt-2 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">spellcheck</span>낱말 입력</span>
-                    <b>{stat.acceptedWords.toLocaleString()}회</b>
-                  </div>
-                  <div class="mt-2 text-lg flex justify-between items-center">
-                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">auto_awesome</span>획득 경험치</span>
+                  <div class="mt-3 flex items-center justify-between text-sm">
+                    <span class="font-medium text-slate-500 dark:text-slate-400">획득 경험치</span>
                     <b>{stat.exp.toLocaleString()}</b>
+                  </div>
+                  <div class="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>반타작 {Math.max(0, stat.games - stat.wins - stat.losses).toLocaleString()}회</span>
+                    <span>패배 {stat.losses.toLocaleString()}회</span>
                   </div>
                 </article>
               {/each}
@@ -1412,14 +1399,25 @@
           </div>
 
           {#if loadingHistory}
-            <div class="rounded-xl border border-slate-200 bg-white p-4 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">불러오는 중...</div>
+            <div class="space-y-3" role="status" aria-label="경기 내역을 불러오는 중">
+              {#each Array(3) as _}
+                <div class="animate-pulse rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                  <div class="flex items-center gap-5">
+                    <div class="h-11 w-14 rounded-lg bg-slate-200 dark:bg-slate-700"></div>
+                    <div class="min-w-0 flex-1 space-y-2"><div class="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-700"></div><div class="h-3 w-2/3 rounded bg-slate-100 dark:bg-slate-800"></div></div>
+                    <div class="hidden h-8 w-20 rounded bg-slate-200 sm:block dark:bg-slate-700"></div>
+                  </div>
+                </div>
+              {/each}
+            </div>
           {:else if !historyRows.length}
             <div class="rounded-xl border border-slate-200 bg-white p-4 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">최근 3년 내 경기 기록이 없습니다.</div>
           {:else}
             <div class="space-y-3">
               {#each historyRows as row}
-                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-900" style={`border-left: 6px solid ${row.won ? '#eab308' : '#9ca3af'}`}>
-                  <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(row.gameId)}>
+                <article class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+                  <div class={`absolute inset-x-0 top-0 h-1 ${row.won ? 'bg-amber-400' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                  <button class="w-full text-left p-4 pt-5" on:click={() => toggleDetail(row.gameId)} aria-expanded={expandedGameId === row.gameId}>
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
                       <div class="text-3xl font-black">
                         #{row.placement}
@@ -1434,13 +1432,17 @@
                         <div class="text-2xl font-extrabold">{Number(row.score).toLocaleString()}점</div>
                         <div class="text-sm text-gray-500 dark:text-gray-300">경험치 +{Number(row.exp || 0).toLocaleString()}</div>
                       </div>
+                      <span class={`material-symbols-outlined shrink-0 text-slate-400 transition-transform duration-200 ${expandedGameId === row.gameId ? 'rotate-180' : ''}`}>expand_more</span>
                     </div>
                   </button>
 
                   {#if expandedGameId === row.gameId}
-                    <div class="px-4 pb-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+                    <div in:slide={{ duration: 180 }} class="border-t border-slate-200 px-4 pb-4 pt-4 dark:border-slate-700">
                       {#if detailLoading[row.gameId]}
-                        <div class="text-sm text-gray-500 dark:text-gray-300">경기 정보를 불러오는 중...</div>
+                        <div class="flex min-h-28 flex-col items-center justify-center gap-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-slate-800/60 dark:text-slate-300">
+                          <span class="material-symbols-outlined animate-spin text-2xl text-sky-500">progress_activity</span>
+                          <span>경기 정보를 불러오는 중이에요.</span>
+                        </div>
                       {:else if detailMap[row.gameId]?.error}
                         <div class="text-sm text-red-600">상세 정보를 불러오지 못했습니다.</div>
                       {:else if detailMap[row.gameId]}
@@ -1642,7 +1644,8 @@
                           </div>
                         {/if}
                         <AdminKeyTrace
-                          payload={detailMap[row.gameId].keyTraceDecoded}
+                          gameId={row.gameId}
+                          available={detailMap[row.gameId].adminKeyTraceAvailable === true}
                           players={detailMap[row.gameId].replayView?.players || []}
                         />
                       {/if}
@@ -1653,9 +1656,9 @@
             </div>
 
             <div class="mt-4 flex items-center justify-center gap-3">
-              <button class="rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" on:click={() => movePage(page - 1)} disabled={page <= 1 || loading}>이전</button>
-              <span class="text-sm text-slate-600 dark:text-slate-300">{page}쪽</span>
-              <button class="rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-45 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700" on:click={() => movePage(page + 1)} disabled={!hasNext || loading}>다음</button>
+              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="이전 페이지" on:click={() => movePage(page - 1)} disabled={page <= 1 || loading}><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'chevron_left'}</span></button>
+              <span class="min-w-20 text-center text-sm font-bold text-slate-600 dark:text-slate-300">{page} 페이지</span>
+              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="다음 페이지" on:click={() => movePage(page + 1)} disabled={!hasNext || loading}><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'chevron_right'}</span></button>
             </div>
           {/if}
         </section>
@@ -1667,8 +1670,9 @@
     <div in:fly={{ y: 18, duration: 220 }} class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="mt-2">
         <h3 class="text-2xl font-bold mb-3">경기 조회 결과</h3>
-        <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
-          <button class="w-full text-left p-4 cursor-pointer" on:click={() => toggleDetail(gameSearchResult.gameId)}>
+        <article class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+          <div class="absolute inset-x-0 top-0 h-1 bg-sky-500"></div>
+          <button class="w-full text-left p-4 pt-5" on:click={() => toggleDetail(gameSearchResult.gameId)} aria-expanded={expandedGameId === gameSearchResult.gameId}>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
               <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.roomTitle || '제목 없음'}</div>
               <div class="flex-1 min-w-0">
@@ -1680,11 +1684,12 @@
                 <div class="text-lg font-bold">{gameSearchResult.playerCount}명</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300">{gameSearchResult.rule} · {gameSearchResult.lang}</div>
               </div>
+              <span class={`material-symbols-outlined shrink-0 text-slate-400 transition-transform duration-200 ${expandedGameId === gameSearchResult.gameId ? 'rotate-180' : ''}`}>expand_more</span>
             </div>
           </button>
 
           {#if expandedGameId === gameSearchResult.gameId && detailMap[gameSearchResult.gameId]}
-            <div class="px-4 pb-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+            <div in:slide={{ duration: 180 }} class="border-t border-slate-200 px-4 pb-4 pt-4 dark:border-slate-700">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div>채널: <b>{detailMap[gameSearchResult.gameId].channel}</b></div>
                 <div>방 번호: <b>{detailMap[gameSearchResult.gameId].roomId}</b></div>
@@ -1870,7 +1875,8 @@
                 {/if}
               {/if}
               <AdminKeyTrace
-                payload={detailMap[gameSearchResult.gameId].keyTraceDecoded}
+                gameId={gameSearchResult.gameId}
+                available={detailMap[gameSearchResult.gameId].adminKeyTraceAvailable === true}
                 players={detailMap[gameSearchResult.gameId].replayView?.players || []}
               />
             </div>
@@ -1880,30 +1886,7 @@
     </div>
   {/if}
 
-  {#if toasts.length}
-    <div class="pointer-events-none fixed bottom-6 right-4 z-[90] flex w-[min(92vw,680px)] flex-col gap-2">
-      {#each toasts as toast (toast.id)}
-        <div
-          in:fly={{ y: 12, duration: 180 }}
-          out:fly={{ y: 12, duration: 160 }}
-          class={`pointer-events-auto flex items-start gap-2 rounded-xl border px-4 py-3 text-sm shadow-lg shadow-black/20 ${
-            toast.kind === 'error'
-              ? 'border-rose-300/70 bg-rose-100 text-rose-700 dark:border-rose-500/50 dark:bg-rose-950/90 dark:text-rose-100'
-              : 'border-slate-300/70 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-100'
-          }`}
-        >
-          <span class="flex-1 leading-snug">{toast.message}</span>
-          <button
-            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-inherit/70 transition hover:bg-black/10 hover:text-inherit dark:hover:bg-white/10"
-            aria-label="닫기"
-            on:click={() => removeToast(toast.id)}
-          >
-            <span class="material-symbols-outlined text-sm">close</span>
-          </button>
-        </div>
-      {/each}
-    </div>
-  {/if}
+  <ToastStack {toasts} dismiss={removeToast}/>
 
   {#if replayDetail}
     <ReplayPlayer detail={replayDetail} on:close={closeReplay} />

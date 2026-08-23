@@ -15,6 +15,7 @@ class RecordDao(
     fun findByGameId(
         gameId: String,
         includePayload: Boolean,
+        includeAdminKeyTrace: Boolean,
         requesterId: String?,
         requesterAccountUuid: String?,
         isAdmin: Boolean
@@ -24,7 +25,7 @@ class RecordDao(
             includePayload,
             requesterId,
             requesterAccountUuid,
-            includePayload && isAdmin
+            includeAdminKeyTrace && isAdmin
         ) ?: return null
         return recordMapper.toGameLookupResponse(raw)
     }

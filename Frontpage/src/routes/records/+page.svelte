@@ -390,7 +390,7 @@
     if (!profile) return;
     selectedTab = tab;
     currentStatus = 'user';
-    if (tab === 'history') await ensureHistoryLoaded();
+    if (tab === 'profile' || tab === 'history') await ensureHistoryLoaded();
   }
 
   async function loadPersonalDashboard(userId) {
@@ -795,6 +795,20 @@
     return `${n > 0 ? '+' : ''}${n}`;
   }
 
+  function getHistoryOutcome(row) {
+    if (row?.won) return 'win';
+    const placement = Number(row?.placement || 0) - 1;
+    const playerCount = Number(row?.playerCount || 0);
+    return placement >= 0 && playerCount > 0 && placement >= Math.ceil(playerCount / 2) ? 'loss' : 'half';
+  }
+
+  function getHistoryStripeColor(row) {
+    const outcome = getHistoryOutcome(row);
+    if (outcome === 'win') return '#eab308';
+    if (outcome === 'loss') return '#cd7f32';
+    return '#94a3b8';
+  }
+
   async function downloadAndOpenReplay(gameId) {
     if (!gameId) return;
     replayDownloadOpen = true;
@@ -907,6 +921,7 @@
       const [loadedProfile, replayModeStats] = await Promise.all([loadProfile(signal), loadModeStats(signal)]);
       profile = { ...loadedProfile };
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
+      if (selectedTab === 'profile') void ensureHistoryLoaded();
       syncQuery();
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -1343,7 +1358,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-2">
-          <button class={getTabClass(selectedTab === 'profile')} on:click={() => (selectedTab = 'profile')}>
+          <button class={getTabClass(selectedTab === 'profile')} on:click={async () => { selectedTab = 'profile'; await ensureHistoryLoaded(); }}>
             <span class="material-symbols-outlined text-base">person</span> 사용자 정보
           </button>
           <button class={getTabClass(selectedTab === 'stats')} on:click={() => (selectedTab = 'stats')}>
@@ -1360,29 +1375,22 @@
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {#if modeStats.length}
               {#each modeStats.slice(0, selectedTab === 'stats' ? modeStats.length : 3) as stat (stat.key)}
-                <article in:fly={{ y: 10, duration: 180 }} class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
-                  <div class="flex items-center gap-2 text-lg font-black text-sky-700 dark:text-sky-300">
+                <article in:fade={{ duration: 180 }} class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
+                  <div class="flex items-center gap-2 text-xl font-bold text-blue-600 dark:text-blue-300">
                     <span class="material-symbols-outlined">stadia_controller</span>
                     {stat.modeName}
                   </div>
-                  <div class="mt-4 flex items-end gap-1">
-                    <span class="text-5xl font-black tracking-tight">{stat.playHours.toFixed(1)}</span>
-                    <span class="mb-1 text-base font-semibold text-slate-500 dark:text-slate-400">시간 플레이</span>
+                  <div class="mt-3 flex items-end gap-1 text-5xl font-black">
+                    {stat.playHours.toFixed(1)}
+                    <span class="text-xl font-medium">시간</span>
                   </div>
-                  <div class="mt-4 grid grid-cols-2 overflow-hidden rounded-xl border border-slate-100 text-sm dark:border-slate-700">
-                    <div class="border-b border-r border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60"><p class="text-xs text-slate-500 dark:text-slate-400">경기</p><p class="mt-0.5 text-base font-black">{stat.games.toLocaleString()}회</p></div>
-                    <div class="border-b border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60"><p class="text-xs text-slate-500 dark:text-slate-400">승률</p><p class="mt-0.5 text-base font-black">{stat.winRate.toFixed(2)}%</p></div>
-                    <div class="border-r border-slate-100 px-3 py-2.5 dark:border-slate-700"><p class="text-xs text-slate-500 dark:text-slate-400">우승</p><p class="mt-0.5 text-base font-black">{stat.wins.toLocaleString()}회</p></div>
-                    <div class="px-3 py-2.5"><p class="text-xs text-slate-500 dark:text-slate-400">낱말 입력</p><p class="mt-0.5 text-base font-black">{stat.acceptedWords.toLocaleString()}회</p></div>
-                  </div>
-                  <div class="mt-3 flex items-center justify-between text-sm">
-                    <span class="font-medium text-slate-500 dark:text-slate-400">획득 경험치</span>
-                    <b>{stat.exp.toLocaleString()}</b>
-                  </div>
-                  <div class="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>반타작 {Math.max(0, stat.games - stat.wins - stat.losses).toLocaleString()}회</span>
-                    <span>패배 {stat.losses.toLocaleString()}회</span>
-                  </div>
+                  <div class="mt-4 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">emoji_events</span>우승</span><b>{stat.wins.toLocaleString()}회</b></div>
+                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">balance</span>반타작</span><b>{Math.max(0, stat.games - stat.wins - stat.losses).toLocaleString()}회</b></div>
+                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">trending_down</span>패배</span><b>{stat.losses.toLocaleString()}회</b></div>
+                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">sports_esports</span>경기</span><b>{stat.games.toLocaleString()}회</b></div>
+                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>승률</span><b>{stat.winRate.toFixed(2)}%</b></div>
+                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">spellcheck</span>낱말 입력</span><b>{stat.acceptedWords.toLocaleString()}회</b></div>
+                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">auto_awesome</span>획득 경험치</span><b>{stat.exp.toLocaleString()}</b></div>
                 </article>
               {/each}
             {:else}
@@ -1392,10 +1400,10 @@
         </section>
       {/if}
 
-      {#if selectedTab === 'history'}
+      {#if selectedTab === 'profile' || selectedTab === 'history'}
         <section class="mt-6">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="text-2xl font-bold">경기 내역</h3>
+            <h3 class="text-2xl font-bold">{selectedTab === 'profile' ? '최근 경기' : '경기 내역'}</h3>
             <div class="flex items-center gap-2 text-sm">
               <span>쪽 당 행</span>
               <select class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" bind:value={pageSize} on:change={changePageSize}>
@@ -1423,9 +1431,8 @@
           {:else}
             <div class="space-y-3">
               {#each historyRows as row}
-                <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
-                  <div class={`absolute inset-x-0 top-0 h-1 ${row.won ? 'bg-amber-400' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-                  <button class="w-full text-left p-4 pt-5" on:click={() => toggleDetail(row.gameId)} aria-expanded={expandedGameId === row.gameId}>
+                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900" style={`border-left: 6px solid ${getHistoryStripeColor(row)}`}>
+                  <button class="w-full text-left p-4" on:click={() => toggleDetail(row.gameId)} aria-expanded={expandedGameId === row.gameId}>
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
                       <div class="text-3xl font-black">
                         #{row.placement}

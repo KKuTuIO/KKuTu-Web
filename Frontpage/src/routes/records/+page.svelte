@@ -369,23 +369,6 @@
       .sort((a, b) => a.winRate - b.winRate || b.games - a.games)[0] || null;
   }
 
-  function getRecentForm() {
-    const recent = historyRows.slice(0, 10);
-    const placements = recent
-      .map((row) => Number(row?.placement || 0))
-      .filter((placement) => placement > 0);
-    const averagePlacement = placements.length
-      ? placements.reduce((sum, placement) => sum + placement, 0) / placements.length
-      : 0;
-    return {
-      rows: recent,
-      games: recent.length,
-      wins: recent.filter((row) => row?.won).length,
-      averagePlacement,
-      latest: recent[0] || null
-    };
-  }
-
   async function showMyRecords(tab = 'profile') {
     if (!profile) return;
     selectedTab = tab;
@@ -402,7 +385,8 @@
     try {
       const [loadedProfile, replayModeStats] = await Promise.all([
         loadProfile(),
-        loadModeStats()
+        loadModeStats(),
+        loadHistory(1)
       ]);
       profile = { ...loadedProfile };
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
@@ -1280,7 +1264,7 @@
             </button>
           </div>
 
-          <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div class="mt-4 grid gap-3 md:grid-cols-2">
             <article class="flex h-full flex-col rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-left">
               <div class="flex items-center gap-2 text-sm font-bold text-emerald-200"><span class="material-symbols-outlined text-lg">recommend</span>오늘의 추천 게임 유형</div>
               {#if getRecommendedMode()}
@@ -1293,28 +1277,7 @@
               {/if}
             </article>
 
-            <article class="flex h-full flex-col rounded-xl border border-sky-300/20 bg-sky-400/10 p-4 text-left">
-              <div class="flex items-center gap-2 text-sm font-bold text-sky-200"><span class="material-symbols-outlined text-lg">monitoring</span>최근 전적</div>
-              {#if getRecentForm().games}
-                {@const form = getRecentForm()}
-                <p class="mt-3 text-xl font-black text-white">최근 {form.games}판 평균 {form.averagePlacement.toFixed(1)}등</p>
-                <div class="mt-3 flex flex-wrap gap-1.5" aria-label="최근 경기 순위">
-                  {#each form.rows as row (row.gameId)}
-                    <span class={`inline-flex h-7 min-w-7 items-center justify-center rounded-md px-1 text-xs font-black ${row.won ? 'bg-amber-300 text-slate-900' : 'bg-white/15 text-white'}`}>{row.placement}</span>
-                  {/each}
-                </div>
-                <p class="mt-3 text-sm text-slate-200">우승 {form.wins}회 · 직전 경기 {form.latest?.placement || '-'}등</p>
-              {:else}
-                {#if !historyLoaded}
-                  <p class="mt-3 text-sm text-slate-200">최근 전적은 필요할 때만 불러와요.</p>
-                  <button class="mt-auto pt-4 text-sm font-bold text-sky-200 transition hover:text-white" on:click={() => showMyRecords('history')}>경기 내역 보기 →</button>
-                {:else}
-                  <p class="mt-3 text-sm text-slate-200">아직 최근 경기 기록이 없어요.</p>
-                {/if}
-              {/if}
-            </article>
-
-            <article class="flex h-full flex-col rounded-xl border border-violet-300/20 bg-violet-400/10 p-4 text-left md:col-span-2 xl:col-span-1">
+            <article class="flex h-full flex-col rounded-xl border border-violet-300/20 bg-violet-400/10 p-4 text-left">
               <div class="flex items-center gap-2 text-sm font-bold text-violet-200"><span class="material-symbols-outlined text-lg">school</span>보완할 게임 유형</div>
               {#if getNeedsWorkMode()}
                 {@const needsWork = getNeedsWorkMode()}
@@ -1326,6 +1289,29 @@
               {/if}
             </article>
           </div>
+
+          <section class="mt-4 overflow-hidden rounded-xl border border-white/15 bg-slate-950/40 text-left">
+            <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div class="flex items-center gap-2 text-sm font-bold text-sky-200"><span class="material-symbols-outlined text-lg">history</span>최근 경기</div>
+              <button class="text-sm font-bold text-sky-200 transition hover:text-white" on:click={() => showMyRecords('history')}>전체 보기 →</button>
+            </div>
+            {#if historyRows.length}
+              <div class="divide-y divide-white/10">
+                {#each historyRows.slice(0, 10) as row (row.gameId)}
+                  <button class="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5" on:click={() => showMyRecords('history')}>
+                    <span class={`inline-flex h-9 w-11 shrink-0 items-center justify-center rounded-lg text-sm font-black ${row.won ? 'bg-amber-300 text-slate-950' : 'bg-white/10 text-white'}`}>#{row.placement}</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-sm font-bold text-white">{getModeLabel(row)} · {row.roomTitle || '제목 없음'}</span>
+                      <span class="mt-0.5 block text-xs text-slate-300">{formatAgo(row.startedAt)} · {Number(row.score).toLocaleString()}점 · 경험치 +{Number(row.exp || 0).toLocaleString()}</span>
+                    </span>
+                    <span class="text-xs font-semibold text-slate-300">{row.playerCount}명</span>
+                  </button>
+                {/each}
+              </div>
+            {:else}
+              <p class="px-4 py-5 text-sm text-slate-300">최근 3년 내 경기 기록이 없습니다.</p>
+            {/if}
+          </section>
         </div>
       {/if}
     {/if}
@@ -1682,7 +1668,6 @@
                         {/if}
                         <AdminKeyTrace
                           gameId={row.gameId}
-                          available={detailMap[row.gameId].adminKeyTraceAvailable === true}
                           players={detailMap[row.gameId].replayView?.players || []}
                         />
                       {/if}
@@ -1913,7 +1898,6 @@
               {/if}
               <AdminKeyTrace
                 gameId={gameSearchResult.gameId}
-                available={detailMap[gameSearchResult.gameId].adminKeyTraceAvailable === true}
                 players={detailMap[gameSearchResult.gameId].replayView?.players || []}
               />
             </div>

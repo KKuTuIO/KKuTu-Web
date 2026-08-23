@@ -98,6 +98,33 @@ class RecordAPI(
         return result
     }
 
+    /**
+     * Administrator-only input trace.  This has its own URI so it can never
+     * overlap the long-lived public replay-payload cache rule.
+     */
+    @RateLimiter(name = "recordFindByGameId", fallbackMethod = "onAdminKeyTraceRateLimited")
+    @GetMapping("/admin/game/{gameId}/key-trace")
+    fun findAdminKeyTrace(
+        @PathVariable gameId: String,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        session: HttpSession
+    ): RecordGameLookupResponse {
+        response.setHeader("Cache-Control", "private, no-store")
+        response.setHeader("CDN-Cache-Control", "no-store")
+        if (!recordCheckRateLimiter.allowReplayPayloadDownload(request, session)) {
+            return RecordGameLookupResponse(ok = false, code = 429, error = "payload-rate-limited")
+        }
+        val (requesterId, requesterAccountUuid, isAdmin) = resolveRequester(session)
+        if (!isAdmin) return RecordGameLookupResponse(ok = false, code = 403, error = "admin-required")
+
+        // Older game servers return key traces only when includePayload is set.
+        // Strip that payload before the response leaves the web tier.
+        val result = recordService.findByGameId(gameId, true, true, requesterId, requesterAccountUuid, true)
+        val game = result.game ?: return result
+        return result.copy(game = game.copy(detailPayload = null, payload = null, payloadDecoded = null))
+    }
+
     @RateLimiter(name = "recordFindUserHistory", fallbackMethod = "onUserHistoryRateLimited")
     @GetMapping("/user/{userId}")
     fun findUserHistory(
@@ -157,6 +184,19 @@ class RecordAPI(
         response.setHeader("Cache-Control", "private, no-store")
         response.setHeader("CDN-Cache-Control", "no-store")
         return RecordGameLookupResponse(ok = false, code = 429, error = "payload-rate-limited")
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    fun onAdminKeyTraceRateLimited(
+        gameId: String,
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        session: HttpSession,
+        throwable: RequestNotPermitted
+    ): RecordGameLookupResponse {
+        response.setHeader("Cache-Control", "private, no-store")
+        response.setHeader("CDN-Cache-Control", "no-store")
+        return RecordGameLookupResponse(ok = false, code = 429, error = "rate-limited")
     }
 
     @Suppress("UNUSED_PARAMETER")

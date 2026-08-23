@@ -1,6 +1,5 @@
 <script>
   export let gameId = '';
-  export let available = false;
   export let players = [];
 
   let isOpen = false;
@@ -133,7 +132,7 @@
     loading = true;
     loadError = '';
     try {
-      const response = await fetch(`/api/replay/game/${encodeURIComponent(gameId)}?includeAdminKeyTrace=true`);
+      const response = await fetch(`/api/replay/admin/game/${encodeURIComponent(gameId)}/key-trace`);
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body?.ok || !body?.game?.keyTraceDecoded) {
         throw new Error('입력 내역을 불러오지 못했습니다.');
@@ -148,8 +147,7 @@
   }
 </script>
 
-{#if available}
-  <section class="mt-5 rounded-xl border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-700 dark:bg-amber-950/20">
+<section class="mt-5 rounded-xl border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-700 dark:bg-amber-950/20">
     <button class="flex w-full flex-wrap items-center justify-between gap-2 text-left" on:click={toggleOpen} aria-expanded={isOpen}>
       <div>
         <div class="font-semibold">Key 입력 내역</div>
@@ -267,4 +265,3 @@
     </div>
     {/if}
   </section>
-{/if}

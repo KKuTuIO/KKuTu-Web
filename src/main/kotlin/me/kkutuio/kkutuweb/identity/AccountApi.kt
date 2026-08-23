@@ -323,7 +323,7 @@ class AccountApi(
     private fun isAccountRestricted(account: Account): Boolean =
         account.status != AccountStatus.ACTIVE || blockService.hasAccountRestriction(moderationRetention.effectiveSubject(account).toString())
     private fun profileLimit(session: HttpSession): Int =
-        if (adminAuthorizer.hasPrivilege(session, AdminSetting.Privilege.ADMIN_PROFILE)) 3 else 1
+        if (adminAuthorizer.hasPrivilege(session, AdminSetting.Privilege.ADMIN_PROFILE)) 5 else 3
     private fun parseProfileId(value: String): java.util.UUID = runCatching { java.util.UUID.fromString(value) }.getOrElse { throw IdpException("invalid_request", "잘못된 프로필입니다.") }
     private fun requirePasswordEnabled() {
         if (!settings.passwordEnabled) throw IdpException("password_disabled", "비밀번호 로그인은 비활성화되어 있습니다.", 404)

@@ -34,7 +34,7 @@ spring:
     host: <SMTP Host>
     port: 587
     username: <SMTP Username>
-    password: <SMTP Password>
+    password: <Password>
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
@@ -51,8 +51,6 @@ spring:
     host: <Host>
     port: <Port>
   cors:
-    pattern: /api/admin/**
-    methods: GET,POST,PUT,PATCH,DELETE
     allowed-origins: <Origin>
   security:
     user:

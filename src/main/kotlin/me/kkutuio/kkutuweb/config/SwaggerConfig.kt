@@ -20,8 +20,10 @@ package me.kkutuio.kkutuweb.config
 
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.config.BeanPostProcessor
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.web.servlet.mvc.method.RequestMappingInfoHandlerMapping
 import springfox.documentation.builders.ApiInfoBuilder
 import springfox.documentation.builders.PathSelectors
 import springfox.documentation.builders.RequestHandlerSelectors
@@ -32,6 +34,7 @@ import springfox.documentation.service.SecurityReference
 import springfox.documentation.spi.DocumentationType
 import springfox.documentation.spi.service.contexts.SecurityContext
 import springfox.documentation.spring.web.plugins.Docket
+import springfox.documentation.spring.web.plugins.WebMvcRequestHandlerProvider
 import springfox.documentation.swagger2.annotations.EnableSwagger2
 
 @Configuration
@@ -39,6 +42,22 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2
 class SwaggerConfig(
     @Autowired private val setting: KKuTuSetting
 ) {
+    @Bean
+    fun springfoxHandlerProviderBeanPostProcessor(): BeanPostProcessor {
+        return object : BeanPostProcessor {
+            override fun postProcessAfterInitialization(bean: Any, beanName: String): Any {
+                if (bean is WebMvcRequestHandlerProvider) {
+                    val field = bean.javaClass.getDeclaredField("handlerMappings")
+                    field.isAccessible = true
+                    @Suppress("UNCHECKED_CAST")
+                    val mappings = field.get(bean) as List<RequestMappingInfoHandlerMapping>
+                    field.set(bean, mappings.filter { it.patternParser == null })
+                }
+                return bean
+            }
+        }
+    }
+
     @Bean
     fun api(): Docket {
         return Docket(DocumentationType.SWAGGER_2)

@@ -15,6 +15,7 @@
     const toastTimers = new Map();
     let email = '';
     let nickname = '';
+    let exordial = '';
     let nicknamePolicy = null;
     let fixedNickname = false;
     let password = '';
@@ -85,6 +86,7 @@
             const linkedProviders = linkedProviderIdsFor(identities);
             reauthProviderIds = oauthProviders.filter(provider => linkedProviders.has(provider.id)).map(provider => provider.id);
             nickname = (nicknamePolicy.nickname || summary.nickname || '').split('#')[0];
+            exordial = summary.exordial || '';
             fixedNickname = Boolean(nicknamePolicy.fixed);
             selectedProfile = summary.selected_profile_id || summary.profiles?.[0]?.id || '';
             totpName = mfa?.totp_name || '';
@@ -161,7 +163,7 @@
             const error = await response.json().catch(() => ({}));
             reauthRequired = error.error === 'reauthentication_required';
             if (reauthRequired) reauthDialogOpen = true;
-            notify(reauthRequired ? '보호된 변경을 계속하려면 본인인증이 필요합니다.' : (error.error_description || '요청을 완료하지 못했습니다.'), 'error');
+            notify(reauthRequired ? '보호된 변경을 계속하려면 본인확인이 필요합니다.' : (error.error_description || '요청을 완료하지 못했습니다.'), 'error');
             return null;
         }
         notify('저장했습니다.');
@@ -186,6 +188,7 @@
         if (action === 'one-time-login-codes') await rotateOneTimeLoginCodes();
         if (action === 'security-code') await revealSecurityCode();
         if (action === 'security-code-reissue') await reissueSecurityCode(true);
+        if (action === 'passkey-register') await registerPasskey(true);
         if (action.startsWith('identity-revoke:')) {
             const identity = identities.find(item => item.id === Number(action.slice('identity-revoke:'.length)));
             if (identity) await revoke(identity, true);
@@ -331,6 +334,17 @@
         })) load();
     }
 
+    async function saveExordial() {
+        const response = await call('/api/account/exordial', {
+            method: 'PATCH',
+            body: JSON.stringify({exordial})
+        });
+        if (!response) return;
+        const data = await response.json();
+        exordial = data.exordial || '';
+        summary = {...summary, exordial};
+    }
+
     function changeFixedNickname(event) {
         if (!event.currentTarget.checked) {
             fixedNickname = false;
@@ -434,22 +448,34 @@
     const b64 = value => btoa(String.fromCharCode(...new Uint8Array(value))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     const unb64 = value => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
 
-    async function registerPasskey() {
+    async function registerPasskey(afterReauthentication = false) {
         if (!window.PublicKeyCredential) {
             notify('이 브라우저는 패스키를 지원하지 않습니다.', 'error');
             return;
         }
         try {
-            const options = await (await fetch('/api/account/passkeys/registration/options', {
+            const optionsResponse = await fetch('/api/account/passkeys/registration/options', {
                 method: 'POST',
                 headers: csrfHeaders()
-            })).json();
+            });
+            if (!optionsResponse.ok) {
+                const error = await optionsResponse.json().catch(() => ({}));
+                if (error.error === 'reauthentication_required' && !afterReauthentication) {
+                    requestReauthentication();
+                    rememberProtectedAction('passkey-register');
+                    return;
+                }
+                notify(error.error_description || 'Passkey 등록을 시작하지 못했습니다.', 'error');
+                return;
+            }
+            const options = await optionsResponse.json();
             const p = options.publicKey;
             p.challenge = unb64(p.challenge);
             p.user.id = unb64(p.user.id);
             const c = await navigator.credentials.create({publicKey: p});
-            const r = await call('/api/account/passkeys/registration/complete', {
+            const completionResponse = await fetch('/api/account/passkeys/registration/complete', {
                 method: 'POST',
+                headers: {'Content-Type': 'application/json', ...csrfHeaders()},
                 body: JSON.stringify({
                     operationToken: options.operation_token,
                     deviceName: 'Passkey',
@@ -463,7 +489,19 @@
                     }
                 })
             });
-            if (r) load();
+            if (!completionResponse.ok) {
+                const error = await completionResponse.json().catch(() => ({}));
+                if (error.error === 'reauthentication_required' && !afterReauthentication) {
+                    requestReauthentication();
+                    rememberProtectedAction('passkey-register');
+                    return;
+                }
+                notify(error.error_description || 'Passkey 등록에 실패했습니다.', 'error');
+                return;
+            }
+            clearProtectedAction();
+            notify('Passkey를 등록했습니다.');
+            await load();
         } catch (_) {
             notify('Passkey 등록에 실패했습니다.', 'error');
         }
@@ -651,7 +689,7 @@
         if (response.status === 401) {
             requestReauthentication();
             rememberProtectedAction(`identity-link:${provider}`);
-            notify('연동을 계속하려면 본인인증이 필요합니다.', 'error');
+            notify('연동을 계속하려면 본인확인이 필요합니다.', 'error');
             return;
         }
         if (response.type !== 'opaqueredirect' && !response.ok) {
@@ -738,6 +776,21 @@
                                 없습니다.</p>{:else if nicknamePolicy && !nicknamePolicy.can_change}<p
                                     class="mt-3 text-sm text-red-600">{new Date(nicknamePolicy.next_change_at).toLocaleString()}
                                 이후 별명을 변경할 수 있습니다.</p>{/if}
+                        </div>
+                    </details>
+                    <details class="group border-b border-gray-200 dark:border-gray-700">
+                        <summary class="flex cursor-pointer list-none items-center justify-between p-5 font-bold"><span>소개 한마디</span><span
+                                class="material-symbols-outlined text-gray-500 transition group-open:rotate-180">expand_more</span>
+                        </summary>
+                        <div class="px-5 pb-5">
+                            <textarea class="min-h-24 w-full resize-y rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900"
+                                      maxlength="100" bind:value={exordial} placeholder="소개 한마디를 입력해 주세요."/>
+                            <div class="mt-2 flex items-center justify-between gap-3"><p class="text-xs text-gray-500 dark:text-gray-300">{exordial.length}/욕설이나 비속어는 사용할 수 없습니다.</p>
+                                <button class="rounded-xl bg-[#55aa55] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
+                                        disabled={nicknamePolicy?.change_restricted} on:click={saveExordial}>변경
+                                </button>
+                            </div>
+                            {#if nicknamePolicy?.change_restricted}<p class="mt-3 text-sm text-red-600">운영정책 위반으로 소개 한마디 변경을 이용할 수 없습니다.</p>{/if}
                         </div>
                     </details>
                     <div class="flex items-center justify-between gap-5 p-5"><span class="font-bold">식별번호</span>
@@ -1016,12 +1069,12 @@
     </div>
 </main>
 
-<AccountModal open={reauthDialogOpen} title="본인 확인" showFooter={false} priority on:close={closeReauthentication}>
+<AccountModal open={reauthDialogOpen} title="본인확인" showFooter={false} priority on:close={closeReauthentication}>
     <div class="text-center">
         <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f5e9] text-[#438c43]"><span
                 class="material-symbols-outlined text-3xl">shield_lock</span></div>
         <p class="mt-4 font-bold">보안을 위해 다시 로그인해 주세요.</p>
-        <p class="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-300">고객님의 정보 보호를 위해 기존 로그인 수단으로 본인 확인을 진행합니다.</p>
+        <p class="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-300">고객님의 정보 보호를 위해 본인확인을 진행합니다.</p>
     </div>
     {#if passwordEnabled}
         <div class="mt-5 border-t border-gray-100 pt-5 dark:border-gray-700">

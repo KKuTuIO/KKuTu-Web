@@ -1,9 +1,11 @@
 <script>
     import {onMount} from 'svelte';
     import AccountModal from '$lib/AccountModal.svelte';
+    import LoginMethodSelector from '$lib/LoginMethodSelector.svelte';
     import ToastStack from '$lib/ToastStack.svelte';
 
     const defaultIcon = 'https://cdn.kkutu.io/img/bi/bi_profile_main.png';
+    const pendingRevokeStorageKey = 'kkutu-connected-app-revoke';
     const scopeLabels = {
         openid: '계정 식별',
         profile: '프로필 정보',
@@ -18,6 +20,13 @@
     let search = '';
     let loading = true;
     let confirmRevoke = null;
+    let reauthDialogOpen = false;
+    let reauthPassword = '';
+    let reauthTotpCode = '';
+    let reauthMfaRequired = false;
+    let reauthProviderIds = [];
+    let passwordEnabled = true;
+    let pendingRevoke = null;
     let toasts = [];
     let toastId = 0;
     const toastTimers = new Map();
@@ -44,13 +53,23 @@
         loading = true;
         try {
             await fetch('/api/account/csrf');
-            const response = await fetch('/api/account/connected-applications');
-            if (response.status === 401) {
+            const [summaryResponse, identityResponse, applicationsResponse] = await Promise.all([
+                fetch('/api/account/summary'),
+                fetch('/api/account/identities'),
+                fetch('/api/account/connected-applications')
+            ]);
+            if (summaryResponse.status === 401) {
                 location.href = '/login';
                 return;
             }
-            if (!response.ok) throw new Error();
-            applications = await response.json();
+            if (![summaryResponse, identityResponse, applicationsResponse].every(response => response.ok)) throw new Error();
+            const summary = await summaryResponse.json();
+            const identities = await identityResponse.json();
+            passwordEnabled = summary.password_enabled !== false;
+            reauthProviderIds = identities
+                .filter(identity => identity.type === 'OAUTH' && identity.provider_id)
+                .map(identity => identity.provider_id);
+            applications = await applicationsResponse.json();
         } catch (_) {
             notify('연결된 앱을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
         } finally {
@@ -76,12 +95,56 @@
         return term ? applications.filter(application => application.client_name.toLocaleLowerCase().includes(term)) : applications;
     }
 
-    async function revoke(application) {
+    function requestReauthentication(application) {
+        pendingRevoke = application;
+        sessionStorage.setItem(pendingRevokeStorageKey, application.client_id);
+        reauthDialogOpen = true;
+    }
+
+    function closeReauthentication() {
+        reauthDialogOpen = false;
+        reauthPassword = '';
+        reauthTotpCode = '';
+        reauthMfaRequired = false;
+        pendingRevoke = null;
+        sessionStorage.removeItem(pendingRevokeStorageKey);
+    }
+
+    function providerUrl(provider) {
+        return `/api/account/reauthenticate/oauth/${encodeURIComponent(provider)}?return=${encodeURIComponent('/account/apps')}`;
+    }
+
+    async function reauthenticate() {
+        try {
+            const response = await fetch('/api/account/reauthenticate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', ...csrfHeaders()},
+                body: JSON.stringify({password: reauthPassword, totpCode: reauthTotpCode || null})
+            });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                reauthMfaRequired = error.error === 'mfa_required';
+                notify(error.error_description || '본인 확인에 실패했습니다.', 'error');
+                return;
+            }
+            const application = pendingRevoke;
+            closeReauthentication();
+            if (application) await revoke(application, true);
+        } catch (_) {
+            notify('본인 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+        }
+    }
+
+    async function revoke(application, afterReauthentication = false) {
         const response = await fetch(`/api/account/connected-applications/${encodeURIComponent(application.client_id)}`, {
             method: 'DELETE', headers: csrfHeaders()
         });
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
+            if (error.error === 'reauthentication_required' && !afterReauthentication) {
+                requestReauthentication(application);
+                return;
+            }
             notify(error.error_description || '연결을 해제하지 못했습니다.', 'error');
             return;
         }
@@ -91,7 +154,18 @@
         notify(`${application.client_name} 연결을 해제했습니다.`);
     }
 
-    onMount(load);
+    async function resumePendingRevoke() {
+        const clientId = sessionStorage.getItem(pendingRevokeStorageKey);
+        if (!clientId) return;
+        sessionStorage.removeItem(pendingRevokeStorageKey);
+        const application = applications.find(item => item.client_id === clientId);
+        if (application) await revoke(application, true);
+    }
+
+    onMount(async () => {
+        await load();
+        await resumePendingRevoke();
+    });
 </script>
 
 <svelte:head><title>끄투리오 - 연결된 앱</title></svelte:head>
@@ -191,5 +265,32 @@
                 on:click={() => revoke(confirmRevoke)}>연결 해제
         </button>
     </div>
+</AccountModal>
+
+<AccountModal open={reauthDialogOpen} title="본인확인" showFooter={false} priority on:close={closeReauthentication}>
+    <div class="text-center">
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#e8f5e9] text-[#438c43]"><span
+                class="material-symbols-outlined text-3xl">shield_lock</span></div>
+        <p class="mt-4 font-bold">보안을 위해 다시 로그인해 주세요.</p>
+        <p class="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-300">고객님의 정보 보호를 위해 본인확인을 진행합니다.</p>
+    </div>
+    {#if passwordEnabled}
+        <div class="mt-5 border-t border-gray-100 pt-5 dark:border-gray-700">
+            <label class="text-sm font-bold" for="apps-reauth-password">비밀번호로 확인</label>
+            <input id="apps-reauth-password"
+                   class="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-slate-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                   type="password" bind:value={reauthPassword} autocomplete="current-password" placeholder="비밀번호"/>
+            <input class="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-center tracking-[0.25em] text-slate-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                   autocomplete="one-time-code" bind:value={reauthTotpCode} placeholder="TOTP 인증 코드 또는 보안코드"/>
+            <button class="mt-3 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
+                    on:click={reauthenticate}>확인
+            </button>
+            {#if reauthMfaRequired}<p class="mt-3 text-center text-sm text-red-600 dark:text-red-400">TOTP 인증 코드 또는 보안코드를 입력해 주세요.</p>{/if}
+        </div>
+    {/if}
+    {#if passwordEnabled && reauthProviderIds.length > 0}<p
+            class="my-5 flex items-center gap-3 text-xs text-gray-400 before:h-px before:flex-1 before:bg-gray-200 after:h-px after:flex-1 after:bg-gray-200 dark:before:bg-gray-700 dark:after:bg-gray-700">
+        또는</p>{/if}
+    <LoginMethodSelector providerIds={reauthProviderIds} showPasskey={false} {providerUrl}/>
 </AccountModal>
 <ToastStack {toasts} dismiss={dismissToast}/>

@@ -26,10 +26,11 @@ const TURN_ERROR_LABEL = {
 };
 
 const BEAT = [null, '10000000', '10001000', '10010010', '10011010', '11011010', '11011110', '11011111', '11111111'];
-const SUPPORTED_MODE_CODES = new Set(['EKT', 'ESH', 'EAP', 'KKT', 'KFT', 'KSH', 'KAP', 'HUN', 'KDA', 'EDA']);
+const SUPPORTED_MODE_CODES = new Set(['EKT', 'ESH', 'EAP', 'KKT', 'KFT', 'KSH', 'KAP', 'HUN', 'KDA', 'EDA', 'KWS', 'EWS']);
 const SUPPORTED_RULES = new Set(['Classic', 'Daneo', 'Hunmin']);
 const REVERSE_MODE_CODES = new Set(['KAP', 'EAP']);
 const KKT_MODE_CODES = new Set(['KKT', 'KFT']);
+const WORDSTACK_MODE_CODES = new Set(['KWS', 'EWS']);
 const AUDIO_DURATION_MS = {
   game_start: 2532,
   round_start: 2472,
@@ -48,7 +49,7 @@ export function getReplaySupport(detail) {
   const modeCode = String(payload.rm?.[2] || detail?.modeName || '');
   const rule = String(payload.rm?.[3] || detail?.rule || '');
   const supported = SUPPORTED_RULES.has(rule) || SUPPORTED_MODE_CODES.has(modeCode);
-  return { supported, boardType: supported ? 'chain' : 'unavailable' };
+  return { supported, boardType: WORDSTACK_MODE_CODES.has(modeCode) ? 'wordstack' : (supported ? 'chain' : 'unavailable') };
 }
 
 function numberOr(value, fallback = 0) {
@@ -118,7 +119,7 @@ function inputEvent(row, words, extras, players) {
   };
 }
 
-function modeEvent(row, extras, players) {
+function modeEvent(row, extras, players, isApmal = false) {
   if (!Array.isArray(row)) return null;
   const type = String(row[0] || '');
   const playerIndex = numberOr(row[1]);
@@ -128,7 +129,58 @@ function modeEvent(row, extras, players) {
   let scoreDelta = 0;
   let rejected = false;
 
-  if (type === 'CTO' || type === 'CAS') {
+  if (type === 'WSA') {
+    const word = tokens[1] || '(알 수 없음)';
+    const targetId = tokens[2] || '';
+    const targetIndex = players.findIndex((player) => player.id === targetId);
+    const letters = Array.from(word);
+    label = word;
+    description = '워드스택 공격';
+    return {
+      time: Math.max(0, numberOr(row[3])),
+      elapsedTurnMs: 0,
+      round: Math.max(1, numberOr(row[2], 1)),
+      turn: -1,
+      playerIndex,
+      targetIndex,
+      playerName: playerName(players, playerIndex),
+      label,
+      description,
+      consumedChar: isApmal ? (letters.at(-1) || '') : (letters[0] || ''),
+      transferredChar: isApmal ? (letters[0] || '') : (letters.at(-1) || ''),
+      scoreDelta: 0,
+      baseScore: 0,
+      bonusScore: 0,
+      accepted: true,
+      rejected: false,
+      rejectReason: '',
+      errorCode: 0,
+      showsFailure: false,
+      kind: 'WSA'
+    };
+  } else if (type === 'WSS') {
+    return {
+      time: Math.max(0, numberOr(row[3])),
+      elapsedTurnMs: 0,
+      round: Math.max(1, numberOr(row[2], 1)),
+      turn: -1,
+      playerIndex,
+      playerName: playerName(players, playerIndex),
+      label: `제작 ${numberOr(tokens[1])}단어 · ${numberOr(tokens[2])}글자`,
+      description: '워드스택 라운드 요약',
+      craftedWords: numberOr(tokens[1]),
+      craftedLetters: numberOr(tokens[2]),
+      scoreDelta: 0,
+      baseScore: 0,
+      bonusScore: 0,
+      accepted: true,
+      rejected: false,
+      rejectReason: '',
+      errorCode: 0,
+      showsFailure: false,
+      kind: 'WSS'
+    };
+  } else if (type === 'CTO' || type === 'CAS') {
     scoreDelta = numberOr(tokens[1]);
     rejected = type === 'CTO' && scoreDelta <= 0;
     label = scoreDelta > 0 ? '공격 성공' : '입력 실패';
@@ -471,6 +523,7 @@ export function createReplayModel(detail) {
   const support = getReplaySupport(detail);
   const words = Array.isArray(payload.w) ? payload.w : [];
   const extras = Array.isArray(payload.x) ? payload.x : [];
+  const isApmal = Array.isArray(payload.rm?.[9]) && payload.rm[9].includes('apm');
   const events = [];
 
   for (const row of Array.isArray(payload.i) ? payload.i : []) {
@@ -478,7 +531,7 @@ export function createReplayModel(detail) {
     if (event) events.push(event);
   }
   for (const row of Array.isArray(payload.mv) ? payload.mv : []) {
-    const event = modeEvent(row, extras, players);
+    const event = modeEvent(row, extras, players, isApmal);
     if (event) events.push(event);
   }
   events.sort((a, b) => a.time - b.time || a.playerIndex - b.playerIndex);
@@ -503,6 +556,7 @@ export function createReplayModel(detail) {
     rule: detail?.rule || payload.rm?.[3] || '',
     lang: detail?.lang || payload.rm?.[4] || '',
     modeCode: String(payload.rm?.[2] || detail?.modeName || ''),
+    isApmal,
     boardType: support.boardType,
     totalRounds,
     roomTimeMs,
@@ -549,6 +603,39 @@ export function getReplayState(model, requestedTimeMs) {
   }
   if (timeMs >= model.gameDurationMs) {
     for (const player of model.players) scores[player.index] = player.finalScore;
+  }
+
+  if (model.boardType === 'wordstack') {
+    const attacks = model.events
+      .filter((event) => event.kind === 'WSA' && event.time <= timeMs)
+      .slice(-6)
+      .reverse();
+    const latestAttack = attacks[0] || null;
+    const latestEvent = [...model.events].reverse().find((event) => event.time <= timeMs) || null;
+    const currentRound = latestEvent?.round || model.events[0]?.round || 1;
+    const roundSummaries = model.events.filter((event) => event.kind === 'WSS'
+      && event.round === currentRound && event.time <= timeMs);
+
+    return {
+      timeMs,
+      scores,
+      activeEvent: latestAttack,
+      activeTurn: null,
+      visibleEvents: attacks,
+      scorePopups: [],
+      currentRound,
+      acceptedCount: attacks.filter((event) => event.round === currentRound).length,
+      displayMode: latestAttack ? 'attack' : 'starting',
+      displayText: latestAttack?.label || '공격 기록을 기다리는 중입니다.',
+      displayLetters: [],
+      turnRemainingMs: 0,
+      roundRemainingMs: 0,
+      turnRatio: 0,
+      roundRatio: 0,
+      wordstackAttacks: attacks,
+      wordstackLatestAttack: latestAttack,
+      wordstackSummaries: roundSummaries
+    };
   }
 
   const activeTurn = model.turns.find((turn) => timeMs >= turn.startTime && timeMs < turn.endTime) || null;

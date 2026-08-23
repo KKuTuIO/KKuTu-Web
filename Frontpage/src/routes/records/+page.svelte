@@ -487,6 +487,7 @@
       const turn = Number(row[5] || 0);
       const extraRaw = extraIndex >= 0 ? String(extras[extraIndex] || '') : '';
       const extraTokens = extraRaw ? extraRaw.split(',') : [];
+
       const extraTag = extraTokens[0] || '';
       let displayWord = words[wordIndex] || '(알 수 없음)';
       if (extraTag === 'D') {

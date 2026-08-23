@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
+  import { flip } from 'svelte/animate';
   import { fade, scale } from 'svelte/transition';
   import { createReplayModel, formatReplayTime, getReplayState } from './replayModel.js';
 
@@ -290,6 +291,11 @@
   function playerCardClass(player) {
     const classes = ['game-user'];
     if (state?.activeTurn?.playerIndex === player.index) classes.push('game-user-current');
+    const wordstackAttack = state?.wordstackLatestAttack;
+    if (model?.boardType === 'wordstack' && wordstackAttack && currentMs - wordstackAttack.time < 1400) {
+      if (wordstackAttack.playerIndex === player.index) classes.push('game-user-current');
+      if (wordstackAttack.targetIndex === player.index) classes.push('game-user-wordstack-target');
+    }
     const timeout = [...(model?.events || [])].reverse().find((event) => event.kind === 'CTO' && event.time <= currentMs);
     if (timeout?.playerIndex === player.index && currentMs < timeout.time + 3000) classes.push('game-user-bomb');
     return classes.join(' ');
@@ -307,6 +313,12 @@
     if (score < 0) return `-${String(Math.abs(score)).padStart(4, '0')}`;
     if (score > 99999) return `${String(Math.round(score * 0.001)).padStart(4, '0')}k`;
     return String(score).padStart(5, '0');
+  }
+
+  function wordstackPosition(index) {
+    const positions = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+    if (index < 0) return '?';
+    return positions[index] || String(index + 1);
   }
 
   onMount(async () => {
@@ -380,7 +392,45 @@
                 <img src="https://cdn.kkutu.io/img/kkutu/gamebg.png" referrerpolicy="no-referrer" alt="" />
               {/each}
             </div>
-            <div class="mission-hand" aria-hidden="true">
+            {#if model.boardType === 'wordstack'}
+              <div class="wordstack-replay-header">
+                <div class="wordstack-position-row" aria-label="참가자 위치">
+                  {#each model.players as player}
+                    <span class:wordstack-position-current={state.wordstackLatestAttack?.playerIndex === player.index}>{wordstackPosition(player.index)}</span>
+                  {/each}
+                </div>
+                <div class="wordstack-display">
+                  {#if state.wordstackLatestAttack}
+                    {@const attack = state.wordstackLatestAttack}
+                    <span class="wordstack-position-label">{wordstackPosition(attack.playerIndex)}</span>
+                    <strong>
+                      {#if model.isApmal}
+                        {attack.label.slice(0, -attack.consumedChar.length)}<mark>{attack.consumedChar}</mark>
+                      {:else}
+                        <mark>{attack.consumedChar}</mark>{attack.label.slice(attack.consumedChar.length)}
+                      {/if}
+                    </strong>
+                    <span class="wordstack-transfer">{attack.transferredChar} 전달 → {wordstackPosition(attack.targetIndex)}</span>
+                  {:else}
+                    <span>공격 기록을 기다리는 중입니다.</span>
+                  {/if}
+                </div>
+                <p>시작 글자와 보유 조각은 관전과 동일하게 공개하지 않습니다.</p>
+              </div>
+              <div class="wordstack-history-holder" aria-live="polite">
+                {#each state.wordstackAttacks || [] as attack (attack.id)}
+                  <div
+                    class="wordstack-history-item"
+                    animate:flip={{ duration: 340, easing: (t) => 1 - Math.pow(1 - t, 3) }}
+                    title={`${wordstackPosition(attack.playerIndex)} → ${wordstackPosition(attack.targetIndex)}`}
+                  >
+                    <b>{wordstackPosition(attack.playerIndex)}→{wordstackPosition(attack.targetIndex)}</b>
+                    <span>{attack.label}</span>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="mission-hand" aria-hidden="true">
               <img src="https://cdn.kkutu.io/img/kkutu/lefthand.png" referrerpolicy="no-referrer" alt="" />
             </div>
 
@@ -432,6 +482,7 @@
                 {/each}
               </div>
             </div>
+            {/if}
 
             <div class="game-body">
               {#each model.players as player}
@@ -661,6 +712,89 @@
   }
   .game-background img { display: block; width: 200px; height: 200px; }
 
+  .wordstack-replay-header {
+    position: absolute;
+    top: 12px;
+    left: 250px;
+    width: 500px;
+    min-height: 120px;
+    padding: 12px;
+    border: 4px solid #1b1b1b;
+    border-radius: 14px;
+    color: #f8fafc;
+    background: #d9aa4d;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+  }
+  .wordstack-position-row { display: flex; justify-content: center; gap: 11px; min-height: 25px; }
+  .wordstack-position-row span, .wordstack-position-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid #eef6ed;
+    border-radius: 50%;
+    color: #fff;
+    background: #24532d;
+    font-size: 15px;
+    font-weight: 900;
+    text-shadow: 0 1px 1px #10240f;
+  }
+  .wordstack-position-row .wordstack-position-current { color: #172c15; border-color: #f7f5af; background: #f8ee34; }
+  .wordstack-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 49px;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-top: 7px;
+    overflow: hidden;
+    border-radius: 7px;
+    color: #f8fafc;
+    background: rgba(30, 22, 11, 0.88);
+    font-size: 24px;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .wordstack-display strong { overflow: hidden; text-overflow: ellipsis; }
+  .wordstack-display mark { padding: 1px 3px; border-radius: 3px; color: #fff4d6; background: #b94a2c; box-shadow: 0 0 9px rgba(255, 104, 54, 0.85); }
+  .wordstack-transfer { flex: none; color: #f5dc82; font-size: 12px; font-weight: bold; }
+  .wordstack-replay-header p { margin: 5px 0 0; color: #3f2c12; font-size: 10px; font-weight: bold; text-align: center; }
+  .wordstack-history-holder {
+    position: absolute;
+    top: 148px;
+    left: 26px;
+    display: flex;
+    gap: 6px;
+    width: 948px;
+    height: 34px;
+    overflow: hidden;
+  }
+  .wordstack-history-item {
+    display: flex;
+    align-items: center;
+    flex: 0 0 128px;
+    min-width: 0;
+    height: 30px;
+    gap: 4px;
+    padding: 0 8px;
+    overflow: hidden;
+    border: 2px solid rgba(0, 0, 0, 0.7);
+    border-radius: 13px;
+    color: #fff;
+    background: rgba(27, 29, 31, 0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    font-size: 12px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    animation: wordstack-history-in 420ms cubic-bezier(.2, .8, .25, 1) both;
+  }
+  .wordstack-history-item b { flex: none; color: #f7ef75; font-size: 11px; letter-spacing: -1px; }
+  .wordstack-history-item span { overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+
   .mission-hand, .chain-hand {
     position: absolute;
     top: 50px;
@@ -798,6 +932,7 @@
   }
   .game-user-current { height: 177px; margin-top: 0; background: #dfd; animation: current-blink 2s linear infinite; }
   .game-user-bomb { border-color: #f66; }
+  .game-user-wordstack-target { border-color: #56b5f0; background: #e3f5ff; animation: wordstack-target-blink 0.7s ease-in-out infinite; }
   .game-user-image { position: relative; width: 100px; height: 100px; margin: 3px 5px; }
   .moremi-layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
   .right-hand { transform: scaleX(-1); }
@@ -883,6 +1018,11 @@
   .unavailable .material-symbols-outlined { color: #fb7185; font-size: 42px; }
 
   @keyframes current-blink { 0%, 100% { border-color: #3eff3e; } 50% { border-color: #009000; } }
+  @keyframes wordstack-target-blink { 0%, 100% { box-shadow: 0 0 0 1px #56b5f0; } 50% { box-shadow: 0 0 14px 4px #56b5f0; } }
+  @keyframes wordstack-history-in {
+    from { flex-basis: 0; padding-inline: 0; opacity: 0; }
+    to { flex-basis: 128px; padding-inline: 8px; opacity: 1; }
+  }
   @keyframes fail-blink { 0%, 50% { text-decoration: line-through; } 25%, 75%, 100% { text-decoration: inherit; } }
   @keyframes word-hit { from { margin-top: -6px; font-size: 36px; } to { margin-top: 0; font-size: 20px; } }
   @keyframes score-going {

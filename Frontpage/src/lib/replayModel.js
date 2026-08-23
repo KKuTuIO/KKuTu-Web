@@ -31,6 +31,7 @@ const SUPPORTED_RULES = new Set(['Classic', 'Daneo', 'Hunmin']);
 const REVERSE_MODE_CODES = new Set(['KAP', 'EAP']);
 const KKT_MODE_CODES = new Set(['KKT', 'KFT']);
 const WORDSTACK_MODE_CODES = new Set(['KWS', 'EWS']);
+const CIRCLED_PLAYER_POSITIONS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
 const AUDIO_DURATION_MS = {
   game_start: 2532,
   round_start: 2472,
@@ -60,6 +61,11 @@ function numberOr(value, fallback = 0) {
 
 function playerName(players, index) {
   return players[index]?.nickname || `Player#${index}`;
+}
+
+function circledPlayerPosition(index) {
+  const value = numberOr(index, -1);
+  return value < 0 ? '?' : (CIRCLED_PLAYER_POSITIONS[value] || String(value + 1));
 }
 
 function eventExtra(extras, index) {
@@ -619,7 +625,7 @@ export function getReplayState(model, requestedTimeMs) {
       scorePopups.push({ id: `${event.id}-bonus`, playerIndex: event.playerIndex, value: event.bonusScore, bonus: true });
     }
   }
-  visibleEvents.splice(9);
+  visibleEvents.splice(10);
 
   for (let playerIndex = 0; playerIndex < scores.length; playerIndex++) {
     const recent = [...model.events].reverse().find((event) => event.playerIndex === playerIndex
@@ -637,7 +643,7 @@ export function getReplayState(model, requestedTimeMs) {
       .filter((event) => event.kind === 'WSA' && event.time <= timeMs);
     const attacks = activeAttacks
       .filter((event) => timeMs >= (event.historyAt ?? event.time))
-      .slice(-9)
+      .slice(-10)
       .reverse();
     const latestAttack = activeAttacks.at(-1) || null;
     const activeFlight = latestAttack && timeMs < latestAttack.time + 720 ? latestAttack : null;
@@ -666,7 +672,9 @@ export function getReplayState(model, requestedTimeMs) {
       currentRound,
       acceptedCount: attacks.filter((event) => event.round === currentRound).length,
       displayMode: latestAttack ? 'attack' : 'starting',
-      displayText: latestAttack?.label || '저장된 워드스택 공격 기록이 없습니다.',
+      displayText: latestAttack
+        ? `${circledPlayerPosition(latestAttack.playerIndex)}→${circledPlayerPosition(latestAttack.targetIndex)} ${latestAttack.label}`
+        : '잠시 후 게임이 시작됩니다!',
       displayLetters: [],
       turnRemainingMs: 0,
       roundRemainingMs,

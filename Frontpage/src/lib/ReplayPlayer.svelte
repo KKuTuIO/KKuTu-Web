@@ -403,14 +403,12 @@
   function expandHistoryItem(node) {
     const targetWidth = 102;
     node.style.width = '0px';
-    node.style.flexBasis = '0px';
     node.style.transition = 'none';
     let timer;
     requestAnimationFrame(() => {
       node.getBoundingClientRect();
-      node.style.transition = 'width 500ms ease-out, flex-basis 500ms ease-out';
+      node.style.transition = 'width 500ms ease-out';
       node.style.width = `${targetWidth}px`;
-      node.style.flexBasis = `${targetWidth}px`;
       timer = window.setTimeout(() => { node.style.transition = ''; }, 500);
     });
     return {
@@ -885,7 +883,7 @@
     justify-content: center;
     width: 102px;
     height: 30px;
-    flex: 0 0 102px;
+    flex: 0 0 auto;
     padding: 4px 0;
     margin: 3px;
     overflow: hidden;

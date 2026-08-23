@@ -39,7 +39,8 @@ class GameClient(
     private val id: Short,
     private val reconnectEnabled: Boolean,
     private val reconnectRetryIntervalSeconds: Long,
-    private val geoService: GeoService
+    private val geoService: GeoService,
+    private val adminDirectoryProvider: () -> Set<String>
 ) : WebSocketAdapter() {
     companion object {
         private val reconnectScheduler = Executors.newSingleThreadScheduledExecutor { task ->
@@ -141,6 +142,11 @@ class GameClient(
             return
         }
 
+        if (type == "admin-directory-request") {
+            sendAdminDirectory(adminDirectoryProvider())
+            return
+        }
+
         if (type == "record-find-game-result" ||
             type == "record-find-user-history-result" ||
             type == "record-find-user-mode-stats-result"
@@ -159,6 +165,14 @@ class GameClient(
     fun send(data: String) {
         if (!isConnected()) return
         webSocket!!.sendText(data)
+    }
+
+    fun sendAdminDirectory(accountUuids: Set<String>) {
+        val payload = objectMapper.createObjectNode()
+        payload.put("type", "admin-directory")
+        val ids = payload.putArray("accountUuids")
+        accountUuids.sorted().forEach(ids::add)
+        send(objectMapper.writeValueAsString(payload))
     }
 
     fun isConnected(): Boolean {

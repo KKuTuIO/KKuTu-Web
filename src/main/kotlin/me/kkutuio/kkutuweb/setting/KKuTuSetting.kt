@@ -24,10 +24,15 @@ import me.kkutuio.kkutuweb.extension.toJson
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.ApplicationArguments
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.dao.DataAccessException
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 import javax.annotation.PostConstruct
 import kotlin.collections.HashMap
 import kotlin.collections.LinkedHashMap
@@ -45,7 +50,8 @@ internal fun parseGameServerReconnectSetting(node: JsonNode?): GameServerReconne
 @Component
 class KKuTuSetting(
     @Autowired private val applicationArguments: ApplicationArguments,
-    @Autowired private val objectMapper: ObjectMapper
+    @Autowired private val objectMapper: ObjectMapper,
+    @Autowired private val jdbc: JdbcTemplate
 ) {
     private val logger = LoggerFactory.getLogger(KKuTuSetting::class.java)
     private val runnerUID = UUID.randomUUID().toString();
@@ -53,6 +59,8 @@ class KKuTuSetting(
     private lateinit var games: JsonNode
     private lateinit var moremi: JsonNode
     private lateinit var themes: JsonNode
+    private val adminCache = AtomicReference<List<AdminSetting>?>(null)
+    private val gameAdminCache = AtomicReference<Set<String>?>(null)
 
     @PostConstruct
     fun init() {
@@ -100,6 +108,11 @@ class KKuTuSetting(
         }
     }
 
+    @EventListener(ApplicationReadyEvent::class)
+    fun initializeAdminDirectory() {
+        refreshAdmins()
+    }
+
     fun getVersion() = kkutu["version"].textValue()!!
 
     fun getMaxPlayers() = kkutu["maxPlayers"].intValue()
@@ -118,14 +131,84 @@ class KKuTuSetting(
 
     fun getAdminIds(): List<String> = getAdmins().map { it.id }
 
-    fun getAdmins(): List<AdminSetting> = kkutu["admins"].toList().map {
+    /**
+     * Game servers receive this small, in-memory snapshot over their existing
+     * control WebSocket. They never query the administrator table themselves.
+     */
+    fun getGameAdminIds(): Set<String> {
+        getAdmins()
+        return gameAdminCache.get() ?: emptySet()
+    }
+
+    /** Immutable break-glass accounts. They are configured, never editable through the admin UI. */
+    fun getAdminMasterIds(): Set<String> = kkutu["adminMasters"]?.toList()
+        ?.mapNotNull { it.textValue()?.trim()?.takeIf(String::isNotEmpty) }
+        ?.toSet()
+        ?: emptySet()
+
+    fun isAdminMaster(accountId: String): Boolean = accountId in getAdminMasterIds()
+
+    private fun legacyAdmins(): List<AdminSetting> = kkutu["admins"]?.toList()?.map {
         AdminSetting(
             it["id"].textValue(),
             it["name"].textValue(),
             it["team"].textValue(),
             it["privileges"].toList().map { privilege -> AdminSetting.Privilege.valueOf(privilege.textValue()) }
         )
+    } ?: emptyList()
+
+    /**
+     * Returns the live administrator directory. `adminMasters` remains the only
+     * file-based authority; all delegated roles come from PostgreSQL and can be
+     * refreshed after an admin UI write without restarting the web process.
+     */
+    fun getAdmins(): List<AdminSetting> = adminCache.get() ?: refreshAdmins()
+
+    @Synchronized
+    fun refreshAdmins(): List<AdminSetting> {
+        val masters = getAdminMasterIds()
+        val legacy = legacyAdmins()
+        val stored = try {
+            syncMasters(masters)
+            jdbc.query("SELECT account_uuid, display_name, team, privileges, game_admin FROM admin_access WHERE active = TRUE ORDER BY display_name, account_uuid") { rs, _ ->
+                val privileges = runCatching {
+                    objectMapper.readTree(rs.getString("privileges")).map { AdminSetting.Privilege.valueOf(it.textValue()) }
+                }.getOrDefault(emptyList())
+                StoredAdmin(
+                    AdminSetting(rs.getString("account_uuid"), rs.getString("display_name"), rs.getString("team"), privileges),
+                    rs.getBoolean("game_admin")
+                )
+            }
+        } catch (error: DataAccessException) {
+            logger.warn("관리자 디렉터리 테이블을 읽을 수 없습니다. DB 마이그레이션 전에는 기존 설정만 사용합니다.")
+            emptyList()
+        }
+        val delegated = stored.map { it.setting }.filterNot { it.id in masters }
+        val masterAdmins = if (masters.isNotEmpty()) masters.map { id ->
+            val configured = legacy.firstOrNull { it.id == id }
+            val storedAdmin = stored.firstOrNull { it.setting.id == id }?.setting
+            AdminSetting(id, configured?.name ?: storedAdmin?.name ?: "총관리자", configured?.team ?: storedAdmin?.team ?: "시스템", AdminSetting.Privilege.values().toList())
+        } else legacy
+        gameAdminCache.set((masters + stored.filter { it.gameAdmin }.map { it.setting.id }).toSet())
+        return (masterAdmins + delegated).also { adminCache.set(it) }
     }
+
+    /** Persists configuration-only break-glass accounts alongside delegated roles. */
+    private fun syncMasters(masters: Set<String>) {
+        if (masters.isEmpty()) return
+        val allPrivileges = objectMapper.writeValueAsString(AdminSetting.Privilege.values().map { it.name })
+        masters.forEach { id ->
+            jdbc.update(
+                "INSERT INTO admin_access(account_uuid, display_name, team, privileges, game_admin, active, managed_by_config) VALUES (CAST(? AS uuid), '총관리자', '시스템', CAST(? AS jsonb), TRUE, TRUE, TRUE) " +
+                    "ON CONFLICT(account_uuid) DO UPDATE SET game_admin=TRUE, active=TRUE, managed_by_config=TRUE, updated_at=CURRENT_TIMESTAMP",
+                id, allPrivileges
+            )
+        }
+        val postgresArray = "{${masters.joinToString(",")}}"
+        jdbc.update("UPDATE admin_access SET active=FALSE, game_admin=FALSE, managed_by_config=FALSE, updated_at=CURRENT_TIMESTAMP WHERE managed_by_config=TRUE AND account_uuid <> ALL(CAST(? AS uuid[]))", postgresArray)
+    }
+
+    private data class StoredAdmin(val setting: AdminSetting, val gameAdmin: Boolean)
 
     fun getRunnerVersion() = runnerUID
 

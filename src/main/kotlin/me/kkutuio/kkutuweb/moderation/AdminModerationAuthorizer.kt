@@ -32,4 +32,13 @@ class AdminModerationAuthorizer(
         val admin = setting.getAdmins().firstOrNull { it.id == accountUuid } ?: return false
         return privilege in admin.privileges
     }
+
+    fun requireMaster(session: HttpSession): String {
+        loginService.getSessionProfile(session)
+            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+        val accountUuid = loginService.accountUuid(session)
+            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+        if (!setting.isAdminMaster(accountUuid)) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        return accountUuid
+    }
 }

@@ -39,6 +39,7 @@ data class AdminSetting(
         SANCTION_POLICY_OVERRIDE,
         SANCTION_COUNTER_RESET,
         IDP_CLIENT_MANAGE,
-        ADMIN_PROFILE
+        ADMIN_PROFILE,
+        ADMIN_MANAGE
     }
 }

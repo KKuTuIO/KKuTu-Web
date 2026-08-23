@@ -24,25 +24,8 @@
     "noticeMessage": "",
     "showNotice": false
   },
-  "admins": [
-    {
-      "id": "<Account UUID>",
-      "name": "<User Name>",
-      "team": "<Team Name>",
-      "privileges": [
-        "CONNECTION_LOG",
-        "WORD",
-        "CROSSWORD",
-        "MAILBOX",
-        "SHOP",
-        "USER_MODERATION_READ",
-        "USER_SANCTION_ISSUE",
-        "USER_SANCTION_REVOKE",
-        "REPORT_RESOLVE",
-        "SANCTION_POLICY_OVERRIDE",
-        "SANCTION_COUNTER_RESET"
-      ]
-    }
+  "adminMasters": [
+    "<Account UUID>"
   ],
   "cdnHost": "<CDN Host>",
   "apiKey": "<API Key>",

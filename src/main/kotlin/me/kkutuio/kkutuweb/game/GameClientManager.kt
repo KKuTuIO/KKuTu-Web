@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import javax.annotation.PostConstruct
+import java.util.concurrent.atomic.AtomicReference
 
 @Component
 class GameClientManager(
@@ -32,9 +33,11 @@ class GameClientManager(
     @Autowired private val geoService: GeoService
 ) : RecordSocketBridge {
     private val gameClientList = ArrayList<GameClient>()
+    private val gameAdminSnapshot = AtomicReference<Set<String>>(emptySet())
 
     @PostConstruct
     fun init() {
+        gameAdminSnapshot.set(kKuTuSetting.getGameAdminIds())
         for (gameServer in kKuTuSetting.getGameServers()) {
             gameClientList.add(
                 GameClient(
@@ -45,7 +48,8 @@ class GameClientManager(
                     gameServer.cid,
                     gameServer.reconnect.enabled,
                     gameServer.reconnect.retryInterval,
-                    geoService
+                    geoService,
+                    { gameAdminSnapshot.get() }
                 )
             )
         }
@@ -90,6 +94,14 @@ class GameClientManager(
             connectedServers += 1
         }
         return connectedServers
+    }
+
+    fun publishAdminDirectory(accountUuids: Set<String>) {
+        val snapshot = accountUuids.toSet()
+        gameAdminSnapshot.set(snapshot)
+        for (gameClient in gameClientList) {
+            gameClient.sendAdminDirectory(snapshot)
+        }
     }
 
     override fun requestReplayByGameId(

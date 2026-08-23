@@ -11,7 +11,14 @@ import javax.servlet.FilterChain
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-/** Lets legacy admin endpoints consume the Admin SPA's OAuth bearer token. */
+/**
+ * Authorizes the Admin SPA exclusively through its OAuth bearer token.
+ *
+ * Admin endpoints previously accepted an authenticated KKuTu-Web session when
+ * no bearer token was supplied.  That kept the retired admin client usable,
+ * so every non-preflight request under /api/admin now requires the Admin
+ * client's access token.
+ */
 @Component
 class AdminOAuthBearerFilter(
     private val oidc: OidcService,
@@ -19,12 +26,13 @@ class AdminOAuthBearerFilter(
     private val loginService: LoginService
 ) : OncePerRequestFilter() {
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
-        !request.requestURI.removePrefix(request.contextPath).startsWith("/api/admin/")
+        request.method == "OPTIONS" ||
+            !request.requestURI.removePrefix(request.contextPath).startsWith("/api/admin/")
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
         val authorization = request.getHeader(HttpHeaders.AUTHORIZATION)
         if (authorization?.startsWith("Bearer ") != true) {
-            chain.doFilter(request, response)
+            response.sendError(HttpStatus.UNAUTHORIZED.value(), "OAuth Bearer 토큰이 필요합니다.")
             return
         }
         val token = authorization.removePrefix("Bearer ").trim()

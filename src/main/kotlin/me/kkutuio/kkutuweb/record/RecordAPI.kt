@@ -2,6 +2,8 @@ package me.kkutuio.kkutuweb.record
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter
 import io.github.resilience4j.ratelimiter.RequestNotPermitted
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
@@ -23,6 +25,8 @@ class RecordAPI(
     @Autowired private val kKuTuSetting: KKuTuSetting,
     @Autowired private val loginService: LoginService
 ) {
+    private val detailPayloadFields = arrayOf("rm", "p", "w", "x", "i", "mv", "rs", "a")
+
     private fun setPublicImmutablePayloadCache(response: HttpServletResponse) {
         response.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable")
         response.setHeader("CDN-Cache-Control", "max-age=31536000, immutable")
@@ -36,11 +40,28 @@ class RecordAPI(
         return Triple(userId, accountUuid, isAdmin)
     }
 
+    /**
+     * Keep the accordion's display data separate from the replay artifact.
+     * This avoids transferring the encoded payload until the replay button is used.
+     */
+    private fun projectGameDetail(result: RecordGameLookupResponse): RecordGameLookupResponse {
+        val game = result.game ?: return result
+        val payload = game.payloadDecoded
+        if (payload == null || !payload.isObject) return result.copy(game = game.copy(payload = null, payloadDecoded = null))
+
+        val detailPayload = (payload as ObjectNode).objectNode()
+        detailPayloadFields.forEach { field ->
+            payload.get(field)?.let { detailPayload.set<JsonNode>(field, it) }
+        }
+        return result.copy(game = game.copy(detailPayload = detailPayload, payload = null, payloadDecoded = null))
+    }
+
     @RateLimiter(name = "recordFindByGameId", fallbackMethod = "onGameRateLimited")
     @GetMapping("/game/{gameId}")
     fun findByGameId(
         @PathVariable gameId: String,
         @RequestParam(defaultValue = "false") includePayload: Boolean,
+        @RequestParam(defaultValue = "false") includeDetail: Boolean,
         @RequestParam(defaultValue = "false") includeAdminKeyTrace: Boolean,
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -54,7 +75,8 @@ class RecordAPI(
             return RecordGameLookupResponse(ok = false, code = 429, error = "rate-limited")
         }
         val (requesterId, requesterAccountUuid, isAdmin) = resolveRequester(session)
-        return recordService.findByGameId(gameId, includePayload, includeAdminKeyTrace, requesterId, requesterAccountUuid, isAdmin)
+        val result = recordService.findByGameId(gameId, includePayload || includeDetail, includeAdminKeyTrace, requesterId, requesterAccountUuid, isAdmin)
+        return if (includeDetail && !includePayload) projectGameDetail(result) else result
     }
 
     /** Public replay payload, always using the game server's public redaction policy. */
@@ -114,6 +136,7 @@ class RecordAPI(
     fun onGameRateLimited(
         gameId: String,
         includePayload: Boolean,
+        includeDetail: Boolean,
         includeAdminKeyTrace: Boolean,
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -131,6 +154,8 @@ class RecordAPI(
         session: HttpSession,
         throwable: RequestNotPermitted
     ): RecordGameLookupResponse {
+        response.setHeader("Cache-Control", "private, no-store")
+        response.setHeader("CDN-Cache-Control", "no-store")
         return RecordGameLookupResponse(ok = false, code = 429, error = "payload-rate-limited")
     }
 

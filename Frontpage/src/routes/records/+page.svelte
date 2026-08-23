@@ -141,7 +141,6 @@
   let selectedRoundByGame = {};
   let hoveredChainPlayerByGame = {};
   let showItemEntriesByGame = {};
-  let participantNicknameCache = {};
   let gameSearchResult = null;
   let replayDetail = null;
   let replayDownloadOpen = false;
@@ -702,6 +701,16 @@
     };
   }
 
+  function buildGameDetail(game) {
+    const replayView = buildReplayView(game?.detailPayload);
+    const participants = buildParticipants(game, replayView);
+    const firstRound = replayView?.chain?.roundKeys?.[0] || replayView?.roundKeys?.[0] || 0;
+    if (game?.gameId) {
+      selectedRoundByGame = { ...selectedRoundByGame, [game.gameId]: firstRound };
+    }
+    return { ...game, participants, replayView };
+  }
+
   function buildParticipants(game, replayView) {
     if (!replayView || !Array.isArray(replayView.players)) {
       const winnerIds = new Set(Array.isArray(game?.winnerIds) ? game.winnerIds : []);
@@ -741,27 +750,6 @@
       return b.score - a.score;
     });
     return participants;
-  }
-
-  async function fetchUserNickname(userId) {
-    if (!userId || participantNicknameCache[userId]) return participantNicknameCache[userId] || null;
-    const { body } = await fetchJson(`/user/${encodeURIComponent(userId)}`);
-    const nickname = body?.profile?.title || null;
-    if (nickname) participantNicknameCache = { ...participantNicknameCache, [userId]: nickname };
-    return nickname;
-  }
-
-  async function hydrateParticipants(participants) {
-    if (!Array.isArray(participants) || participants.length < 1) return participants;
-    const next = participants.map((row) => ({ ...row }));
-    await Promise.all(
-      next.map(async (participant) => {
-        if (participant.robot || !participant.id || participant.nickname !== participant.id) return;
-        const nickname = await fetchUserNickname(participant.id);
-        if (nickname) participant.nickname = nickname;
-      })
-    );
-    return next;
   }
 
   async function copyPlayerId(id) {
@@ -955,12 +943,12 @@
     currentStatus = 'game';
     syncQuery();
     try {
-      const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(keyword)}`);
+      const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(keyword)}?includeDetail=true`);
       if (!body?.ok || !body?.game) {
         throwKnownReplayFailure(body, '경기 조회');
         throw new Error('경기 조회 실패입니다: 입력한 경기번호를 찾을 수 없습니다.');
       }
-      const game = body.game;
+      const game = buildGameDetail(body.game);
       detailMap = { ...detailMap, [game.gameId]: game };
       expandedGameId = game.gameId;
       gameSearchResult = {
@@ -1037,15 +1025,18 @@
     expandedGameId = gameId;
     if (detailMap[gameId] || detailLoading[gameId]) return;
     detailLoading = { ...detailLoading, [gameId]: true };
-    const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(gameId)}`);
-    if (!body?.ok || !body?.game) {
+    try {
+      const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(gameId)}?includeDetail=true`);
+      if (!body?.ok || !body?.game) {
+        detailMap = { ...detailMap, [gameId]: { error: body?.error || 'failed' } };
+        return;
+      }
+      detailMap = { ...detailMap, [gameId]: buildGameDetail(body.game) };
+    } catch {
+      detailMap = { ...detailMap, [gameId]: { error: 'failed' } };
+    } finally {
       detailLoading = { ...detailLoading, [gameId]: false };
-      detailMap = { ...detailMap, [gameId]: { error: body?.error || 'failed' } };
-      return;
     }
-    const game = body.game;
-    detailLoading = { ...detailLoading, [gameId]: false };
-    detailMap = { ...detailMap, [gameId]: game };
   }
 
   function getModeLabel(row) {

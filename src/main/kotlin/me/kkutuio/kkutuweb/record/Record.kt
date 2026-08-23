@@ -35,6 +35,11 @@ data class RecordGame(
     val payloadSize: Int,
     val rawSize: Int,
     val adminKeyTraceAvailable: Boolean = false,
+    /**
+     * Presentation-only replay fields used by the match-detail accordion.
+     * The encoded replay payload remains exclusive to the replay download endpoint.
+     */
+    val detailPayload: JsonNode? = null,
     val payload: String? = null,
     val payloadDecoded: JsonNode? = null,
     val keyTraceDecoded: JsonNode? = null

@@ -626,7 +626,7 @@ export function getReplayState(model, requestedTimeMs) {
       currentRound,
       acceptedCount: attacks.filter((event) => event.round === currentRound).length,
       displayMode: latestAttack ? 'attack' : 'starting',
-      displayText: latestAttack?.label || '공격 기록을 기다리는 중입니다.',
+      displayText: latestAttack?.label || '저장된 워드스택 공격 기록이 없습니다.',
       displayLetters: [],
       turnRemainingMs: 0,
       roundRemainingMs: 0,

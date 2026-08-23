@@ -810,12 +810,22 @@
     return '#94a3b8';
   }
 
+  function canUseParticipantReplayPayload(gameId) {
+    const game = detailMap[gameId];
+    return Boolean(currentUserId && Array.isArray(game?.userIds) && game.userIds.includes(currentUserId));
+  }
+
   async function downloadAndOpenReplay(gameId) {
     if (!gameId) return;
     replayDownloadOpen = true;
     replayDownloadProgress = 12;
     try {
-      const { body } = await fetchJson(`/api/replay/game/${encodeURIComponent(gameId)}/payload`);
+      // 랭크 게임의 공개 페이로드는 상세 입력 기록을 의도적으로 제거한다.
+      // 참가자는 인증된 조회로 원본 기록을 받아 실제 리플레이를 재생한다.
+      const endpoint = canUseParticipantReplayPayload(gameId)
+        ? `/api/replay/game/${encodeURIComponent(gameId)}?includePayload=true`
+        : `/api/replay/game/${encodeURIComponent(gameId)}/payload`;
+      const { body } = await fetchJson(endpoint);
       if (!body?.ok || !body?.game) {
         throwKnownReplayFailure(body, '리플레이 다운로드');
         throw new Error('리플레이를 불러오지 못했습니다.');

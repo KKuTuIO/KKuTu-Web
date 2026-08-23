@@ -24,6 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
 import me.kkutuio.kkutuweb.login.LoginService
+import me.kkutuio.kkutuweb.identity.AccountService
+import me.kkutuio.kkutuweb.identity.NicknameService
 import me.kkutuio.kkutuweb.shop.ShopDao
 import me.kkutuio.kkutuweb.shop.ShopService
 import me.kkutuio.kkutuweb.config.CacheConfig
@@ -51,6 +53,8 @@ class UserService(
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val cacheManager: CacheManager,
     @Autowired private val loginService: LoginService,
+    @Autowired private val accountService: AccountService,
+    @Autowired private val nicknameService: NicknameService,
     @Autowired private val rankDao: RankDao
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
@@ -65,18 +69,9 @@ class UserService(
     }
 
     fun exordial(data: String, session: HttpSession): String {
-        val maxExordialLength = 100
-        if (session.isGuest()) return "{\"error\":400}"
-
+        val account = accountService.currentAccount(session) ?: return "{\"error\":400}"
         val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
-
-        val resultData = data.take(maxExordialLength).trim()
-
-        userDao.updateUser(
-            userId, mapOf(
-                "exordial" to if (resultData.isEmpty()) null else resultData
-            )
-        )
+        val resultData = nicknameService.changeExordial(account, data)
 
         cacheManager.getCache(CacheConfig.RECORD_USER_INFO_CACHE)?.evict(userId)
         logger.info("$userId 님이 프로필을 수정했습니다. 소개 한마디: $resultData")

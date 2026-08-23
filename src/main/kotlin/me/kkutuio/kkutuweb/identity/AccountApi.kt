@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.security.web.csrf.CsrfToken
 
 data class NicknameRequest(val nickname: String, val fixed: Boolean = false)
+data class ExordialRequest(val exordial: String = "")
 data class EmailRequest(val email: String)
 data class PasswordRequest(val password: String)
 data class PasswordLoginRequest(val identifier: String, val password: String)
@@ -117,6 +118,8 @@ class AccountApi(
 
     @GetMapping("/nickname-policy") fun nicknamePolicy(session: HttpSession): Map<String, Any?> = nicknames.status(accounts.requireCurrentAccount(session))
     @PatchMapping("/nickname") fun nickname(@RequestBody body: NicknameRequest, session: HttpSession): NicknameChangeResult = nicknames.change(recent(session), body.nickname, body.fixed)
+    @PatchMapping("/exordial") fun exordial(@RequestBody body: ExordialRequest, session: HttpSession): Map<String, String> =
+        mapOf("exordial" to nicknames.changeExordial(accounts.requireCurrentAccount(session), body.exordial))
     @PostMapping("/password") fun password(@RequestBody body: PasswordRequest, session: HttpSession): ResponseEntity<Void> {
         requirePasswordEnabled()
         accounts.setPassword(recent(session), body.password.toCharArray()); return ResponseEntity.noContent().build()
@@ -300,7 +303,7 @@ class AccountApi(
 
     private fun recent(session: HttpSession): Account {
         val account = accounts.requireCurrentAccount(session)
-        if (!session.hasRecentAuthentication()) throw IdpException("reauthentication_required", "본인인증이 필요합니다.", 401)
+        if (!session.hasRecentAuthentication()) throw IdpException("reauthentication_required", "본인확인이 필요합니다.", 401)
         return account
     }
     private fun recentMutable(session: HttpSession): Account {
@@ -317,7 +320,7 @@ class AccountApi(
     }
     private fun strong(session: HttpSession): Account {
         val account = accounts.requireCurrentAccount(session)
-        if (!session.hasStrongAuthentication()) throw IdpException("reauthentication_required", "강화된 본인인증이 필요합니다.", 401)
+        if (!session.hasStrongAuthentication()) throw IdpException("reauthentication_required", "강화된 본인확인이 필요합니다.", 401)
         return account
     }
     private fun isAccountRestricted(account: Account): Boolean =

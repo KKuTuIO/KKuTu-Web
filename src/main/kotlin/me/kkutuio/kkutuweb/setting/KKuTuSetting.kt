@@ -117,6 +117,10 @@ class KKuTuSetting(
 
     fun getMaxPlayers() = kkutu["maxPlayers"].intValue()
 
+    fun getAdvancedBadWordPatterns(): List<String> = kkutu["advancedBadWords"]?.toList()
+        ?.mapNotNull { it.textValue()?.trim()?.takeIf(String::isNotEmpty) }
+        ?: emptyList()
+
     fun getGameServers() = kkutu["gameServers"].toList().map {
         GameServerSetting(
             it["isSecure"].booleanValue(),

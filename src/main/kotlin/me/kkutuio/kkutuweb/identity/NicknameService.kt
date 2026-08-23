@@ -19,7 +19,8 @@ data class NicknameChangeResult(
 class NicknameService(
     private val users: UserDao,
     private val setup: SetupService,
-    private val identityDao: IdentityDao
+    private val identityDao: IdentityDao,
+    private val advancedBadWordFilter: AdvancedBadWordFilter
 ) {
     fun validationError(nickname: String): String? = setup.nicknameValidationError(nickname)
     fun validationMessage(code: String): String = setup.nicknameValidationMessage(code)
@@ -27,7 +28,10 @@ class NicknameService(
     @Transactional
     fun createInitial(profileId: String, baseNickname: String, nicknameTag: String): String {
         setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", setup.nicknameValidationMessage(it)) }
-        val nickname = "$baseNickname#$nicknameTag"
+        if (advancedBadWordFilter.contains(baseNickname)) {
+            throw IdpException("exordial_has_bad_words", "별명에 사용이 제한된 단어가 포함되어 있습니다.", 409)
+        }
+        val nickname = baseNickname.trim().take(MAX_NICKNAME_LENGTH) + "#" + nicknameTag
         val meanable = normalize(nickname)
         users.lockNicknameKey(meanable)
         if (users.getUser(profileId) != null || users.getExistsSimilarityNick(meanable)) {
@@ -67,7 +71,7 @@ class NicknameService(
 
     @Transactional
     fun change(account: Account, requestedNickname: String, fixed: Boolean): NicknameChangeResult {
-        val baseNickname = requestedNickname.trim()
+        val baseNickname = requestedNickname.trim().take(MAX_NICKNAME_LENGTH)
         setup.nicknameValidationError(baseNickname)?.let { throw IdpException("invalid_nickname", setup.nicknameValidationMessage(it)) }
         val userId = identityDao.selectedProfileId(account.id) ?: account.legacyUserId
         val profileLegacyUserId = identityDao.selectedProfileLegacyUserId(account.id) ?: account.legacyUserId
@@ -84,6 +88,10 @@ class NicknameService(
         val nextNickname = if (fixed) baseNickname else "$baseNickname#${identityDao.nicknameSuffix(account.id)}"
         if (state.nickname == nextNickname) throw IdpException("nickname_unchanged", "현재 사용 중인 별명과 일치합니다.")
         val nextMeanable = normalize(nextNickname)
+
+        if (advancedBadWordFilter.contains(baseNickname)) {
+            throw IdpException("exordial_has_bad_words", "별명에 사용이 제한된 단어가 포함되어 있습니다.", 409)
+        }
 
         // Lock by canonical name so concurrent Web requests cannot both acquire
         // the same fixed nickname. PostgreSQL is the authority; this account
@@ -117,5 +125,27 @@ class NicknameService(
         return NicknameChangeResult(nextNickname, fixed, updatedMoney)
     }
 
+    @Transactional
+    fun changeExordial(account: Account, requestedExordial: String): String {
+        val userId = identityDao.selectedProfileId(account.id) ?: account.legacyUserId
+        val state = users.lockNicknameState(userId)
+            ?: throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
+        if (state.changeRestricted) {
+            throw IdpException("nickname_change_restricted", "운영정책 위반으로 별명 변경을 이용할 수 없습니다.", 403)
+        }
+        val exordial = requestedExordial.trim().take(MAX_EXORDIAL_LENGTH)
+        if (advancedBadWordFilter.contains(exordial)) {
+            throw IdpException("exordial_has_bad_words", "소개 한마디에 사용이 제한된 단어가 포함되어 있습니다.", 409)
+        }
+        users.updateUser(userId, mapOf("exordial" to if (exordial.isEmpty()) null else exordial))
+        identityDao.audit(account.id, "EXORDIAL_CHANGED")
+        return exordial
+    }
+
     private fun normalize(nickname: String): String = nickname.replace(Regex("[-_ ]*"), "").lowercase()
+
+    private companion object {
+        const val MAX_NICKNAME_LENGTH = 15
+        const val MAX_EXORDIAL_LENGTH = 100
+    }
 }

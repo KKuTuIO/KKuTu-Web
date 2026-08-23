@@ -6,6 +6,7 @@
 
   import { getLevelImage } from '../../lib/getLevelImg.js';
   import { getMoremi } from '../../lib/getMoremi.js';
+  import { loadAuth } from '../../lib/session.js';
 
   let currentPage = 0;
   let loading = false;
@@ -16,6 +17,7 @@
   let openMenuKey = '';
   let copiedId = '';
   let copyTimer;
+  let canViewMyRank = false;
 
   var topRankData = {
     "data": {
@@ -40,6 +42,12 @@
   };
 
   onMount(async () => {
+    try {
+      const auth = await loadAuth();
+      canViewMyRank = auth?.status !== 'Guest user' && Boolean(auth?.profileId);
+    } catch {
+      canViewMyRank = false;
+    }
     const urlParams = new URLSearchParams(window.location.search);
     const page = urlParams.get('page');
     if(page) currentPage = Number(page) - 1;
@@ -84,6 +92,7 @@
   }
 
   async function showMyRank() {
+    if (!canViewMyRank || loading) return;
     loading = true;
     try {
       const response = await fetch('/ranking?me=true');
@@ -252,7 +261,7 @@
       <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 dark:border-slate-700 dark:bg-slate-800/70">
         <div><h2 class="flex items-center gap-2 text-lg font-black"><span class="material-symbols-outlined text-amber-500">leaderboard</span>{resultLabel || '전체 랭킹'}</h2><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">전체 순위는 누계 점수를 기준으로 산정됩니다.</p></div>
         <div class="flex flex-col gap-2 sm:flex-row">
-          <button on:click={showMyRank} disabled={loading} class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"><span class="material-symbols-outlined text-lg">person</span>내 순위</button>
+          <button on:click={showMyRank} disabled={loading || !canViewMyRank} title={canViewMyRank ? '내 순위 보기' : '로그인 후 내 순위를 볼 수 있습니다.'} class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"><span class="material-symbols-outlined text-lg">person</span>내 순위</button>
           <form class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm focus-within:ring-2 focus-within:ring-sky-400/50 dark:border-slate-600 dark:bg-slate-900" on:submit|preventDefault={searchRanking}>
             <input bind:value={searchQuery} aria-label="별명 또는 UUID 검색" placeholder="별명 또는 UUID 검색" class="min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-slate-400 sm:w-52" />
             <button disabled={loading} aria-label="랭킹 검색" class="grid h-8 w-8 place-items-center rounded-lg bg-sky-600 text-white transition hover:bg-sky-500 disabled:opacity-50"><span class="material-symbols-outlined text-lg">search</span></button>

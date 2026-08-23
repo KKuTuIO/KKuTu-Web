@@ -46,32 +46,17 @@ class RankingService(
             )
         }
 
-        return RankResponse(pageIndex, responseData)
+        val responsePage = if (id == null) pageIndex else currentRanks.first().rank.rank.toLong() / PAGE_SIZE
+        return RankResponse(responsePage, responseData)
     }
 
     /** Returns the ranked user plus nearby entries, suitable for the "my rank" view. */
     fun getRankingAroundUser(id: String): RankResponse = getRanking(null, id)
 
-    /** Searches public game profiles by nickname or any supported UUID/legacy identifier. */
+    /** Resolves a nickname/UUID, then returns that user's surrounding ranking page. */
     fun searchRanking(query: String): RankResponse {
-        val users = userDao.searchUsers(query.trim())
-        if (users.isEmpty()) return RankResponse(0, emptyList())
-
-        val ranks = users.mapNotNull { user ->
-            rankDao.getRank(user.id)?.let { rank -> Rank(user.id, (rank - 1).toInt(), 0) }
-        }
-        if (ranks.isEmpty()) return RankResponse(0, emptyList())
-
-        val scores = rankDao.getScores(ranks.map { it.id })
-        val snapshotRanks = rankDao.getSnapshotRanks(ranks.map { it.id })
-        val response = ranks.mapIndexed { index, rank ->
-            ResponseRank.fromRank(
-                current = rank.copy(score = scores[rank.id] ?: 0),
-                nickname = users.firstOrNull { it.id == rank.id }?.nickname,
-                prevRank = snapshotRanks[index]
-            )
-        }
-        return RankResponse(0, response)
+        val user = userDao.searchUsers(query.trim()).firstOrNull() ?: return RankResponse(0, emptyList())
+        return getRankingAroundUser(user.id)
     }
 
     private fun getValidRanks(pageIndex: Long, id: String?): List<ResolvedRank> {

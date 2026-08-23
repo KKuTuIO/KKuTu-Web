@@ -64,22 +64,6 @@ class RankDao(
     fun getRank(id: String): Long? =
         redisTemplate.opsForZSet().reverseRank(REDIS_KEY, id)?.plus(1)
 
-    fun getScores(ids: List<String>): Map<String, Long> {
-        if (ids.isEmpty()) return emptyMap()
-
-        val scores = redisTemplate.executePipelined(object : SessionCallback<Any?> {
-            @Suppress("UNCHECKED_CAST")
-            override fun <K, V> execute(operations: RedisOperations<K, V>): Any? {
-                val stringOps = operations as RedisOperations<String, Any>
-                ids.forEach { id -> stringOps.opsForZSet().score(REDIS_KEY, id) }
-                return null
-            }
-        })
-        return ids.mapIndexedNotNull { index, id ->
-            (scores[index] as? Number)?.toLong()?.let { id to it }
-        }.toMap()
-    }
-
     fun getSurround(id: String, dataCount: Int): List<Rank> {
         val opsForZSet = redisTemplate.opsForZSet()
         val reverseRank = opsForZSet.reverseRank(REDIS_KEY, id)!!

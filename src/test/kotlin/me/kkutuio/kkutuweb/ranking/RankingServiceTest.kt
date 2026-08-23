@@ -64,21 +64,23 @@ class RankingServiceTest {
     }
 
     @Test
-    fun `search returns ranked nickname matches with their scores`() {
+    fun `search returns the matching user's surrounding ranking page`() {
         val user = User("player-id", "플레이어", 0, JsonNodeFactory.instance.nullNode(), null,
             JsonNodeFactory.instance.nullNode(), JsonNodeFactory.instance.nullNode(), null, null, null,
             null, JsonNodeFactory.instance.nullNode(), JsonNodeFactory.instance.nullNode(), null)
         `when`(userDao.searchUsers("플레이어")).thenReturn(listOf(user))
-        `when`(rankDao.getRank("player-id")).thenReturn(25)
-        `when`(rankDao.getScores(listOf("player-id"))).thenReturn(mapOf("player-id" to 12345))
-        `when`(rankDao.getSnapshotRanks(listOf("player-id"))).thenReturn(listOf(28))
+        val ranks = listOf(Rank("neighbor", 16, 13000), Rank("player-id", 17, 12345))
+        `when`(rankDao.getSurround("player-id", 15)).thenReturn(ranks)
+        `when`(userDao.getNicknames(listOf("neighbor", "player-id")))
+            .thenReturn(mapOf("neighbor" to "이웃", "player-id" to "플레이어"))
+        `when`(rankDao.getSnapshotRanks(listOf("neighbor", "player-id"))).thenReturn(listOf(16, 21))
 
         val response = rankingService.searchRanking(" 플레이어 ")
 
-        assertEquals(1, response.data.size)
-        assertEquals("플레이어", response.data.single().name)
-        assertEquals(24, response.data.single().rank)
-        assertEquals(12345, response.data.single().score)
-        assertEquals("+4", response.data.single().delta)
+        assertEquals(1, response.page)
+        assertEquals(listOf("이웃", "플레이어"), response.data.map { it.name })
+        assertEquals(17, response.data.last().rank)
+        assertEquals(12345, response.data.last().score)
+        assertEquals("+4", response.data.last().delta)
     }
 }

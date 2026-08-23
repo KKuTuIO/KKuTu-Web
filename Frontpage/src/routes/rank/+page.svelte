@@ -47,10 +47,15 @@
 
 
   async function fetchRankData(page) {
-    const res = await fetch(`/ranking?page=${page}`);
-    const data = await res.json();
-    rankData = data;
-    resultLabel = '';
+    loading = true;
+    try {
+      const res = await fetch(`/ranking?page=${page}`);
+      if (!res.ok) throw new Error();
+      rankData = await res.json();
+      resultLabel = '';
+    } finally {
+      loading = false;
+    }
   }
 
   async function refreshRanking() {
@@ -81,6 +86,8 @@
       const response = await fetch('/ranking?me=true');
       if (!response.ok) throw new Error();
       rankData = await response.json();
+      currentPage = rankData.data.page;
+      lastLoadedPage = currentPage;
       resultLabel = '내 순위';
     } finally {
       loading = false;
@@ -95,6 +102,8 @@
       const response = await fetch(`/ranking?query=${encodeURIComponent(query)}`);
       if (!response.ok) throw new Error();
       rankData = await response.json();
+      currentPage = rankData.data.page;
+      lastLoadedPage = currentPage;
       resultLabel = `검색 결과: ${query}`;
     } finally {
       loading = false;
@@ -139,7 +148,7 @@
     <div class="absolute inset-0 bg-gradient-to-b from-slate-950/30 via-slate-950/25 to-slate-950"></div>
     <div class="relative z-[1] flex items-center gap-3 text-slate-200">
       <span class="material-symbols-outlined text-2xl">emoji_events</span>
-      <p class="text-base font-medium sm:text-lg">최고의 낱말 실력자들</p>
+      <p class="text-base font-medium sm:text-lg">한 눈에 보는 순위</p>
     </div>
     <div class="relative z-[1] mt-2 flex items-center gap-2">
       <h1 class="text-4xl font-black tracking-tight text-white sm:text-5xl">랭킹</h1>
@@ -200,7 +209,7 @@
 
     <section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <div class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4 dark:border-slate-700 dark:bg-slate-800/70">
-        <div><h2 class="flex items-center gap-2 text-lg font-black"><span class="material-symbols-outlined text-amber-500">leaderboard</span>{resultLabel || '전체 랭킹'}</h2><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">순위는 누적 점수를 기준으로 산정됩니다.</p></div>
+        <div><h2 class="flex items-center gap-2 text-lg font-black"><span class="material-symbols-outlined text-amber-500">leaderboard</span>{resultLabel || '전체 랭킹'}</h2><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">전체 순위는 누계 점수를 기준으로 산정됩니다.</p></div>
         <div class="flex flex-col gap-2 sm:flex-row">
           <button on:click={showMyRank} disabled={loading} class="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-slate-700 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"><span class="material-symbols-outlined text-lg">person</span>내 순위</button>
           <form class="flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm focus-within:ring-2 focus-within:ring-sky-400/50 dark:border-slate-600 dark:bg-slate-900" on:submit|preventDefault={searchRanking}>
@@ -240,13 +249,11 @@
         </tbody>
       </table>
       </div>
-      {#if !resultLabel}
       <div class="flex items-center justify-center gap-3 border-t border-slate-200 p-3 dark:border-slate-700">
-        <button on:click={() => currentPage--} disabled={currentPage === 0 || loading} aria-label="이전 페이지" class="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"><span class="material-symbols-outlined">chevron_left</span></button>
+        <button on:click={() => currentPage--} disabled={currentPage === 0 || loading} aria-label="이전 페이지" class="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'chevron_left'}</span></button>
         <span class="min-w-20 text-center text-sm font-bold text-slate-600 dark:text-slate-300">{currentPage + 1} 페이지</span>
-        <button on:click={() => currentPage++} disabled={loading || rankData.data.data.length < 15} aria-label="다음 페이지" class="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"><span class="material-symbols-outlined">chevron_right</span></button>
+        <button on:click={() => currentPage++} disabled={loading || rankData.data.data.length < 15} aria-label="다음 페이지" class="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"><span class:animate-spin={loading} class="material-symbols-outlined">{loading ? 'progress_activity' : 'chevron_right'}</span></button>
       </div>
-      {/if}
     </section>
   </main>
 </div>

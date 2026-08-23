@@ -183,7 +183,7 @@
             if (status.required) requestReauthentication('confirm');
             else openConfirmation();
         } catch (_) {
-            error = '본인인증 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+            error = '본인확인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.';
         }
     }
 
@@ -315,11 +315,11 @@
     <a class="modal-link" href="/account/apps" on:click={() => modalOpen = false}>연결된 앱 관리</a>
 </AccountModal>
 
-<AccountModal open={reauthDialogOpen} title="본인 확인" showFooter={false} priority on:close={closeReauthentication}>
+<AccountModal open={reauthDialogOpen} title="본인확인" showFooter={false} priority on:close={closeReauthentication}>
     <div class="reauth-content">
         <div class="reauth-icon"><span class="material-symbols-outlined">shield_lock</span></div>
         <p class="reauth-title">보안을 위해 다시 로그인해 주세요.</p>
-        <p class="reauth-description">고객님의 정보 보호를 위해 기존 로그인 수단으로 본인 확인을 진행합니다.</p>
+        <p class="reauth-description">고객님의 정보 보호를 위해 본인확인을 진행합니다.</p>
     </div>
     {#if passwordEnabled}
         <div class="reauth-form">

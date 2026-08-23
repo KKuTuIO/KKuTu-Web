@@ -255,7 +255,7 @@
     <th:block
             layout:replace="~{view/kkutu/dialog::dialog(id='KkisExportDiag',width=300,height=425,title=#{kkutu.dialog.accountOptions.export.title})}">
         <th:block layout:fragment="content">
-            <h4 style="margin-bottom: 5px;" th:text="#{kkutu.dialog.accountOptions.export.expl}"></h4>
+            <h4 style="margin-bottom: 5px;" th:utext="#{kkutu.dialog.accountOptions.export.expl}"></h4>
             <div class="dialog-bar theme-preset-controls">
                 <button id="kkis-export-toggle-all" type="button"></button>
             </div>

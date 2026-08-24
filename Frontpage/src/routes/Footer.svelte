@@ -1,49 +1,33 @@
 
-<script nonce="kkutuio">
+<script>
     import { onMount } from 'svelte';
-  let deferredPrompt;
+    let deferredPrompt;
     let installButtonVisible = false;
   
     onMount(() => {
-      if ('BeforeInstallPromptEvent' in window) {
-        showResult('⏳ BeforeInstallPromptEvent supported but not fired yet');
-      } else {
-        showResult('❌ BeforeInstallPromptEvent NOT supported');
-      }
-  
-      window.addEventListener('beforeinstallprompt', (e) => {
+      const beforeInstall = (e) => {
         e.preventDefault();
         deferredPrompt = e;
         installButtonVisible = true;
-        showResult('✅ BeforeInstallPromptEvent fired', true);
-      });
-  
-      window.addEventListener('appinstalled', (e) => {
-        showResult('✅ AppInstalled fired', true);
-      });
+      };
+      const installed = () => {
+        deferredPrompt = null;
+        installButtonVisible = false;
+      };
+      window.addEventListener('beforeinstallprompt', beforeInstall);
+      window.addEventListener('appinstalled', installed);
+      return () => {
+        window.removeEventListener('beforeinstallprompt', beforeInstall);
+        window.removeEventListener('appinstalled', installed);
+      };
     });
   
-    function showResult(text, append = false) {
-      console.info(text);
-    }
-  
     async function installApp() {
-      console.log('installApp button clicked');
       if (deferredPrompt) {
         deferredPrompt.prompt();
-        showResult('🆗 Installation Dialog opened');
-        // Find out whether the user confirmed the installation or not
-        const { outcome } = await deferredPrompt.userChoice;
-        // The deferredPrompt can only be used once.
+        await deferredPrompt.userChoice;
         deferredPrompt = null;
-        // Act on the user's choice
-        if (outcome === 'accepted') {
-          showResult('😀 User accepted the install prompt.', true);
-        } else if (outcome === 'dismissed') {
-          showResult('😟 User dismissed the install prompt');
-        }
-        // Hide the install button
-        // installButtonVisible = false;
+        installButtonVisible = false;
       }
     }
 </script>
@@ -93,7 +77,11 @@
            <a href="https://m.onestore.co.kr/mobilepoc/apps/appsDetail.omp?prodId=0000775728" target="_blank">
              <img src="https://cdn.kkutu.io/img/front/onestore.png" class="h-8 border border-gray-400 rounded" alt="One Store"/>
            </a>
-           <img src="https://cdn.kkutu.io/img/front/Pwa.svg" class="h-8 cursor-pointer" on:click={installApp} alt="Pwa"/>
+           {#if installButtonVisible}
+             <button type="button" onclick={installApp} aria-label="끄투리오 앱 설치">
+               <img src="https://cdn.kkutu.io/img/front/Pwa.svg" class="h-8" alt="PWA 설치"/>
+             </button>
+           {/if}
          </div>
             <a href="https://www.grac.or.kr/Statistics/Popup/Pop_StatisticsDetails.aspx?371e798f34f8dfd4a541d1f1f3960c41a6c813a6a053e8e5ec12581d53453bb0" target="_blank">
                 <img src="https://cdn.kkutu.io/img/front/grac.svg" class="h-12 mt-2 lg:mt-0" alt="Rating"/>

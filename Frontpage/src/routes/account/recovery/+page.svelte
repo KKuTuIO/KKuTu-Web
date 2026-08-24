@@ -1,17 +1,17 @@
 <script>
     import {onMount} from 'svelte';
 
-    let email = '';
-    let token = '';
-    let password = '';
-    let recoveryIdentifier = '';
-    let recoveryCode = '';
-    let emailLoginToken = '';
-    let message = '';
-    let reset = false;
-    let recoveryCodeMode = false;
+    let email = $state('');
+    let token = $state('');
+    let password = $state('');
+    let recoveryIdentifier = $state('');
+    let recoveryCode = $state('');
+    let emailLoginToken = $state('');
+    let message = $state('');
+    let reset = $state(false);
+    let recoveryCodeMode = $state(false);
     let recaptchaSiteKey = '';
-    let passwordEnabled = true;
+    let passwordEnabled = $state(true);
 
     function csrfHeaders() {
         const token = document.cookie.split('; ').find(value => value.startsWith('XSRF-TOKEN='))?.split('=').slice(1).join('=');
@@ -145,7 +145,7 @@
                 <p class="rounded-xl bg-gray-50 p-4 text-sm leading-6 text-gray-600 dark:bg-gray-900 dark:text-gray-300">
                     로그인 후 계정 관리에서 필요한 로그인 수단을 다시 연동할 수 있습니다.</p>
                 <button class="mt-4 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                        on:click={confirmEmailLogin}>로그인 계속하기
+                        onclick={confirmEmailLogin}>로그인 계속하기
                 </button>
             {:else if recoveryCodeMode}
                 <label class="block text-sm font-bold" for="recovery-identifier">식별번호 또는 전자 메일 주소</label><input
@@ -157,7 +157,7 @@
                     class="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 font-mono dark:border-gray-600 dark:bg-gray-900"
                     bind:value={recoveryCode} placeholder="일회용 비밀번호" autocomplete="one-time-code"/>
                 <button class="mt-4 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                        on:click={submitRecoveryCode}>로그인
+                        onclick={submitRecoveryCode}>로그인
                 </button>
             {:else if passwordEnabled && reset}
                 <label class="block text-sm font-bold" for="reset-token">복구 토큰</label><input id="reset-token"
@@ -171,7 +171,7 @@
                                                                                                    placeholder="새 비밀번호 (12자 이상)"
                                                                                                    autocomplete="new-password"/>
                 <button class="mt-4 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                        on:click={submitReset}>비밀번호 재설정
+                        onclick={submitReset}>비밀번호 재설정
                 </button>
             {:else}
                 <label class="block text-sm font-bold" for="recovery-email">전자 메일 주소</label><input id="recovery-email"
@@ -181,13 +181,13 @@
                                                                                                    placeholder="전자 메일 주소"
                                                                                                    autocomplete="email"/>
                 <button class="mt-4 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                        on:click={submitRequest}>{passwordEnabled ? '인증 메일 보내기' : '로그인 링크 보내기'}</button>
+                        onclick={submitRequest}>{passwordEnabled ? '인증 메일 보내기' : '로그인 링크 보내기'}</button>
             {/if}
             <div class="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-[#438c43] underline underline-offset-4">
                 {#if passwordEnabled}
-                    <button on:click={() => { reset = !reset; recoveryCodeMode = false; }}>{reset ? '뒤로' : '일회용 비밀번호가 있나요?'}</button>
+                    <button onclick={() => { reset = !reset; recoveryCodeMode = false; }}>{reset ? '뒤로' : '일회용 비밀번호가 있나요?'}</button>
                 {/if}
-                <button on:click={() => { recoveryCodeMode = !recoveryCodeMode; reset = false; }}>{recoveryCodeMode ? '전자 메일 주소 사용' : '일회용 비밀번호 사용'}</button>
+                <button onclick={() => { recoveryCodeMode = !recoveryCodeMode; reset = false; }}>{recoveryCodeMode ? '전자 메일 주소 사용' : '일회용 비밀번호 사용'}</button>
             </div>
         </div>
     </section>

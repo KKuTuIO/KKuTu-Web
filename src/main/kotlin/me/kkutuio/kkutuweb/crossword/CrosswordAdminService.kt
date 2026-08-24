@@ -108,7 +108,7 @@ class CrosswordAdminService(private val jdbcTemplate: JdbcTemplate) {
                 generatedPuzzle.serialize(),
                 packId
             )
-            ids.add(id)
+            ids.add(id ?: throw IllegalStateException("생성한 십자말풀이 ID를 반환받지 못했습니다."))
         }
 
         val previews = generated.zip(ids).map { (generatedPuzzle, id) ->

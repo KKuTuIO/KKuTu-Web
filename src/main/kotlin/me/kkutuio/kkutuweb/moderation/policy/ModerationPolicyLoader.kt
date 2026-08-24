@@ -1,9 +1,9 @@
 package me.kkutuio.kkutuweb.moderation.policy
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.ObjectMapper
+import com.networknt.schema.SchemaRegistry
+import com.networknt.schema.SpecificationVersion
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.core.io.ClassPathResource
@@ -17,7 +17,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicReference
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 @Component
 class ModerationPolicyLoader(
@@ -84,8 +84,8 @@ class ModerationPolicyLoader(
         val schemaNode = ClassPathResource("moderation-policy.schema.json").inputStream.use {
             objectMapper.readTree(it)
         }
-        val schema = JsonSchemaFactory
-            .getInstance(SpecVersion.VersionFlag.V7)
+        val schema = SchemaRegistry
+            .withDefaultDialect(SpecificationVersion.DRAFT_7)
             .getSchema(schemaNode)
         val errors = schema.validate(policyNode)
         if (errors.isNotEmpty()) {

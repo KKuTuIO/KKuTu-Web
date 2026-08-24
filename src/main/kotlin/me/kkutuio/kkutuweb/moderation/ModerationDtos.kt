@@ -1,6 +1,6 @@
 package me.kkutuio.kkutuweb.moderation
 
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyPreview
 import java.time.Instant
 import java.util.UUID

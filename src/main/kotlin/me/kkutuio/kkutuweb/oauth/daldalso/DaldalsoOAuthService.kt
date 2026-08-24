@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.oauth.daldalso
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
 import com.github.scribejava.core.model.Verb
@@ -52,21 +52,21 @@ class DaldalsoOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
-        val profileImage = jsonResponse.path("profile").path("image").asText(null)
+        val profileImage = jsonResponse.path("profile").path("image").asString(null)
         val fixedProfileImage =
             if (profileImage == "https://daldal.so/anonymous.png") "https://daldal.so/media/images/anonymous.png" else profileImage
-        val vendorId = jsonResponse.path("key").asText().takeIf { it.isNotBlank() }
+        val vendorId = jsonResponse.path("key").asString().takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("달달소 계정 식별번호를 받지 못했습니다.")
 
         return OAuthUser(
             authVendor = AuthVendor.DALDALSO,
             vendorId = vendorId,
-            name = jsonResponse.path("name").asText(null) ?: "달달소 사용자",
+            name = jsonResponse.path("name").asString(null) ?: "달달소 사용자",
             profileImage = fixedProfileImage,
             gender = null,
             minAge = null,
             maxAge = null,
-            email = jsonResponse.path("account").asText(null),
+            email = jsonResponse.path("account").asString(null),
             emailVerified = false
         )
     }

@@ -1,4 +1,6 @@
-<script nonce="kkutuio">
+<script>
+  import { run, stopPropagation } from 'svelte/legacy';
+
   import { onDestroy, onMount } from 'svelte';
   import { fade, fly, slide } from 'svelte/transition';
   import { browser } from '$app/environment';
@@ -109,47 +111,49 @@
   };
   const CHAIN_MODE_SET = new Set(['EKT', 'KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT', 'HUN', 'KDA', 'EDA']);
 
-  let searchType = SEARCH_TYPE.nickname;
-  let searchNick = '';
-  let currentStatus = 'main';
-  let selectedTab = 'profile';
-  let uid = '';
-  let loading = false;
-  let loadingHistory = false;
-  let authStateLoaded = false;
-  let isGuest = true;
-  let dashboardLoading = false;
+  let searchType = $state(SEARCH_TYPE.nickname);
+  let searchNick = $state('');
+  let currentStatus = $state('main');
+  let selectedTab = $state('profile');
+  let uid = $state('');
+  let loading = $state(false);
+  let loadingHistory = $state(false);
+  let authStateLoaded = $state(false);
+  let isGuest = $state(true);
+  let dashboardLoading = $state(false);
   let currentUserId = '';
   let errorMessage = '';
-  let toasts = [];
+  let toasts = $state([]);
   let toastId = 0;
   const toastTimers = new Map();
 
-  let page = 1;
-  let pageSize = 10;
-  let hasNext = false;
+  let page = $state(1);
+  let pageSize = $state(10);
+  let hasNext = $state(false);
   let historyLoaded = false;
 
-  let profile = null;
-  let moremi = {};
-  let historyRows = [];
-  let modeStats = [];
+  let profile = $state(null);
+  let moremi = $state({});
+  let historyRows = $state([]);
+  let modeStats = $state([]);
 
-  let expandedGameId = '';
-  let detailLoading = {};
-  let detailMap = {};
-  let selectedRoundByGame = {};
-  let hoveredChainPlayerByGame = {};
-  let showItemEntriesByGame = {};
-  let gameSearchResult = null;
-  let replayDetail = null;
-  let replayDownloadOpen = false;
-  let replayDownloadProgress = 0;
-  let unsupportedReplayOpen = false;
-  let hasResultView = false;
+  let expandedGameId = $state('');
+  let detailLoading = $state({});
+  let detailMap = $state({});
+  let selectedRoundByGame = $state({});
+  let hoveredChainPlayerByGame = $state({});
+  let showItemEntriesByGame = $state({});
+  let gameSearchResult = $state(null);
+  let replayDetail = $state(null);
+  let replayDownloadOpen = $state(false);
+  let replayDownloadProgress = $state(0);
+  let unsupportedReplayOpen = $state(false);
+  let hasResultView = $state(false);
   let currAbortController = null;
 
-  $: hasResultView = (currentStatus === 'user' && !!profile) || (currentStatus === 'game' && !!gameSearchResult);
+  run(() => {
+    hasResultView = (currentStatus === 'user' && !!profile) || (currentStatus === 'game' && !!gameSearchResult);
+  });
 
   function normalizeSearchType(value) {
     if (value === SEARCH_TYPE.id) return SEARCH_TYPE.id;
@@ -1224,9 +1228,9 @@
         type="text"
         class="ml-2 min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none placeholder:text-slate-300/80 sm:text-base"
         placeholder={searchPlaceholder()}
-        on:keydown={(e) => e.key === 'Enter' && runSearch()}
+        onkeydown={(e) => e.key === 'Enter' && runSearch()}
       />
-      <button class="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white transition hover:bg-white/10" on:click={runSearch}>
+      <button class="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white transition hover:bg-white/10" onclick={runSearch}>
         <i class="material-symbols-outlined icons-header">search</i>
       </button>
     </div>
@@ -1258,7 +1262,7 @@
                 {#if profile.rank}{Number(profile.rank).toLocaleString()}등 · {/if}레벨 {profile.level} · 경험치 {Number(profile.score).toLocaleString()}점
               </p>
             </div>
-            <button class="inline-flex shrink-0 items-center justify-center gap-1 rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-slate-900 transition hover:bg-sky-100" on:click={() => showMyRecords('profile')}>
+            <button class="inline-flex shrink-0 items-center justify-center gap-1 rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-slate-900 transition hover:bg-sky-100" onclick={() => showMyRecords('profile')}>
               내 전체 전적
               <span class="material-symbols-outlined text-base">arrow_forward</span>
             </button>
@@ -1271,7 +1275,7 @@
                 {@const recommended = getRecommendedMode()}
                 <p class="mt-3 text-xl font-black text-white">{recommended.modeName}</p>
                 <p class="mt-1 text-sm text-slate-200">승률 {recommended.winRate.toFixed(2)}% · {recommended.games.toLocaleString()}판 · {recommended.playHours.toFixed(1)}시간</p>
-                <button class="mt-auto pt-4 text-sm font-bold text-emerald-200 transition hover:text-white" on:click={() => showMyRecords('stats')}>게임 유형 통계 보기 →</button>
+                <button class="mt-auto pt-4 text-sm font-bold text-emerald-200 transition hover:text-white" onclick={() => showMyRecords('stats')}>게임 유형 통계 보기 →</button>
               {:else}
                 <p class="mt-3 text-sm text-slate-200">추천을 만들 만큼 기록된 경기가 아직 없어요.</p>
               {/if}
@@ -1283,7 +1287,7 @@
                 {@const needsWork = getNeedsWorkMode()}
                 <p class="mt-3 text-xl font-black text-white">{needsWork.modeName}</p>
                 <p class="mt-1 text-sm text-slate-200">승률 {needsWork.winRate.toFixed(2)}% · {needsWork.games.toLocaleString()}판</p>
-                <button class="mt-auto pt-4 text-sm font-bold text-violet-200 transition hover:text-white" on:click={() => showMyRecords('history')}>경기 내역 보기 →</button>
+                <button class="mt-auto pt-4 text-sm font-bold text-violet-200 transition hover:text-white" onclick={() => showMyRecords('history')}>경기 내역 보기 →</button>
               {:else}
                 <p class="mt-3 text-sm text-slate-200">10판 이상 기록된 모드가 생기면 알려드릴게요.</p>
               {/if}
@@ -1293,12 +1297,12 @@
           <section class="mt-4 overflow-hidden rounded-xl border border-white/15 bg-slate-950/40 text-left">
             <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <div class="flex items-center gap-2 text-sm font-bold text-sky-200"><span class="material-symbols-outlined text-lg">history</span>최근 경기</div>
-              <button class="text-sm font-bold text-sky-200 transition hover:text-white" on:click={() => showMyRecords('history')}>전체 보기 →</button>
+              <button class="text-sm font-bold text-sky-200 transition hover:text-white" onclick={() => showMyRecords('history')}>전체 보기 →</button>
             </div>
             {#if historyRows.length}
               <div class="divide-y divide-white/10">
                 {#each historyRows.slice(0, 10) as row (row.gameId)}
-                  <button class="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5" on:click={() => showMyRecords('history')}>
+                  <button class="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5" onclick={() => showMyRecords('history')}>
                     <span class={`inline-flex h-9 w-11 shrink-0 items-center justify-center rounded-lg text-sm font-black ${row.won ? 'bg-amber-300 text-slate-950' : 'bg-white/10 text-white'}`}>#{row.placement}</span>
                     <span class="min-w-0 flex-1">
                       <span class="block truncate text-sm font-bold text-white">{getModeLabel(row)} · {row.roomTitle || '제목 없음'}</span>
@@ -1323,18 +1327,18 @@
         <div class="flex flex-col gap-5 bg-gradient-to-br from-emerald-50 to-sky-50 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between dark:from-slate-800 dark:to-slate-900">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
             <div class="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white/70 shadow-sm sm:h-28 sm:w-28 dark:border-slate-600 dark:bg-slate-800/70">
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${moremi.Mback || 'default.png'}`} class="absolute h-full w-full object-cover" alt="bg" on:error={(e) => handleImgErr(e, 'back', equip.Mback)}/>
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${moremi.Mback || 'default.png'}`} class="absolute h-full w-full object-cover" alt="bg" onerror={(e) => handleImgErr(e, 'back', moremi.Mback)}/>
               <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body/${moremi.Mbody || 'default.png'}`} class="absolute h-full w-full object-cover" alt="body" />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${moremi.Meye || 'default.png'}`} class="absolute h-full w-full object-cover" alt="eye" on:error={(e) => handleImgErr(e, 'eye', equip.Meye)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${moremi.Mmouth || 'default.png'}`} class="absolute h-full w-full object-cover" alt="mouth" on:error={(e) => handleImgErr(e, 'mouth', equip.Mmouth)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${moremi.Mclothes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="clothes" on:error={(e) => handleImgErr(e, 'clothes', equip.Mclothes)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${moremi.Mshoes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="shoes" on:error={(e) => handleImgErr(e, 'shoes', equip.Mshoes)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${moremi.Mhead || "default.png"}`} class="absolute h-full w-full object-cover" alt="head" on:error={(e) => handleImgErr(e, 'head', equip.Mhead)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mrhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="rhand" on:error={(e) => handleImgErr(e, 'hand', equip.Mrhand)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mlhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="lhand" on:error={(e) => handleImgErr(e, 'hand', equip.Mlhand)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${moremi.MheadDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="headdeco" on:error={(e) => handleImgErr(e, 'headDeco', equip.MheadDeco)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${moremi.MdressDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="dressdeco" on:error={(e) => handleImgErr(e, 'dressDeco', equip.MdressDeco)} />
-              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${moremi.BDG || "default.png"}`} class="absolute h-full w-full object-cover" alt="badge" on:error={(e) => handleImgErr(e, 'badge', equip.BDG)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${moremi.Meye || 'default.png'}`} class="absolute h-full w-full object-cover" alt="eye" onerror={(e) => handleImgErr(e, 'eye', moremi.Meye)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${moremi.Mmouth || 'default.png'}`} class="absolute h-full w-full object-cover" alt="mouth" onerror={(e) => handleImgErr(e, 'mouth', moremi.Mmouth)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${moremi.Mclothes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="clothes" onerror={(e) => handleImgErr(e, 'clothes', moremi.Mclothes)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${moremi.Mshoes || 'default.png'}`} class="absolute h-full w-full object-cover" alt="shoes" onerror={(e) => handleImgErr(e, 'shoes', moremi.Mshoes)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${moremi.Mhead || "default.png"}`} class="absolute h-full w-full object-cover" alt="head" onerror={(e) => handleImgErr(e, 'head', moremi.Mhead)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mrhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="rhand" onerror={(e) => handleImgErr(e, 'hand', moremi.Mrhand)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${moremi.Mlhand || "default.png"}`} class="absolute h-full w-full object-cover" alt="lhand" onerror={(e) => handleImgErr(e, 'hand', moremi.Mlhand)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${moremi.MheadDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="headdeco" onerror={(e) => handleImgErr(e, 'headDeco', moremi.MheadDeco)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${moremi.MdressDeco || "default.png"}`} class="absolute h-full w-full object-cover" alt="dressdeco" onerror={(e) => handleImgErr(e, 'dressDeco', moremi.MdressDeco)} />
+              <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${moremi.BDG || "default.png"}`} class="absolute h-full w-full object-cover" alt="badge" onerror={(e) => handleImgErr(e, 'badge', moremi.BDG)} />
             </div>
             <div class="min-w-0">
               <div class="mb-2 flex flex-wrap items-center gap-2">
@@ -1359,20 +1363,20 @@
               </div>
             </div>
           </div>
-          <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-extrabold text-slate-900 shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[150px]" on:click={() => loadAll(false)} disabled={loading}>
+          <button class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 text-sm font-extrabold text-slate-900 shadow-md shadow-amber-400/30 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60 lg:min-w-[150px]" onclick={() => loadAll(false)} disabled={loading}>
             <span class:animate-spin={loading} class="material-symbols-outlined text-xl">{loading ? 'progress_activity' : 'refresh'}</span>
             {loading ? '불러오는 중...' : '새로고침'}
           </button>
         </div>
 
         <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-2">
-          <button class={getTabClass(selectedTab === 'profile')} on:click={async () => { selectedTab = 'profile'; await ensureHistoryLoaded(); }}>
+          <button class={getTabClass(selectedTab === 'profile')} onclick={async () => { selectedTab = 'profile'; await ensureHistoryLoaded(); }}>
             <span class="material-symbols-outlined text-base">person</span> 사용자 정보
           </button>
-          <button class={getTabClass(selectedTab === 'stats')} on:click={() => (selectedTab = 'stats')}>
+          <button class={getTabClass(selectedTab === 'stats')} onclick={() => (selectedTab = 'stats')}>
             <span class="material-symbols-outlined text-base">query_stats</span> 통계
           </button>
-          <button class={getTabClass(selectedTab === 'history')} on:click={async () => { selectedTab = 'history'; await ensureHistoryLoaded(); }}>
+          <button class={getTabClass(selectedTab === 'history')} onclick={async () => { selectedTab = 'history'; await ensureHistoryLoaded(); }}>
             <span class="material-symbols-outlined text-base">history</span> 경기 내역
           </button>
         </div>
@@ -1414,7 +1418,7 @@
             <h3 class="text-2xl font-bold">{selectedTab === 'profile' ? '최근 경기' : '경기 내역'}</h3>
             <div class="flex items-center gap-2 text-sm">
               <span>쪽 당 행</span>
-              <select class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" bind:value={pageSize} on:change={changePageSize}>
+              <select class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" bind:value={pageSize} onchange={changePageSize}>
                 {#each ALLOWED_PAGE_SIZES as size}
                   <option value={size}>{size}</option>
                 {/each}
@@ -1440,7 +1444,7 @@
             <div class="space-y-3">
               {#each historyRows as row}
                 <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900" style={`border-left: 6px solid ${getHistoryStripeColor(row)}`}>
-                  <button class="w-full text-left p-4" on:click={() => toggleDetail(row.gameId)} aria-expanded={expandedGameId === row.gameId}>
+                  <button class="w-full text-left p-4" onclick={() => toggleDetail(row.gameId)} aria-expanded={expandedGameId === row.gameId}>
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
                       <div class="text-3xl font-black">
                         #{row.placement}
@@ -1470,8 +1474,8 @@
                         <div class="text-sm text-red-600">상세 정보를 불러오지 못했습니다.</div>
                       {:else if detailMap[row.gameId]}
                         <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
-                          <div class="cursor-text select-text" on:click={selectTextFromCurrentTarget}>경기번호: <code data-select-text>{row.gameId}</code></div>
-                          <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => downloadAndOpenReplay(row.gameId)}>
+                          <div class="cursor-text select-text" role="button" tabindex="0" onclick={selectTextFromCurrentTarget} onkeydown={(event) => event.key === 'Enter' && selectTextFromCurrentTarget(event)}>경기번호: <code data-select-text>{row.gameId}</code></div>
+                          <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" onclick={() => downloadAndOpenReplay(row.gameId)}>
                             <span class="material-symbols-outlined text-base">play_circle</span> 리플레이 보기
                           </button>
                         </div>
@@ -1516,10 +1520,10 @@
                                   {/if}
                                 </div>
                                 <div class="shrink-0 flex items-center gap-1">
-                                  <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
+                                  <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="식별번호 복사" onclick={() => copyPlayerId(participant.id)}>
                                     <span class="material-symbols-outlined text-base">content_copy</span>
                                   </button>
-                                  <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
+                                  <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="계정 정보 보기" disabled={participant.robot} onclick={() => openAccountInfo(participant.id)}>
                                     <span class="material-symbols-outlined text-base">account_circle</span>
                                   </button>
                                 </div>
@@ -1565,13 +1569,13 @@
                                   <input
                                     type="checkbox"
                                     checked={Boolean(showItemEntriesByGame[row.gameId])}
-                                    on:change={(e) => (showItemEntriesByGame = { ...showItemEntriesByGame, [row.gameId]: e.currentTarget.checked })}
+                                    onchange={(e) => (showItemEntriesByGame = { ...showItemEntriesByGame, [row.gameId]: e.currentTarget.checked })}
                                   />
                                 </label>
                               </div>
                               <div class="flex flex-wrap gap-2 mb-3">
                                 {#each detailMap[row.gameId].replayView.chain.roundKeys as roundKey}
-                                  <button class={getRoundButtonClass(selectedRoundByGame[row.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
+                                  <button class={getRoundButtonClass(selectedRoundByGame[row.gameId] === roundKey)} onclick={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
                                     라운드 {roundKey}
                                   </button>
                                 {/each}
@@ -1583,8 +1587,8 @@
                                     <div
                                       class={getChainOrderClass(hoveredChainPlayerByGame[row.gameId] === slot.playerIndex)}
                                       role="presentation"
-                                      on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: slot.playerIndex })}
-                                      on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
+                                      onmouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: slot.playerIndex })}
+                                      onmouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
                                     >
                                       <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{slot.order}</span>
                                       <span class="font-semibold">{@html processNick(slot.nickname)}</span>
@@ -1598,9 +1602,10 @@
                                 <div class="mt-3 flex flex-wrap items-center gap-2">
                                   {#each detailMap[row.gameId].replayView.chain.rounds[selectedRoundByGame[row.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[row.gameId]) || !entry.isItem) as chainEntry, idx}
                                     <div
+                                      role="listitem"
                                       class={getChainEntryClass(chainEntry, hoveredChainPlayerByGame[row.gameId] === chainEntry.playerIndex)}
-                                      on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: chainEntry.playerIndex })}
-                                      on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
+                                      onmouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: chainEntry.playerIndex })}
+                                      onmouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [row.gameId]: -1 })}
                                     >
                                       {#if chainEntry.showTurn}
                                         <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{getDisplayTurn(chainEntry.turn)}</span>
@@ -1631,7 +1636,7 @@
                               <div class="font-semibold mb-2">낱말 내역</div>
                               <div class="flex flex-wrap gap-2 mb-3">
                                 {#each detailMap[row.gameId].replayView.roundKeys as roundKey}
-                                  <button class={getRoundButtonClass(selectedRoundByGame[row.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
+                                  <button class={getRoundButtonClass(selectedRoundByGame[row.gameId] === roundKey)} onclick={() => (selectedRoundByGame = { ...selectedRoundByGame, [row.gameId]: roundKey })}>
                                     라운드 {roundKey}
                                   </button>
                                 {/each}
@@ -1678,9 +1683,9 @@
             </div>
 
             <div class="mt-4 flex items-center justify-center gap-3">
-              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="이전 페이지" on:click={() => movePage(page - 1)} disabled={page <= 1 || loadingHistory}><span class:animate-spin={loadingHistory} class="material-symbols-outlined">{loadingHistory ? 'progress_activity' : 'chevron_left'}</span></button>
+              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="이전 페이지" onclick={() => movePage(page - 1)} disabled={page <= 1 || loadingHistory}><span class:animate-spin={loadingHistory} class="material-symbols-outlined">{loadingHistory ? 'progress_activity' : 'chevron_left'}</span></button>
               <span class="min-w-20 text-center text-sm font-bold text-slate-600 dark:text-slate-300">{page} 페이지</span>
-              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="다음 페이지" on:click={() => movePage(page + 1)} disabled={!hasNext || loadingHistory}><span class:animate-spin={loadingHistory} class="material-symbols-outlined">{loadingHistory ? 'progress_activity' : 'chevron_right'}</span></button>
+              <button class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700" aria-label="다음 페이지" onclick={() => movePage(page + 1)} disabled={!hasNext || loadingHistory}><span class:animate-spin={loadingHistory} class="material-symbols-outlined">{loadingHistory ? 'progress_activity' : 'chevron_right'}</span></button>
             </div>
           {/if}
         </section>
@@ -1694,12 +1699,12 @@
         <h3 class="text-2xl font-bold mb-3">경기 조회 결과</h3>
         <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
           <div class="absolute inset-x-0 top-0 h-1 bg-sky-500"></div>
-          <button class="w-full text-left p-4 pt-5" on:click={() => toggleDetail(gameSearchResult.gameId)} aria-expanded={expandedGameId === gameSearchResult.gameId}>
+          <button class="w-full text-left p-4 pt-5" onclick={() => toggleDetail(gameSearchResult.gameId)} aria-expanded={expandedGameId === gameSearchResult.gameId}>
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:gap-8">
               <div class="break-all text-base font-black sm:text-2xl">{gameSearchResult.roomTitle || '제목 없음'}</div>
               <div class="flex-1 min-w-0">
                 <div class="font-bold text-lg truncate">{getModeLabel(gameSearchResult)}</div>
-                <div data-select-text class="cursor-text select-text text-sm text-gray-500 dark:text-gray-300" on:click|stopPropagation={selectTextFromCurrentTarget}>{gameSearchResult.gameId}</div>
+                <div data-select-text class="cursor-text select-text text-sm text-gray-500 dark:text-gray-300">{gameSearchResult.gameId}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-300 mt-1">{formatAgo(gameSearchResult.startedAt)} · {formatDate(gameSearchResult.startedAt)}</div>
               </div>
               <div class="shrink-0 text-left sm:text-right">
@@ -1732,7 +1737,7 @@
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
               </div>
               <div class="mt-3 flex justify-end">
-                <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" on:click={() => downloadAndOpenReplay(gameSearchResult.gameId)}>
+                <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" onclick={() => downloadAndOpenReplay(gameSearchResult.gameId)}>
                   <span class="material-symbols-outlined text-base">play_circle</span>
                     리플레이 보기
                 </button>
@@ -1759,10 +1764,10 @@
                         {/if}
                       </div>
                       <div class="shrink-0 flex items-center gap-1">
-                        <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="식별번호 복사" on:click={() => copyPlayerId(participant.id)}>
+                        <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="식별번호 복사" onclick={() => copyPlayerId(participant.id)}>
                           <span class="material-symbols-outlined text-base">content_copy</span>
                         </button>
-                        <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="계정 정보 보기" disabled={participant.robot} on:click={() => openAccountInfo(participant.id)}>
+                        <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700" title="계정 정보 보기" disabled={participant.robot} onclick={() => openAccountInfo(participant.id)}>
                           <span class="material-symbols-outlined text-base">account_circle</span>
                         </button>
                       </div>
@@ -1808,13 +1813,13 @@
                         <input
                           type="checkbox"
                           checked={Boolean(showItemEntriesByGame[gameSearchResult.gameId])}
-                          on:change={(e) => (showItemEntriesByGame = { ...showItemEntriesByGame, [gameSearchResult.gameId]: e.currentTarget.checked })}
+                          onchange={(e) => (showItemEntriesByGame = { ...showItemEntriesByGame, [gameSearchResult.gameId]: e.currentTarget.checked })}
                         />
                       </label>
                     </div>
                     <div class="flex flex-wrap gap-2 mb-3">
                       {#each detailMap[gameSearchResult.gameId].replayView.chain.roundKeys as roundKey}
-                        <button class={getRoundButtonClass(selectedRoundByGame[gameSearchResult.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
+                        <button class={getRoundButtonClass(selectedRoundByGame[gameSearchResult.gameId] === roundKey)} onclick={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
                           라운드 {roundKey}
                         </button>
                       {/each}
@@ -1826,8 +1831,8 @@
                           <div
                             class={getChainOrderClass(hoveredChainPlayerByGame[gameSearchResult.gameId] === slot.playerIndex)}
                             role="presentation"
-                            on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: slot.playerIndex })}
-                            on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
+                            onmouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: slot.playerIndex })}
+                            onmouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
                           >
                             <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{slot.order}</span>
                             <span class="font-semibold">{@html processNick(slot.nickname)}</span>
@@ -1841,9 +1846,10 @@
                       <div class="mt-3 flex flex-wrap items-center gap-2">
                         {#each detailMap[gameSearchResult.gameId].replayView.chain.rounds[selectedRoundByGame[gameSearchResult.gameId]].entries.filter((entry) => Boolean(showItemEntriesByGame[gameSearchResult.gameId]) || !entry.isItem) as chainEntry, idx}
                           <div
+                            role="listitem"
                             class={getChainEntryClass(chainEntry, hoveredChainPlayerByGame[gameSearchResult.gameId] === chainEntry.playerIndex)}
-                            on:mouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: chainEntry.playerIndex })}
-                            on:mouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
+                            onmouseenter={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: chainEntry.playerIndex })}
+                            onmouseleave={() => (hoveredChainPlayerByGame = { ...hoveredChainPlayerByGame, [gameSearchResult.gameId]: -1 })}
                           >
                             {#if chainEntry.showTurn}
                               <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-200 px-1 text-xs font-extrabold text-slate-700 dark:bg-slate-600 dark:text-slate-100">{getDisplayTurn(chainEntry.turn)}</span>
@@ -1874,7 +1880,7 @@
                     <div class="font-semibold mb-2">라운드 기록</div>
                     <div class="flex flex-wrap gap-2 mb-3">
                       {#each detailMap[gameSearchResult.gameId].replayView.roundKeys as roundKey}
-                        <button class={getRoundButtonClass(selectedRoundByGame[gameSearchResult.gameId] === roundKey)} on:click={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
+                        <button class={getRoundButtonClass(selectedRoundByGame[gameSearchResult.gameId] === roundKey)} onclick={() => (selectedRoundByGame = { ...selectedRoundByGame, [gameSearchResult.gameId]: roundKey })}>
                           라운드 {roundKey}
                         </button>
                       {/each}

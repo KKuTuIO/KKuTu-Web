@@ -89,10 +89,10 @@ class UserDao(
         ).toMap()
     }
 
-    fun listLegacyUserIds(after: String?, limit: Int): List<String> {
-        return if (after == null) jdbcTemplate.queryForList("SELECT _id FROM users ORDER BY _id LIMIT ?", String::class.java, limit)
+    fun listLegacyUserIds(after: String?, limit: Int): List<String> = (
+        if (after == null) jdbcTemplate.queryForList("SELECT _id FROM users ORDER BY _id LIMIT ?", String::class.java, limit)
         else jdbcTemplate.queryForList("SELECT _id FROM users WHERE _id > ? ORDER BY _id LIMIT ?", String::class.java, after, limit)
-    }
+    ).filterNotNull()
 
     fun getUserFromNick(similarityNick: String, originalNick: String): User? {
         val sql = "SELECT * FROM users WHERE \"meanableNick\" = ? OR nickname = ?"
@@ -115,12 +115,12 @@ class UserDao(
 
     fun getSimilarityNicks(): List<String> {
         val sql = "SELECT \"meanableNick\" FROM users"
-        return jdbcTemplate.query(sql, SingleColumnRowMapper())
+        return jdbcTemplate.query(sql, SingleColumnRowMapper(String::class.java)).filterNotNull()
     }
 
     fun getNicks(): List<String> {
         val sql = "SELECT \"nickname\" FROM users"
-        return jdbcTemplate.query(sql, SingleColumnRowMapper())
+        return jdbcTemplate.query(sql, SingleColumnRowMapper(String::class.java)).filterNotNull()
     }
 
     fun getExistsSimilarityNick(similarityNick: String): Boolean {

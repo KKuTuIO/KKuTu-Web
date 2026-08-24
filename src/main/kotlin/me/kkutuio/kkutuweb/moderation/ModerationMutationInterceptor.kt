@@ -5,8 +5,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.servlet.HandlerInterceptor
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 
 @Component
 class ModerationMutationInterceptor : HandlerInterceptor {
@@ -15,7 +15,7 @@ class ModerationMutationInterceptor : HandlerInterceptor {
         response: HttpServletResponse,
         handler: Any
     ): Boolean {
-        if (request.method == HttpMethod.GET.name || request.method == HttpMethod.OPTIONS.name) {
+        if (request.method == HttpMethod.GET.name() || request.method == HttpMethod.OPTIONS.name()) {
             return true
         }
         if (request.getHeader("X-Requested-With") != "XMLHttpRequest") {

@@ -21,6 +21,5 @@ package me.kkutuio.kkutuweb.view
 enum class View {
     LAYOUT,
     PORTAL,
-    KKUTU,
-    REACT
+    KKUTU
 }

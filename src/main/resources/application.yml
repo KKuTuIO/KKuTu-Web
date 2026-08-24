@@ -16,9 +16,6 @@ server:
 spring:
   application:
     name: kkutu-web
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
   thymeleaf:
     cache: true
   messages:
@@ -42,14 +39,15 @@ spring:
     open-in-view: false
   cache:
     type: simple
-  redis:
-    lettuce:
-      pool:
-        max-active: 10
-        max-idle: 10
-        min-idle: 2
-    host: <Host>
-    port: <Port>
+  data:
+    redis:
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 10
+          min-idle: 2
+      host: <Host>
+      port: <Port>
   cors:
     allowed-origins: <Origin>
   security:
@@ -118,8 +116,7 @@ idp:
   legacy-migration:
     enabled: false
 
-springfox:
-  documentation:
-    swagger:
-      v2:
-        path: /api/admin/api-docs
+springdoc:
+  api-docs:
+    path: /api/admin/api-docs
+  paths-to-match: /api/**

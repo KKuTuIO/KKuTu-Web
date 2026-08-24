@@ -9,7 +9,7 @@ import me.kkutuio.kkutuweb.theme.ThemePresetAdminService
 import me.kkutuio.kkutuweb.theme.ThemePresetRequest
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.web.bind.annotation.*
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 
 @RestController
 @RequestMapping("/api/admin/theme-presets")

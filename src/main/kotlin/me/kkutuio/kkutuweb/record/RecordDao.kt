@@ -42,8 +42,8 @@ class RecordDao(
         return when {
             value.isBoolean -> value.asBoolean()
             value.isNumber -> value.asInt() != 0
-            value.isTextual -> {
-                val normalized = value.asText("").trim().lowercase()
+            value.isString -> {
+                val normalized = value.asString("").trim().lowercase()
                 when (normalized) {
                     "true", "1" -> true
                     "false", "0" -> false

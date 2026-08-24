@@ -18,10 +18,9 @@
 
 package me.kkutuio.kkutuweb.extension
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import tools.jackson.databind.JsonNode
+import tools.jackson.module.kotlin.jacksonObjectMapper
 
-private val objectMapper = ObjectMapper().registerKotlinModule()
+private val objectMapper = jacksonObjectMapper()
 
 fun JsonNode.toJson(): String = objectMapper.writeValueAsString(this)

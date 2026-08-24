@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.oauth.facebook
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import com.github.scribejava.apis.FacebookApi
 import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
@@ -54,18 +54,18 @@ class FacebookOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
-        val vendorId = jsonResponse.path("id").asText().takeIf { it.isNotBlank() }
+        val vendorId = jsonResponse.path("id").asString().takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("Facebook 계정 식별번호를 받지 못했습니다.")
 
         return OAuthUser(
             authVendor = AuthVendor.FACEBOOK,
             vendorId = vendorId,
-            name = jsonResponse.path("name").asText(null) ?: "Facebook 사용자",
+            name = jsonResponse.path("name").asString(null) ?: "Facebook 사용자",
             profileImage = "http://graph.facebook.com/$vendorId/picture?type=square",
-            gender = jsonResponse.path("gender").asText(null)?.let(Gender::fromName),
+            gender = jsonResponse.path("gender").asString(null)?.let(Gender::fromName),
             minAge = if (jsonResponse.has("age_range") && jsonResponse["age_range"].has("min")) jsonResponse["age_range"]["min"].intValue() else null,
             maxAge = if (jsonResponse.has("age_range") && jsonResponse["age_range"].has("max")) jsonResponse["age_range"]["max"].intValue() else null,
-            email = jsonResponse.path("email").asText(null),
+            email = jsonResponse.path("email").asString(null),
             emailVerified = false
         )
     }

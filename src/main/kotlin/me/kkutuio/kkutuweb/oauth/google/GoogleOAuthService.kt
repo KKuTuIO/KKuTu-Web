@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.oauth.google
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import com.github.scribejava.apis.GoogleApi20
 import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
@@ -55,13 +55,13 @@ class GoogleOAuthService(
 
         return OAuthUser(
             authVendor = AuthVendor.GOOGLE,
-            vendorId = jsonResponse.path("sub").asText(),
-            name = jsonResponse.path("name").asText(null) ?: jsonResponse.path("email").asText(""),
-            profileImage = jsonResponse.path("picture").asText(null),
+            vendorId = jsonResponse.path("sub").asString(),
+            name = jsonResponse.path("name").asString(null) ?: jsonResponse.path("email").asString(""),
+            profileImage = jsonResponse.path("picture").asString(null),
             gender = null,
             minAge = null,
             maxAge = null,
-            email = jsonResponse.path("email").asText(null),
+            email = jsonResponse.path("email").asString(null),
             emailVerified = jsonResponse.path("email_verified").asBoolean(false)
         )
     }

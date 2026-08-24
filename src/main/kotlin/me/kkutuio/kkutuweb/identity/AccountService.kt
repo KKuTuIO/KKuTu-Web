@@ -4,13 +4,14 @@ import me.kkutuio.kkutuweb.extension.*
 import me.kkutuio.kkutuweb.oauth.AuthVendor
 import me.kkutuio.kkutuweb.oauth.OAuthUser
 import me.kkutuio.kkutuweb.user.UserDao
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 
 @Service
 class AccountService(
@@ -94,7 +95,7 @@ class AccountService(
     }
 
     fun revealSecurityCode(account: Account): String {
-        val value = account.flags.path("uid").path("value").asText(null)
+        val value = account.flags.path("uid").path("value").asString(null)
         if (value.isNullOrBlank()) throw IdpException("not_found", "표시할 보안코드가 없습니다.", 404)
         dao.audit(account.id, "SECURITY_CODE_REVEALED")
         return value
@@ -251,6 +252,15 @@ class AccountService(
         val nicknameState = userDao.nicknameState(selectedUserId)
         val identities = dao.listIdentities(account.id).filter { it.revokedAt == null && (settings.passwordEnabled || it.type != IdentityType.PASSWORD) }
         val email = identities.firstOrNull { it.type == IdentityType.EMAIL && it.verifiedAt != null }
+        val rawProfiles = dao.listProfiles(account.id)
+        val profiles = uniqueProfileRows(rawProfiles)
+        if (profiles.size != rawProfiles.size) {
+            logger.warn(
+                "Discarded {} malformed or duplicate profile rows for account {}",
+                rawProfiles.size - profiles.size,
+                account.id
+            )
+        }
         return mapOf(
             "sub" to account.id.toString(), "uuid" to account.uuid.toString(), "legacy_user_id" to account.legacyUserId,
             "nickname" to user?.nickname, "nickname_changed_at" to nicknameState?.lastModifiedAt?.let { Instant.ofEpochMilli(it).toString() },
@@ -264,8 +274,8 @@ class AccountService(
             "support_pin_issued_at" to dao.supportPinIssuedAt(account.id)?.toString(),
             "deletion_requested_at" to account.deletionRequestedAt?.toString(),
             "deletion_scheduled_at" to account.deletionScheduledAt?.toString(),
-            "selected_profile_id" to dao.defaultProfile(account.id)?.get("id")?.toString()
-            ,"profiles" to dao.listProfiles(account.id)
+            "selected_profile_id" to dao.defaultProfile(account.id)?.get("id")?.toString(),
+            "profiles" to profiles
         )
     }
 
@@ -276,5 +286,17 @@ class AccountService(
 
     private fun requirePasswordEnabled() {
         if (!settings.passwordEnabled) throw IdpException("password_disabled", "비밀번호 로그인은 비활성화되어 있습니다.", 404)
+    }
+
+    private companion object {
+        val logger = LoggerFactory.getLogger(AccountService::class.java)
+    }
+}
+
+internal fun uniqueProfileRows(rows: List<Map<String, Any?>>): List<Map<String, Any?>> {
+    val seen = mutableSetOf<String>()
+    return rows.filter { row ->
+        val id = row["id"]?.toString()?.trim().orEmpty()
+        id.isNotEmpty() && seen.add(id)
     }
 }

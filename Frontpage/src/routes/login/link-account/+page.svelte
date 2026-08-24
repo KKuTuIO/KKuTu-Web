@@ -1,8 +1,8 @@
-<script nonce="kkutuio">
+<script>
     import { onMount } from 'svelte';
 
-    let provider = '';
-    let ready = false;
+    let provider = $state('');
+    let ready = $state(false);
 
     onMount(async () => {
         try {

@@ -1,19 +1,19 @@
 <script>
     import {onMount, tick} from 'svelte';
 
-    let digits = ['', '', '', '', '', ''];
-    let inputs = [];
-    let securityCode = '';
-    let emailCode = '';
-    let useSecurityCode = false;
-    let useEmailBackup = false;
-    let emailBackupAvailable = false;
-    let error = '';
-    let notice = '';
-    let ready = false;
-    let submitting = false;
+    let digits = $state(['', '', '', '', '', '']);
+    let inputs = $state([]);
+    let securityCode = $state('');
+    let emailCode = $state('');
+    let useSecurityCode = $state(false);
+    let useEmailBackup = $state(false);
+    let emailBackupAvailable = $state(false);
+    let error = $state('');
+    let notice = $state('');
+    let ready = $state(false);
+    let submitting = $state(false);
 
-    $: totpCode = digits.join('');
+    let totpCode = $derived(digits.join(''));
 
     function csrfHeaders() {
         const token = document.cookie.split('; ').find(value => value.startsWith('XSRF-TOKEN='))?.split('=').slice(1).join('=');
@@ -133,19 +133,19 @@
             {#if useSecurityCode}
                 <h1 class="mt-10 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">계정 보안코드를 입력하세요</h1>
                 <input class="mx-auto mt-10 block w-full max-w-md rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-lg tracking-wide text-slate-900 outline-none transition focus:border-[#55aa55] focus:ring-4 focus:ring-green-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:ring-green-950"
-                       bind:value={securityCode} autocomplete="one-time-code" placeholder="계정 보안코드 입력" on:keydown={(event) => event.key === 'Enter' && verify()}/>
+                       bind:value={securityCode} autocomplete="one-time-code" placeholder="계정 보안코드 입력" onkeydown={(event) => event.key === 'Enter' && verify()}/>
             {:else if useEmailBackup}
                 <h1 class="mt-10 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">전자 메일 인증 코드를 입력하세요</h1>
                 <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300 sm:text-lg">인증된 전자 메일 주소로 보낸 인증 코드를 입력해 주세요.</p>
                 <input class="mx-auto mt-10 block w-full max-w-md rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-lg tracking-wide text-slate-900 outline-none transition focus:border-[#55aa55] focus:ring-4 focus:ring-green-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:ring-green-950"
-                       bind:value={emailCode} autocomplete="one-time-code" placeholder="전자 메일 인증 코드" on:keydown={(event) => event.key === 'Enter' && verify()}/>
+                       bind:value={emailCode} autocomplete="one-time-code" placeholder="전자 메일 인증 코드" onkeydown={(event) => event.key === 'Enter' && verify()}/>
             {:else}
                 <h1 class="mt-10 whitespace-nowrap text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">인증 앱의 6자리 코드를 입력하세요</h1>
                 <div class="mx-auto mt-10 flex max-w-md justify-center gap-2 sm:gap-3">
                     {#each digits as digit, index}
                         <input class="h-14 w-11 rounded-xl border border-slate-300 bg-white text-center text-2xl font-bold text-slate-900 outline-none transition focus:border-[#55aa55] focus:ring-4 focus:ring-green-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:ring-green-950 sm:h-16 sm:w-14"
                                bind:this={inputs[index]} value={digit} inputmode="numeric" autocomplete={index === 0 ? 'one-time-code' : 'off'} maxlength="6" aria-label={`${index + 1}번째 인증 숫자`}
-                               on:input={(event) => setDigit(index, event)} on:keydown={(event) => handleKeydown(index, event)}/>
+                               oninput={(event) => setDigit(index, event)} onkeydown={(event) => handleKeydown(index, event)}/>
                     {/each}
                 </div>
             {/if}
@@ -153,14 +153,14 @@
             {#if notice}<p class="mt-5 text-sm font-medium text-[#438c43]" role="status">{notice}</p>{/if}
             <div class="mt-8 text-sm">
                 {#if useSecurityCode || useEmailBackup}
-                    <button class="font-semibold text-[#438c43] underline underline-offset-4" on:click={useTotp}>2단계 인증 앱 사용</button>
+                    <button class="font-semibold text-[#438c43] underline underline-offset-4" onclick={useTotp}>2단계 인증 앱 사용</button>
                 {:else}
-                    {#if emailBackupAvailable}<button class="font-semibold text-[#438c43] underline underline-offset-4" on:click={requestEmailBackup}>대신 전자 메일 주소로 인증하기</button><span class="mx-2 text-slate-300">·</span>{/if}
-                    <button class="font-semibold text-[#438c43] underline underline-offset-4" on:click={() => useSecurityCode = true}>인증 앱을 사용할 수 없나요? 보안코드 사용</button>
+                    {#if emailBackupAvailable}<button class="font-semibold text-[#438c43] underline underline-offset-4" onclick={requestEmailBackup}>대신 전자 메일 주소로 인증하기</button><span class="mx-2 text-slate-300">·</span>{/if}
+                    <button class="font-semibold text-[#438c43] underline underline-offset-4" onclick={() => useSecurityCode = true}>인증 앱을 사용할 수 없나요? 보안코드 사용</button>
                 {/if}
             </div>
             <button class="mt-10 min-w-[220px] rounded-full bg-[#55aa55] px-8 py-4 text-lg font-bold text-white shadow-md transition hover:bg-[#438c43] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={submitting} on:click={verify}>{submitting ? '확인 중…' : '인증하기'}</button>
+                    disabled={submitting} onclick={verify}>{submitting ? '확인 중…' : '인증하기'}</button>
             <p class="mt-12"><a class="font-semibold text-[#438c43] hover:underline" href="/login">← 처음으로 돌아가기</a></p>
         </div>
     </section>

@@ -37,13 +37,13 @@ import me.kkutuio.kkutuweb.identity.Account
 import me.kkutuio.kkutuweb.identity.AccountSecurityService
 import me.kkutuio.kkutuweb.identity.SecretTools
 import me.kkutuio.kkutuweb.oauth.OAuthUser
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.slf4j.LoggerFactory
-import javax.annotation.PostConstruct
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import jakarta.annotation.PostConstruct
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 import kotlin.streams.asSequence
 import java.time.Instant
 

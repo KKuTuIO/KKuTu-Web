@@ -1,6 +1,6 @@
 package me.kkutuio.kkutuweb.shop
 
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 import java.time.Instant
 
 data class ShopAdminItem(

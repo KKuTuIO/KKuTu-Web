@@ -40,9 +40,18 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.support.RequestContextUtils
 import java.util.*
 import java.security.SecureRandom
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 import kotlin.streams.asSequence
+
+private const val CANONICAL_ORIGIN = "https://kkutu.io"
+
+internal fun canonicalUrl(requestUri: String): String {
+    val path = requestUri.takeIf {
+        it.startsWith('/') && !it.startsWith("//") && '\r' !in it && '\n' !in it
+    } ?: "/"
+    return "$CANONICAL_ORIGIN$path"
+}
 
 @Controller
 class MainController(
@@ -92,7 +101,7 @@ class MainController(
             if (account != null && accountService.isServiceAccessBlocked(account)) return "redirect:/account"
         }
 
-        if (!isGuest && setupService.needSetup(sessionProfile!!)) {
+        if (sessionProfile != null && setupService.needSetup(sessionProfile)) {
             return "redirect:/setup"
         }
 
@@ -101,6 +110,7 @@ class MainController(
 
         model.addAttribute("runnerVersion", runnerVersion)
         model.addAttribute("cdnHost", cdnHost)
+        model.addAttribute("canonicalUrl", canonicalUrl(request.requestURI))
 
         val ip = request.getIp()
         if (isGuest) {
@@ -202,10 +212,10 @@ class MainController(
 
             model.addAttribute("viewName", request.getView(View.KKUTU))
 
-            if (isGuest) {
+            if (sessionProfile == null) {
                 logger.info("[$ip] 손님으로 게임에 접속했습니다.$mobileLogText - 서버: $server")
             } else {
-                nicknameCacheService.clearNicknameCache(sessionProfile!!.id)
+                nicknameCacheService.clearNicknameCache(sessionProfile.id)
 
                 logger.info("[$ip] $nickname(${sessionProfile.id}) 님이 게임에 접속했습니다.$mobileLogText - 서버: $server")
             }

@@ -3,44 +3,50 @@
     import AccountModal from '$lib/AccountModal.svelte';
     import LoginMethodSelector from '$lib/LoginMethodSelector.svelte';
 
-    export let mode = 'profile';
+    /**
+     * @typedef {Object} Props
+     * @property {string} [mode]
+     */
 
-    let summary = null;
-    let applications = [];
-    let profile = null;
-    let loading = true;
-    let submitting = false;
-    let consentService = false;
-    let consentIrreversible = false;
-    let modalOpen = false;
-    let confirmationOpen = false;
-    let confirmationInput = '';
-    let reauthDialogOpen = false;
-    let reauthPassword = '';
-    let reauthTotpCode = '';
-    let reauthMfaRequired = false;
-    let reauthProviderIds = [];
-    let passwordEnabled = true;
+    /** @type {Props} */
+    let { mode = 'profile' } = $props();
+
+    let summary = $state(null);
+    let applications = $state([]);
+    let profile = $state(null);
+    let loading = $state(true);
+    let submitting = $state(false);
+    let consentService = $state(false);
+    let consentIrreversible = $state(false);
+    let modalOpen = $state(false);
+    let confirmationOpen = $state(false);
+    let confirmationInput = $state('');
+    let reauthDialogOpen = $state(false);
+    let reauthPassword = $state('');
+    let reauthTotpCode = $state('');
+    let reauthMfaRequired = $state(false);
+    let reauthProviderIds = $state([]);
+    let passwordEnabled = $state(true);
     let reauthAction = '';
-    let message = '';
-    let error = '';
+    let message = $state('');
+    let error = $state('');
 
-    $: isProfile = mode === 'profile';
-    $: title = isProfile ? '프로필 삭제' : '계정 탈퇴';
-    $: actionLabel = isProfile ? '프로필 삭제 신청' : '계정 탈퇴 신청';
-    $: scheduledAt = isProfile ? profile?.deletion_scheduled_at : summary?.deletion_scheduled_at;
-    $: pending = Boolean(scheduledAt);
-    $: activeProfiles = (summary?.profiles || []).filter(item => item.status === 'ACTIVE' && !item.deletion_scheduled_at);
-    $: profileDeletionBlocked = isProfile && activeProfiles.length <= 1;
-    $: accountDeletionBlocked = !isProfile && activeProfiles.length > 1;
-    $: accountRestricted = Boolean(summary?.account_restricted);
-    $: restrictionBlocksDeletion = isProfile && accountRestricted;
-    $: canSubmit = consentService && consentIrreversible && !submitting && !profileDeletionBlocked && !accountDeletionBlocked && !restrictionBlocksDeletion;
-    $: deletionSubject = isProfile ? profile : summary?.profiles?.find(item => String(item.id) === String(summary?.selected_profile_id)) || summary?.profiles?.[0];
-    $: originalName = deletionSubject?.nickname || summary?.nickname || deletionSubject?.id || summary?.uuid || '현재 계정';
-    $: deletionTag = deletionSubject?.nickname_tag || '';
-    $: confirmationPhrase = `${originalName} ${isProfile ? '프로필 삭제' : '계정 탈퇴'}`;
-    $: deletionAlias = `${isProfile ? '계정삭제대기' : '계정탈퇴대기'}${deletionTag ? `#${deletionTag}` : ''}`;
+    let isProfile = $derived(mode === 'profile');
+    let title = $derived(isProfile ? '프로필 삭제' : '계정 탈퇴');
+    let actionLabel = $derived(isProfile ? '프로필 삭제 신청' : '계정 탈퇴 신청');
+    let scheduledAt = $derived(isProfile ? profile?.deletion_scheduled_at : summary?.deletion_scheduled_at);
+    let pending = $derived(Boolean(scheduledAt));
+    let activeProfiles = $derived((summary?.profiles || []).filter(item => item.status === 'ACTIVE' && !item.deletion_scheduled_at));
+    let profileDeletionBlocked = $derived(isProfile && activeProfiles.length <= 1);
+    let accountDeletionBlocked = $derived(!isProfile && activeProfiles.length > 1);
+    let accountRestricted = $derived(Boolean(summary?.account_restricted));
+    let restrictionBlocksDeletion = $derived(isProfile && accountRestricted);
+    let canSubmit = $derived(consentService && consentIrreversible && !submitting && !profileDeletionBlocked && !accountDeletionBlocked && !restrictionBlocksDeletion);
+    let deletionSubject = $derived(isProfile ? profile : summary?.profiles?.find(item => String(item.id) === String(summary?.selected_profile_id)) || summary?.profiles?.[0]);
+    let originalName = $derived(deletionSubject?.nickname || summary?.nickname || deletionSubject?.id || summary?.uuid || '현재 계정');
+    let deletionTag = $derived(deletionSubject?.nickname_tag || '');
+    let confirmationPhrase = $derived(`${originalName} ${isProfile ? '프로필 삭제' : '계정 탈퇴'}`);
+    let deletionAlias = $derived(`${isProfile ? '계정삭제대기' : '계정탈퇴대기'}${deletionTag ? `#${deletionTag}` : ''}`);
 
     function profileDisplayHtml(value) {
         const [name, tag] = String(value || '').split('#', 2);
@@ -272,7 +278,7 @@
                 <div class="pending-notice">
                     <strong>{formatDate(scheduledAt)}에 {isProfile ? '프로필이' : '계정이'} 삭제됩니다.</strong>
                     <p>삭제 유예기간에는 서비스를 이용할 수 없습니다. 삭제를 원하지 않으면 아래에서 신청을 해제하세요.</p>
-                    <button class="cancel-button" on:click={cancelDeletion} disabled={submitting || restrictionBlocksDeletion}>삭제 신청 해제</button>
+                    <button class="cancel-button" onclick={cancelDeletion} disabled={submitting || restrictionBlocksDeletion}>삭제 신청 해제</button>
                 </div>
             {:else}
                 {#if accountRestricted && isProfile}
@@ -304,7 +310,7 @@
         <footer class="page-actions">
             <a href="/account" class="secondary-button">취소</a>
             {#if !pending}
-                <button class="primary-button" class:disabled={!canSubmit} on:click={submit} disabled={!canSubmit || submitting}>{actionLabel}</button>
+                <button class="primary-button" class:disabled={!canSubmit} onclick={submit} disabled={!canSubmit || submitting}>{actionLabel}</button>
             {/if}
         </footer>
     </section>
@@ -312,7 +318,7 @@
 
 <AccountModal open={modalOpen} title="연결된 앱을 먼저 해제해 주세요" on:close={() => modalOpen = false}>
     <p class="modal-copy">{title} 신청 전에 현재 연결된 앱의 이용을 종료하고 연결을 해제해야 합니다.</p>
-    <a class="modal-link" href="/account/apps" on:click={() => modalOpen = false}>연결된 앱 관리</a>
+    <a class="modal-link" href="/account/apps" onclick={() => modalOpen = false}>연결된 앱 관리</a>
 </AccountModal>
 
 <AccountModal open={reauthDialogOpen} title="본인확인" showFooter={false} priority on:close={closeReauthentication}>
@@ -326,7 +332,7 @@
             <label for="deletion-reauth-password">비밀번호로 확인</label>
             <input id="deletion-reauth-password" type="password" bind:value={reauthPassword} autocomplete="current-password" placeholder="비밀번호"/>
             <input type="text" inputmode="numeric" bind:value={reauthTotpCode} autocomplete="one-time-code" placeholder="TOTP 인증 코드 또는 보안코드"/>
-            <button class="reauth-submit" on:click={reauthenticate}>확인</button>
+            <button class="reauth-submit" onclick={reauthenticate}>확인</button>
             {#if reauthMfaRequired}<p class="reauth-help">TOTP 인증 코드 또는 보안코드를 입력해 주세요.</p>{/if}
         </div>
     {/if}
@@ -353,8 +359,8 @@
         <input class="confirmation-input" bind:value={confirmationInput} placeholder={confirmationPhrase} autocomplete="off" aria-label="삭제 확인 문구"/>
         {#if error}<p class="error-message">{error}</p>{/if}
         <div class="confirmation-actions">
-            <button class="secondary-button" on:click={() => confirmationOpen = false}>취소</button>
-            <button class="primary-button" class:disabled={confirmationInput.trim() !== confirmationPhrase || submitting} disabled={confirmationInput.trim() !== confirmationPhrase || submitting} on:click={confirmDeletion}>{submitting ? '처리 중...' : (isProfile ? '삭제' : '탈퇴')}</button>
+            <button class="secondary-button" onclick={() => confirmationOpen = false}>취소</button>
+            <button class="primary-button" class:disabled={confirmationInput.trim() !== confirmationPhrase || submitting} disabled={confirmationInput.trim() !== confirmationPhrase || submitting} onclick={confirmDeletion}>{submitting ? '처리 중...' : (isProfile ? '삭제' : '탈퇴')}</button>
         </div>
     </div>
 </AccountModal>

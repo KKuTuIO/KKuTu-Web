@@ -16,9 +16,9 @@ import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
-import com.fasterxml.jackson.databind.JsonNode
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import tools.jackson.databind.JsonNode
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.security.web.csrf.CsrfToken
 

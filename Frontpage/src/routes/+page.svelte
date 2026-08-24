@@ -1,30 +1,30 @@
-<script nonce="kkutuio">
+<script>
     import { onDestroy, onMount, tick } from 'svelte';
     import Glide from '@glidejs/glide';
     import { getLevelImage } from '../lib/getLevelImg.js';
     import { getMoremi } from '../lib/getMoremi.js';
     import {loadAuth, loadBlock, loadUser} from '$lib/session.js';
 
-	let user = "Guest User";
-	let authVendor = "KKuTu";
-	let vendorId = "0";
+	let user = $state("Guest User");
+	let authVendor = $state("KKuTu");
+	let vendorId = $state("0");
 	let name = "Moremi";
 	let profileImage = "";
 
-	let ingameName = "";
-	let score = 0;
+	let ingameName = $state("");
+	let score = $state(0);
 	let data = { status: "Guest user" };
 
     const title = '글자로 놀자! 끄투 온라인';
 
-    let slideData = [
+    let slideData = $state([
                 {
                     "id": "loading",
                     "link": "/",
                     "color": "#fff",
                     "slides": []
                 }
-            ];
+            ]);
     
     let patchNoteData = [
         {
@@ -34,27 +34,27 @@
         }
     ]
 
-    let rankData = {
+    let rankData = $state({
         "data": {
             "page": 0,
             "data": [
             ]
         }
-    };
+    });
 
-    let blockData = {
-    };
+    let blockData = $state({
+    });
     
     let patchData = "<p>업데이트 내용입니다.</p>";
 
     const serverName = ["감자", "냉이", "다래", "레몬", "망고", "보리", "상추", "아욱", "20세 이상"];
-    let jsonDataServers = { list: [], max: 9 };
+    let jsonDataServers = $state({ list: [], max: 9 });
     let glide;
-    let glideRoot;
-    $: filteredData = rankData.data.data ? rankData.data.data.slice(0, 10) : [];
-    let slidePage = 0;
+    let glideRoot = $state();
+    let filteredData = $derived(rankData.data.data ? rankData.data.data.slice(0, 10) : []);
+    let slidePage = $state(0);
 
-    let finalData = [];
+    let finalData = $state([]);
 
     async function updateSlides() {
         await tick();
@@ -220,6 +220,7 @@
 
                 <div class="mt-2">
                     <table class="w-full text-center text-lg border-separate border-spacing-y-3">
+                      <tbody>
                         <tr>
                             <td class="w-24 font-semibold">IP주소</td>
                             <td class="w-72 text-gray-300">{hideIP(blockData.target)}</td>
@@ -240,6 +241,7 @@
                             <td class="font-semibold">남은시간</td>
                             <td class="text-gray-300">{blockData.remain}</td>
                         </tr>
+                      </tbody>
                     </table>
 
                     <p class="mt-4 text-lg leading-8 text-gray-300">
@@ -262,6 +264,7 @@
 
                 <div class="mt-2">
                     <table class="w-full text-center text-lg border-separate border-spacing-y-3">
+                      <tbody>
                         <tr>
                             <td class="w-24 font-semibold">식별번호</td>
                             <td class="w-72 text-gray-300">{blockData.target}</td>
@@ -282,6 +285,7 @@
                             <td class="font-semibold">남은시간</td>
                             <td class="text-gray-300">{blockData.remain}</td>
                         </tr>
+                      </tbody>
                     </table>
 
                     <p class="mt-4 text-lg leading-8 text-gray-300">
@@ -309,10 +313,10 @@
     <div class="glide" bind:this={glideRoot}>
         <!-- Slide Left/right btn -->
          <div class="glide__arrows hidden" data-glide-el="controls">
-            <button id="slideLeft" class="glide__arrow glide__arrow--left  hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
+            <button id="slideLeft" aria-label="이전 슬라이드" class="glide__arrow glide__arrow--left  hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir="<">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
-            <button id="slideRight" class="glide__arrow glide__arrow--right  hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir=">">
+            <button id="slideRight" aria-label="다음 슬라이드" class="glide__arrow glide__arrow--right  hidden lg:block bg-white h-9 w-9 text-black" data-glide-dir=">">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
         </div>
@@ -366,12 +370,12 @@
                 <!-- slide controls -->
                 <div class="flex gap-x-2">
                     <!-- use material icons -->
-                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex justify-center items-center" on:click={goLeft}>
+                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex justify-center items-center" onclick={goLeft}>
                         <span class="material-symbols-outlined">
                             chevron_left
                         </span>
                     </button>
-                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex justify-center items-center" on:click={goRight}>
+                    <button class="text-black rounded-full bg-white/70 backdrop-filter-blur-lg p-1 flex justify-center items-center" onclick={goRight}>
                         <span class="material-symbols-outlined">
                             chevron_right
                         </span>
@@ -408,18 +412,18 @@
                     {#await getMoremi(getUserId(authVendor, vendorId)) then equip}
                         {#if equip}
                             <div class="w-[120px] h-[120px]">
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" on:error={(e) => handleImgErr(e, 'back', equip.Mback)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/back/${equip.Mback || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="BG" onerror={(e) => handleImgErr(e, 'back', equip.Mback)} />
                                 <img src={`https://cdn.kkutu.io/img/kkutu/moremi/body/${equip.Mbody || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Body" />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" on:error={(e) => handleImgErr(e, 'eye', equip.Meye)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${equip.Mmouth || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Mouth" on:error={(e) => handleImgErr(e, 'mouth', equip.Mmouth)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${equip.Mclothes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Pants" on:error={(e) => handleImgErr(e, 'clothes', equip.Mclothes)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${equip.Mshoes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Shoes" on:error={(e) => handleImgErr(e, 'shoes', equip.Mshoes)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${equip.Mhead || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Head" on:error={(e) => handleImgErr(e, 'head', equip.Mhead)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" on:error={(e) => handleImgErr(e, 'hand', equip.Mrhand)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" on:error={(e) => handleImgErr(e, 'hand', equip.Mlhand)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${equip.MheadDeco || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi HeadDeco" on:error={(e) => handleImgErr(e, 'headDeco', equip.MheadDeco)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${equip.MdressDeco || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi DressDeco" on:error={(e) => handleImgErr(e, 'dressDeco', equip.MdressDeco)} />
-                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" on:error={(e) => handleImgErr(e, 'badge', equip.BDG)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/eye/${equip.Meye || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Eye" onerror={(e) => handleImgErr(e, 'eye', equip.Meye)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/mouth/${equip.Mmouth || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Mouth" onerror={(e) => handleImgErr(e, 'mouth', equip.Mmouth)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/clothes/${equip.Mclothes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Pants" onerror={(e) => handleImgErr(e, 'clothes', equip.Mclothes)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/shoes/${equip.Mshoes || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Shoes" onerror={(e) => handleImgErr(e, 'shoes', equip.Mshoes)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/head/${equip.Mhead || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Head" onerror={(e) => handleImgErr(e, 'head', equip.Mhead)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mrhand || "default.png"}`} class="rightHand absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" onerror={(e) => handleImgErr(e, 'hand', equip.Mrhand)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/hand/${equip.Mlhand || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Hand" onerror={(e) => handleImgErr(e, 'hand', equip.Mlhand)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/headDeco/${equip.MheadDeco || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi HeadDeco" onerror={(e) => handleImgErr(e, 'headDeco', equip.MheadDeco)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/dressDeco/${equip.MdressDeco || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi DressDeco" onerror={(e) => handleImgErr(e, 'dressDeco', equip.MdressDeco)} />
+                                <img src={`https://cdn.kkutu.io/img/kkutu/moremi/badge/${equip.BDG || "default.png"}`} class="absolute object-cover w-[120px] h-[120px]" alt="Moremi Badge" onerror={(e) => handleImgErr(e, 'badge', equip.BDG)} />
                             </div>
 
                             <div class="flex flex-col">
@@ -569,7 +573,7 @@
                         </span>
                         채널 목록</h2>
                     <button
-                    on:click={() => reloadList()}
+                    onclick={() => reloadList()}
                     class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
                     <span class="material-symbols-outlined">
                         refresh

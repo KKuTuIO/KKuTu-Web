@@ -96,7 +96,7 @@ class RankDao(
 
         val results = redisTemplate.executePipelined(object : SessionCallback<Any?> {
             @Suppress("UNCHECKED_CAST")
-            override fun <K, V> execute(operations: RedisOperations<K, V>): Any? {
+            override fun <K : Any, V : Any> execute(operations: RedisOperations<K, V>): Any? {
                 val stringOps = operations as RedisOperations<String, Any>
                 val zSetOps = stringOps.opsForZSet()
 

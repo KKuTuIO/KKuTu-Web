@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
 
     const title = '로그인에 실패했습니다';
-    let reason = '로그인 요청이 만료되었거나 처리 중 문제가 발생했습니다. 다시 시도해 주세요.';
+    let reason = $state('로그인 요청이 만료되었거나 처리 중 문제가 발생했습니다. 다시 시도해 주세요.');
 
     onMount(async () => {
         const response = await fetch('/api/login/reason').catch(() => null);

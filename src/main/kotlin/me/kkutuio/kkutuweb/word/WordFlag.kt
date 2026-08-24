@@ -21,9 +21,8 @@ package me.kkutuio.kkutuweb.word
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.JsonNodeType
-import com.google.common.base.Strings
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.JsonNodeType
 
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
 enum class WordFlag(val flag: Int, val flagName: String) {
@@ -37,7 +36,7 @@ enum class WordFlag(val flag: Int, val flagName: String) {
     KUNG(0b01000000, "쿵쿵따 전용 단어");
 
     @JsonIgnore
-    val flagString = "0b" + Strings.padStart(Integer.toBinaryString(flag), 8, '0')
+    val flagString = "0b" + flag.toString(2).padStart(8, '0')
 
     companion object {
         fun findByFlag(flag: Int): WordFlag? {

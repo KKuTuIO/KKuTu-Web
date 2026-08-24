@@ -2,12 +2,12 @@
     import {onMount} from 'svelte';
     import ToastStack from '$lib/ToastStack.svelte';
 
-    let summary = null;
-    $: currentIdentifier = summary?.profiles?.find(profile => String(profile.id) === String(summary?.selected_profile_id))?.id || summary?.selected_profile_id || summary?.uuid || '';
-    $: currentProfile = summary?.profiles?.find(profile => String(profile.id) === String(summary?.selected_profile_id)) || null;
-    let sanctions = [];
-    let loading = true;
-    let toasts = [];
+    let summary = $state(null);
+    let currentIdentifier = $derived(summary?.profiles?.find(profile => String(profile.id) === String(summary?.selected_profile_id))?.id || summary?.selected_profile_id || summary?.uuid || '');
+    let currentProfile = $derived(summary?.profiles?.find(profile => String(profile.id) === String(summary?.selected_profile_id)) || null);
+    let sanctions = $state([]);
+    let loading = $state(true);
+    let toasts = $state([]);
     let toastId = 0;
     const toastTimers = new Map();
 
@@ -113,7 +113,7 @@
 
         {#if summary}
             <section class="mt-7 flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타" on:error={fallbackAvatar}/>
+                <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타" onerror={fallbackAvatar}/>
                 <div class="min-w-0 flex-1"><h2 class="truncate text-xl font-bold">{@html profileDisplayHtml(currentProfile?.nickname || summary.nickname || '별명 설정 필요')}</h2><p class="mt-1 truncate font-mono text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p></div>
             </section>
         {/if}

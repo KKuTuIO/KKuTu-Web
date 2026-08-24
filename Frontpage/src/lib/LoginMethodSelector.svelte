@@ -8,11 +8,23 @@
         daldalso: { label: '달달소', particle: '로', registrationNote: '신규 가입 불가', color: 'bg-[#20318D] text-white', icon: 'https://cdn.kkutu.io/logo/fusion/daldalso.png' }
     };
 
-    export let providerIds = Object.keys(providers);
-    export let showPasskey = true;
-    export let passkeySupported = true;
-    export let onPasskey = () => {};
-    export let providerUrl = provider => `/login/${provider}`;
+    /**
+     * @typedef {Object} Props
+     * @property {any} [providerIds]
+     * @property {boolean} [showPasskey]
+     * @property {boolean} [passkeySupported]
+     * @property {any} [onPasskey]
+     * @property {any} [providerUrl]
+     */
+
+    /** @type {Props} */
+    let {
+        providerIds = Object.keys(providers),
+        showPasskey = true,
+        passkeySupported = true,
+        onPasskey = () => {},
+        providerUrl = provider => `/login/${provider}`
+    } = $props();
 
     function normalizedProviderIds() {
         return (Array.isArray(providerIds) ? providerIds : [])
@@ -24,7 +36,7 @@
 <div>
     {#if showPasskey}
         <button class="mt-4 flex min-h-[54px] w-full items-center justify-center bg-slate-700 p-3 text-lg font-semibold leading-6 text-white shadow-md transition duration-100 ease-in active:scale-95 disabled:opacity-50 dark:bg-slate-600"
-                on:click={onPasskey} disabled={!passkeySupported}>
+                onclick={onPasskey} disabled={!passkeySupported}>
             <span class="material-symbols-outlined mr-2 text-2xl" aria-hidden="true">key</span>패스키로 로그인
         </button>
     {/if}

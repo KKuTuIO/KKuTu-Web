@@ -20,7 +20,7 @@ class TableStatisticsDAO(
             Long::class.java,
             tableName
         )
-        return estimate.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return (estimate ?: 0L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     companion object {

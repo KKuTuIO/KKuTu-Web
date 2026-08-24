@@ -25,10 +25,10 @@
     }
   
     // actially generating the snowflakes
-    let snowflakes = new Array(SNOWFLAKES_COUNT)
+    let snowflakes = $state(new Array(SNOWFLAKES_COUNT)
       .fill()
       .map((_, i) => randomSnowflakeConfig(i))
-      .sort((a, b) => a.scale - b.scale)
+      .sort((a, b) => a.scale - b.scale))
   
     // in onMount we define the loop function and start our animationFrame loop.
     onMount(async () => {

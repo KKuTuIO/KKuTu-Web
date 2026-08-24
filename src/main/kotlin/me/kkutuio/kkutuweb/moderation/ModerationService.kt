@@ -1,8 +1,8 @@
 package me.kkutuio.kkutuweb.moderation
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.core.type.TypeReference
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.JsonNode
+import tools.jackson.core.type.TypeReference
 import me.kkutuio.kkutuweb.game.GameClientManager
 import me.kkutuio.kkutuweb.geo.GeoService
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyEngine
@@ -560,7 +560,7 @@ class ModerationService(
 
         val replay = if (report.third == "ROOM") {
             val targetRoomId = report.second.toIntOrNull()
-                ?: throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "방 신고의 대상 방 번호가 올바르지 않습니다.")
+                ?: throw ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "방 신고의 대상 방 번호가 올바르지 않습니다.")
             jdbcTemplate.query(
                 """
                 SELECT game_id, room_id FROM game_replay
@@ -579,7 +579,7 @@ class ModerationService(
                 request.gameId.trim(), report.first, report.second
             ).firstOrNull()
         } ?: throw ResponseStatusException(
-            HttpStatus.UNPROCESSABLE_ENTITY,
+            HttpStatus.UNPROCESSABLE_CONTENT,
             "신고자와 대상(또는 대상 방)이 함께 확인되는 경기 기록이 아닙니다."
         )
 
@@ -758,7 +758,7 @@ class ModerationService(
         val relatedUserIds = request.relatedUserIds.distinct().filter { it != request.userId }
         val relatedAccountUuids = relatedUserIds.map(::moderationSubjectForUser).distinct().filter { it != accountUuid }
         if ("17" in request.categoryCodes && relatedAccountUuids.isEmpty()) {
-            throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "이용제한 우회는 연관 계정이 필요합니다.")
+            throw ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "이용제한 우회는 연관 계정이 필요합니다.")
         }
         relatedUserIds.forEach(::requireUser)
 
@@ -991,7 +991,7 @@ class ModerationService(
                 Boolean::class.java,
                 accountUuid
             )
-            if (!hasActiveNicknameLimit) {
+            if (hasActiveNicknameLimit != true) {
                 profileIdsForAccountUuid(accountUuid).forEach { profileId ->
                     jdbcTemplate.update("UPDATE users SET \"isLimitModifyNick\" = FALSE WHERE _id = ?", profileId)
                 }
@@ -1143,7 +1143,7 @@ class ModerationService(
             userId
         )
         val flags = objectMapper.readTree(rawFlags)
-            .takeIf { it.isObject }?.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+            .takeIf { it.isObject }?.asObject()?.deepCopy()
             ?: objectMapper.createObjectNode()
         val currentEntry = flags.get("notifications")
         val currentValue = if (currentEntry?.isObject == true && currentEntry.has("value")) {
@@ -1163,8 +1163,8 @@ class ModerationService(
             put("message", message)
             put("createdAt", Instant.now().epochSecond)
         })
-        flags.set<JsonNode>("notifications", objectMapper.createObjectNode().apply {
-            set<JsonNode>("value", queue)
+        flags.set("notifications", objectMapper.createObjectNode().apply {
+            set("value", queue)
             put("time", Instant.now().epochSecond)
         })
         jdbcTemplate.update(
@@ -1262,7 +1262,7 @@ class ModerationService(
             userId
         )
         val flags = objectMapper.readTree(rawFlags)
-            .takeIf { it.isObject }?.deepCopy<com.fasterxml.jackson.databind.node.ObjectNode>()
+            .takeIf { it.isObject }?.asObject()?.deepCopy()
             ?: objectMapper.createObjectNode()
         val currentEntry = flags.get("notifications")
         val currentValue = if (currentEntry?.isObject == true && currentEntry.has("value")) {
@@ -1280,8 +1280,8 @@ class ModerationService(
             put("message", message)
             put("createdAt", Instant.now().epochSecond)
         })
-        flags.set<JsonNode>("notifications", objectMapper.createObjectNode().apply {
-            set<JsonNode>("value", queue)
+        flags.set("notifications", objectMapper.createObjectNode().apply {
+            set("value", queue)
             put("time", Instant.now().epochSecond)
         })
         jdbcTemplate.update(
@@ -1316,9 +1316,9 @@ class ModerationService(
         val flags = objectMapper.createObjectNode()
         request.flags.forEachIndexed { index, entry ->
             val item = objectMapper.createObjectNode()
-            item.set<JsonNode>("value", entry.value)
+            item.set("value", entry.value)
             if (entry.timed) item.put("time", entry.time ?: Instant.now().epochSecond)
-            flags.set<JsonNode>(keys[index], item)
+            flags.set(keys[index], item)
         }
         jdbcTemplate.update(
             "UPDATE users SET flags = CAST(? AS jsonb)::json WHERE _id = ?",
@@ -1653,11 +1653,11 @@ class ModerationService(
     private fun reverseEffect(effectId: Long, effectType: String, accountUuid: String?, parameters: JsonNode) {
         val rollback = parameters.path("_rollback")
         if (rollback.isMissingNode || rollback.isNull || accountUuid == null) return
-        val entries = if (rollback.isArray) rollback.elements().asSequence().toList() else listOf(rollback)
+        val entries = if (rollback.isArray) rollback.toList() else listOf(rollback)
         when (effectType) {
             "RESOURCE_ADJUSTMENT" -> {
                 entries.forEach { entry ->
-                    val profileId = entry.path("profileId").asText(null)
+                    val profileId = entry.path("profileId").asString(null)
                         ?: profileIdsForAccountUuid(accountUuid).firstOrNull()
                         ?: return@forEach
                     jdbcTemplate.update(
@@ -1677,14 +1677,14 @@ class ModerationService(
             }
             "NICKNAME_RESET" -> {
                 entries.forEach { entry ->
-                    val profileId = entry.path("profileId").asText(null)
+                    val profileId = entry.path("profileId").asString(null)
                         ?: profileIdsForAccountUuid(accountUuid).firstOrNull()
                         ?: return@forEach
-                    val appliedNickname = entry.path("appliedNickname").asText("")
+                    val appliedNickname = entry.path("appliedNickname").asString("")
                     if (appliedNickname.isBlank()) return@forEach
                     fun nullableText(field: String): String? = entry.get(field)
                         ?.takeUnless { it.isNull }
-                        ?.asText()
+                        ?.asString()
                     jdbcTemplate.update(
                         """
                         UPDATE users SET nickname = ?, "meanableNick" = ?, exordial = ?
@@ -1727,7 +1727,7 @@ class ModerationService(
             userId
         ).firstOrNull()
         val isAdjustment = baseline?.source == "ADMIN_ADJUSTMENT"
-        val since = if (isAdjustment) baseline?.lastUpdatedAt else baseline?.resetAt
+        val since = if (isAdjustment) baseline.lastUpdatedAt else baseline?.resetAt
         val arguments = mutableListOf<Any>(userId)
         val excludeClause = if (excludeCaseId == null) "" else {
             arguments.add(excludeCaseId)
@@ -1749,7 +1749,7 @@ class ModerationService(
             { rs, _ -> rs.getString("category_code") to rs.getInt("count") },
             *arguments.toTypedArray()
         ).toMap()
-        val result = if (isAdjustment) baseline!!.counters.toMutableMap() else mutableMapOf()
+        val result = if (isAdjustment) baseline.counters.toMutableMap() else mutableMapOf()
         issuedCounters.forEach { (code, count) -> result[code] = (result[code] ?: 0) + count }
         return result.filterValues { it > 0 }
     }
@@ -1788,7 +1788,7 @@ class ModerationService(
             """.trimIndent(),
             Int::class.java,
             *arguments.toTypedArray()
-        )
+        ) ?: 0
     }
 
     private fun history(userId: String, limit: Int): List<ModerationCaseSummary> =
@@ -2528,7 +2528,7 @@ class ModerationService(
             user.money,
             rank,
             (sqrt(score.coerceAtLeast(0).toDouble() / 500.0).toInt() + 1).coerceAtLeast(1),
-            restricted
+            restricted == true
         )
     }
 

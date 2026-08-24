@@ -2,7 +2,7 @@ package me.kkutuio.kkutuweb.ranking
 
 import me.kkutuio.kkutuweb.user.UserDao
 import me.kkutuio.kkutuweb.user.User
-import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import tools.jackson.databind.node.JsonNodeFactory
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

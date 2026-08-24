@@ -1,6 +1,6 @@
-<script nonce="kkutuio">
+<script>
 	// @ts-ignore
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 
 	function hideForever() {

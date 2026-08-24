@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.session
 
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 
 data class Session(
     val profile: JsonNode,

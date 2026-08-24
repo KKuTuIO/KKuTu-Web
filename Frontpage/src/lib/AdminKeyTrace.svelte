@@ -1,14 +1,20 @@
 <script>
-  export let gameId = '';
-  export let players = [];
+  /**
+   * @typedef {Object} Props
+   * @property {string} [gameId]
+   * @property {any} [players]
+   */
 
-  let isOpen = false;
-  let loading = false;
+  /** @type {Props} */
+  let { gameId = '', players = [] } = $props();
+
+  let isOpen = $state(false);
+  let loading = $state(false);
   let loaded = false;
-  let loadError = '';
-  let payload = null;
-  let selectedRound = null;
-  let expandedKey = '';
+  let loadError = $state('');
+  let payload = $state(null);
+  let selectedRound = $state(null);
+  let expandedKey = $state('');
 
   const EVENT_LABELS = ['beforeinput', 'input', 'compositionstart', 'compositionupdate', 'compositionend'];
   const INPUT_TYPE_LABELS = [
@@ -103,13 +109,13 @@
     };
   }
 
-  $: entries = isOpen && Array.isArray(payload?.e)
+  let entries = $derived(isOpen && Array.isArray(payload?.e)
     ? payload.e.map(decodeEntry).filter(Boolean)
-    : [];
-  $: rounds = [...new Set(entries.map((entry) => entry.round))].sort((a, b) => a - b);
-  $: visibleEntries = selectedRound === null
+    : []);
+  let rounds = $derived([...new Set(entries.map((entry) => entry.round))].sort((a, b) => a - b));
+  let visibleEntries = $derived(selectedRound === null
     ? entries
-    : entries.filter((entry) => entry.round === selectedRound);
+    : entries.filter((entry) => entry.round === selectedRound));
 
   function roundButtonClass(selected) {
     return `rounded-lg border px-3 py-1 text-xs font-semibold ${
@@ -148,7 +154,7 @@
 </script>
 
 <section class="mt-5 rounded-xl border border-amber-300 bg-amber-50/70 p-3 dark:border-amber-700 dark:bg-amber-950/20">
-    <button class="flex w-full flex-wrap items-center justify-between gap-2 text-left" on:click={toggleOpen} aria-expanded={isOpen}>
+    <button class="flex w-full flex-wrap items-center justify-between gap-2 text-left" onclick={toggleOpen} aria-expanded={isOpen}>
       <div>
         <div class="font-semibold">Key 입력 내역</div>
         <div class="text-xs text-amber-800 dark:text-amber-200">하기 입력 내역은 단순 참고 용도로만 사용되어야 합니다.</div>
@@ -178,12 +184,12 @@
     <div class="mt-3 flex flex-wrap gap-2">
       <button
         class={roundButtonClass(selectedRound === null)}
-        on:click={() => (selectedRound = null)}
+        onclick={() => (selectedRound = null)}
       >전체</button>
       {#each rounds as round}
         <button
           class={roundButtonClass(selectedRound === round)}
-          on:click={() => (selectedRound = round)}
+          onclick={() => (selectedRound = round)}
         >라운드 {round}</button>
       {/each}
     </div>
@@ -202,7 +208,7 @@
             </span>
             <button
               class="ml-auto shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-              on:click={() => (expandedKey = expandedKey === entry.key ? '' : entry.key)}
+              onclick={() => (expandedKey = expandedKey === entry.key ? '' : entry.key)}
             >{expandedKey === entry.key ? '상세내역 닫기' : '상세내역 조회'}</button>
           </div>
 

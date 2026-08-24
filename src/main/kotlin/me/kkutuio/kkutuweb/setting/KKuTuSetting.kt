@@ -18,8 +18,8 @@
 
 package me.kkutuio.kkutuweb.setting
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.extension.toJson
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,7 +33,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 import kotlin.collections.HashMap
 import kotlin.collections.LinkedHashMap
 
@@ -64,12 +64,8 @@ class KKuTuSetting(
 
     @PostConstruct
     fun init() {
-        val optionValues = applicationArguments.getOptionValues("SETTING_DIR")
-        if (optionValues.isNullOrEmpty()) {
-            logger.error("프로그램 실행 인수에 SETTING_DIR 값이 누락되었습니다.")
-        }
-
-        val settingDir = optionValues[0]
+        val settingDir = applicationArguments.getOptionValues("SETTING_DIR")?.firstOrNull()
+            ?: throw IllegalStateException("프로그램 실행 인수에 SETTING_DIR 값이 누락되었습니다.")
         Files.newInputStream(Paths.get(settingDir, "kkutu.json")).use {
             val br = it.bufferedReader()
             br.use { reader ->
@@ -113,20 +109,20 @@ class KKuTuSetting(
         refreshAdmins()
     }
 
-    fun getVersion() = kkutu["version"].textValue()!!
+    fun getVersion() = kkutu["version"].stringValue()!!
 
     fun getMaxPlayers() = kkutu["maxPlayers"].intValue()
 
     fun getAdvancedBadWordPatterns(): List<String> = kkutu["advancedBadWords"]?.toList()
-        ?.mapNotNull { it.textValue()?.trim()?.takeIf(String::isNotEmpty) }
+        ?.mapNotNull { it.stringValue()?.trim()?.takeIf(String::isNotEmpty) }
         ?: emptyList()
 
     fun getGameServers() = kkutu["gameServers"].toList().map {
         GameServerSetting(
             it["isSecure"].booleanValue(),
-            it["publicHost"].textValue(),
-            it["key"].textValue(),
-            it["host"].textValue(),
+            it["publicHost"].stringValue(),
+            it["key"].stringValue(),
+            it["host"].stringValue(),
             it["port"].intValue(),
             it["cid"].shortValue(),
             parseGameServerReconnectSetting(it["reconnect"])
@@ -146,7 +142,7 @@ class KKuTuSetting(
 
     /** Immutable break-glass accounts. They are configured, never editable through the admin UI. */
     fun getAdminMasterIds(): Set<String> = kkutu["adminMasters"]?.toList()
-        ?.mapNotNull { it.textValue()?.trim()?.takeIf(String::isNotEmpty) }
+        ?.mapNotNull { it.stringValue()?.trim()?.takeIf(String::isNotEmpty) }
         ?.toSet()
         ?: emptySet()
 
@@ -154,10 +150,10 @@ class KKuTuSetting(
 
     private fun legacyAdmins(): List<AdminSetting> = kkutu["admins"]?.toList()?.map {
         AdminSetting(
-            it["id"].textValue(),
-            it["name"].textValue(),
-            it["team"].textValue(),
-            it["privileges"].toList().map { privilege -> AdminSetting.Privilege.valueOf(privilege.textValue()) }
+            it["id"].stringValue(),
+            it["name"].stringValue(),
+            it["team"].stringValue(),
+            it["privileges"].toList().map { privilege -> AdminSetting.Privilege.valueOf(privilege.stringValue()) }
         )
     } ?: emptyList()
 
@@ -176,7 +172,7 @@ class KKuTuSetting(
             syncMasters(masters)
             jdbc.query("SELECT account_uuid, display_name, team, privileges, game_admin FROM admin_access WHERE active = TRUE ORDER BY display_name, account_uuid") { rs, _ ->
                 val privileges = runCatching {
-                    objectMapper.readTree(rs.getString("privileges")).map { AdminSetting.Privilege.valueOf(it.textValue()) }
+                    objectMapper.readTree(rs.getString("privileges")).toList().map { AdminSetting.Privilege.valueOf(it.stringValue()) }
                 }.getOrDefault(emptyList())
                 StoredAdmin(
                     AdminSetting(rs.getString("account_uuid"), rs.getString("display_name"), rs.getString("team"), privileges),
@@ -216,29 +212,29 @@ class KKuTuSetting(
 
     fun getRunnerVersion() = runnerUID
 
-    fun getCdnHost() = kkutu["cdnHost"].textValue()!!
+    fun getCdnHost() = kkutu["cdnHost"].stringValue()!!
 
-    fun getApiKey() = kkutu["apiKey"].textValue()!!
+    fun getApiKey() = kkutu["apiKey"].stringValue()!!
 
-    fun getCryptoKey() = kkutu["cryptoKey"].textValue()!!
+    fun getCryptoKey() = kkutu["cryptoKey"].stringValue()!!
 
     fun getModerationLogService(): ModerationLogServiceSetting {
         val setting = kkutu["moderationLogService"]
         return ModerationLogServiceSetting(
-            publicUrl = setting?.get("publicUrl")?.textValue()?.trim()?.trimEnd('/') ?: "",
-            signingSecret = setting?.get("signingSecret")?.textValue() ?: ""
+            publicUrl = setting?.get("publicUrl")?.stringValue()?.trim()?.trimEnd('/') ?: "",
+            signingSecret = setting?.get("signingSecret")?.stringValue() ?: ""
         )
     }
 
-    fun getGeoIpDb11Path(): String = kkutu["geoIp"]?.get("db11Path")?.textValue()?.trim() ?: ""
+    fun getGeoIpDb11Path(): String = kkutu["geoIp"]?.get("db11Path")?.stringValue()?.trim() ?: ""
 
-    fun getGeoIpAsnPath(): String = kkutu["geoIp"]?.get("asnPath")?.textValue()?.trim() ?: ""
+    fun getGeoIpAsnPath(): String = kkutu["geoIp"]?.get("asnPath")?.stringValue()?.trim() ?: ""
 
     fun getGeoIpDomesticExemptCidrs(): List<String> = kkutu["geoIp"]
         ?.get("domesticExemptCidrs")
         ?.takeIf(JsonNode::isArray)
         ?.toList()
-        ?.mapNotNull { it.textValue()?.trim()?.takeIf(String::isNotEmpty) }
+        ?.mapNotNull { it.stringValue()?.trim()?.takeIf(String::isNotEmpty) }
         ?: emptyList()
 
     fun getConnectionLogRetention(): ConnectionLogRetentionSetting {
@@ -263,26 +259,26 @@ class KKuTuSetting(
         )
     }
 
-    fun getKoThemes() = themes["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::textValue)
+    fun getKoThemes() = themes["word"]["themes"]["normal"]["ko"].toList().map(JsonNode::stringValue)
 
-    fun getKoInjeongThemes() = themes["word"]["themes"]["injeong"]["ko"].toList().map(JsonNode::textValue)
+    fun getKoInjeongThemes() = themes["word"]["themes"]["injeong"]["ko"].toList().map(JsonNode::stringValue)
 
-    fun getEnThemes() = themes["word"]["themes"]["normal"]["en"].toList().map(JsonNode::textValue)
+    fun getEnThemes() = themes["word"]["themes"]["normal"]["en"].toList().map(JsonNode::stringValue)
 
-    fun getEnInjeongThemes() = themes["word"]["themes"]["injeong"]["en"].toList().map(JsonNode::textValue)
+    fun getEnInjeongThemes() = themes["word"]["themes"]["injeong"]["en"].toList().map(JsonNode::stringValue)
 
-    fun getInjeongPickExcepts() = themes["word"]["themes"]["ijpExcept"].toList().map(JsonNode::textValue)
+    fun getInjeongPickExcepts() = themes["word"]["themes"]["ijpExcept"].toList().map(JsonNode::stringValue)
 
-    fun getMoremiParts() = moremi["moremi"]["parts"].toList().map(JsonNode::textValue)
+    fun getMoremiParts() = moremi["moremi"]["parts"].toList().map(JsonNode::stringValue)
 
-    fun getMoremiCategories() = moremi["moremi"]["categories"].toList().map(JsonNode::textValue)
+    fun getMoremiCategories() = moremi["moremi"]["categories"].toList().map(JsonNode::stringValue)
 
-    fun getMoremiEquips() = moremi["moremi"]["equips"].toList().map(JsonNode::textValue)
+    fun getMoremiEquips() = moremi["moremi"]["equips"].toList().map(JsonNode::stringValue)
 
     fun getMoremiGroups(): Map<String, List<String>> {
         val resultMap = HashMap<String, List<String>>()
-        for (key in moremi["moremi"]["groups"].fieldNames()) {
-            resultMap[key] = moremi["moremi"]["groups"][key].toList().map(JsonNode::textValue)
+        for (key in moremi["moremi"]["groups"].propertyNames()) {
+            resultMap[key] = moremi["moremi"]["groups"][key].toList().map(JsonNode::stringValue)
         }
 
         return resultMap
@@ -294,16 +290,16 @@ class KKuTuSetting(
 
     fun getGameOptionMap(): Map<String, String> {
         val resultMap = LinkedHashMap<String, String>()
-        for (key in games["OPTIONS"].fieldNames()) {
-            resultMap[key] = games["OPTIONS"][key]["name"].textValue()
+        for (key in games["OPTIONS"].propertyNames()) {
+            resultMap[key] = games["OPTIONS"][key]["name"].stringValue()
         }
 
         return resultMap
     }
 
-    fun getGameModes() = games["RULE"].fieldNames().asSequence().toList()
+    fun getGameModes() = games["RULE"].propertyNames().toList()
 
-    fun getServiceMode() = kkutu["serviceMode"]?.textValue() ?: "NORMAL"
+    fun getServiceMode() = kkutu["serviceMode"]?.stringValue() ?: "NORMAL"
 
     fun getMainPageConfig(): MainPageSetting {
         if (getServiceMode() == "NORMAL") {
@@ -320,10 +316,10 @@ class KKuTuSetting(
         val mainPage = kkutu["mainPage"]
         return MainPageSetting(
             status = mainPage["status"]?.booleanValue() ?: false,
-            title = mainPage["title"]?.textValue() ?: "",
-            body = mainPage["body"]?.textValue() ?: "",
-            noticeTitle = mainPage["noticeTitle"]?.textValue() ?: "",
-            noticeMessage = mainPage["noticeMessage"]?.textValue() ?: "",
+            title = mainPage["title"]?.stringValue() ?: "",
+            body = mainPage["body"]?.stringValue() ?: "",
+            noticeTitle = mainPage["noticeTitle"]?.stringValue() ?: "",
+            noticeMessage = mainPage["noticeMessage"]?.stringValue() ?: "",
             showNotice = mainPage["showNotice"]?.booleanValue() ?: false
         )
     }

@@ -1,22 +1,29 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { onMount } from 'svelte';
+    import {uniqueProfiles} from './profiles.js';
 
-    export let profileSeed = '';
-    export let profileName = '계정 설정 필요';
-    export let accountLabel = '';
+    /**
+     * @typedef {Object} Props
+     * @property {string} [profileSeed]
+     * @property {string} [profileName]
+     * @property {string} [accountLabel]
+     */
+
+    /** @type {Props} */
+    let { profileSeed = '', profileName = '계정 설정 필요', accountLabel = '' } = $props();
 
     const dispatch = createEventDispatcher();
-    let open = false;
-    let loading = false;
-    let switching = '';
-    let summary = null;
-    let error = '';
-    let profilePolicy = null;
+    let open = $state(false);
+    let loading = $state(false);
+    let switching = $state('');
+    let summary = $state(null);
+    let error = $state('');
+    let profilePolicy = $state(null);
 
-    $: profiles = summary?.profiles || [];
-    $: selectedProfileId = summary?.selected_profile_id || profiles[0]?.id || '';
-    $: selectedProfile = profiles.find(profile => String(profile.id) === String(selectedProfileId));
+    let profiles = $derived(summary?.profiles || []);
+    let selectedProfileId = $derived(summary?.selected_profile_id || profiles[0]?.id || '');
+    let selectedProfile = $derived(profiles.find(profile => String(profile.id) === String(selectedProfileId)));
 
     function avatarUrl(seed) {
         const value = String(seed || 'kkutuio');
@@ -51,7 +58,8 @@
                 fetch('/api/account/profile-policy', {credentials: 'same-origin'})
             ]);
             if (!summaryResponse.ok || !policyResponse.ok) throw new Error('account summary request failed');
-            summary = await summaryResponse.json();
+            const loadedSummary = await summaryResponse.json();
+            summary = {...loadedSummary, profiles: uniqueProfiles(loadedSummary?.profiles)};
             profilePolicy = await policyResponse.json();
         } catch (_) {
             error = '프로필 목록을 불러오지 못했습니다.';
@@ -116,9 +124,9 @@
         class="flex items-center rounded-full focus:outline-none focus:ring-2 focus:ring-[#55aa55] focus:ring-offset-2 dark:focus:ring-offset-gray-800"
         aria-label="프로필 및 계정 메뉴"
         aria-expanded={open}
-        on:click={toggleMenu}
+        onclick={toggleMenu}
     >
-        <img class="h-8 w-8 rounded-full" src={avatarUrl(profileSeed)} alt="현재 프로필" on:error={fallbackAvatar}/>
+        <img class="h-8 w-8 rounded-full" src={avatarUrl(profileSeed)} alt="현재 프로필" onerror={fallbackAvatar}/>
     </button>
 
     {#if open}
@@ -126,10 +134,9 @@
             role="dialog"
             tabindex="-1"
             class="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl bg-white p-2 text-gray-900 shadow-xl ring-1 ring-black/5 dark:bg-gray-800 dark:text-white"
-            on:click|stopPropagation
         >
             <div class="flex items-center gap-3 px-3 py-2">
-                <img class="h-11 w-11 shrink-0 rounded-full" src={avatarUrl(profileSeed || accountLabel)} alt="계정 프로필" on:error={fallbackAvatar}/>
+                <img class="h-11 w-11 shrink-0 rounded-full" src={avatarUrl(profileSeed || accountLabel)} alt="계정 프로필" onerror={fallbackAvatar}/>
                 <div class="min-w-0">
                     <div class="truncate font-bold">{summary?.email || accountLabel || '계정'}</div>
                     <div class="truncate text-sm text-gray-500 dark:text-gray-300">{@html profileDisplayHtml(selectedProfile?.nickname || profileName)}</div>
@@ -147,9 +154,9 @@
                         type="button"
                         class={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-gray-100 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-gray-700 ${String(profile.id) === String(selectedProfileId) ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                         disabled={Boolean(switching)}
-                        on:click={() => selectProfile(profile)}
+                        onclick={() => selectProfile(profile)}
                     >
-                        <img class="h-9 w-9 shrink-0 rounded-full" src={avatarUrl(profile.id)} alt="{profileTitle(profile, index)}" on:error={fallbackAvatar}/>
+                        <img class="h-9 w-9 shrink-0 rounded-full" src={avatarUrl(profile.id)} alt="{profileTitle(profile, index)}" onerror={fallbackAvatar}/>
                         <span class="min-w-0 flex-1">
                             <span class="block truncate font-semibold">{@html profileDisplayHtml(profileTitle(profile, index))}</span>
                             {#if profile.id && profile.nickname}
@@ -166,7 +173,7 @@
             {/if}
 
             <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-gray-400 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-gray-700"
-                    disabled={!profilePolicy?.can_create || Boolean(switching)} on:click={openProfileCreate}>
+                    disabled={!profilePolicy?.can_create || Boolean(switching)} onclick={openProfileCreate}>
                 <span class="flex min-w-0 items-center gap-3">
                     <span aria-hidden="true" class="material-symbols-outlined">add</span>
                     <span class="font-semibold">프로필 만들기</span>
@@ -187,11 +194,10 @@
                 <span class="material-symbols-outlined">manage_accounts</span>
                 <span>계정 관리</span>
             </a>
-            <button type="button" on:click={logout} class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button type="button" onclick={logout} class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="material-symbols-outlined">logout</span>
                 <span>로그아웃</span>
             </button>
         </div>
     {/if}
 </div>
-

@@ -36,7 +36,7 @@
             crossorigin="anonymous"
     ></script>
 
-    <link rel="canonical" th:href="@{'https://kkutu.io' + ${#httpServletRequest.requestURI}}">
+    <link rel="canonical" th:href="${canonicalUrl}">
     <meta name="description" th:content="#{meta.description}">
     <meta name="keywords" th:content="#{meta.keywords}">
 
@@ -50,7 +50,7 @@
     <link rel="stylesheet" href="https://assets.kkutu.io/fonts/fontawesome-pro-7.1.0-web/css/solid.min.css"/>
     <link rel="stylesheet" href="https://assets.kkutu.io/fonts/fontawesome-pro-7.1.0-web/css/regular.min.css"/>
     <link rel="stylesheet" th:href="@{${cdnHost} + '/css/expl.css?rv=' + ${runnerVersion}}"/>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json" th:href="@{/manifest.json}">
 
     <link rel="icon" type="image/x-icon" href="https://cdn.kkutu.io/favicon.ico?v=3.7">
 
@@ -120,7 +120,7 @@
 <!-- End Google Tag Manager (noscript) -->
 <!-- @formatter:on -->
 <div id="Top" th:unless="${#strings.startsWith(viewName, 'view/login')}">
-    <div th:include="menu" th:remove="tag"></div>
+    <div th:insert="~{menu}" th:remove="tag"></div>
     <div id="global-notice">
         <div id="gn-content"></div>
     </div>
@@ -137,7 +137,7 @@
     </th:block>
 </div>
 
-<div id="Middle" th:include="${viewName}"></div>
+<div id="Middle" th:insert="~{${viewName}}"></div>
 
 <div id="Bottom" th:unless="${#strings.startsWith(viewName, 'view/login')}">
     <div class="bottom-legal" th:utext="#{legal.copyright}"></div>

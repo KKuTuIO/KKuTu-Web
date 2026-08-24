@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.oauth.kakao
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
 import com.github.scribejava.core.model.Verb
@@ -51,22 +51,22 @@ class KakaoOAuthService(
 
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
-        val vendorId = jsonResponse.path("id").asText().takeIf { it.isNotBlank() }
+        val vendorId = jsonResponse.path("id").asString().takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("카카오 계정 식별번호를 받지 못했습니다.")
         val properties = jsonResponse.path("properties")
-        val nickname = properties.path("nickname").asText(null)
-            ?: jsonResponse.path("kakao_account").path("profile").path("nickname").asText(null)
+        val nickname = properties.path("nickname").asString(null)
+            ?: jsonResponse.path("kakao_account").path("profile").path("nickname").asString(null)
             ?: "카카오 사용자"
 
         return OAuthUser(
             authVendor = AuthVendor.KAKAO,
             vendorId = vendorId,
             name = nickname,
-            profileImage = properties.path("profile_image").asText(null),
+            profileImage = properties.path("profile_image").asString(null),
             gender = null,
             minAge = null,
             maxAge = null,
-            email = jsonResponse.path("kakao_account").path("email").asText(null),
+            email = jsonResponse.path("kakao_account").path("email").asString(null),
             emailVerified = jsonResponse.path("kakao_account").path("is_email_valid").asBoolean(false) && jsonResponse.path("kakao_account").path("is_email_verified").asBoolean(false)
         )
     }

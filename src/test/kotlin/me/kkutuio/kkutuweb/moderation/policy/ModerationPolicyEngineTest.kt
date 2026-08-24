@@ -1,7 +1,6 @@
 package me.kkutuio.kkutuweb.moderation.policy
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -17,7 +16,7 @@ class ModerationPolicyEngineTest {
     fun setUp() {
         loader = ModerationPolicyLoader(
             DefaultApplicationArguments(),
-            ObjectMapper().registerKotlinModule()
+            jacksonObjectMapper()
         )
         loader.initialize()
         engine = ModerationPolicyEngine(loader)

@@ -1,52 +1,44 @@
-<script context="module">
+<script module>
   const sharedSounds = new Map();
 </script>
 
 <script>
+  import { run, self } from 'svelte/legacy';
+
   import { createEventDispatcher, onDestroy, onMount, tick } from 'svelte';
   import { fade, scale } from 'svelte/transition';
   import { createReplayModel, formatReplayTime, getReplayState } from './replayModel.js';
 
-  export let detail;
+  let { detail } = $props();
 
   const AUDIO_BASE = 'https://cdn.kkutu.io/media/kkutuio/';
   const speedOptions = [0.5, 1, 1.5, 2];
   const dispatch = createEventDispatcher();
-  let dialog;
-  let stageViewport;
-  let gameSurface;
-  let playerControls;
+  let dialog = $state();
+  let stageViewport = $state();
+  let gameSurface = $state();
+  let playerControls = $state();
   let resizeObserver;
-  let stageScale = 1;
-  let stageViewportHeight = 410;
-  let isFullscreen = false;
-  let pseudoFullscreen = false;
-  let model = null;
-  let state = null;
-  let currentMs = 0;
-  let playing = false;
-  let muted = false;
-  let playbackRate = 1;
+  let stageScale = $state(1);
+  let stageViewportHeight = $state(410);
+  let isFullscreen = $state(false);
+  let pseudoFullscreen = $state(false);
+  let model = $state(null);
+  let replayState = $state(null);
+  let currentMs = $state(0);
+  let playing = $state(false);
+  let muted = $state(false);
+  let playbackRate = $state(1);
   let frameId = 0;
   let lastFrameAt = 0;
-  let loadedDetail = null;
+  let loadedDetail = $state(null);
   let previousBodyOverflow = '';
   let activeTurnSound = null;
   let activeTurnId = '';
   let activeBgm = null;
   let activeBgmKey = '';
-  const playerElements = [];
+  const playerElements = $state([]);
 
-  $: if (detail && detail !== loadedDetail) {
-    loadedDetail = detail;
-    pause();
-    model = createReplayModel(detail);
-    currentMs = 0;
-    playbackRate = 1;
-    tick().then(updateStageScale);
-  }
-  $: state = model ? getReplayState(model, currentMs) : null;
-  $: fullscreenActive = isFullscreen || pseudoFullscreen;
   function updateStageScale() {
     if (!stageViewport) return;
     const widthScale = stageViewport.clientWidth / 1000;
@@ -339,8 +331,8 @@
 
   function playerCardClass(player) {
     const classes = ['game-user'];
-    if (state?.activeTurn?.playerIndex === player.index) classes.push('game-user-current');
-    const wordstackAttack = state?.wordstackLatestAttack;
+    if (replayState?.activeTurn?.playerIndex === player.index) classes.push('game-user-current');
+    const wordstackAttack = replayState?.wordstackLatestAttack;
     if (model?.boardType === 'wordstack' && wordstackAttack && currentMs - wordstackAttack.time < 1400) {
       if (wordstackAttack.playerIndex === player.index) classes.push('game-user-current');
       if (wordstackAttack.targetIndex === player.index) classes.push('game-user-wordstack-target');
@@ -440,12 +432,26 @@
       document.body.style.overflow = previousBodyOverflow;
     }
   });
+  run(() => {
+    if (detail && detail !== loadedDetail) {
+      loadedDetail = detail;
+      pause();
+      model = createReplayModel(detail);
+      currentMs = 0;
+      playbackRate = 1;
+      tick().then(updateStageScale);
+    }
+  });
+  run(() => {
+    replayState = model ? getReplayState(model, currentMs) : null;
+  });
+  let fullscreenActive = $derived(isFullscreen || pseudoFullscreen);
 </script>
 
-<svelte:window on:keydown={handleKeydown} on:resize={updateStageScale} />
+<svelte:window onkeydown={handleKeydown} onresize={updateStageScale} />
 
-<div class="replay-overlay" transition:fade={{ duration: 150 }} on:click|self={close} role="presentation">
-  <section
+<div class="replay-overlay" transition:fade={{ duration: 150 }} onclick={self(close)} role="presentation">
+  <div
     bind:this={dialog}
     class="replay-modal"
     class:fullscreen-active={fullscreenActive}
@@ -464,18 +470,18 @@
           <span>{model?.roomTitle || '경기 기록'}</span>
         </div>
       </div>
-      <button class="close-button" type="button" aria-label="리플레이 닫기" title="닫기 (Esc)" on:click={close}>
+      <button class="close-button" type="button" aria-label="리플레이 닫기" title="닫기 (Esc)" onclick={close}>
         <span class="material-symbols-outlined">close</span>
       </button>
     </header>
 
-    {#if model && state}
+    {#if model && replayState}
       <div class="game-stage-viewport" bind:this={stageViewport} style={`height: ${stageViewportHeight}px`}>
         <div class="game-stage-shell" style={`width: ${1000 * stageScale}px; height: ${410 * stageScale}px`}>
           <div class="game-stage" style={`transform: scale(${stageScale})`}>
           <div class="room-strip">
             <span>[{model.gameId ? model.gameId.slice(0, 8) : '-'}] {model.roomTitle}</span>
-            <span>{model.modeName} · 참가자 {model.players.length}명 · 라운드 {state.currentRound}/{model.totalRounds} · {Math.round(model.roomTimeMs / 1000)}초</span>
+            <span>{model.modeName} · 참가자 {model.players.length}명 · 라운드 {replayState.currentRound}/{model.totalRounds} · {Math.round(model.roomTimeMs / 1000)}초</span>
           </div>
           <div class="game-surface" bind:this={gameSurface}>
             <div class="game-background" aria-hidden="true">
@@ -493,44 +499,44 @@
               <img class="jjo-eye-right" src="https://cdn.kkutu.io/img/jjoeyeR.svg" referrerpolicy="no-referrer" alt="" />
               <div class="jjo-display-bar">
                 <div
-                  class:game-fail-text={state.displayMode === 'failure'}
-                  class:letter-mode={state.displayMode === 'letters'}
+                  class:game-fail-text={replayState.displayMode === 'failure'}
+                  class:letter-mode={replayState.displayMode === 'letters'}
                   class="jjo-display"
                   style={`--effect-duration: ${2000 / playbackRate}ms; animation-play-state: ${playing ? 'running' : 'paused'}`}
                 >
-                  {#if state.displayMode === 'letters'}
-                    {#each state.displayLetters as letter (letter.index)}
+                  {#if replayState.displayMode === 'letters'}
+                    {#each replayState.displayLetters as letter (letter.index)}
                       <span class:shown={letter.visible} class="display-text">{letter.char}</span>
                     {/each}
                   {:else}
-                    <span>{state.displayText}</span>
+                    <span>{replayState.displayText}</span>
                   {/if}
                 </div>
                 <div class="graph jjo-turn-time">
-                  <div class="graph-bar" style={`width: ${state.turnRatio * 100}%`}></div>
-                  <b>{(state.turnRemainingMs / 1000).toFixed(1)}초</b>
+                  <div class="graph-bar" style={`width: ${replayState.turnRatio * 100}%`}></div>
+                  <b>{(replayState.turnRemainingMs / 1000).toFixed(1)}초</b>
                 </div>
-                <div class:round-extreme={state.roundRemainingMs <= 5000} class="graph jjo-round-time">
-                  <div class="graph-bar" style={`width: ${state.roundRatio * 100}%`}></div>
-                  <b>{(state.roundRemainingMs / 1000).toFixed(1)}초</b>
+                <div class:round-extreme={replayState.roundRemainingMs <= 5000} class="graph jjo-round-time">
+                  <div class="graph-bar" style={`width: ${replayState.roundRatio * 100}%`}></div>
+                  <b>{(replayState.roundRemainingMs / 1000).toFixed(1)}초</b>
                 </div>
               </div>
             </div>
 
-            <div class="chain-hand" aria-label={`체인 ${state.acceptedCount}`}>
+            <div class="chain-hand" aria-label={`체인 ${replayState.acceptedCount}`}>
               <img src="https://cdn.kkutu.io/img/kkutu/righthand.png" referrerpolicy="no-referrer" alt="" />
-              <strong>{state.acceptedCount}</strong>
+              <strong>{replayState.acceptedCount}</strong>
             </div>
 
-            <div class="rounds" aria-label={`현재 ${state.currentRound}라운드`}>
+            <div class="rounds" aria-label={`현재 ${replayState.currentRound}라운드`}>
               {#each model.roundTitles as title, index}
-                <span class:rounds-current={index + 1 === state.currentRound}>{title}</span>
+                <span class:rounds-current={index + 1 === replayState.currentRound}>{title}</span>
               {/each}
             </div>
 
             <div class="history-holder" aria-live="polite">
               <div class="history">
-                {#each state.visibleEvents as replayEvent (replayEvent.id)}
+                {#each replayState.visibleEvents as replayEvent (replayEvent.id)}
                   <div
                     class:wordstack-history-item={model.boardType === 'wordstack'}
                     class="history-item"
@@ -546,9 +552,9 @@
                 {/each}
               </div>
             </div>
-            {#if state.wordstackFlight}
-              <div class="wordstack-flying-piece replay-wordstack-flying-piece" style={wordstackFlightStyle(state.wordstackFlight)} aria-hidden="true">
-                {state.wordstackFlight.transferredChar}
+            {#if replayState.wordstackFlight}
+              <div class="wordstack-flying-piece replay-wordstack-flying-piece" style={wordstackFlightStyle(replayState.wordstackFlight)} aria-hidden="true">
+                {replayState.wordstackFlight.transferredChar}
               </div>
             {/if}
 
@@ -562,22 +568,22 @@
                     {#if player.robot}
                       <img class="moremi-layer" src="https://cdn.kkutu.io/img/kkutu/moremi/robot.png" referrerpolicy="no-referrer" alt="" />
                     {:else}
-                      <img class="moremi-layer" src={moremiUrl('back', player.outfit.Mback)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'back')} />
-                      <img class="moremi-layer" src={moremiUrl('body', player.outfit.Mbody)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'body')} />
-                      <img class="moremi-layer" src={moremiUrl('shoes', player.outfit.Mshoes)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'shoes')} />
-                      <img class="moremi-layer" src={moremiUrl('clothes', player.outfit.Mclothes)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'clothes')} />
-                      <img class="moremi-layer" src={moremiUrl('eye', player.outfit.Meye)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'eye')} />
-                      <img class="moremi-layer" src={moremiUrl('mouth', player.outfit.Mmouth)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'mouth')} />
-                      <img class="moremi-layer" src={moremiUrl('head', player.outfit.Mhead)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'head')} />
-                      <img class="moremi-layer" src={moremiUrl('eyeDeco', player.outfit.MeyeDeco)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'eyeDeco')} />
-                      <img class="moremi-layer" src={moremiUrl('faceDeco', player.outfit.MfaceDeco)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'faceDeco')} />
-                      <img class="moremi-layer right-hand" src={moremiUrl('hand', player.outfit.Mrhand)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'hand')} />
-                      <img class="moremi-layer" src={moremiUrl('hand', player.outfit.Mlhand)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'hand')} />
-                      <img class="moremi-layer" src={moremiUrl('headDeco', player.outfit.MheadDeco)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'headDeco')} />
-                      <img class="moremi-layer" src={moremiUrl('dressDeco', player.outfit.MdressDeco)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'dressDeco')} />
-                      <img class="moremi-layer" src={moremiUrl('front', player.outfit.Mfront)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'front')} />
+                      <img class="moremi-layer" src={moremiUrl('back', player.outfit.Mback)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'back')} />
+                      <img class="moremi-layer" src={moremiUrl('body', player.outfit.Mbody)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'body')} />
+                      <img class="moremi-layer" src={moremiUrl('shoes', player.outfit.Mshoes)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'shoes')} />
+                      <img class="moremi-layer" src={moremiUrl('clothes', player.outfit.Mclothes)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'clothes')} />
+                      <img class="moremi-layer" src={moremiUrl('eye', player.outfit.Meye)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'eye')} />
+                      <img class="moremi-layer" src={moremiUrl('mouth', player.outfit.Mmouth)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'mouth')} />
+                      <img class="moremi-layer" src={moremiUrl('head', player.outfit.Mhead)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'head')} />
+                      <img class="moremi-layer" src={moremiUrl('eyeDeco', player.outfit.MeyeDeco)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'eyeDeco')} />
+                      <img class="moremi-layer" src={moremiUrl('faceDeco', player.outfit.MfaceDeco)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'faceDeco')} />
+                      <img class="moremi-layer right-hand" src={moremiUrl('hand', player.outfit.Mrhand)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'hand')} />
+                      <img class="moremi-layer" src={moremiUrl('hand', player.outfit.Mlhand)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'hand')} />
+                      <img class="moremi-layer" src={moremiUrl('headDeco', player.outfit.MheadDeco)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'headDeco')} />
+                      <img class="moremi-layer" src={moremiUrl('dressDeco', player.outfit.MdressDeco)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'dressDeco')} />
+                      <img class="moremi-layer" src={moremiUrl('front', player.outfit.Mfront)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'front')} />
                       {#if player.outfit.BDG}
-                        <img class="moremi-layer" src={moremiUrl('badge', player.outfit.BDG)} referrerpolicy="no-referrer" alt="" on:error={(event) => fallbackMoremi(event, 'badge')} />
+                        <img class="moremi-layer" src={moremiUrl('badge', player.outfit.BDG)} referrerpolicy="no-referrer" alt="" onerror={(event) => fallbackMoremi(event, 'badge')} />
                       {/if}
                     {/if}
                   </div>
@@ -585,12 +591,12 @@
                     <span class="game-user-level" title={`레벨 ${player.level || 1}`} style={levelIconStyle(player.level)}></span>
                     <strong class="game-user-name" title={player.nickname}>{player.nickname}</strong>
                   </div>
-                  <div class="game-user-score" aria-label={`${state.scores[player.index] || 0}점`}>
-                    {#each scoreText(state.scores[player.index] || 0) as digit}
+                  <div class="game-user-score" aria-label={`${replayState.scores[player.index] || 0}점`}>
+                    {#each scoreText(replayState.scores[player.index] || 0) as digit}
                       <span>{digit}</span>
                     {/each}
                   </div>
-                  {#each state.scorePopups.filter((popup) => popup.playerIndex === player.index) as popup (popup.id)}
+                  {#each replayState.scorePopups.filter((popup) => popup.playerIndex === player.index) as popup (popup.id)}
                     <div
                       class:bonus={popup.bonus}
                       class:lost={popup.value < 0}
@@ -618,23 +624,23 @@
           step="50"
           value={currentMs}
           aria-label="리플레이 재생 위치"
-          on:input={(event) => seekTo(event.currentTarget.value)}
+          oninput={(event) => seekTo(event.currentTarget.value)}
         />
         <div class="control-row">
           <div class="control-buttons">
-            <button type="button" title="이전 기록" aria-label="이전 기록" on:click={() => jumpEvent(-1)}><span class="material-symbols-outlined">skip_previous</span></button>
-            <button type="button" title="10초 뒤로" aria-label="10초 뒤로" on:click={() => skip(-10000)}><span class="material-symbols-outlined">replay_10</span></button>
-            <button class="play-button" type="button" title={playing ? '일시정지 (Space)' : '재생 (Space)'} aria-label={playing ? '일시정지' : '재생'} on:click={togglePlayback}>
+            <button type="button" title="이전 기록" aria-label="이전 기록" onclick={() => jumpEvent(-1)}><span class="material-symbols-outlined">skip_previous</span></button>
+            <button type="button" title="10초 뒤로" aria-label="10초 뒤로" onclick={() => skip(-10000)}><span class="material-symbols-outlined">replay_10</span></button>
+            <button class="play-button" type="button" title={playing ? '일시정지 (Space)' : '재생 (Space)'} aria-label={playing ? '일시정지' : '재생'} onclick={togglePlayback}>
               <span class="material-symbols-outlined">{playing ? 'pause' : 'play_arrow'}</span>
             </button>
-            <button type="button" title="10초 앞으로" aria-label="10초 앞으로" on:click={() => skip(10000)}><span class="material-symbols-outlined">forward_10</span></button>
-            <button type="button" title="다음 기록" aria-label="다음 기록" on:click={() => jumpEvent(1)}><span class="material-symbols-outlined">skip_next</span></button>
-            <button type="button" title={muted ? '소리 켜기' : '음소거'} aria-label={muted ? '소리 켜기' : '음소거'} on:click={toggleMute}><span class="material-symbols-outlined">{muted ? 'volume_off' : 'volume_up'}</span></button>
+            <button type="button" title="10초 앞으로" aria-label="10초 앞으로" onclick={() => skip(10000)}><span class="material-symbols-outlined">forward_10</span></button>
+            <button type="button" title="다음 기록" aria-label="다음 기록" onclick={() => jumpEvent(1)}><span class="material-symbols-outlined">skip_next</span></button>
+            <button type="button" title={muted ? '소리 켜기' : '음소거'} aria-label={muted ? '소리 켜기' : '음소거'} onclick={toggleMute}><span class="material-symbols-outlined">{muted ? 'volume_off' : 'volume_up'}</span></button>
           </div>
           <span class="time-label">{formatReplayTime(currentMs)} / {formatReplayTime(model.durationMs)}</span>
           <label class="speed-control">
             <span>재생 속도</span>
-            <select value={playbackRate} on:change={changePlaybackRate} aria-label="재생 속도">
+            <select value={playbackRate} onchange={changePlaybackRate} aria-label="재생 속도">
               {#each speedOptions as speed}<option value={speed}>{speed}×</option>{/each}
             </select>
           </label>
@@ -643,7 +649,7 @@
             type="button"
             title={fullscreenActive ? '전체화면 종료' : '전체화면'}
             aria-label={fullscreenActive ? '전체화면 종료' : '전체화면'}
-            on:click={toggleFullscreen}
+            onclick={toggleFullscreen}
           >
             <span class="material-symbols-outlined">{fullscreenActive ? 'fullscreen_exit' : 'fullscreen'}</span>
           </button>
@@ -652,7 +658,7 @@
     {:else}
       <div class="unavailable"><span class="material-symbols-outlined">error</span><strong>이 경기의 리플레이를 재생할 수 없습니다.</strong></div>
     {/if}
-  </section>
+  </div>
 </div>
 
 <style>

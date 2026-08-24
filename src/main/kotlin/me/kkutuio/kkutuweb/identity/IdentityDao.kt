@@ -1,7 +1,7 @@
 package me.kkutuio.kkutuweb.identity
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.ObjectMapper
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
@@ -38,7 +38,7 @@ class IdentityDao(
 
     fun findAccount(id: UUID): Account? = queryOne("SELECT * FROM account WHERE id = ?", accountMapper, id)
     fun findAccountByLegacyId(legacyUserId: String): Account? = queryOne("SELECT * FROM account WHERE legacy_user_id = ?", accountMapper, legacyUserId)
-    fun updateAccountFlags(accountId: UUID, flags: com.fasterxml.jackson.databind.JsonNode): Boolean = jdbc.update(
+    fun updateAccountFlags(accountId: UUID, flags: tools.jackson.databind.JsonNode): Boolean = jdbc.update(
         "UPDATE account SET flags = CAST(? AS jsonb), updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         flags.toString(), accountId
     ) == 1
@@ -206,7 +206,7 @@ class IdentityDao(
     fun dueAccountIds(): List<UUID> = jdbc.queryForList(
         "SELECT id FROM account WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100",
         UUID::class.java
-    )
+    ).filterNotNull()
     fun activeProfileDeletionRows(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList(
         "SELECT id, legacy_user_id, id::text AS profile_user_id FROM game_profile WHERE account_id=? AND status='ACTIVE'",
         accountId

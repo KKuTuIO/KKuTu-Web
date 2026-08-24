@@ -33,9 +33,10 @@
 - 및 기타 기여자
 
 ### 어플리케이션 환경
-- Java 8
-- Kotlin
-- Spring boot Framework
+- Java 25 LTS
+- Kotlin 2.4.10
+- Spring Boot 4.1.1 / Spring Framework 7
+- Gradle Wrapper 9.7.1
 - Thymeleaf View Engine
 
 ### 라이선스

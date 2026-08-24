@@ -1,7 +1,7 @@
 package me.kkutuio.kkutuweb.record
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import com.neovisionaries.ws.client.WebSocket
 import com.neovisionaries.ws.client.WebSocketAdapter
 import com.neovisionaries.ws.client.WebSocketException
@@ -21,7 +21,7 @@ class RecordClient(
     private val id: Short
 ) : WebSocketAdapter() {
     private val logger = LoggerFactory.getLogger(RecordClient::class.java)
-    private val objectMapper = ObjectMapper()
+    private val objectMapper = jacksonObjectMapper()
     private val pendingReplayRequests = ConcurrentHashMap<String, CompletableFuture<String>>()
     private var webSocket: WebSocket? = null
 
@@ -66,13 +66,13 @@ class RecordClient(
 
     override fun onTextMessage(websocket: WebSocket, text: String) {
         val jsonNode = objectMapper.readTree(text)
-        val type = jsonNode["type"]?.textValue() ?: return
+        val type = jsonNode["type"]?.stringValue() ?: return
         if (type != "record-find-game-result" &&
             type != "record-find-user-history-result" &&
             type != "record-find-user-mode-stats-result"
         ) return
 
-        val requestId = jsonNode["requestId"]?.textValue() ?: return
+        val requestId = jsonNode["requestId"]?.stringValue() ?: return
         val future = pendingReplayRequests.remove(requestId) ?: return
         future.complete(text)
     }

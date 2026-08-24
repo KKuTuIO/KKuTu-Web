@@ -18,71 +18,50 @@
 
 package me.kkutuio.kkutuweb.config
 
+import io.swagger.v3.oas.models.Components
+import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.info.Info
+import io.swagger.v3.oas.models.security.SecurityRequirement
+import io.swagger.v3.oas.models.security.SecurityScheme
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.config.BeanPostProcessor
+import org.springdoc.core.customizers.OpenApiCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.web.servlet.mvc.method.RequestMappingInfoHandlerMapping
-import springfox.documentation.builders.ApiInfoBuilder
-import springfox.documentation.builders.PathSelectors
-import springfox.documentation.builders.RequestHandlerSelectors
-import springfox.documentation.service.ApiInfo
-import springfox.documentation.service.ApiKey
-import springfox.documentation.service.AuthorizationScope
-import springfox.documentation.service.SecurityReference
-import springfox.documentation.spi.DocumentationType
-import springfox.documentation.spi.service.contexts.SecurityContext
-import springfox.documentation.spring.web.plugins.Docket
-import springfox.documentation.spring.web.plugins.WebMvcRequestHandlerProvider
-import springfox.documentation.swagger2.annotations.EnableSwagger2
 
 @Configuration
-@EnableSwagger2
 class SwaggerConfig(
-    @Autowired private val setting: KKuTuSetting
+    private val setting: KKuTuSetting
 ) {
     @Bean
-    fun springfoxHandlerProviderBeanPostProcessor(): BeanPostProcessor {
-        return object : BeanPostProcessor {
-            override fun postProcessAfterInitialization(bean: Any, beanName: String): Any {
-                if (bean is WebMvcRequestHandlerProvider) {
-                    val field = bean.javaClass.getDeclaredField("handlerMappings")
-                    field.isAccessible = true
-                    @Suppress("UNCHECKED_CAST")
-                    val mappings = field.get(bean) as List<RequestMappingInfoHandlerMapping>
-                    field.set(bean, mappings.filter { it.patternParser == null })
-                }
-                return bean
-            }
-        }
-    }
+    fun openApi(): OpenAPI = OpenAPI()
+        .info(
+            Info()
+                .title("끄투리오 웹 API")
+                .description("글자로 놀자, 끄투리오 웹 API 문서입니다.")
+                .version(setting.getVersion())
+        )
+        .components(
+            Components().addSecuritySchemes(
+                BEARER_SCHEME,
+                SecurityScheme()
+                    .type(SecurityScheme.Type.HTTP)
+                    .scheme("bearer")
+                    .bearerFormat("JWT")
+                    .description("KKuTuIO-Admin OAuth access token")
+            )
+        )
 
+    /** Preserve the old contract: only Admin operations advertise bearer authentication. */
     @Bean
-    fun api(): Docket {
-        return Docket(DocumentationType.SWAGGER_2)
-            .select()
-            .apis(RequestHandlerSelectors.basePackage("me.kkutuio.kkutuweb"))
-            .paths(PathSelectors.ant("/api/**"))
-            .build()
-            .apiInfo(apiInfo())
-            .useDefaultResponseMessages(false)
-            .securitySchemes(listOf(ApiKey("Bearer", "Authorization", "header")))
-            .securityContexts(listOf(
-                SecurityContext.builder()
-                    .securityReferences(listOf(
-                        SecurityReference("Bearer", arrayOf(AuthorizationScope("global", "KKuTuIO-Admin OAuth access token")))
-                    ))
-                    .forPaths(PathSelectors.ant("/api/admin/**"))
-                    .build()
-            ))
+    fun adminApiSecurity(): OpenApiCustomizer = OpenApiCustomizer { openApi ->
+        openApi.paths.orEmpty()
+            .filterKeys { it.startsWith("/api/admin/") }
+            .values
+            .flatMap { it.readOperations() }
+            .forEach { it.addSecurityItem(SecurityRequirement().addList(BEARER_SCHEME)) }
     }
 
-    private fun apiInfo(): ApiInfo {
-        return ApiInfoBuilder()
-            .title("끄투리오 API")
-            .description("서버 컨트롤러에서 자동 생성되는 끄투리오 API 명세")
-            .version(setting.getVersion())
-            .build()
+    private companion object {
+        const val BEARER_SCHEME = "Bearer"
     }
 }

@@ -48,7 +48,7 @@
         <div id="version" th:text="${version + ' (모바일)'}"></div>
         <div id="intro-text" th:text="#{kkutu.loading}"></div>
     </div>
-    <th:block th:replace="view/kkutu/m_menu"/>
+    <th:block th:replace="~{view/kkutu/m_menu}"/>
     <div id="cherry-blossom-container"></div>
     <th:block layout:replace="~{view/kkutu/dialog::dialog(id='SettingDiag',width=300,title=#{kkutu.dialog.setting.title})}">
         <th:block layout:fragment="content">

@@ -19,7 +19,7 @@
 package me.kkutuio.kkutuweb.shop.response
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 import me.kkutuio.kkutuweb.shop.Good
 
 data class ResponseGood(

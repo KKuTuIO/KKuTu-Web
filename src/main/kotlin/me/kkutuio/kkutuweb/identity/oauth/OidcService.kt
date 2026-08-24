@@ -1,7 +1,7 @@
 package me.kkutuio.kkutuweb.identity.oauth
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.core.type.TypeReference
+import tools.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.identity.*
 import me.kkutuio.kkutuweb.user.UserDao
 import org.springframework.stereotype.Service

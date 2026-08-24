@@ -1,7 +1,7 @@
 package me.kkutuio.kkutuweb.identity
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.node.ObjectNode
 import org.springframework.mail.SimpleMailMessage
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.stereotype.Service
@@ -33,14 +33,14 @@ class AccountSecurityService(
             throw IdpException("security_code_rate_limited", "보안코드는 30분마다 재발급할 수 있습니다.", 429)
         }
 
-        val flags = if (current.flags.isObject) current.flags.deepCopy<ObjectNode>() else objectMapper.createObjectNode()
-        flags.set<ObjectNode>("uid", objectMapper.createObjectNode().put("value", generateSecurityCode()).put("time", now))
+        val flags = if (current.flags.isObject) current.flags.deepCopy().asObject() else objectMapper.createObjectNode()
+        flags.set("uid", objectMapper.createObjectNode().put("value", generateSecurityCode()).put("time", now))
         val currentRevision = flags.path(ACCOUNT_REVISION_FLAG).path("value").asLong(0).coerceAtLeast(0)
-        flags.set<ObjectNode>(ACCOUNT_REVISION_FLAG, objectMapper.createObjectNode().put("value", currentRevision + 1).put("time", now))
+        flags.set(ACCOUNT_REVISION_FLAG, objectMapper.createObjectNode().put("value", currentRevision + 1).put("time", now))
         if (!dao.updateAccountFlags(current.id, flags)) throw IdpException("account_unavailable", "보안코드를 저장하지 못했습니다.", 503)
 
         dao.audit(current.id, "SECURITY_CODE_REISSUED")
-        return flags.path("uid").path("value").asText()
+        return flags.path("uid").path("value").asString()
     }
 
     @Transactional
@@ -272,7 +272,7 @@ class AccountSecurityService(
     }
 
     private fun matchesSecurityCode(account: Account, code: String): Boolean {
-        val expected = account.flags.path("uid").path("value").asText(null)
+        val expected = account.flags.path("uid").path("value").asString(null)
         return !expected.isNullOrBlank() && MessageDigest.isEqual(expected.toByteArray(), code.trim().toByteArray())
     }
 

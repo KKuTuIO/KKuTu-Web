@@ -18,9 +18,9 @@
 
 package me.kkutuio.kkutuweb.game
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ObjectNode
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.ObjectNode
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import com.neovisionaries.ws.client.*
 import me.kkutuio.kkutuweb.geo.GeoService
 import org.slf4j.LoggerFactory
@@ -49,7 +49,7 @@ class GameClient(
     }
 
     private val logger = LoggerFactory.getLogger(GameClient::class.java)
-    private val objectMapper = ObjectMapper()
+    private val objectMapper = jacksonObjectMapper()
     private val pendingRequests = ConcurrentHashMap<String, CompletableFuture<String>>()
     private val reconnectScheduled = AtomicBoolean(false)
     @Volatile
@@ -135,7 +135,7 @@ class GameClient(
 
     override fun onTextMessage(websocket: WebSocket, text: String) {
         val jsonNode = objectMapper.readTree(text)
-        val type = jsonNode["type"]?.textValue() ?: return
+        val type = jsonNode["type"]?.stringValue() ?: return
 
         if (type == "ip-geo-lookup") {
             handleIpGeoLookup(jsonNode)
@@ -151,7 +151,7 @@ class GameClient(
             type == "record-find-user-history-result" ||
             type == "record-find-user-mode-stats-result"
         ) {
-            val requestId = jsonNode["requestId"]?.textValue() ?: return
+            val requestId = jsonNode["requestId"]?.stringValue() ?: return
             val future = pendingRequests.remove(requestId) ?: return
             future.complete(text)
             return
@@ -219,8 +219,8 @@ class GameClient(
     private fun handleIpGeoLookup(request: JsonNode) {
         val response = objectMapper.createObjectNode()
         response.put("type", "ip-geo-lookup-result")
-        request["requestId"]?.textValue()?.let { response.put("requestId", it) }
-        val ip = request["ip"]?.textValue()?.trim()
+        request["requestId"]?.stringValue()?.let { response.put("requestId", it) }
+        val ip = request["ip"]?.stringValue()?.trim()
         if (ip.isNullOrEmpty() || ip.length > 45) {
             response.put("ok", false)
             response.put("code", 400)
@@ -234,7 +234,7 @@ class GameClient(
             } else {
                 response.put("ok", true)
                 response.put("code", 200)
-                response.set<JsonNode>("geo", objectMapper.valueToTree(geo))
+                response.set("geo", objectMapper.valueToTree(geo))
             }
         }
         send(objectMapper.writeValueAsString(response))

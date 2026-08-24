@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.oauth.discord
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import com.github.scribejava.apis.DiscordApi
 import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
@@ -54,19 +54,19 @@ class DiscordOAuthService(
         val response = oAuth20Service.execute(request)
         val jsonResponse = objectMapper.readTree(response.body)
 
-        val vendorId = jsonResponse.path("id").asText().takeIf { it.isNotBlank() }
+        val vendorId = jsonResponse.path("id").asString().takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("Discord 계정 식별번호를 받지 못했습니다.")
-        val avatar = jsonResponse.path("avatar").asText(null)
+        val avatar = jsonResponse.path("avatar").asString(null)
 
         return OAuthUser(
             authVendor = AuthVendor.DISCORD,
             vendorId = vendorId,
-            name = jsonResponse.path("username").asText(null) ?: "Discord 사용자",
+            name = jsonResponse.path("username").asString(null) ?: "Discord 사용자",
             profileImage = avatar?.let { "https://cdn.discordapp.com/avatars/$vendorId/$it" },
             gender = null,
             minAge = null,
             maxAge = null,
-            email = jsonResponse.path("email").asText(null),
+            email = jsonResponse.path("email").asString(null),
             emailVerified = jsonResponse.path("verified").asBoolean(false)
         )
     }

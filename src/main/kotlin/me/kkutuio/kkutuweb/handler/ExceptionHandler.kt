@@ -12,8 +12,8 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(ResponseStatusException::class)
     fun responseStatusException(e: ResponseStatusException): ResponseEntity<Map<String, Any?>> =
-        ResponseEntity.status(e.status).body(
-            mapOf("error" to e.status.value(), "message" to e.reason)
+        ResponseEntity.status(e.statusCode).body(
+            mapOf("error" to e.statusCode.value(), "message" to e.reason)
         )
 
     @ExceptionHandler(IllegalArgumentException::class)

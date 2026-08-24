@@ -2,8 +2,8 @@ package me.kkutuio.kkutuweb.record
 
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter
 import io.github.resilience4j.ratelimiter.RequestNotPermitted
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ObjectNode
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.ObjectNode
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpSession
 
 @RestController
 @RequestMapping("/api/replay")
@@ -51,7 +51,7 @@ class RecordAPI(
 
         val detailPayload = (payload as ObjectNode).objectNode()
         detailPayloadFields.forEach { field ->
-            payload.get(field)?.let { detailPayload.set<JsonNode>(field, it) }
+            payload.get(field)?.let { detailPayload.set(field, it) }
         }
         return result.copy(game = game.copy(detailPayload = detailPayload, payload = null, payloadDecoded = null))
     }

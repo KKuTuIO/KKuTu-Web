@@ -1,6 +1,6 @@
 package me.kkutuio.kkutuweb.identity
 
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
@@ -43,9 +43,9 @@ class RecaptchaVerifier(private val settings: IdentityProviderSettings) {
         } catch (_: Exception) {
             throw IdpException("temporarily_unavailable", "reCAPTCHA 검증 서비스를 사용할 수 없습니다.", 503)
         }
-        val hostname = response?.path("hostname")?.asText()?.lowercase()
+        val hostname = response?.path("hostname")?.asString()?.lowercase()
         if (response?.path("success")?.asBoolean() != true ||
-            response.path("action").asText() != expectedAction ||
+            response.path("action").asString() != expectedAction ||
             hostname !in settings.recaptchaExpectedHostnames ||
             response.path("score").asDouble(0.0) < settings.recaptchaMinimumScore
         ) throw IdpException("invalid_captcha", "reCAPTCHA 검증에 실패했습니다.")

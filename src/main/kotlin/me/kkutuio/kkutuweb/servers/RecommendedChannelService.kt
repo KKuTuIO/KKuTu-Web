@@ -1,12 +1,12 @@
 package me.kkutuio.kkutuweb.servers
 
-import com.fasterxml.jackson.databind.JsonNode
+import tools.jackson.databind.JsonNode
 import org.slf4j.LoggerFactory
 import org.springframework.http.client.SimpleClientHttpRequestFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 @Service
 class RecommendedChannelService {

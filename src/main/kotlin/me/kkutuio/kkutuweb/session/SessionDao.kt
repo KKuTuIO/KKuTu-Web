@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.session
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import org.postgresql.util.PGobject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
@@ -41,7 +41,7 @@ class SessionDao(
         val sql = "SELECT COUNT(*) FROM session WHERE _id = ?"
 
         val count = jdbcTemplate.queryForObject(sql, Int::class.java, id)
-        return count > 0
+        return (count ?: 0) > 0
     }
 
     fun insert(sessionProfile: SessionProfile, id: String) {

@@ -1,11 +1,11 @@
 <script>
     import {onMount} from 'svelte';
 
-    let consent = null;
-    let selectedProfile = '';
-    let csrfToken = '';
-    let csrfParameter = '_csrf';
-    let error = '';
+    let consent = $state(null);
+    let selectedProfile = $state('');
+    let csrfToken = $state('');
+    let csrfParameter = $state('_csrf');
+    let error = $state('');
     const defaultAppIcon = 'https://cdn.kkutu.io/img/bi/bi_profile_main.png';
 
     const scopeCopy = {
@@ -54,7 +54,7 @@
             <div class="text-center">
                 <img class="mx-auto h-14 w-14 rounded-2xl border border-slate-200 bg-white object-cover shadow-lg shadow-slate-900/10 dark:border-gray-700 dark:bg-gray-800"
                      src={consent.client_logo_uri || defaultAppIcon} alt={consent.client_name}
-                     on:error={useDefaultLogo}/>
+                     onerror={useDefaultLogo}/>
                 <p class="mt-5 text-sm font-bold text-[#438c43]">끄투리오 계정</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white"><span
                         class="text-[#438c43]">{consent.client_name}</span>에 접근 권한을 부여할까요?</h1>

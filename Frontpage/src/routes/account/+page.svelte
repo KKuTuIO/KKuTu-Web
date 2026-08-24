@@ -1,4 +1,6 @@
 <script>
+    import { run } from 'svelte/legacy';
+
     import {onMount} from 'svelte';
     import QRCode from 'qrcode';
     import LoginMethodSelector from '$lib/LoginMethodSelector.svelte';
@@ -6,54 +8,54 @@
     import ProfileCreateModal from '$lib/ProfileCreateModal.svelte';
     import ToastStack from '$lib/ToastStack.svelte';
 
-    let summary = null;
-    let identities = [];
-    let passkeys = [];
-    let mfa = null;
-    let toasts = [];
+    let summary = $state(null);
+    let identities = $state([]);
+    let passkeys = $state([]);
+    let mfa = $state(null);
+    let toasts = $state([]);
     let toastId = 0;
     const toastTimers = new Map();
-    let email = '';
-    let nickname = '';
-    let exordial = '';
-    let nicknamePolicy = null;
-    let fixedNickname = false;
-    let password = '';
-    let supportPin = '';
-    let securityCode = '';
-    let totpSecret = '';
-    let totpQr = '';
-    let recoveryCodes = [];
-    let selectedProfile = '';
-    let profileSwitching = false;
-    let profilePolicy = null;
-    let profileCreateOpen = false;
-    let profileCreateReauthVersion = 0;
+    let email = $state('');
+    let nickname = $state('');
+    let exordial = $state('');
+    let nicknamePolicy = $state(null);
+    let fixedNickname = $state(false);
+    let password = $state('');
+    let supportPin = $state('');
+    let securityCode = $state('');
+    let totpSecret = $state('');
+    let totpQr = $state('');
+    let recoveryCodes = $state([]);
+    let selectedProfile = $state('');
+    let profileSwitching = $state(false);
+    let profilePolicy = $state(null);
+    let profileCreateOpen = $state(false);
+    let profileCreateReauthVersion = $state(0);
     let reauthRequired = false;
-    let reauthDialogOpen = false;
-    let reauthPassword = '';
-    let reauthTotpCode = '';
-    let reauthMfaRequired = false;
-    let totpName = '';
-    let passwordEnabled = false;
-    let passkeySupported = false;
-    let reauthProviderIds = [];
-    let loading = true;
-    let pendingProtectedAction = '';
-    let modal = null;
-    let modalTotpCode = '';
-    let modalTotpName = '';
+    let reauthDialogOpen = $state(false);
+    let reauthPassword = $state('');
+    let reauthTotpCode = $state('');
+    let reauthMfaRequired = $state(false);
+    let totpName = $state('');
+    let passwordEnabled = $state(false);
+    let passkeySupported = $state(false);
+    let reauthProviderIds = $state([]);
+    let loading = $state(true);
+    let pendingProtectedAction = $state('');
+    let modal = $state(null);
+    let modalTotpCode = $state('');
+    let modalTotpName = $state('');
     let modalPasskeyId = null;
-    let modalPasskeyName = '';
-    let linkedIdentityMap = new Map();
-    let linkedProviderCount = 0;
-    let connectedApps = [];
-    let deletionConsent = false;
-    $: selectedProfileData = summary?.profiles?.find(profile => String(profile.id) === String(selectedProfile)) || null;
-    $: selectedProfileDeletionAt = selectedProfileData?.deletion_scheduled_at || null;
-    $: activeProfileCount = (summary?.profiles || []).filter(profile => profile.status === 'ACTIVE' && !profile.deletion_scheduled_at).length;
-    $: currentIdentifier = selectedProfileData?.id || selectedProfile || summary?.uuid || '';
-    $: accountIdentifier = summary?.uuid || '';
+    let modalPasskeyName = $state('');
+    let linkedIdentityMap = $state(new Map());
+    let linkedProviderCount = $state(0);
+    let connectedApps = $state([]);
+    let deletionConsent = $state(false);
+    let selectedProfileData = $derived(summary?.profiles?.find(profile => String(profile.id) === String(selectedProfile)) || null);
+    let selectedProfileDeletionAt = $derived(selectedProfileData?.deletion_scheduled_at || null);
+    let activeProfileCount = $derived((summary?.profiles || []).filter(profile => profile.status === 'ACTIVE' && !profile.deletion_scheduled_at).length);
+    let currentIdentifier = $derived(selectedProfileData?.id || selectedProfile || summary?.uuid || '');
+    let accountIdentifier = $derived(summary?.uuid || '');
     const oauthProviders = [
         {id: 'naver', name: '네이버', icon: '/img/auth/naver.png'},
         {id: 'google', name: 'Google', icon: '/img/auth/google.png'},
@@ -287,13 +289,17 @@
             .map(provider => provider.id));
     }
 
-    $: linkedIdentityMap = new Map(
-        identities
-            .filter(identity => String(identity?.type || '').trim().toUpperCase() === 'OAUTH')
-            .map(identity => [identityProviderId(identity), identity])
-            .filter(([providerId]) => oauthProviders.some(provider => provider.id === providerId))
-    );
-    $: linkedProviderCount = linkedIdentityMap.size;
+    run(() => {
+        linkedIdentityMap = new Map(
+            identities
+                .filter(identity => String(identity?.type || '').trim().toUpperCase() === 'OAUTH')
+                .map(identity => [identityProviderId(identity), identity])
+                .filter(([providerId]) => oauthProviders.some(provider => provider.id === providerId))
+        );
+    });
+    run(() => {
+        linkedProviderCount = linkedIdentityMap.size;
+    });
 
     function linkedAt(identity) {
         return identity?.created_at ? new Date(identity.created_at).toLocaleDateString() : '';
@@ -723,7 +729,7 @@
         <div class="flex items-center justify-between gap-3"><h1
                 class="text-3xl font-bold tracking-tight text-gray-700 dark:text-gray-100">계정 관리</h1>
             <button class="grid h-10 w-10 place-items-center rounded-full text-gray-500 transition hover:bg-gray-200 hover:text-gray-900 disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-white"
-                    on:click={load} disabled={loading} aria-label="새로고침"><span class:animate-spin={loading}
+                    onclick={load} disabled={loading} aria-label="새로고침"><span class:animate-spin={loading}
                                                                                class="material-symbols-outlined">{loading ? 'progress_activity' : 'refresh'}</span>
             </button>
         </div>
@@ -731,17 +737,17 @@
             <section
                     class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <img class="h-16 w-16 shrink-0 rounded-2xl bg-slate-100" src={avatarUrl()} alt="계정 아바타"
-                     on:error={useFallbackAvatar}/>
+                     onerror={useFallbackAvatar}/>
                 <div class="min-w-0 flex-1">
                     <h2 class="truncate text-xl font-bold">{@html profileDisplayHtml(selectedProfileData)}</h2>
                     <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</p>
                 </div>
                 <button type="button"
                         class="flex max-w-[13rem] items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:hover:bg-gray-700"
-                        on:click={() => modal = {type: 'profile-switch', title: '프로필 전환'}}
+                        onclick={() => modal = {type: 'profile-switch', title: '프로필 전환'}}
                         aria-label="프로필 전환">
                     <img class="h-8 w-8 shrink-0 rounded-lg" src={avatarUrl(currentIdentifier)} alt="현재 프로필"
-                         on:error={useFallbackAvatar}/>
+                         onerror={useFallbackAvatar}/>
                     <span class="min-w-0 flex-1 truncate text-sm font-semibold">{@html profileDisplayHtml(selectedProfileData)}</span>
                     <span class="material-symbols-outlined shrink-0 text-gray-500">expand_more</span>
                 </button>
@@ -763,13 +769,13 @@
                                             class="-ml-px inline-flex shrink-0 items-center rounded-r-xl border border-gray-300 bg-slate-100 px-3 font-mono text-sm font-bold text-slate-600 dark:border-gray-600 dark:bg-slate-900 dark:text-gray-300">#{nicknamePolicy?.suffix || '00000'}</span>{/if}
                                 </div>
                                 <button class="rounded-xl bg-[#55aa55] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
-                                        disabled={nicknamePolicy && !nicknamePolicy.can_change} on:click={saveNickname}>
+                                        disabled={nicknamePolicy && !nicknamePolicy.can_change} onclick={saveNickname}>
                                     변경
                                 </button>
                             </div>
                             <label class="mt-3 flex cursor-pointer items-center gap-2 text-sm"><input type="checkbox"
                                                                                                       checked={fixedNickname}
-                                                                                                      on:change={changeFixedNickname}/><span>별명 고정</span></label>
+                                                                                                      onchange={changeFixedNickname}/><span>별명 고정</span></label>
                             {#if nicknamePolicy?.game_connected}<p class="mt-3 text-sm text-red-600">게임 접속 중에는 게임 내 프로필
                                 관리 화면에서 별명을 변경해 주세요.</p>{:else if nicknamePolicy?.change_restricted}<p
                                     class="mt-3 text-sm text-red-600">운영정책 위반으로 별명 변경을 이용할 수
@@ -784,10 +790,10 @@
                         </summary>
                         <div class="px-5 pb-5">
                             <textarea class="min-h-24 w-full resize-y rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900"
-                                      maxlength="100" bind:value={exordial} placeholder="소개 한마디를 입력해 주세요."/>
+                                      maxlength="100" bind:value={exordial} placeholder="소개 한마디를 입력해 주세요."></textarea>
                             <div class="mt-2 flex items-center justify-between gap-3"><p class="text-xs text-gray-500 dark:text-gray-300">{exordial.length}/100자</p>
                                 <button class="rounded-xl bg-[#55aa55] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
-                                        disabled={nicknamePolicy?.change_restricted} on:click={saveExordial}>변경
+                                        disabled={nicknamePolicy?.change_restricted} onclick={saveExordial}>변경
                                 </button>
                             </div>
                             {#if nicknamePolicy?.change_restricted}<p class="mt-3 text-sm text-red-600">운영정책 위반으로 소개 한마디 변경을 이용할 수 없습니다.</p>{/if}
@@ -797,7 +803,7 @@
                         <div class="flex max-w-[65%] items-center gap-2"><span
                                 class="break-all text-right font-mono text-sm text-gray-500 dark:text-gray-300">{currentIdentifier}</span>
                             <button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white"
-                                    on:click={copyIdentifier} aria-label="프로필 식별번호 복사"><span
+                                    onclick={copyIdentifier} aria-label="프로필 식별번호 복사"><span
                                     class="material-symbols-outlined text-lg">content_copy</span></button>
                         </div>
                     </div>
@@ -829,7 +835,7 @@
                             <div class="flex items-center justify-between gap-3"><p
                                     class="text-sm text-gray-500 dark:text-gray-300">{summary.email || '등록된 전자 메일 주소가 없습니다.'}</p>
                                 {#if summary.email}
-                                    <button class="shrink-0 text-sm font-bold text-red-700" on:click={removeEmail}>삭제
+                                    <button class="shrink-0 text-sm font-bold text-red-700" onclick={removeEmail}>삭제
                                     </button>
                                 {/if}
                             </div>
@@ -837,7 +843,7 @@
                                     class="rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900"
                                     type="email" placeholder="새 전자 메일 주소" bind:value={email} autocomplete="email"/>
                                 <button class="rounded-xl border border-[#55aa55] px-4 py-3 text-sm font-bold text-[#438c43]"
-                                        on:click={addEmail}>인증 메일 보내기
+                                        onclick={addEmail}>인증 메일 보내기
                                 </button>
                             </div>
                         </div>
@@ -846,7 +852,7 @@
                         <div class="flex max-w-[65%] items-center gap-2"><span
                                 class="break-all text-right font-mono text-sm text-gray-500 dark:text-gray-300">{accountIdentifier}</span>
                             <button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-white"
-                                    on:click={copyAccountIdentifier} aria-label="계정 식별번호 복사"><span
+                                    onclick={copyAccountIdentifier} aria-label="계정 식별번호 복사"><span
                                     class="material-symbols-outlined text-lg">content_copy</span></button>
                         </div>
                     </div>
@@ -872,7 +878,7 @@
                                         type="password" minlength="12" placeholder="새 비밀번호 (12자 이상)"
                                         bind:value={password}/>
                                     <button class="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-white dark:bg-gray-700"
-                                            on:click={setPassword}>{identities.some(identity => identity.type === 'PASSWORD') ? '변경' : '설정'}</button>
+                                            onclick={setPassword}>{identities.some(identity => identity.type === 'PASSWORD') ? '변경' : '설정'}</button>
                                 </div>
                             </div>
                         </details>
@@ -899,13 +905,13 @@
                                     </div>
                                     {#if identity?.revocable}
                                         <button class="shrink-0 rounded-xl border border-red-300 px-4 py-2 text-sm font-bold text-red-700 dark:border-red-900"
-                                                on:click={() => revoke(identity)}>연동해제
+                                                onclick={() => revoke(identity)}>연동해제
                                         </button>
                                     {:else if identity}
                                         <span class="shrink-0 text-sm text-gray-500">기본 로그인 수단</span>
                                     {:else}
                                         <button class="shrink-0 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]"
-                                                on:click={() => linkProvider(provider.id)}>연동하기
+                                                onclick={() => linkProvider(provider.id)}>연동하기
                                         </button>
                                     {/if}
                                 </div>
@@ -923,7 +929,7 @@
                                     <span class="material-symbols-outlined text-3xl text-gray-400">key</span>
                                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-300">등록된 패스키가 없습니다.</p>
                                     <button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43] disabled:opacity-50"
-                                            on:click={registerPasskey} disabled={passkeys.length >= 10}>패스키 추가
+                                            onclick={registerPasskey} disabled={passkeys.length >= 10}>패스키 추가
                                     </button>
                                 </div>
                             {:else}
@@ -936,7 +942,7 @@
                                                 <div class="flex items-center gap-1.5"><h3
                                                         class="truncate text-lg font-bold">{passkey.device_name || 'Passkey'}</h3>
                                                     <button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white"
-                                                            on:click={() => openPasskeyRename(passkey)}
+                                                            onclick={() => openPasskeyRename(passkey)}
                                                             aria-label="패스키 이름 변경"><span
                                                             class="material-symbols-outlined text-lg">edit</span>
                                                     </button>
@@ -944,13 +950,13 @@
                                                 <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-300">{passkey.last_used_at ? `최근 사용: ${new Date(passkey.last_used_at).toLocaleString()}` : `등록: ${new Date(passkey.created_at).toLocaleString()}`}</p>
                                             </div>
                                             <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
-                                                    on:click={() => removePasskey(passkey.id)} aria-label="패스키 삭제"><span
+                                                    onclick={() => removePasskey(passkey.id)} aria-label="패스키 삭제"><span
                                                     class="material-symbols-outlined">delete</span></button>
                                         </div>
                                     {/each}
                                 </div>
                                 <button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43] disabled:opacity-50"
-                                        on:click={registerPasskey} disabled={passkeys.length >= 10}>패스키 추가
+                                        onclick={registerPasskey} disabled={passkeys.length >= 10}>패스키 추가
                                 </button>
                             {/if}
                         </div>
@@ -970,13 +976,13 @@
                                             <div class="flex items-center gap-1.5"><h3
                                                     class="truncate text-lg font-bold">{totpName || 'Authenticator'}</h3>
                                                 <button class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white"
-                                                        on:click={openTotpRename} aria-label="TOTP 매체 이름 변경"><span
+                                                        onclick={openTotpRename} aria-label="TOTP 매체 이름 변경"><span
                                                         class="material-symbols-outlined text-lg">edit</span></button>
                                             </div>
                                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">2단계 인증에 사용 중</p>
                                         </div>
                                         <button class="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
-                                                on:click={removeTotp} aria-label="TOTP 매체 해제"><span
+                                                onclick={removeTotp} aria-label="TOTP 매체 해제"><span
                                                 class="material-symbols-outlined">delete</span></button>
                                     </div>
                                 </div>
@@ -984,9 +990,10 @@
                                     <div class="mt-4 flex items-center justify-between gap-4 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900">
                                         <span class="text-sm font-bold">외부 계정으로 로그인 시 2단계 인증 사용</span>
                                         <button type="button" role="switch"
+                                                aria-label="외부 계정 로그인 2단계 인증"
                                                 aria-checked={Boolean(mfa?.external_login_mfa_enabled)}
                                                 class={`relative h-7 w-12 rounded-full transition-colors ${mfa?.external_login_mfa_enabled ? 'bg-[#55aa55]' : 'bg-gray-300 dark:bg-gray-600'}`}
-                                                on:click={() => setExternalLoginMfa(!mfa?.external_login_mfa_enabled)}>
+                                                onclick={() => setExternalLoginMfa(!mfa?.external_login_mfa_enabled)}>
                                             <span class:translate-x-6={mfa?.external_login_mfa_enabled}
                                                   class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform"></span>
                                         </button>
@@ -997,7 +1004,7 @@
                                     <span class="material-symbols-outlined text-3xl text-gray-400">qr_code_2</span>
                                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-300">등록된 TOTP 매체가 없습니다.</p>
                                     <button class="mt-4 rounded-xl border border-[#55aa55] px-4 py-2 text-sm font-bold text-[#438c43]"
-                                            on:click={setupTotp}>TOTP 매체 추가
+                                            onclick={setupTotp}>TOTP 매체 추가
                                     </button>
                                 </div>
                             {/if}
@@ -1011,7 +1018,7 @@
                         <div class="flex items-center justify-between gap-5 px-5 pb-5"><p class="min-w-0 flex-1 text-sm text-gray-500 dark:text-gray-300">각 코드는 한 번만 로그인에
                             사용할 수 있습니다.</p>
                             <button class="shrink-0 rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
-                                    on:click={rotateOneTimeLoginCodes}>새 코드 발급
+                                    onclick={rotateOneTimeLoginCodes}>새 코드 발급
                             </button>
                         </div>
                     </details>
@@ -1028,7 +1035,7 @@
                         <div class="flex items-center justify-between gap-5 px-5 pb-5"><p class="min-w-0 flex-1 text-sm text-gray-500 dark:text-gray-300">고객센터 상담 시 본인 확인에
                             사용합니다.</p>
                             <button class="shrink-0 rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700"
-                                    on:click={issuePin}>발급
+                                    onclick={issuePin}>발급
                             </button>
                         </div>
                     </details>
@@ -1040,10 +1047,10 @@
                             확인하거나 재발급합니다.</p>
                             <div class="flex shrink-0 gap-2">
                                 <button class="rounded-xl border border-gray-300 px-4 py-2 text-sm font-bold dark:border-gray-600"
-                                        on:click={revealSecurityCode}>보기
+                                        onclick={revealSecurityCode}>보기
                                 </button>
                                 <button class="rounded-xl bg-slate-800 px-4 py-2 text-sm font-bold text-white dark:bg-gray-700"
-                                        on:click={() => reissueSecurityCode()}>재발급
+                                        onclick={() => reissueSecurityCode()}>재발급
                                 </button>
                             </div>
                         </div>
@@ -1085,11 +1092,11 @@
             <input class="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-center tracking-[0.25em] text-slate-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                    autocomplete="one-time-code" bind:value={reauthTotpCode} placeholder="TOTP 인증 코드 또는 보안코드"/>
             <button class="mt-3 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                    on:click={reauthenticate}>확인
+                    onclick={reauthenticate}>확인
             </button>
             {#if reauthMfaRequired}
                 <div class="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm underline">
-                    <button on:click={requestReauthenticationEmailMfaCode}>TOTP 인증 코드를 확인할 수 없나요?</button>
+                    <button onclick={requestReauthenticationEmailMfaCode}>TOTP 인증 코드를 확인할 수 없나요?</button>
                     <a href="/account/recovery?mode=one-time">일회용 비밀번호 사용</a>
                 </div>
             {/if}
@@ -1112,9 +1119,9 @@
                         <button type="button"
                         class={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-gray-100 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-gray-700 ${String(profile.id) === String(selectedProfile) ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                         disabled={profileSwitching || Boolean(profile.deletion_scheduled_at)}
-                        on:click={() => selectProfile(profile)}>
+                        onclick={() => selectProfile(profile)}>
                     <img class="h-11 w-11 shrink-0 rounded-xl" src={avatarUrl(profile.id)} alt={profileDisplayName(profile, index)}
-                         on:error={useFallbackAvatar}/>
+                         onerror={useFallbackAvatar}/>
                     <span class="min-w-0 flex-1">
                         <span class="block truncate font-semibold">{@html profileDisplayHtml(profile, index)}</span>
                         <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
@@ -1126,11 +1133,11 @@
                         {/if}
                     </button>
                     {#if profile.deletion_scheduled_at}
-                        <button type="button" class="-mt-2 mb-1 w-full px-3 text-right text-xs font-bold text-[#438c43]" on:click={() => cancelProfileDeletion(profile.id)}>삭제 신청 해제</button>
+                        <button type="button" class="-mt-2 mb-1 w-full px-3 text-right text-xs font-bold text-[#438c43]" onclick={() => cancelProfileDeletion(profile.id)}>삭제 신청 해제</button>
                     {/if}
             {/each}
             <button type="button" class="mt-2 flex w-full items-center justify-between gap-3 rounded-xl border-t border-gray-200 px-3 py-3 text-left text-sm font-semibold text-gray-500 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
-                    disabled={!profilePolicy?.can_create || profileSwitching} on:click={openProfileCreate}>
+                    disabled={!profilePolicy?.can_create || profileSwitching} onclick={openProfileCreate}>
                 <span class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-lg" aria-hidden="true">add</span>
                     <span>프로필 추가</span>
@@ -1142,7 +1149,7 @@
         {@const profile = modal.profile}
         {#if profile?.deletion_scheduled_at}
             <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">이 프로필은 {formatDeletionDate(profile.deletion_scheduled_at)}에 자동 삭제됩니다. 삭제 신청을 해제하면 즉시 다시 사용할 수 있습니다.</p>
-            <button class="mt-5 w-full rounded-xl border border-[#55aa55] px-4 py-3 font-bold text-[#438c43]" on:click={() => cancelProfileDeletion(profile.id)}>삭제 신청 해제</button>
+            <button class="mt-5 w-full rounded-xl border border-[#55aa55] px-4 py-3 font-bold text-[#438c43]" onclick={() => cancelProfileDeletion(profile.id)}>삭제 신청 해제</button>
         {:else}
             <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">더 이상 이 프로필을 사용하지 않으면 삭제를 신청할 수 있습니다. 신청 후 14일 동안은 게임에 접속할 수 없으며, 기간이 지나면 프로필과 게임 데이터가 삭제됩니다.</p>
             {#if connectedApps.length}
@@ -1153,13 +1160,13 @@
                 </div>
             {:else}
                 <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 text-sm leading-6 dark:border-gray-700"><input class="mt-1" type="checkbox" bind:checked={deletionConsent}/><span>14일의 삭제 유예기간과 유예기간 종료 후 복구할 수 없다는 내용을 확인했습니다.</span></label>
-                <button class="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={!deletionConsent} on:click={() => requestProfileDeletion(profile.id)}>프로필 삭제 신청</button>
+                <button class="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={!deletionConsent} onclick={() => requestProfileDeletion(profile.id)}>프로필 삭제 신청</button>
             {/if}
         {/if}
     {:else if modal?.type === 'account-delete'}
         {#if summary?.deletion_scheduled_at}
             <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">계정 탈퇴 신청이 {formatDeletionDate(summary.deletion_scheduled_at)}에 완료됩니다. 그 전까지 신청을 해제할 수 있습니다.</p>
-            <button class="mt-5 w-full rounded-xl border border-[#55aa55] px-4 py-3 font-bold text-[#438c43]" on:click={cancelAccountDeletion}>계정 탈퇴 신청 해제</button>
+            <button class="mt-5 w-full rounded-xl border border-[#55aa55] px-4 py-3 font-bold text-[#438c43]" onclick={cancelAccountDeletion}>계정 탈퇴 신청 해제</button>
         {:else}
             <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">계정 탈퇴를 신청하면 14일 동안 서비스에 접속할 수 없으며, 유예기간이 지나면 계정과 남은 계정 정보가 삭제됩니다.</p>
             {#if activeProfileCount > 0}
@@ -1171,7 +1178,7 @@
                 </div>
             {:else}
                 <label class="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 text-sm leading-6 dark:border-gray-700"><input class="mt-1" type="checkbox" bind:checked={deletionConsent}/><span>14일의 탈퇴 유예기간과 유예기간 종료 후 복구할 수 없다는 내용을 확인했습니다.</span></label>
-                <button class="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={!deletionConsent} on:click={() => requestAccountDeletion()}>계정 탈퇴 신청</button>
+                <button class="mt-5 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50" disabled={!deletionConsent} onclick={() => requestAccountDeletion()}>계정 탈퇴 신청</button>
             {/if}
         {/if}
     {:else if modal?.type === 'totp-setup'}
@@ -1183,7 +1190,7 @@
         <input class="mt-4 w-full rounded-xl border border-gray-300 bg-white p-3 text-center text-lg tracking-[0.35em] dark:border-gray-600 dark:bg-gray-900"
                maxlength="6" inputmode="numeric" autocomplete="one-time-code" bind:value={modalTotpCode}
                placeholder="000000"/>
-        <button class="mt-3 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white" on:click={confirmTotp}>확인
+        <button class="mt-3 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white" onclick={confirmTotp}>확인
         </button>
     {:else if modal?.type === 'support-pin'}
         <p class="text-sm text-gray-600 dark:text-gray-300">고객센터 상담 시 이 PIN을 전달해 주세요.</p>
@@ -1201,26 +1208,26 @@
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">인증 앱을 구분하기 쉬운 이름으로 변경할 수 있습니다.</p>
         <input class="mt-4 w-full rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900"
                maxlength="100" bind:value={modalTotpName} placeholder="Authenticator"
-               on:keydown={(event) => event.key === 'Enter' && confirmTotpRename()}/>
+               onkeydown={(event) => event.key === 'Enter' && confirmTotpRename()}/>
         <div class="mt-5 grid grid-cols-2 gap-3">
             <button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-                    on:click={closeModal}>취소
+                    onclick={closeModal}>취소
             </button>
             <button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                    on:click={confirmTotpRename}>저장
+                    onclick={confirmTotpRename}>저장
             </button>
         </div>
     {:else if modal?.type === 'passkey-rename'}
         <p class="text-sm leading-6 text-gray-600 dark:text-gray-300">이 패스키를 구분하기 쉬운 이름으로 변경할 수 있습니다.</p>
         <input class="mt-4 w-full rounded-xl border border-gray-300 bg-white p-3 dark:border-gray-600 dark:bg-gray-900"
                maxlength="100" bind:value={modalPasskeyName} placeholder="Passkey"
-               on:keydown={(event) => event.key === 'Enter' && confirmPasskeyRename()}/>
+               onkeydown={(event) => event.key === 'Enter' && confirmPasskeyRename()}/>
         <div class="mt-5 grid grid-cols-2 gap-3">
             <button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-                    on:click={closeModal}>취소
+                    onclick={closeModal}>취소
             </button>
             <button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                    on:click={confirmPasskeyRename}>저장
+                    onclick={confirmPasskeyRename}>저장
             </button>
         </div>
     {:else if modal?.type === 'fixed-nickname-confirm'}
@@ -1228,10 +1235,10 @@
             않으면 다른 회원이 별명 고정을 해제시킬 수 있습니다. 계속하시겠습니까?</p>
         <div class="mt-6 grid grid-cols-2 gap-3">
             <button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-                    on:click={closeModal}>아니오
+                    onclick={closeModal}>아니오
             </button>
             <button class="rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                    on:click={confirmFixedNickname}>예
+                    onclick={confirmFixedNickname}>예
             </button>
         </div>
     {/if}

@@ -258,7 +258,7 @@ class ModerationAuditService(
             entry.copy(reports = reports)
         }
 
-        return ListResponse(total, enrichedRows)
+        return ListResponse(total ?: 0, enrichedRows)
     }
 
     private fun loadReportsByCase(caseIds: List<Long>): Map<Long, List<ModerationAuditReportReference>> {

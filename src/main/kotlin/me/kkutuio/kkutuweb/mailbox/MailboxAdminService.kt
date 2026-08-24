@@ -1,7 +1,7 @@
 package me.kkutuio.kkutuweb.mailbox
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
@@ -128,7 +128,7 @@ class MailboxAdminService(
             ::mapAudit,
             *(parameters + listOf(size, page * size)).toTypedArray()
         )
-        return ListResponse(count, content)
+        return ListResponse(count ?: 0, content)
     }
 
     private fun validate(request: MailboxAdminMailRequest): MailboxAdminMailRequest {
@@ -167,26 +167,26 @@ class MailboxAdminService(
             }
             return
         }
-        val type = node.path("type").asText()
-        val operator = node.path("operator").asText("eq")
+        val type = node.path("type").asString()
+        val operator = node.path("operator").asString("eq")
         require(type in conditionTypes) { "지원하지 않는 지급 조건입니다: $type" }
         require(operator in operators) { "지원하지 않는 조건 연산자입니다: $operator" }
         if (operator == "in") require(node.path("value").isArray) { "in 연산자의 값은 배열이어야 합니다." }
         when (type) {
             "userId" -> {
                 if (operator == "in") {
-                    require(node.path("value").size() > 0 && node.path("value").all { it.isTextual && it.asText().isNotBlank() }) {
+                    require(node.path("value").size() > 0 && node.path("value").all { it.isString && it.asString().isNotBlank() }) {
                         "사용자 ID 목록에는 하나 이상의 문자열 ID가 필요합니다."
                     }
-                } else require(node.path("value").isTextual && node.path("value").asText().isNotBlank()) { "사용자 ID가 필요합니다." }
+                } else require(node.path("value").isString && node.path("value").asString().isNotBlank()) { "사용자 ID가 필요합니다." }
             }
             "flag" -> {
-                require(node.path("key").asText().isNotBlank()) { "플래그 키가 필요합니다." }
+                require(node.path("key").asString().isNotBlank()) { "플래그 키가 필요합니다." }
                 require(node.has("value")) { "플래그 비교 값이 필요합니다." }
             }
             "level", "experience" -> require(node.path("value").isNumber) { "레벨/경험치 조건 값은 숫자여야 합니다." }
             "item" -> {
-                require(node.path("itemId").asText().isNotBlank()) { "아이템 ID가 필요합니다." }
+                require(node.path("itemId").asString().isNotBlank()) { "아이템 ID가 필요합니다." }
                 require(node.path("value").isNumber) { "아이템 수량 조건 값은 숫자여야 합니다." }
             }
             "lastLoginDays" -> require(node.path("days").canConvertToInt() && node.path("days").asInt() >= 0) { "최근 접속 일수는 0 이상이어야 합니다." }
@@ -198,10 +198,10 @@ class MailboxAdminService(
         require(node.size() <= 20) { "보상은 최대 20개까지 설정할 수 있습니다." }
         node.forEach { reward ->
             require(reward.isObject) { "각 보상은 JSON 객체여야 합니다." }
-            val type = reward.path("type").asText()
+            val type = reward.path("type").asString()
             require(type == "ping" || type == "item") { "보상 종류는 ping 또는 item이어야 합니다." }
             require(reward.path("q").canConvertToInt() && reward.path("q").asInt() > 0) { "보상 수량은 1 이상이어야 합니다." }
-            if (type == "item") require(reward.path("name").asText().isNotBlank()) { "아이템 보상에는 아이템 ID가 필요합니다." }
+            if (type == "item") require(reward.path("name").asString().isNotBlank()) { "아이템 보상에는 아이템 ID가 필요합니다." }
             if (reward.has("expire")) require(reward.path("expire").asLong() >= 0) { "아이템 만료 시간은 0 이상이어야 합니다." }
         }
     }

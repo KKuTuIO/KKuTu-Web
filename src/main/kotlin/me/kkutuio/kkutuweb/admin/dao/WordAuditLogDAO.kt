@@ -43,7 +43,7 @@ class WordAuditLogDAO(
             Long::class.java,
             *filter.values.toTypedArray()
         )
-        return count.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return (count ?: 0L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
     fun getPageData(

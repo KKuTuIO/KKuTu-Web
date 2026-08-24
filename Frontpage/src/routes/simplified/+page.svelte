@@ -1,4 +1,4 @@
-<script nonce="kkutuio">
+<script>
     import { onMount } from "svelte";
     import Glide from "@glidejs/glide";
     import { getLevelImage } from "../../lib/getLevelImg.js";
@@ -7,11 +7,11 @@
     const title = "글자로 놀자! 끄투 온라인";
 
     var blockData = {};
-    let mainPageData = {
+    let mainPageData = $state({
         title: "불러오는 중",
         body: "잠시만 기다려 주세요.",
         showNotice: false
-    };
+    });
 
     const serverName = [
         "감자",
@@ -24,7 +24,7 @@
         "아욱",
         "20세 이상",
     ];
-    let jsonDataServers = { list: [], max: 9 };
+    let jsonDataServers = $state({ list: [], max: 9 });
 
     let finalData = [];
 
@@ -106,7 +106,7 @@
                         채널 목록
                     </h2>
                     <button
-                        on:click={() => reloadList()}
+                        onclick={() => reloadList()}
                         class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95"
                     >
                         <span class="material-symbols-outlined"> refresh </span>

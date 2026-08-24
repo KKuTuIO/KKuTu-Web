@@ -19,7 +19,7 @@
 package me.kkutuio.kkutuweb.help
 
 import org.springframework.stereotype.Service
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 import kotlin.math.floor
 import kotlin.math.roundToLong
 

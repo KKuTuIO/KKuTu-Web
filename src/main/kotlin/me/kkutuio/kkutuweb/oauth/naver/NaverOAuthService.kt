@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.oauth.naver
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import com.github.scribejava.apis.NaverApi
 import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
@@ -54,19 +54,19 @@ class NaverOAuthService(
         val jsonResponse = objectMapper.readTree(response.body)
 
         val responseNode = jsonResponse.path("response")
-        val vendorId = responseNode.path("id").asText().takeIf { it.isNotBlank() }
+        val vendorId = responseNode.path("id").asString().takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("네이버 계정 식별번호를 받지 못했습니다.")
-        val splitAge = responseNode.path("age").asText("").split("-")
+        val splitAge = responseNode.path("age").asString("").split("-")
 
         return OAuthUser(
             authVendor = AuthVendor.NAVER,
             vendorId = vendorId,
-            name = responseNode.path("nickname").asText(null) ?: "네이버 사용자",
-            profileImage = responseNode.path("profile_image").asText(null),
-            gender = responseNode.path("gender").asText(null)?.let(Gender::fromName),
+            name = responseNode.path("nickname").asString(null) ?: "네이버 사용자",
+            profileImage = responseNode.path("profile_image").asString(null),
+            gender = responseNode.path("gender").asString(null)?.let(Gender::fromName),
             minAge = splitAge.getOrNull(0)?.toIntOrNull(),
             maxAge = splitAge.getOrNull(1)?.toIntOrNull(),
-            email = responseNode.path("email").asText(null),
+            email = responseNode.path("email").asString(null),
             emailVerified = false
         )
     }

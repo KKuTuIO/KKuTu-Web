@@ -128,7 +128,7 @@ class MailboxAdminService(
             ::mapAudit,
             *(parameters + listOf(size, page * size)).toTypedArray()
         )
-        return ListResponse(count, content)
+        return ListResponse(count ?: 0, content)
     }
 
     private fun validate(request: MailboxAdminMailRequest): MailboxAdminMailRequest {

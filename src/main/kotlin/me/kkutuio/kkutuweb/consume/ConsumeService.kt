@@ -29,7 +29,7 @@ import me.kkutuio.kkutuweb.user.UserDao
 import org.postgresql.util.PGobject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.random.Random

@@ -1,4 +1,4 @@
-FROM eclipse-temurin:8-jdk-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 # Setting Timezone to KST
 RUN apk add tzdata && \

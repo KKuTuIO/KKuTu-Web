@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 
 data class AdminAccessRequest(
     val name: String,

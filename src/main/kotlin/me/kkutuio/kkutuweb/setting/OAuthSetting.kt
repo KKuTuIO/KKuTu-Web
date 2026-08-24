@@ -27,7 +27,7 @@ import org.springframework.boot.ApplicationArguments
 import org.springframework.stereotype.Component
 import java.nio.file.Files
 import java.nio.file.Paths
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 @Component
 class OAuthSetting(

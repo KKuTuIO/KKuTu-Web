@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import me.kkutuio.kkutuweb.SessionAttribute
 import me.kkutuio.kkutuweb.oauth.OAuthUser
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 import java.time.Instant
 import java.util.UUID
 

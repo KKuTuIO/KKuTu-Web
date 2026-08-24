@@ -28,7 +28,7 @@ import me.kkutuio.kkutuweb.word.WordDao
 import org.postgresql.util.PGobject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.roundToInt

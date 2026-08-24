@@ -1,12 +1,14 @@
-<script nonce="kkutuio">
+<script>
+  import { preventDefault } from 'svelte/legacy';
+
   import { onMount } from 'svelte';
     import { createEventDispatcher } from 'svelte';
     const title = '환영합니다';
 
-  let nickname = '';
-  let errors = {
+  let nickname = $state('');
+  let errors = $state({
     nickname: null
-  };
+  });
   const dispatcher = createEventDispatcher();
 
   const validate = () => {
@@ -110,7 +112,7 @@
     </p>
 
     <div class="mt-6 sm:mx-auto sm:w-full sm:max-w-sm">
-      <form on:submit|preventDefault={handleSubmit}>
+      <form onsubmit={preventDefault(handleSubmit)}>
         <input
           placeholder="별명 입력"
           class="mt-4 w-full px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700"
@@ -118,7 +120,7 @@
           class:nickname-error={errors.nickname}
           autocomplete="off"
           bind:value={nickname}
-          on:input={handleInput}
+          oninput={handleInput}
         />
         {#if errors.nickname && errors.nickname.type === 'required'}
           <p class="text-sm text-red-500">별명을 입력해 주세요.</p>

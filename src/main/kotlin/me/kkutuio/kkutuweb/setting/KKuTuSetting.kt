@@ -33,7 +33,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 import kotlin.collections.HashMap
 import kotlin.collections.LinkedHashMap
 

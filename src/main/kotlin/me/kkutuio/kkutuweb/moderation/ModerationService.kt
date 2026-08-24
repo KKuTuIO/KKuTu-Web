@@ -991,7 +991,7 @@ class ModerationService(
                 Boolean::class.java,
                 accountUuid
             )
-            if (!hasActiveNicknameLimit) {
+            if (hasActiveNicknameLimit != true) {
                 profileIdsForAccountUuid(accountUuid).forEach { profileId ->
                     jdbcTemplate.update("UPDATE users SET \"isLimitModifyNick\" = FALSE WHERE _id = ?", profileId)
                 }
@@ -1788,7 +1788,7 @@ class ModerationService(
             """.trimIndent(),
             Int::class.java,
             *arguments.toTypedArray()
-        )
+        ) ?: 0
     }
 
     private fun history(userId: String, limit: Int): List<ModerationCaseSummary> =
@@ -2528,7 +2528,7 @@ class ModerationService(
             user.money,
             rank,
             (sqrt(score.coerceAtLeast(0).toDouble() / 500.0).toInt() + 1).coerceAtLeast(1),
-            restricted
+            restricted == true
         )
     }
 

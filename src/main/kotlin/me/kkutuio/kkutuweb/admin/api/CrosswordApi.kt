@@ -9,7 +9,7 @@ import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.AdminSetting
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.web.bind.annotation.*
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 
 @RestController
 @RequestMapping("/api/admin/crosswords")

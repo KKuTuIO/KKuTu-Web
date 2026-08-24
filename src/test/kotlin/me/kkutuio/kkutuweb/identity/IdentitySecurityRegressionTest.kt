@@ -20,8 +20,8 @@ import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 import java.time.Instant
 import java.util.UUID
-import javax.servlet.FilterChain
-import javax.servlet.http.HttpServletRequest
+import jakarta.servlet.FilterChain
+import jakarta.servlet.http.HttpServletRequest
 
 class IdentitySecurityRegressionTest {
     private val dao = mock(IdentityDao::class.java)

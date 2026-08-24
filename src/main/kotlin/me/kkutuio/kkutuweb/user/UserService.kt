@@ -36,7 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 import kotlin.math.roundToInt
 
 private val AVAIL_EQUIP = listOf(

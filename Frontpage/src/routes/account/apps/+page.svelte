@@ -15,19 +15,19 @@
         'game:kkutu': '끄투 게임 프로필'
     };
 
-    let applications = [];
-    let selected = null;
-    let search = '';
-    let loading = true;
-    let confirmRevoke = null;
-    let reauthDialogOpen = false;
-    let reauthPassword = '';
-    let reauthTotpCode = '';
-    let reauthMfaRequired = false;
-    let reauthProviderIds = [];
-    let passwordEnabled = true;
+    let applications = $state([]);
+    let selected = $state(null);
+    let search = $state('');
+    let loading = $state(true);
+    let confirmRevoke = $state(null);
+    let reauthDialogOpen = $state(false);
+    let reauthPassword = $state('');
+    let reauthTotpCode = $state('');
+    let reauthMfaRequired = $state(false);
+    let reauthProviderIds = $state([]);
+    let passwordEnabled = $state(true);
     let pendingRevoke = null;
-    let toasts = [];
+    let toasts = $state([]);
     let toastId = 0;
     const toastTimers = new Map();
 
@@ -174,17 +174,18 @@
     <div class="mx-auto max-w-3xl">
         {#if selected}
             <button class="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-lg font-bold transition hover:bg-slate-200 dark:hover:bg-gray-800"
-                    on:click={() => selected = null}><span
+                    onclick={() => selected = null}><span
                     class="material-symbols-outlined">arrow_back</span>{selected.client_name}</button>
             <section
                     class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-9">
                 <div class="flex flex-col gap-6 sm:flex-row sm:items-center"><img
                         class="h-20 w-20 rounded-2xl border border-slate-200 bg-white object-contain p-2 dark:border-gray-600"
-                        src={logo(selected)} alt="{selected.client_name} 아이콘" on:error={fallbackLogo}/>
+                        src={logo(selected)} alt="{selected.client_name} 아이콘" onerror={fallbackLogo}/>
                     <div><p class="text-sm font-bold text-[#438c43]">연결된 앱</p>
                         <h1 class="mt-1 text-3xl font-bold">{selected.client_name}</h1>
                         <!-- <p class="mt-2 text-sm text-slate-500 dark:text-gray-300"></p></div> -->
                     </div>
+                </div>
             </section>
 
             <section
@@ -211,7 +212,7 @@
                 <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-gray-300">이 앱의 동의 시점에 발급된 접근·갱신 식별자를 모두
                     무효화합니다. 다시 사용하려면 앱에서 권한을 다시 요청해야 합니다.</p>
                 <button class="mt-5 rounded-xl border border-red-300 px-4 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
-                        on:click={() => confirmRevoke = selected}>연결 해제
+                        onclick={() => confirmRevoke = selected}>연결 해제
                 </button>
             </section>
         {:else}
@@ -228,7 +229,7 @@
             <div class="mt-5 flex items-center justify-between gap-4"><p class="text-sm font-bold">연결된
                 앱 {applications.length}개</p>
                 <button class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-200 disabled:opacity-50 dark:hover:bg-gray-800"
-                        on:click={load} disabled={loading} aria-label="새로고침"><span class:animate-spin={loading}
+                        onclick={load} disabled={loading} aria-label="새로고침"><span class:animate-spin={loading}
                                                                                    class="material-symbols-outlined">refresh</span>
                 </button>
             </div>
@@ -240,10 +241,10 @@
                 {:else}
                     {#each filteredApplications() as application}
                         <button class="flex w-full items-center gap-4 border-b border-slate-100 px-5 py-5 text-left transition last:border-b-0 hover:bg-slate-50 dark:border-gray-700 dark:hover:bg-gray-700"
-                                on:click={() => selected = application}><img
+                                onclick={() => selected = application}><img
                                 class="h-12 w-12 rounded-xl border border-slate-200 bg-white object-contain p-1.5 dark:border-gray-600"
                                 src={logo(application)} alt="{application.client_name} 아이콘"
-                                on:error={fallbackLogo}/><span class="min-w-0 flex-1"><span
+                                onerror={fallbackLogo}/><span class="min-w-0 flex-1"><span
                                 class="block truncate font-bold">{application.client_name}</span><span
                                 class="mt-1 block truncate text-sm text-slate-500 dark:text-gray-300">{(application.scopes || []).map(label).join(' · ')}</span></span><span
                                 class="material-symbols-outlined text-slate-500">chevron_right</span></button>
@@ -259,10 +260,10 @@
         무효화합니다. 이 작업은 앱에서 다시 권한을 요청할 때까지 되돌릴 수 없습니다.</p>
     <div class="mt-6 grid grid-cols-2 gap-3">
         <button class="rounded-xl border border-gray-300 px-4 py-3 font-bold transition hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
-                on:click={() => confirmRevoke = null}>취소
+                onclick={() => confirmRevoke = null}>취소
         </button>
         <button class="rounded-xl bg-red-600 px-4 py-3 font-bold text-white transition hover:bg-red-700"
-                on:click={() => revoke(confirmRevoke)}>연결 해제
+                onclick={() => revoke(confirmRevoke)}>연결 해제
         </button>
     </div>
 </AccountModal>
@@ -283,7 +284,7 @@
             <input class="mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-center tracking-[0.25em] text-slate-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                    autocomplete="one-time-code" bind:value={reauthTotpCode} placeholder="TOTP 인증 코드 또는 보안코드"/>
             <button class="mt-3 w-full rounded-xl bg-[#55aa55] px-4 py-3 font-bold text-white transition hover:bg-[#438c43]"
-                    on:click={reauthenticate}>확인
+                    onclick={reauthenticate}>확인
             </button>
             {#if reauthMfaRequired}<p class="mt-3 text-center text-sm text-red-600 dark:text-red-400">TOTP 인증 코드 또는 보안코드를 입력해 주세요.</p>{/if}
         </div>

@@ -16,19 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "2.6.6"
-    id("io.spring.dependency-management") version "1.0.11.RELEASE"
-    kotlin("jvm") version "1.6.10"
-    kotlin("plugin.spring") version "1.6.10"
+    id("org.springframework.boot") version "3.5.16"
+    id("io.spring.dependency-management") version "1.1.7"
+    kotlin("jvm") version "2.2.21"
+    kotlin("plugin.spring") version "2.2.21"
 }
 
 group = "me.kkutuio"
 version = "v4"
 
-java.sourceCompatibility = JavaVersion.VERSION_1_8
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
 
 springBoot {
     mainClass.set("me.kkutuio.kkutuweb.KkutuWebApplicationKt")
@@ -39,9 +44,9 @@ tasks.withType<Test> {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs = listOf("-Xjsr305=strict")
-        jvmTarget = "1.8"
+    compilerOptions {
+        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+        jvmTarget.set(JvmTarget.JVM_21)
     }
 }
 
@@ -79,28 +84,29 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect")
 
-    implementation("de.codecentric:spring-boot-admin-starter-client:2.6.3")
+    implementation("de.codecentric:spring-boot-admin-starter-client:3.5.10")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("com.networknt:json-schema-validator:1.0.76")
-    implementation("com.neovisionaries:nv-websocket-client:2.10")
+    implementation("com.networknt:json-schema-validator:1.5.9")
+    implementation("com.neovisionaries:nv-websocket-client:2.14")
     implementation("com.ip2location:ip2location-java:8.13.0")
-    implementation("com.github.scribejava:scribejava-apis:7.1.1")
-    implementation("org.postgresql:postgresql:42.2.16")
+    implementation("com.github.scribejava:scribejava-apis:8.3.3")
+    implementation("org.postgresql:postgresql")
     implementation("com.googlecode.htmlcompressor:htmlcompressor:1.5.2")
-    implementation("de.mkammerer:argon2-jvm:2.11")
-    implementation("com.nimbusds:nimbus-jose-jwt:9.37.3")
+    implementation("de.mkammerer:argon2-jvm:2.12")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
     implementation("com.upokecenter:cbor:4.5.5")
 
-    implementation("io.sentry:sentry-spring-boot-starter:4.3.0")
-    implementation("io.sentry:sentry-logback:4.3.0")
-    implementation("io.github.resilience4j:resilience4j-spring-boot2:1.7.1")
-    implementation("com.github.ben-manes.caffeine:caffeine:2.9.3")
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:8.53.0")
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.4.0")
+    implementation("com.github.ben-manes.caffeine:caffeine")
 
-    implementation("io.springfox:springfox-swagger2:2.9.2")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:2.8.17")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
+    testImplementation("org.springframework.security:spring-security-test")
 }

@@ -41,7 +41,7 @@ class SessionDao(
         val sql = "SELECT COUNT(*) FROM session WHERE _id = ?"
 
         val count = jdbcTemplate.queryForObject(sql, Int::class.java, id)
-        return count > 0
+        return (count ?: 0) > 0
     }
 
     fun insert(sessionProfile: SessionProfile, id: String) {

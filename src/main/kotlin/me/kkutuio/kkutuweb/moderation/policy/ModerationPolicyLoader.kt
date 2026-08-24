@@ -17,7 +17,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicReference
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 @Component
 class ModerationPolicyLoader(

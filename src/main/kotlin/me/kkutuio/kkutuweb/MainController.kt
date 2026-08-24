@@ -40,8 +40,8 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.servlet.support.RequestContextUtils
 import java.util.*
 import java.security.SecureRandom
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 import kotlin.streams.asSequence
 
 @Controller

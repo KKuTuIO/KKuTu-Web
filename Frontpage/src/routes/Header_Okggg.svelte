@@ -1,9 +1,9 @@
-<script nonce="kkutuio">
-import { page } from '$app/stores';
+<script>
+import { page } from '$app/state';
 
-let currentStatus = 'main';
+let currentStatus = $state('main');
 
-if ($page.url.pathname.includes('rank')) {
+if (page.url.pathname.includes('rank')) {
     currentStatus = 'rank';
 }
 </script>

@@ -13,8 +13,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import org.springframework.web.util.UriComponentsBuilder
 import java.nio.charset.StandardCharsets
 import java.util.Base64
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 import java.io.Serializable
 
 data class ConsentRequest(val clientId: String, val redirectUri: String, val scopes: Set<String>, val state: String, val nonce: String?, val challenge: String) : Serializable

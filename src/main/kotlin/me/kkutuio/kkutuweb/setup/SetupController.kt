@@ -23,16 +23,13 @@ import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.getOAuthUser
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.oauth.AuthVendor
-import me.kkutuio.kkutuweb.view.View
-import me.kkutuio.kkutuweb.view.Views.getView
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
-import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpSession
 
 @Controller
 @RequestMapping("/setup")
@@ -44,7 +41,6 @@ class SetupController(
 
     @GetMapping
     fun setup(
-        model: Model,
         request: HttpServletRequest,
         session: HttpSession
     ): String {
@@ -66,8 +62,6 @@ class SetupController(
             }
             return "redirect:/regFail"
         }
-
-        model.addAttribute("viewName", request.getView(View.REACT))
 
         logger.info("[${request.getIp()}] 초기 설정 화면에 접속했습니다.")
         return "forward:/setup.html"

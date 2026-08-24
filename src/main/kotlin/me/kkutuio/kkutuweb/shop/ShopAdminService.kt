@@ -268,13 +268,13 @@ class ShopAdminService(
                 }
             } else {
                 require(pool.isObject && pool.size() > 0) { "$from 풀은 아이템 ID와 확률/가중치의 객체여야 합니다." }
-                pool.fields().forEach { (itemId, chance) ->
+                pool.properties().forEach { (itemId, chance) ->
                     require(itemId.isNotBlank() && chance.isNumber && chance.asDouble() >= 0) { "풀의 확률/가중치는 0 이상이어야 합니다." }
                     if (from == "abs") require(chance.asDouble() <= 1) { "abs 확률은 0~1 사이여야 합니다." }
                     if (from == "rel") require(chance.asDouble() <= 100) { "rel 확률은 0~100 사이여야 합니다." }
                 }
-                if (from == "wei") require(pool.fields().asSequence().any { it.value.asDouble() > 0 }) { "wei 풀에는 0보다 큰 가중치가 필요합니다." }
-                if (from == "rel") require(pool.fields().asSequence().sumOf { it.value.asDouble() } <= 100.000001) { "rel 확률 합계는 100을 넘을 수 없습니다." }
+                if (from == "wei") require(pool.properties().any { it.value.asDouble() > 0 }) { "wei 풀에는 0보다 큰 가중치가 필요합니다." }
+                if (from == "rel") require(pool.properties().sumOf { it.value.asDouble() } <= 100.000001) { "rel 확률 합계는 100을 넘을 수 없습니다." }
             }
             return
         }

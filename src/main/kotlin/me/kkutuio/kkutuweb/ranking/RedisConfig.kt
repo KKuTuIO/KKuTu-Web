@@ -18,36 +18,22 @@
 
 package me.kkutuio.kkutuweb.ranking
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.RedisConnectionFactory
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.serializer.StringRedisSerializer
 
 @Configuration
-class RedisConfig(
-    @Value("\${spring.redis.host}") val host: String,
-    @Value("\${spring.redis.port}") val port: Int,
-    @Value("\${spring.redis.password}") val password: String?
-) {
+class RedisConfig {
     @Bean
-    fun redisConnectionFactory(): RedisConnectionFactory {
-        val connectionFactory = RedisStandaloneConfiguration(host, port)
-        if (!password.isNullOrEmpty()) {
-            connectionFactory.setPassword(password)
-        }
-        return LettuceConnectionFactory(connectionFactory)
-    }
-
-    @Bean
-    fun redisTemplate(): RedisTemplate<String, Any> {
+    fun redisTemplate(connectionFactory: RedisConnectionFactory): RedisTemplate<String, Any> {
         val redisTemplate = RedisTemplate<String, Any>()
-        redisTemplate.setConnectionFactory(redisConnectionFactory())
+        redisTemplate.setConnectionFactory(connectionFactory)
         redisTemplate.keySerializer = StringRedisSerializer()
         redisTemplate.valueSerializer = StringRedisSerializer()
+        redisTemplate.hashKeySerializer = StringRedisSerializer()
+        redisTemplate.hashValueSerializer = StringRedisSerializer()
         return redisTemplate
     }
 }

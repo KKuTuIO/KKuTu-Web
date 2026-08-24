@@ -29,8 +29,7 @@ import java.util.*
 class LocaleConfig : WebMvcConfigurer {
     @Bean
     fun localeResolver(): LocaleResolver {
-        val localeResolver = CookieLocaleResolver()
-        localeResolver.cookieName = "user.language"
+        val localeResolver = CookieLocaleResolver("user.language")
         localeResolver.setDefaultLocale(Locale.KOREAN)
         return localeResolver
     }

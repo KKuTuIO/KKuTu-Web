@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.oauth.github
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import com.github.scribejava.apis.GitHubApi
 import com.github.scribejava.core.builder.ServiceBuilder
 import com.github.scribejava.core.model.OAuthRequest
@@ -57,13 +57,13 @@ class GithubOAuthService(
         oAuth20Service.signRequest(accessToken, emailRequest)
         val verifiedEmail = objectMapper.readTree(oAuth20Service.execute(emailRequest).body)
             .firstOrNull { it.path("primary").asBoolean(false) && it.path("verified").asBoolean(false) }
-            ?.path("email")?.asText(null)
+            ?.path("email")?.asString(null)
 
         return OAuthUser(
             authVendor = AuthVendor.GITHUB,
             vendorId = jsonResponse["id"].intValue().toString(),
-            name = if (jsonResponse.has("name")) jsonResponse["name"].textValue() else jsonResponse["login"].textValue(),
-            profileImage = jsonResponse["avatar_url"].textValue(),
+            name = if (jsonResponse.has("name")) jsonResponse["name"].stringValue() else jsonResponse["login"].stringValue(),
+            profileImage = jsonResponse["avatar_url"].stringValue(),
             gender = null,
             minAge = null,
             maxAge = null,

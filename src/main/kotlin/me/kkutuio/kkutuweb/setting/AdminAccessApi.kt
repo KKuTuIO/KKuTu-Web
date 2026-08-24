@@ -1,6 +1,6 @@
 package me.kkutuio.kkutuweb.setting
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.moderation.AdminModerationAuthorizer
 import org.springframework.dao.DataAccessException
 import org.springframework.http.HttpStatus
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 
 data class AdminAccessRequest(
     val name: String,
@@ -41,7 +41,7 @@ class AdminAccessApi(
             jdbc.query("SELECT account_uuid, display_name, team, privileges, game_admin, active, updated_at FROM admin_access ORDER BY active DESC, display_name, account_uuid") { rs, _ ->
                 mapOf(
                     "id" to rs.getString("account_uuid"), "name" to rs.getString("display_name"), "team" to rs.getString("team"),
-                    "privileges" to objectMapper.readTree(rs.getString("privileges")).map { it.textValue() }.sorted(),
+                    "privileges" to objectMapper.readTree(rs.getString("privileges")).toList().map { it.stringValue() }.sorted(),
                     "gameAdmin" to rs.getBoolean("game_admin"), "active" to rs.getBoolean("active"),
                     "source" to if (rs.getString("account_uuid") in masters) "CONFIG" else "DATABASE",
                     "updatedAt" to rs.getTimestamp("updated_at").toInstant().toString()

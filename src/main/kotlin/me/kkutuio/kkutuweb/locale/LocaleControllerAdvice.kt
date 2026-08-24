@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.servlet.support.RequestContextUtils
 import java.util.*
-import javax.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletRequest
 
 @ControllerAdvice
 class LocaleControllerAdvice(

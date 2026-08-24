@@ -22,7 +22,7 @@
     <title th:text="#{title}"></title>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-    <link rel="canonical" th:href="@{/}">
+    <link rel="canonical" th:href="${canonicalUrl}">
     <meta name="description" th:content="#{meta.description}">
     <meta name="keywords" th:content="#{meta.keywords}">
 
@@ -36,7 +36,7 @@
     <link rel="stylesheet" href="https://assets.kkutu.io/fonts/fontawesome-pro-7.1.0-web/css/solid.min.css"/>
     <link rel="stylesheet" href="https://assets.kkutu.io/fonts/fontawesome-pro-7.1.0-web/css/regular.min.css"/>
     <link rel="stylesheet" th:href="@{${cdnHost} + '/css/expl.css?rv=' + ${runnerVersion}}"/>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json" th:href="@{/manifest.json}">
 
     <script type="text/javascript" th:inline="javascript" nonce="HhKDLdJS4bHMDv6V">
         var loginProfile = /*[[${profile}]]*/'';
@@ -74,7 +74,7 @@
 <body style="min-width: 200px;">
 
 <div id="Top">
-    <div th:include="m_menu" th:remove="tag" th:unless="${#strings.startsWith(viewName, 'view/login')}"></div>
+    <div th:insert="~{m_menu}" th:remove="tag" th:unless="${#strings.startsWith(viewName, 'view/login')}"></div>
     <div id="global-notice">
         <div id="gn-content"></div>
     </div>
@@ -91,7 +91,7 @@
     </th:block>
 </div>
 
-<div id="Middle" th:include="${viewName}"></div>
+<div id="Middle" th:insert="~{${viewName}}"></div>
 
 <div id="Bottom" th:unless="${#strings.startsWith(viewName, 'view/login')}">
     <div class="bottom-legal" th:utext="#{legal.copyright}"></div>

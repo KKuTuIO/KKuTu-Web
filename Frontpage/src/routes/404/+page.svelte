@@ -1,4 +1,4 @@
-<script nonce="kkutuio">
+<script>
   import { onMount } from 'svelte';
   const title = '404';
 </script>

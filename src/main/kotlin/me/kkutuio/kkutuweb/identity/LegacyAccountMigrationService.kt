@@ -2,7 +2,7 @@ package me.kkutuio.kkutuweb.identity
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
-import javax.annotation.PostConstruct
+import jakarta.annotation.PostConstruct
 
 /**
  * Legacy game-user -> Account conversion is intentionally not part of V1.

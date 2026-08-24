@@ -3,7 +3,7 @@ package me.kkutuio.kkutuweb.identity
 import me.kkutuio.kkutuweb.moderation.AdminModerationAuthorizer
 import me.kkutuio.kkutuweb.setting.AdminSetting
 import org.springframework.web.bind.annotation.*
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 
 data class IdpClientRequest(
     val clientId: String,

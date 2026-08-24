@@ -18,10 +18,10 @@
 
 package me.kkutuio.kkutuweb.shop
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.IntNode
-import com.fasterxml.jackson.databind.node.ObjectNode
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.node.IntNode
+import tools.jackson.databind.node.ObjectNode
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
 import me.kkutuio.kkutuweb.login.LoginService
@@ -33,7 +33,7 @@ import org.postgresql.util.PGobject
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import javax.servlet.http.HttpSession
+import jakarta.servlet.http.HttpSession
 import kotlin.math.roundToInt
 
 @Service
@@ -168,7 +168,7 @@ class ShopService(
                 else goodJson.put("expire", (currentTime * 0.001 + term).roundToInt())
             }
         }
-        boxObjectNode.set<ObjectNode>(goodId, goodJson)
+        boxObjectNode.set(goodId, goodJson)
     }
 
     fun consumeGood(box: JsonNode, goodId: String, value: Int, force: Boolean = false) {

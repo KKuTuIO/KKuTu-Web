@@ -1,7 +1,7 @@
 package me.kkutuio.kkutuweb.identity
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.ObjectMapper
 import com.upokecenter.cbor.CBORObject
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -40,9 +40,9 @@ class WebAuthnService(private val dao: IdentityDao, private val settings: Identi
         dao.lockAccount(account.id) ?: throw IdpException("not_found", "계정을 찾을 수 없습니다.", 404)
         if (dao.listPasskeys(account.id).size >= 10) throw IdpException("passkey_limit", "패스키는 계정당 10개까지 등록할 수 있습니다.")
         val expected = payloadValue(row["payload"].toString(), "challenge") ?: throw IdpException("invalid_token", "잘못된 패스키 요청입니다.")
-        val clientData = decodeJson(credential.path("response").path("clientDataJSON").asText())
+        val clientData = decodeJson(credential.path("response").path("clientDataJSON").asString())
         validateClientData(clientData, expected, "webauthn.create")
-        val attestation = CBORObject.DecodeFromBytes(decode(credential.path("response").path("attestationObject").asText()))
+        val attestation = CBORObject.DecodeFromBytes(decode(credential.path("response").path("attestationObject").asString()))
         val authData = attestation[CBORObject.FromObject("authData")].GetByteString()
         validateAuthenticatorData(authData, requireUserVerification = true)
         val flags = authData[32].toInt() and 0xff
@@ -66,12 +66,12 @@ class WebAuthnService(private val dao: IdentityDao, private val settings: Identi
     fun completeAuthentication(operationToken: String, credential: JsonNode): Account {
         val row = dao.consumeOneTimeToken(SecretTools.sha256(operationToken), "PASSKEY_AUTH") ?: throw IdpException("invalid_token", "만료되었거나 이미 사용된 패스키 요청입니다.")
         val expected = payloadValue(row["payload"].toString(), "challenge") ?: throw IdpException("invalid_token", "잘못된 패스키 요청입니다.")
-        val clientDataRaw = decode(credential.path("response").path("clientDataJSON").asText()); val clientData = objectMapper.readTree(clientDataRaw)
+        val clientDataRaw = decode(credential.path("response").path("clientDataJSON").asString()); val clientData = objectMapper.readTree(clientDataRaw)
         validateClientData(clientData, expected, "webauthn.get")
-        val rawId = credential.path("rawId").asText().ifBlank { credential.path("id").asText() }
+        val rawId = credential.path("rawId").asString().ifBlank { credential.path("id").asString() }
         val passkey = dao.findPasskeyByCredential(rawId) ?: throw IdpException("invalid_credential", "등록되지 않은 패스키입니다.", 401)
-        val authData = decode(credential.path("response").path("authenticatorData").asText()); validateAuthenticatorData(authData, requireUserVerification = true)
-        val signature = decode(credential.path("response").path("signature").asText())
+        val authData = decode(credential.path("response").path("authenticatorData").asString()); validateAuthenticatorData(authData, requireUserVerification = true)
+        val signature = decode(credential.path("response").path("signature").asString())
         val signed = authData + MessageDigest.getInstance("SHA-256").digest(clientDataRaw)
         val publicKey = cosePublicKey(CBORObject.DecodeFromBytes(decode(passkey["public_key_cose"].toString())))
         val algorithm = coseAlgorithm(CBORObject.DecodeFromBytes(decode(passkey["public_key_cose"].toString())))
@@ -87,7 +87,7 @@ class WebAuthnService(private val dao: IdentityDao, private val settings: Identi
         return account
     }
     private fun validateClientData(data: JsonNode, challenge: String, expectedType: String) {
-        if (data.path("type").asText() != expectedType || data.path("challenge").asText() != challenge || data.path("origin").asText().trimEnd('/') !in settings.allowedOrigins) throw IdpException("invalid_credential", "WebAuthn client data가 일치하지 않습니다.")
+        if (data.path("type").asString() != expectedType || data.path("challenge").asString() != challenge || data.path("origin").asString().trimEnd('/') !in settings.allowedOrigins) throw IdpException("invalid_credential", "WebAuthn client data가 일치하지 않습니다.")
     }
     private fun validateAuthenticatorData(data: ByteArray, requireUserVerification: Boolean) {
         if (data.size < 37 || !MessageDigest.isEqual(data.copyOfRange(0, 32), MessageDigest.getInstance("SHA-256").digest(settings.rpId.toByteArray()))) throw IdpException("invalid_credential", "WebAuthn RP ID가 일치하지 않습니다.")

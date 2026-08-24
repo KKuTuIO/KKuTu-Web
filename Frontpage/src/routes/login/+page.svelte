@@ -1,14 +1,14 @@
-<script nonce="kkutuio">
+<script>
     import {onMount} from 'svelte';
     import LoginMethodSelector from '$lib/LoginMethodSelector.svelte';
 
     const title = '로그인';
 
-    var loginReason = "";
-    var passkeySupported = false;
-    var identifier = '';
-    var password = '';
-    var passwordEnabled = false;
+    var loginReason = $state("");
+    var passkeySupported = $state(false);
+    var identifier = $state('');
+    var password = $state('');
+    var passwordEnabled = $state(false);
 
     async function loadLoginInfo() {
         try {
@@ -101,7 +101,7 @@
                 <input class="mt-2 w-full border p-3 text-black" bind:value={password} type="password"
                        placeholder="비밀번호" autocomplete="current-password"/>
                 <button class="text-lg bg-[#55aa55] text-white mt-2 flex w-full justify-center p-3 items-center font-semibold leading-6 shadow-md"
-                        on:click={passwordLogin}>로그인
+                        onclick={passwordLogin}>로그인
                 </button>
             {/if}
             <LoginMethodSelector {passkeySupported} onPasskey={passkeyLogin}/>

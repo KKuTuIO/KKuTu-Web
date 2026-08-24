@@ -18,7 +18,7 @@
 
 package me.kkutuio.kkutuweb.extension
 
-import javax.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletRequest
 
 fun HttpServletRequest.getIp(): String {
     val cfHeader = this.getHeader("CF-Connecting-IP")

@@ -19,8 +19,8 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.nio.file.Files
 import java.nio.file.Paths
-import javax.annotation.PostConstruct
-import javax.annotation.PreDestroy
+import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 
 data class GeoIpInfo(
     val countryCode: String?,

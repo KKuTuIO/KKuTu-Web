@@ -19,8 +19,8 @@ package me.kkutuio.kkutuweb.word
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.JsonNodeType
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.node.JsonNodeType
 
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
 enum class WordType(val typeCode: String, val typeName: String) {
@@ -85,10 +85,10 @@ enum class WordType(val typeCode: String, val typeName: String) {
         fun fromObject(node: JsonNode): WordType? {
             val identityField = "typeCode"
             val id = if (node.nodeType == JsonNodeType.STRING) {
-                node.asText()
+                node.asString()
             } else {
                 require(node.has(identityField))
-                node[identityField].asText()
+                node[identityField].asString()
             }
 
             return fromId(id)

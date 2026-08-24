@@ -18,8 +18,8 @@
 
 package me.kkutuio.kkutuweb.config
 
-import org.springframework.boot.actuate.trace.http.HttpTraceRepository
-import org.springframework.boot.actuate.trace.http.InMemoryHttpTraceRepository
+import org.springframework.boot.actuate.web.exchanges.HttpExchangeRepository
+import org.springframework.boot.actuate.web.exchanges.InMemoryHttpExchangeRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class HttpTraceActuatorConfiguration {
     @Bean
-    fun httpTraceRepository(): HttpTraceRepository {
-        return InMemoryHttpTraceRepository()
+    fun httpExchangeRepository(): HttpExchangeRepository {
+        return InMemoryHttpExchangeRepository()
     }
 }

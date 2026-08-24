@@ -141,10 +141,10 @@
 			<a href="/" class="md:flex items-center space-x-2" style={mourning ? 'filter: grayscale(100%)' : ''}>
 				<span class="sr-only">끄투리오</span>
 				<div class="flex items-center space-x-4">
-					<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
+					<img class="h-8 max-[360px]:h-7 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
 				</div>
 				<div class="flex items-center space-x-2">
-					<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
+					<img class="h-8 hidden max-[360px]:h-7 dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
 				</div>
 			</a>
 		
@@ -193,16 +193,17 @@
 				게임 시작
 				</button>--->
 				<a href="/game/recommended" rel="external" onclick={guardRestrictedNavigation}
-				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				class="shrink-0 whitespace-nowrap bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</a>
-				<a href="/login"
-				class:bg-gray-300={accountRestricted} class:text-gray-500={accountRestricted} class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
-				로그인
+				<a href="/login" aria-label="로그인" title="로그인"
+				class:bg-gray-300={accountRestricted} class:text-gray-500={accountRestricted} class="shrink-0 whitespace-nowrap bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex items-center justify-center rounded-full py-1 px-3 max-[420px]:h-9 max-[420px]:w-9 max-[420px]:p-0 max-[360px]:h-8 max-[360px]:w-8 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				<span class="max-[420px]:hidden">로그인</span>
+				<span class="material-symbols-outlined hidden text-xl max-[420px]:block max-[360px]:text-lg" aria-hidden="true">login</span>
 				</a>
 			{:else}
 				<!--<button on:click={() => showDialog.set(true)}
-				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
+				class="shrink-0 whitespace-nowrap bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
 				게임 시작
 				</button>-->
 				<a href="/game/recommended" rel="external" onclick={guardRestrictedNavigation}

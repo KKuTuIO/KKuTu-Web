@@ -29,6 +29,30 @@ class RecommendedChannelTest {
     }
 
     @Test
+    fun `dynamic selection prefers configured channel within ten players of busiest channel`() {
+        val configuration = RecommendedChannelConfiguration(channel = 2, overrideRecommendedChannel = false)
+
+        assertEquals(2, selectRecommendedChannel(listOf(0, 0, 0, 0), 100, configuration))
+        assertEquals(2, selectRecommendedChannel(listOf(40, 70, 70, 20), 100, configuration))
+        assertEquals(2, selectRecommendedChannel(listOf(40, 70, 60, 20), 100, configuration))
+    }
+
+    @Test
+    fun `dynamic selection chooses busiest channel when configured channel is eleven players behind`() {
+        val configuration = RecommendedChannelConfiguration(channel = 2, overrideRecommendedChannel = false)
+
+        assertEquals(1, selectRecommendedChannel(listOf(20, 70, 59, 30), 100, configuration))
+    }
+
+    @Test
+    fun `dynamic selection ignores configured channel within margin when it is unavailable`() {
+        val configuration = RecommendedChannelConfiguration(channel = 2, overrideRecommendedChannel = false)
+
+        assertEquals(1, selectRecommendedChannel(listOf(20, 70, null, 70), 100, configuration))
+        assertEquals(1, selectRecommendedChannel(listOf(20, 70, 100, 70), 100, configuration))
+    }
+
+    @Test
     fun `dynamic selection excludes disconnected full and over-capacity channels`() {
         val configuration = RecommendedChannelConfiguration(channel = 3, overrideRecommendedChannel = false)
 

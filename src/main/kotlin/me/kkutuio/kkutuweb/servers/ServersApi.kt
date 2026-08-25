@@ -70,5 +70,15 @@ internal fun selectRecommendedChannel(
         }
     }
 
+    val preferredChannelPlayers = servers.getOrNull(preferredChannel)
+    if (preferredChannelPlayers != null &&
+        preferredChannelPlayers < maxPlayers &&
+        busiestChannelPlayers - preferredChannelPlayers <= RECOMMENDED_CHANNEL_PLAYER_MARGIN
+    ) {
+        return preferredChannel
+    }
+
     return busiestChannel ?: preferredChannel
 }
+
+private const val RECOMMENDED_CHANNEL_PLAYER_MARGIN = 10

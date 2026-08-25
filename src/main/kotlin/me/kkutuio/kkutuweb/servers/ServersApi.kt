@@ -39,13 +39,36 @@ class ServersApi(
     @GetMapping("/game/recommended")
     fun redirectToRecommendedServer(): RedirectView {
         val servers = gameClientManager.getPlayers()
-        val preferredChannel = recommendedChannelService.getRecommendedChannel()
-        val channel = if (servers.getOrNull(preferredChannel) != null) {
+        val configuration = recommendedChannelService.getConfiguration()
+        val channel = selectRecommendedChannel(servers, kKuTuSetting.getMaxPlayers(), configuration)
+
+        return RedirectView("/game/server/$channel")
+    }
+}
+
+internal fun selectRecommendedChannel(
+    servers: List<Int?>,
+    maxPlayers: Int,
+    configuration: RecommendedChannelConfiguration
+): Int {
+    val preferredChannel = configuration.channel
+
+    if (configuration.overrideRecommendedChannel) {
+        return if (servers.getOrNull(preferredChannel) != null) {
             preferredChannel
         } else {
             servers.indexOfFirst { it != null }.takeIf { it >= 0 } ?: preferredChannel
         }
-
-        return RedirectView("/game/server/$channel")
     }
+
+    var busiestChannel: Int? = null
+    var busiestChannelPlayers = -1
+    servers.forEachIndexed { index, players ->
+        if (players != null && players < maxPlayers && players > busiestChannelPlayers) {
+            busiestChannel = index
+            busiestChannelPlayers = players
+        }
+    }
+
+    return busiestChannel ?: preferredChannel
 }

@@ -106,6 +106,13 @@
             });
             if (!response.ok) throw new Error('profile switch failed');
             dispatch('profileChanged', {profileId: profile.id});
+
+            if (/^\/game\/server\/\d+$/.test(window.location.pathname)) {
+                const target = new URL(window.location.href);
+                target.searchParams.set('profile-switch', Date.now().toString());
+                window.location.replace(target.toString());
+                return;
+            }
             window.location.reload();
         } catch (_) {
             error = '프로필을 전환하지 못했습니다. 잠시 후 다시 시도해 주세요.';

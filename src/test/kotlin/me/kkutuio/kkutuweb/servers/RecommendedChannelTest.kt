@@ -67,6 +67,36 @@ class RecommendedChannelTest {
     }
 
     @Test
+    fun `guest dynamic selection only considers channels zero and one`() {
+        val configuration = RecommendedChannelConfiguration(channel = 2, overrideRecommendedChannel = false)
+
+        assertEquals(
+            1,
+            selectRecommendedChannel(listOf(30, 60, 90, 80), 100, configuration, setOf(0, 1))
+        )
+    }
+
+    @Test
+    fun `guest ignores forced configured channel outside guest channels`() {
+        val configuration = RecommendedChannelConfiguration(channel = 2, overrideRecommendedChannel = true)
+
+        assertEquals(
+            1,
+            selectRecommendedChannel(listOf(30, 60, 90), 100, configuration, setOf(0, 1))
+        )
+    }
+
+    @Test
+    fun `guest fallback stays within guest channels when none are eligible`() {
+        val configuration = RecommendedChannelConfiguration(channel = 3, overrideRecommendedChannel = false)
+
+        assertEquals(
+            0,
+            selectRecommendedChannel(listOf(null, 100, 70, 80), 100, configuration, setOf(0, 1))
+        )
+    }
+
+    @Test
     fun `configuration reads explicit override flag`() {
         val response = objectMapper.readTree(
             """{"recommendedChannel":2,"overrideRecommendedChannel":false}"""

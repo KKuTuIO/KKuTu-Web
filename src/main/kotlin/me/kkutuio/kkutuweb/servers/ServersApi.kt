@@ -18,12 +18,14 @@
 
 package me.kkutuio.kkutuweb.servers
 
+import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.game.GameClientManager
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.view.RedirectView
+import jakarta.servlet.http.HttpSession
 
 @RestController
 class ServersApi(
@@ -37,10 +39,16 @@ class ServersApi(
     }
 
     @GetMapping("/game/recommended")
-    fun redirectToRecommendedServer(): RedirectView {
+    fun redirectToRecommendedServer(session: HttpSession): RedirectView {
         val servers = gameClientManager.getPlayers()
         val configuration = recommendedChannelService.getConfiguration()
-        val channel = selectRecommendedChannel(servers, kKuTuSetting.getMaxPlayers(), configuration)
+        val allowedChannels = if (session.isGuest()) GUEST_CHANNELS else null
+        val channel = selectRecommendedChannel(
+            servers,
+            kKuTuSetting.getMaxPlayers(),
+            configuration,
+            allowedChannels
+        )
 
         return RedirectView("/game/server/$channel")
     }
@@ -49,36 +57,48 @@ class ServersApi(
 internal fun selectRecommendedChannel(
     servers: List<Int?>,
     maxPlayers: Int,
-    configuration: RecommendedChannelConfiguration
+    configuration: RecommendedChannelConfiguration,
+    allowedChannels: Set<Int>? = null
 ): Int {
     val preferredChannel = configuration.channel
+    fun isAllowed(channel: Int) = allowedChannels == null || channel in allowedChannels
+    val fallbackChannel = preferredChannel.takeIf(::isAllowed)
+        ?: allowedChannels?.minOrNull()
+        ?: preferredChannel
 
-    if (configuration.overrideRecommendedChannel) {
+    if (configuration.overrideRecommendedChannel && isAllowed(preferredChannel)) {
         return if (servers.getOrNull(preferredChannel) != null) {
             preferredChannel
         } else {
-            servers.indexOfFirst { it != null }.takeIf { it >= 0 } ?: preferredChannel
+            servers.indices.firstOrNull { index -> isAllowed(index) && servers[index] != null }
+                ?: fallbackChannel
         }
     }
 
     var busiestChannel: Int? = null
     var busiestChannelPlayers = -1
     servers.forEachIndexed { index, players ->
-        if (players != null && players < maxPlayers && players > busiestChannelPlayers) {
+        if (isAllowed(index) &&
+            players != null &&
+            players < maxPlayers &&
+            players > busiestChannelPlayers
+        ) {
             busiestChannel = index
             busiestChannelPlayers = players
         }
     }
 
     val preferredChannelPlayers = servers.getOrNull(preferredChannel)
-    if (preferredChannelPlayers != null &&
+    if (isAllowed(preferredChannel) &&
+        preferredChannelPlayers != null &&
         preferredChannelPlayers < maxPlayers &&
         busiestChannelPlayers - preferredChannelPlayers <= RECOMMENDED_CHANNEL_PLAYER_MARGIN
     ) {
         return preferredChannel
     }
 
-    return busiestChannel ?: preferredChannel
+    return busiestChannel ?: fallbackChannel
 }
 
 private const val RECOMMENDED_CHANNEL_PLAYER_MARGIN = 10
+private val GUEST_CHANNELS = setOf(0, 1)

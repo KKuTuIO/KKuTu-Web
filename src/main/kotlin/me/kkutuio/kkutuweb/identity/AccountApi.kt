@@ -37,6 +37,7 @@ data class OneTimeLoginCodeRequest(val identifier: String, val code: String, val
 data class ExternalSecondFactorRequest(val totpCode: String? = null, val securityCode: String? = null, val emailCode: String? = null)
 data class ExternalMfaSettingRequest(val enabled: Boolean)
 data class ProfileSelectionRequest(val profileId: String)
+data class ProfileOrderRequest(val profileIds: List<String>)
 data class ProfileCreationRequest(val nickname: String, val profileId: String? = null)
 data class PasskeyCompletionRequest(val operationToken: String, val credential: JsonNode, val deviceName: String? = null)
 data class PasskeyRenameRequest(val name: String)
@@ -82,11 +83,26 @@ class AccountApi(
             "nickname_tag" to dao.nicknameTagForNewProfile(account.id, previewId)
         )
     }
+    @Transactional
     @PutMapping("/profile") fun selectProfile(@RequestBody body: ProfileSelectionRequest, session: HttpSession): ResponseEntity<Void> {
         val account = accounts.requireCurrentAccount(session)
         val profileId = runCatching { java.util.UUID.fromString(body.profileId) }.getOrElse { throw IdpException("invalid_request", "잘못된 게임 프로필입니다.") }
+        dao.lockAccountForProfileMutation(account.id)
         if (!dao.setSelectedProfile(account.id, profileId)) throw IdpException("not_found", "게임 프로필을 찾을 수 없습니다.", 404)
         dao.audit(account.id, "GAME_PROFILE_SELECTED", metadata = mapOf("profile_id" to profileId.toString()))
+        return ResponseEntity.noContent().build()
+    }
+    @Transactional
+    @PutMapping("/profile/order") fun reorderProfiles(@RequestBody body: ProfileOrderRequest, session: HttpSession): ResponseEntity<Void> {
+        val account = accounts.requireCurrentAccount(session)
+        val profileIds = body.profileIds.map {
+            runCatching { java.util.UUID.fromString(it) }.getOrElse { throw IdpException("invalid_request", "잘못된 게임 프로필입니다.") }
+        }
+        if (profileIds.size != profileIds.toSet().size) throw IdpException("invalid_request", "중복된 게임 프로필입니다.")
+
+        dao.lockAccountForProfileMutation(account.id)
+        if (!dao.reorderProfiles(account.id, profileIds)) throw IdpException("invalid_request", "프로필 순서를 저장할 수 없습니다.")
+        dao.audit(account.id, "GAME_PROFILE_REORDERED", metadata = mapOf("profile_ids" to profileIds.map { it.toString() }))
         return ResponseEntity.noContent().build()
     }
     @Transactional

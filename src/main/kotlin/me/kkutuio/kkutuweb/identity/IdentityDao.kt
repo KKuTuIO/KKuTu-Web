@@ -69,9 +69,10 @@ class IdentityDao(
     }
     fun createKkutuProfile(accountId: UUID, legacyUserId: String) = jdbc.update(
         "WITH profile_input AS (SELECT ?::varchar AS legacy_user_id) " +
-            "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname_tag) " +
+            "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname_tag, profile_order) " +
             "SELECT ?, account.id, account.uuid, 'kkutu', profile_input.legacy_user_id, " +
-            "kkutu_nickname_tag(profile_input.legacy_user_id) FROM account CROSS JOIN profile_input " +
+            "kkutu_nickname_tag(profile_input.legacy_user_id), " +
+            "COALESCE((SELECT MAX(existing.profile_order) + 1 FROM game_profile existing WHERE existing.account_id=account.id), 0) FROM account CROSS JOIN profile_input " +
             "WHERE account.id=? AND NOT EXISTS (SELECT 1 FROM game_profile existing WHERE existing.account_id=account.id AND existing.game_key='kkutu')",
         legacyUserId, UUID.randomUUID(), accountId
     )
@@ -92,18 +93,24 @@ class IdentityDao(
         String::class.java, accountId, fallbackProfileId.toString()
     ) ?: "00000"
     fun createKkutuProfile(accountId: UUID, profileId: UUID, nickname: String?, nicknameTag: String): Boolean = jdbc.update(
-        "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname, nickname_tag) " +
-            "SELECT ?, account.id, account.uuid, 'kkutu', ?, ?, ? " +
+        "INSERT INTO game_profile(id, account_id, uuid, game_key, legacy_user_id, nickname, nickname_tag, profile_order) " +
+            "SELECT ?, account.id, account.uuid, 'kkutu', ?, ?, ?, " +
+            "COALESCE((SELECT MAX(existing.profile_order) + 1 FROM game_profile existing WHERE existing.account_id=account.id), 0) " +
             "FROM account WHERE account.id=?",
         profileId, profileId.toString(), nickname, nicknameTag, accountId
     ) == 1
-    fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at FROM game_profile WHERE account_id=? AND status <> 'DELETED' ORDER BY created_at", accountId)
+    fun listProfiles(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList(
+        "SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at " +
+            "FROM game_profile WHERE account_id=? AND status <> 'DELETED' " +
+            "ORDER BY CASE WHEN deletion_scheduled_at IS NULL THEN 0 ELSE 1 END, profile_order, created_at, id",
+        accountId
+    )
     fun findActiveProfile(accountId: UUID, profileId: UUID): Map<String, Any?>? = jdbc.queryForList("SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at FROM game_profile WHERE account_id=? AND id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL", accountId, profileId).firstOrNull()
     fun defaultProfile(accountId: UUID): Map<String, Any?>? = jdbc.queryForList(
-            "SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at FROM game_profile WHERE id = COALESCE(" +
-            "(SELECT a.selected_profile_id FROM account a JOIN game_profile selected ON selected.id=a.selected_profile_id AND selected.account_id=a.id AND selected.status='ACTIVE' AND selected.deletion_scheduled_at IS NULL WHERE a.id=?), " +
-            "(SELECT id FROM game_profile WHERE account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL ORDER BY created_at LIMIT 1))",
-        accountId, accountId
+            "SELECT id, uuid, game_key, legacy_user_id, nickname, nickname_tag, status, deletion_requested_at, deletion_scheduled_at " +
+            "FROM game_profile WHERE account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL " +
+            "ORDER BY profile_order, created_at, id LIMIT 1",
+        accountId
     ).firstOrNull()
 
     fun selectedProfileLegacyUserId(accountId: UUID): String? =
@@ -123,10 +130,45 @@ class IdentityDao(
         ).firstOrNull()
         return profile?.get("nickname_tag")?.toString() ?: userId.substringAfter('-', userId).take(5)
     }
-    fun setSelectedProfile(accountId: UUID, profileId: UUID): Boolean = jdbc.update(
-        "UPDATE account SET selected_profile_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND EXISTS (SELECT 1 FROM game_profile WHERE id=? AND account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL)",
-        profileId, accountId, profileId, accountId
-    ) == 1
+    fun setSelectedProfile(accountId: UUID, profileId: UUID): Boolean {
+        val updated = jdbc.update(
+            "UPDATE game_profile SET profile_order=CASE WHEN id=? THEN 0 ELSE profile_order+1 END, updated_at=CURRENT_TIMESTAMP " +
+                "WHERE account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NULL " +
+                "AND EXISTS (SELECT 1 FROM game_profile target WHERE target.id=? AND target.account_id=? AND target.status='ACTIVE' AND target.deletion_scheduled_at IS NULL)",
+            profileId, accountId, profileId, accountId
+        )
+        if (updated == 0) return false
+        return jdbc.update("UPDATE account SET selected_profile_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", profileId, accountId) == 1
+    }
+
+    /** Saves active-profile ordering; deletion-pending profiles are always retained at the end. */
+    fun reorderProfiles(accountId: UUID, profileIds: List<UUID>): Boolean {
+        val profiles = jdbc.queryForList(
+            "SELECT id, status, deletion_scheduled_at FROM game_profile WHERE account_id=? AND status <> 'DELETED' FOR UPDATE",
+            accountId
+        )
+        val profileById = profiles.associateBy { it["id"].toString() }
+        if (profileIds.size != profileById.size || profileIds.any { !profileById.containsKey(it.toString()) }) return false
+
+        val activeIds = profileIds.filter {
+            val profile = profileById[it.toString()]
+            profile?.get("status") == "ACTIVE" && profile["deletion_scheduled_at"] == null
+        }
+        val fixedIds = profiles
+            .filter { it["status"] != "ACTIVE" || it["deletion_scheduled_at"] != null }
+            .map { UUID.fromString(it["id"].toString()) }
+        val orderedIds = activeIds + fixedIds
+        orderedIds.forEachIndexed { index, profileId ->
+            jdbc.update(
+                "UPDATE game_profile SET profile_order=?, updated_at=CURRENT_TIMESTAMP WHERE account_id=? AND id=?",
+                index, accountId, profileId
+            )
+        }
+        if (activeIds.isNotEmpty()) {
+            jdbc.update("UPDATE account SET selected_profile_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", activeIds.first(), accountId)
+        }
+        return true
+    }
     fun updateProfileNickname(accountId: UUID, legacyUserId: String, nickname: String) = jdbc.update(
         "UPDATE game_profile SET nickname=?, updated_at=CURRENT_TIMESTAMP WHERE account_id=? AND legacy_user_id=?",
         nickname, accountId, legacyUserId

@@ -29,6 +29,8 @@
     let recoveryCodes = $state([]);
     let selectedProfile = $state('');
     let profileSwitching = $state(false);
+    let profileOrdering = $state(false);
+    let draggedProfileId = $state('');
     let profilePolicy = $state(null);
     let profileCreateOpen = $state(false);
     let profileCreateReauthVersion = $state(0);
@@ -396,6 +398,58 @@
             await load();
         }
         profileSwitching = false;
+    }
+
+    function canReorderProfile(profile) {
+        return profile?.status === 'ACTIVE' && !profile.deletion_scheduled_at;
+    }
+
+    function beginProfileDrag(event, profile) {
+        if (!canReorderProfile(profile) || profileOrdering || profileSwitching) return;
+        draggedProfileId = String(profile.id);
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', draggedProfileId);
+    }
+
+    function allowProfileDrop(event, profile) {
+        if (!canReorderProfile(profile) || !draggedProfileId) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }
+
+    async function dropProfile(event, targetProfile) {
+        if (!canReorderProfile(targetProfile) || profileOrdering) return;
+        event.preventDefault();
+        const sourceId = event.dataTransfer.getData('text/plain') || draggedProfileId;
+        draggedProfileId = '';
+        if (!sourceId || sourceId === String(targetProfile.id)) return;
+
+        const profiles = summary?.profiles || [];
+        const movable = profiles.filter(canReorderProfile);
+        const sourceIndex = movable.findIndex(profile => String(profile.id) === sourceId);
+        const targetIndex = movable.findIndex(profile => String(profile.id) === String(targetProfile.id));
+        if (sourceIndex < 0 || targetIndex < 0) return;
+
+        const reordered = [...movable];
+        const [source] = reordered.splice(sourceIndex, 1);
+        reordered.splice(targetIndex, 0, source);
+        const nextProfiles = [...reordered, ...profiles.filter(profile => !canReorderProfile(profile))];
+        const previousSummary = summary;
+        summary = {...summary, profiles: nextProfiles};
+        selectedProfile = reordered[0].id;
+        profileOrdering = true;
+
+        const response = await call('/api/account/profile/order', {
+            method: 'PUT',
+            body: JSON.stringify({profileIds: nextProfiles.map(profile => profile.id)})
+        });
+        profileOrdering = false;
+        if (response) await load();
+        else summary = previousSummary;
+    }
+
+    function endProfileDrag() {
+        draggedProfileId = '';
     }
 
     async function issuePin() {
@@ -1116,24 +1170,43 @@
               showFooter={!['fixed-nickname-confirm', 'totp-rename', 'passkey-rename', 'profile-switch', 'profile-delete', 'account-delete'].includes(modal?.type)}
               on:close={closeModal}>
     {#if modal?.type === 'profile-switch'}
-        <div class="space-y-2">
+        <div class="space-y-2" role="list" aria-label="프로필 순서">
                     {#each summary?.profiles || [] as profile, index (profile.id)}
-                        <button type="button"
-                        class={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-gray-100 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-gray-700 ${String(profile.id) === String(selectedProfile) ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
-                        disabled={profileSwitching || Boolean(profile.deletion_scheduled_at)}
-                        onclick={() => selectProfile(profile)}>
-                    <img class="h-11 w-11 shrink-0 rounded-xl" src={avatarUrl(profile.id)} alt={profileDisplayName(profile, index)}
-                         onerror={useFallbackAvatar}/>
-                    <span class="min-w-0 flex-1">
-                        <span class="block truncate font-semibold">{@html profileDisplayHtml(profile, index)}</span>
-                        <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
-                    </span>
-                        {#if String(profile.id) === String(selectedProfile)}
-                            <span class="material-symbols-outlined text-xl text-gray-700 dark:text-gray-100" aria-label="현재 프로필">check</span>
-                        {:else if profile.deletion_scheduled_at}
-                            <span class="text-xs font-bold text-red-600 dark:text-red-300">삭제 신청 중</span>
-                        {/if}
-                    </button>
+                        <div
+                            role="listitem"
+                            class={`flex items-center gap-1 rounded-xl ${draggedProfileId === String(profile.id) ? 'opacity-50' : ''}`}
+                            ondragover={(event) => allowProfileDrop(event, profile)}
+                            ondrop={(event) => dropProfile(event, profile)}
+                        >
+                            {#if canReorderProfile(profile)}
+                                <button
+                                    type="button"
+                                    class="flex h-11 w-8 shrink-0 cursor-grab items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:cursor-grabbing dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                                    aria-label={`${profileDisplayName(profile, index)} 순서 변경`}
+                                    draggable={!profileSwitching && !profileOrdering}
+                                    ondragstart={(event) => beginProfileDrag(event, profile)}
+                                    ondragend={endProfileDrag}
+                                ><span class="material-symbols-outlined">drag_handle</span></button>
+                            {:else}
+                                <span class="w-8 shrink-0"></span>
+                            {/if}
+                            <button type="button"
+                                class={`flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-gray-100 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-gray-700 ${String(profile.id) === String(selectedProfile) ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                                disabled={profileSwitching || profileOrdering || Boolean(profile.deletion_scheduled_at)}
+                                onclick={() => selectProfile(profile)}>
+                                <img class="h-11 w-11 shrink-0 rounded-xl" src={avatarUrl(profile.id)} alt={profileDisplayName(profile, index)}
+                                     onerror={useFallbackAvatar}/>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate font-semibold">{@html profileDisplayHtml(profile, index)}</span>
+                                    <span class="block truncate font-mono text-xs text-gray-500 dark:text-gray-300">{profile.id}</span>
+                                </span>
+                                {#if String(profile.id) === String(selectedProfile)}
+                                    <span class="material-symbols-outlined text-xl text-gray-700 dark:text-gray-100" aria-label="현재 프로필">check</span>
+                                {:else if profile.deletion_scheduled_at}
+                                    <span class="text-xs font-bold text-red-600 dark:text-red-300">삭제 신청 중</span>
+                                {/if}
+                            </button>
+                        </div>
                     {#if profile.deletion_scheduled_at}
                         <button type="button" class="-mt-2 mb-1 w-full px-3 text-right text-xs font-bold text-[#438c43]" onclick={() => cancelProfileDeletion(profile.id)}>삭제 신청 해제</button>
                     {/if}

@@ -98,7 +98,7 @@ class MainController(
 
         if (!isGuest) {
             val account = accountService.currentAccount(session)
-            if (account != null && accountService.isServiceAccessBlocked(account)) return "redirect:/account"
+            if (account != null && accountService.isServiceAccessBlocked(account)) return "redirect:/account/delete"
         }
 
         if (sessionProfile != null && setupService.needSetup(sessionProfile)) {

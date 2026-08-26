@@ -11,15 +11,35 @@
   let selectedWord = $state('');
   let alternatives = $state(null);
 
+  function decodeWords(indices, dictionary) {
+    if (!Array.isArray(indices)) return [];
+    return indices.map((index) => dictionary[index]).filter(Boolean);
+  }
+
+  function decodePlayerChains(payload, dictionary) {
+    if (!Array.isArray(payload?.ap)) return [];
+    return payload.ap
+      .filter((row) => Array.isArray(row) && Array.isArray(row[1]))
+      .map(([playerIndex, indices]) => ({
+        playerIndex,
+        player: payload?.p?.[playerIndex]?.[1] || payload?.p?.[playerIndex]?.[0] || `플레이어 ${playerIndex + 1}`,
+        words: decodeWords(indices, dictionary)
+      }))
+      .filter((entry) => entry.words.length);
+  }
+
   let payload = $derived(replay?.game?.detailPayload || null);
   let words = $derived(Array.isArray(payload?.w) ? payload.w : []);
+  let playerChains = $derived(decodePlayerChains(payload, words));
+  let globalAccepted = $derived(decodeWords(payload?.a, words));
   let accepted = $derived(
-    Array.isArray(payload?.a)
-      ? payload.a.map((index) => words[index]).filter(Boolean)
-      : []
+    globalAccepted.length
+      ? globalAccepted
+      : playerChains.flatMap((entry) => entry.words)
   );
-  let filtered = $derived(accepted.filter((word) => !query || word.includes(query)));
-  let longest = $derived(accepted.reduce((best, word) => word.length > (best?.length || 0) ? word : best, ''));
+  let uniqueAccepted = $derived([...new Set(accepted)]);
+  let filtered = $derived(uniqueAccepted.filter((word) => !query || word.includes(query)));
+  let longest = $derived(uniqueAccepted.reduce((best, word) => word.length > (best?.length || 0) ? word : best, ''));
   let inputRows = $derived(
     Array.isArray(payload?.i)
       ? payload.i.map((row) => ({
@@ -71,7 +91,7 @@
     if (!required) return;
     loading = true;
     try {
-      alternatives = await academyApi.strategy(config, required, accepted, 6);
+      alternatives = await academyApi.strategy(config, required, uniqueAccepted, 6);
     } catch (cause) {
       error = friendlyError(cause);
     } finally {
@@ -106,7 +126,7 @@
         <div class="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><dt class="text-xs text-slate-400">모드</dt><dd class="mt-1 font-black dark:text-white">{replay.game.modeName}</dd></div>
         <div class="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><dt class="text-xs text-slate-400">인원</dt><dd class="mt-1 font-black dark:text-white">{replay.game.playerCount}명</dd></div>
         <div class="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><dt class="text-xs text-slate-400">플레이 시간</dt><dd class="mt-1 font-black dark:text-white">{formatDuration(replay.game.durationMs)}</dd></div>
-        <div class="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><dt class="text-xs text-slate-400">성공 단어</dt><dd class="mt-1 font-black dark:text-white">{accepted.length}개</dd></div>
+        <div class="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><dt class="text-xs text-slate-400">성공 단어</dt><dd class="mt-1 font-black dark:text-white">{uniqueAccepted.length}개</dd></div>
       </dl>
     {/if}
   </aside>
@@ -123,13 +143,29 @@
       </div>
 
       <section class="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="text-xs font-black text-sky-600">ACCEPTED CHAIN</p><h3 class="text-xl font-black text-slate-900 dark:text-white">성공 수순</h3></div><div class="flex gap-2"><input bind:value={query} placeholder="수순 내 검색" class="w-36 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white" /><button type="button" onclick={copyChain} class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-500 dark:border-slate-700" aria-label="수순 복사"><span class="material-symbols-outlined text-lg">content_copy</span></button></div></div>
-        {#if accepted.length}
+        <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="text-xs font-black text-sky-600">ACCEPTED CHAIN</p><h3 class="text-xl font-black text-slate-900 dark:text-white">{globalAccepted.length ? '성공 수순' : '전체 성공 단어'}</h3></div><div class="flex gap-2"><input bind:value={query} placeholder="수순 내 검색" class="w-36 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white" /><button type="button" onclick={copyChain} class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-500 dark:border-slate-700" aria-label="수순 복사"><span class="material-symbols-outlined text-lg">content_copy</span></button></div></div>
+        {#if uniqueAccepted.length}
           <div class="mt-4 flex max-h-80 flex-wrap items-center gap-2 overflow-y-auto">
             {#each filtered as word, index}<button type="button" onclick={() => inspect(word)} class={`rounded-xl border px-3 py-2 text-left transition ${selectedWord === word ? 'border-sky-400 bg-sky-50 dark:bg-sky-950/30' : 'border-slate-200 bg-slate-50 hover:border-sky-300 dark:border-slate-700 dark:bg-slate-800'}`}><span class="block text-[10px] font-bold text-slate-400">{index + 1}</span><strong class="text-slate-800 dark:text-white">{word}</strong></button>{/each}
           </div>
-        {:else}<p class="mt-4 text-sm text-slate-400">이 모드의 리플레이에는 전역 성공 체인이 기록되지 않았습니다. 아래 입력 이벤트를 이용해 복기할 수 있습니다.</p>{/if}
+        {:else}<p class="mt-4 text-sm text-slate-400">이 리플레이에는 복기 가능한 성공 체인이 기록되지 않았습니다. 아래 입력 이벤트를 이용해 복기할 수 있습니다.</p>{/if}
       </section>
+
+      {#if playerChains.length}
+        <section class="mt-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <div><p class="text-xs font-black text-violet-600">PER-PLAYER CHAIN</p><h3 class="text-xl font-black text-slate-900 dark:text-white">플레이어별 성공 수순</h3></div>
+          <div class="mt-4 grid gap-3 lg:grid-cols-2">
+            {#each playerChains as entry}
+              <article class="rounded-2xl border border-violet-100 bg-violet-50/60 p-4 dark:border-violet-900 dark:bg-violet-950/20">
+                <div class="flex items-center justify-between gap-3"><strong class="truncate text-violet-800 dark:text-violet-200">{entry.player}</strong><span class="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-black text-violet-600 dark:bg-slate-900 dark:text-violet-300">{entry.words.length}개</span></div>
+                <div class="mt-3 flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
+                  {#each entry.words as word}<button type="button" onclick={() => inspect(word)} class="rounded-lg bg-white px-2.5 py-1.5 text-sm font-bold text-slate-700 shadow-sm hover:text-sky-600 dark:bg-slate-900 dark:text-slate-200">{word}</button>{/each}
+                </div>
+              </article>
+            {/each}
+          </div>
+        </section>
+      {/if}
 
       {#if alternatives}
         <section class="mt-5 rounded-3xl border border-sky-200 bg-sky-50 p-5 dark:border-sky-900 dark:bg-sky-950/25">

@@ -13,6 +13,13 @@
   let error = $state('');
   let streak = $state(0);
 
+  function cleanText(value) {
+    return String(value || '')
+      .replaceAll('표준 공개 사전', '표준 사전')
+      .replaceAll('공개 학습 사전', '사전')
+      .replaceAll('공개 사전', '사전');
+  }
+
   async function load(target = index) {
     loading = true;
     error = '';
@@ -101,8 +108,8 @@
     {:else if question}
       <div class="mx-auto min-w-0 max-w-3xl">
         <div class="text-right text-sm font-bold text-slate-400">{index + 1} / {total}</div>
-        <h3 class="mt-5 text-center text-2xl font-black leading-10 text-slate-900 dark:text-white md:text-3xl">{question.prompt}</h3>
-        {#if question.explanationHint}<p class="mt-2 text-center text-sm text-slate-400">{question.explanationHint}</p>{/if}
+        <h3 class="mt-5 text-center text-2xl font-black leading-10 text-slate-900 dark:text-white md:text-3xl">{cleanText(question.prompt)}</h3>
+        {#if question.explanationHint}<p class="mt-2 text-center text-sm text-slate-400">{cleanText(question.explanationHint)}</p>{/if}
 
         <div class="mt-8 grid min-w-0 gap-3 sm:grid-cols-2">
           {#each question.options as option, optionIndex}
@@ -118,7 +125,7 @@
         {#if result}
           <div class={`mt-6 rounded-2xl border p-5 ${result.correct ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30' : 'border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/30'}`}>
             <div class="flex items-center gap-2"><span class={`material-symbols-outlined ${result.correct ? 'text-emerald-600' : 'text-rose-600'}`}>{result.correct ? 'celebration' : 'school'}</span><strong class="text-lg text-slate-900 dark:text-white">{result.correct ? '정답입니다!' : `정답은 ${result.answer}입니다.`}</strong></div>
-            <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{result.explanation}</p>
+            <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{cleanText(result.explanation)}</p>
             <button type="button" onclick={next} class="mt-4 inline-flex items-center gap-1 rounded-xl bg-slate-900 px-5 py-2.5 font-black text-white dark:bg-white dark:text-slate-900">{index + 1 < total ? '다음 문제' : '학습 완료'}<span class="material-symbols-outlined">arrow_forward</span></button>
           </div>
         {/if}

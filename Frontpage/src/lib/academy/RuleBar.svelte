@@ -15,6 +15,13 @@
     const value = Number(event.currentTarget.value);
     return Number.isFinite(value) ? value : fallback;
   }
+
+  function dictionaryLabel(dictionary) {
+    if (dictionary.value === 'BASIC') return '기초 사전';
+    if (dictionary.value === 'STANDARD') return '표준 사전';
+    if (dictionary.value === 'COMBINED') return '전체 사전';
+    return dictionary.label;
+  }
 </script>
 
 <section class={`min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 ${compact ? 'p-3' : 'p-4'}`} aria-label="학습 사전 규칙">
@@ -34,7 +41,7 @@
           {value:'STANDARD',label:'표준 사전'},
           {value:'COMBINED',label:'전체 사전'}
         ] as dictionary}
-          <option value={dictionary.value}>{dictionary.label}</option>
+          <option value={dictionary.value}>{dictionaryLabel(dictionary)}</option>
         {/each}
       </select>
     </label>

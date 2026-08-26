@@ -129,6 +129,38 @@ export const academyApi = {
 
   replay(gameId) {
     return request(`/api/replay/game/${encodeURIComponent(gameId)}?includeDetail=true`);
+  },
+
+  adminPublished(lang, page = 0, size = 50) {
+    const query = queryString({ page, size });
+    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}?${query}`);
+  },
+
+  adminPublish(lang, word, reason = '관리자 공개') {
+    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}/${encodeURIComponent(word)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason })
+    });
+  },
+
+  adminBulkPublish(lang, words, reason = '관리자 일괄 공개') {
+    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ words, reason })
+    });
+  },
+
+  adminUnpublish(lang, word) {
+    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}/${encodeURIComponent(word)}`, {
+      method: 'DELETE'
+    });
+  },
+
+  adminRefresh(lang = null) {
+    const query = queryString({ lang });
+    return request(`/api/admin/academy/refresh${query ? `?${query}` : ''}`, {
+      method: 'POST'
+    });
   }
 };
 
@@ -139,7 +171,9 @@ export function friendlyError(error) {
     WORD_TOKEN_REQUIRED: '단어 토큰이 부족합니다.',
     RESTRICTED_LIMIT: '오늘의 어인정 제한 조회 횟수를 모두 사용했습니다.',
     LOGIN_REQUIRED: '로그인 후 이용할 수 있습니다.',
-    NO_CHALLENGE: '현재 규칙으로 만들 수 있는 연습 문제가 없습니다.'
+    NO_CHALLENGE: '현재 규칙으로 만들 수 있는 연습 문제가 없습니다.',
+    HTTP_401: '관리자 로그인이 필요합니다.',
+    HTTP_403: '단어 관리 권한이 필요합니다.'
   };
   return byCode[error?.code] || error?.message || '알 수 없는 오류가 발생했습니다.';
 }

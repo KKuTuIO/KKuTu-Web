@@ -88,10 +88,10 @@ export const academyApi = {
     });
   },
 
-  simulator(config, chain, word, shields = 0, botLevel = null, requiredChar = null) {
+  simulator(config, chain, word, shields = 0, botLevel = null) {
     return request('/api/academy/simulator/step', {
       method: 'POST',
-      body: JSON.stringify({ config, chain, word, shields, botLevel, requiredChar })
+      body: JSON.stringify({ config, chain, word, shields, botLevel })
     });
   },
 
@@ -99,6 +99,13 @@ export const academyApi = {
     return request('/api/academy/practice/challenge', {
       method: 'POST',
       body: JSON.stringify({ config, difficulty, startChar, usedWords })
+    });
+  },
+
+  practiceAnswer(config, requiredChar, usedWords, word, shields = 0) {
+    return request('/api/academy/practice/answer', {
+      method: 'POST',
+      body: JSON.stringify({ config, requiredChar, usedWords, word, shields })
     });
   },
 

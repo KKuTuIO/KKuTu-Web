@@ -87,7 +87,8 @@
 		} catch (e) {
 			data = { status: "Guest user" };
 			/*if (window.location.pathname === "/wordsheet" || window.location.pathname === "/wordsheet.html") {
-				alert("손님 계정으로는 검색이 불가능합니다.\n로그인 후 이용해주세요.");
+				alert("손님 계정으로는 검색이 불가능합니다.\
+로그인 후 이용해주세요.");
 			}*/
 		}
 		
@@ -175,11 +176,11 @@
 					book_2
 				</span>
 				리오위키</a>
-			<a href="/wordsheet" class="link-header">
+			<a href="/academy" class="link-header">
 				<span class="material-symbols-outlined icons-header">
-					collections_bookmark
+					school
 				</span>
-                단어장</a>
+                아카데미</a>
 			<a target="_blank" href="https://cs.kkutu.io" class="link-header">
 				<span class="material-symbols-outlined icons-header">
 					help
@@ -234,7 +235,7 @@
 					<a href="/records" onclick={() => (mobileMenuOpen = false)} class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sky-500">id_card</span>전적</a>
 					<a target="_blank" href="https://cafe.naver.com/kkutuio" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-emerald-500">local_cafe</span>공식카페</a>
 					<a target="_blank" href="https://kkutu.wiki" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-violet-500">book_2</span>리오위키</a>
-					<a href="/wordsheet" onclick={() => (mobileMenuOpen = false)} class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-rose-500">collections_bookmark</span>단어장</a>
+					<a href="/academy" onclick={() => (mobileMenuOpen = false)} class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-rose-500">school</span>아카데미</a>
 					<a target="_blank" href="https://cs.kkutu.io" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-indigo-500">help</span>고객지원</a>
 				</nav>
 				<p class="border-t border-slate-200 px-5 py-4 text-xs text-slate-400 dark:border-slate-700">&copy; 주식회사 큐브시티, 모든 권리 보유.</p>

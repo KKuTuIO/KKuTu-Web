@@ -191,7 +191,7 @@ class AcademyService(
             AcademyPracticeDifficulty.BEGINNER -> AcademyPracticeHint(
                 firstLetter = sample?.take(1),
                 length = sample?.length,
-                theme = graph.snapshot.byId[sample]?.themes?.firstOrNull(),
+                theme = sample?.let { graph.snapshot.byId[it]?.themes?.firstOrNull() },
                 sample = sample
             )
             AcademyPracticeDifficulty.STANDARD -> AcademyPracticeHint(
@@ -330,13 +330,19 @@ class AcademyService(
         val config = corpusService.normalize(AcademyRuleConfig(lang = "ko", dictionary = "STANDARD"))
         val snapshot = corpusService.snapshot(config)
         if (snapshot.words.size < 20) throw AcademyRequestException(503, "QUIZ_UNAVAILABLE", "퀴즈 사전을 준비하지 못했습니다.")
-        val random = Random(date.toEpochDay() * 31 + index)
+        val random = Random((date.toEpochDay() * 31 + index).toInt())
         val id = "$date:$index"
         return when (index % 3) {
             0 -> {
                 val word = snapshot.words[random.nextInt(snapshot.words.size)]
                 val correct = snapshot.destination(word)
-                val pool = snapshot.words.asSequence().map(snapshot::destination).filter { it != correct }.distinct().shuffled(random).take(3).toList()
+                val pool = snapshot.words.asSequence()
+                    .map(snapshot::destination)
+                    .filter { it != correct }
+                    .distinct()
+                    .toList()
+                    .shuffled(random)
+                    .take(3)
                 AcademyQuizQuestion(
                     questionId = id,
                     date = date.toString(),
@@ -385,6 +391,6 @@ class AcademyService(
     }
 
     private fun validateSingleCharacter(value: String, label: String) {
-        require(value.isBlank() || value.trim().length == 1) { "$label은 한 글자여야 합니다." }
+        require(value.isBlank() || value.trim().length == 1) { "${label}은 한 글자여야 합니다." }
     }
 }

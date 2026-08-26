@@ -275,7 +275,7 @@ data class AcademyPublishedListResponse(
     val hasNext: Boolean
 )
 
-internal data class AcademyCorpusWord(
+data class AcademyCorpusWord(
     val word: String,
     val hit: Int,
     val flags: Int,
@@ -287,7 +287,7 @@ internal data class AcademyCorpusWord(
     val themes: Set<String> get() = theme.split(',').filter { it.isNotBlank() && it != "0" }.toSet()
 }
 
-internal data class AcademyWordRecord(
+data class AcademyWordRecord(
     val word: String,
     val mean: String,
     val type: String,

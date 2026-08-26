@@ -55,7 +55,7 @@ class DictApi(
         response: HttpServletResponse
     ): LegacyDictionaryWord? {
         if (!academyRateLimitService.allowPublic("legacy-word", request.getIp(), 180, 60)) {
-            response.status = HttpServletResponse.SC_TOO_MANY_REQUESTS
+            response.status = 429
             return null
         }
         return try {
@@ -95,7 +95,7 @@ class DictApi(
             AcademyService.RESTRICTED_DAILY_LIMIT
         )
         if (remaining == null) {
-            response.status = HttpServletResponse.SC_TOO_MANY_REQUESTS
+            response.status = 429
             return emptyList()
         }
         return try {

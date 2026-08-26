@@ -31,6 +31,14 @@ function queryString(values) {
   return query.toString();
 }
 
+function cleanAcademyText(value) {
+  return String(value || '')
+    .replaceAll('표준 공개 사전', '표준 사전')
+    .replaceAll('공개 학습 사전', '사전')
+    .replaceAll('공개 단어장', '사전')
+    .replaceAll('공개 사전', '사전');
+}
+
 export function configQuery(config) {
   return {
     lang: config.lang,
@@ -92,7 +100,7 @@ export const academyApi = {
     return request('/api/academy/simulator/step', {
       method: 'POST',
       body: JSON.stringify({ config, chain, word, shields, botLevel })
-    });
+    }).then((response) => ({ ...response, message: cleanAcademyText(response?.message) }));
   },
 
   practice(config, difficulty, startChar = null, usedWords = []) {
@@ -110,14 +118,18 @@ export const academyApi = {
   },
 
   quiz(index) {
-    return request(`/api/academy/quiz/daily?index=${encodeURIComponent(index)}`);
+    return request(`/api/academy/quiz/daily?index=${encodeURIComponent(index)}`).then((response) => ({
+      ...response,
+      prompt: cleanAcademyText(response?.prompt),
+      explanationHint: cleanAcademyText(response?.explanationHint)
+    }));
   },
 
   answerQuiz(questionId, answer) {
     return request('/api/academy/quiz/answer', {
       method: 'POST',
       body: JSON.stringify({ questionId, answer })
-    });
+    }).then((response) => ({ ...response, explanation: cleanAcademyText(response?.explanation) }));
   },
 
   restricted(lang, startChar, mission) {
@@ -179,5 +191,5 @@ export function friendlyError(error) {
     HTTP_401: '관리자 로그인이 필요합니다.',
     HTTP_403: '단어 관리 권한이 필요합니다.'
   };
-  return byCode[error?.code] || error?.message || '알 수 없는 오류가 발생했습니다.';
+  return byCode[error?.code] || cleanAcademyText(error?.message) || '알 수 없는 오류가 발생했습니다.';
 }

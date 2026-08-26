@@ -67,7 +67,7 @@
   <meta name="description" content="끄투리오 단어 검색, 끝말잇기 시뮬레이터, 루트전 연습과 전략 분석을 제공합니다." />
 </svelte:head>
 
-<div class="min-h-screen bg-slate-50 pb-20 pt-24 text-slate-900 dark:bg-slate-950 dark:text-white">
+<div class="min-h-screen bg-slate-50 pb-20 pt-16 text-slate-900 dark:bg-slate-950 dark:text-white">
   <nav class="sticky top-16 z-40 border-b border-slate-200 bg-slate-50/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90" aria-label="아카데미 기능">
     <div class="mx-auto max-w-[1500px] overflow-x-auto px-4 sm:px-6 lg:px-8">
       <div class="flex min-w-max gap-1 py-3">

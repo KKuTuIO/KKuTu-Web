@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
 
-internal data class AcademySearchQuery(
+data class AcademySearchQuery(
     val text: String = "",
     val match: String = "CONTAINS",
     val startChar: String = "",

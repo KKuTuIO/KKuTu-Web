@@ -10,12 +10,14 @@
     LOW: ['안전', 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300']
   };
 
+  let grade = $derived(gradeLabels[word.attackGrade] || gradeLabels.LOW);
+
   function speak() {
     if (!globalThis.speechSynthesis) return;
     const utterance = new SpeechSynthesisUtterance(word.word);
     utterance.lang = word.word.match(/[가-힣]/) ? 'ko-KR' : 'en-US';
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
+    globalThis.speechSynthesis.cancel();
+    globalThis.speechSynthesis.speak(utterance);
   }
 
   function cleanMean(value) {
@@ -31,7 +33,6 @@
         {#if word.publishedOverride}
           <span class="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">공개 어인정</span>
         {/if}
-        {@const grade = gradeLabels[word.attackGrade] || gradeLabels.LOW}
         <span class={`rounded-full px-2 py-0.5 text-xs font-bold ${grade[1]}`}>{grade[0]}</span>
       </div>
       <p class="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">

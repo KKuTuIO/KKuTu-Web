@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicLong
 
-internal data class AcademyCorpusSnapshot(
+data class AcademyCorpusSnapshot(
     val config: AcademyRuleConfig,
     val words: List<AcademyCorpusWord>,
     val byId: Map<String, AcademyCorpusWord>,

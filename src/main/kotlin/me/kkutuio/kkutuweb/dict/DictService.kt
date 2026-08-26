@@ -6,67 +6,36 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package me.kkutuio.kkutuweb.dict
 
-import me.kkutuio.kkutuweb.word.WordDao
-import org.springframework.beans.factory.annotation.Autowired
+import me.kkutuio.kkutuweb.academy.AcademyRequestException
+import me.kkutuio.kkutuweb.academy.AcademyRuleConfig
+import me.kkutuio.kkutuweb.academy.AcademyService
 import org.springframework.stereotype.Service
+import tools.jackson.databind.ObjectMapper
 
+/**
+ * Compatibility wrapper retained for older callers. It must never query the
+ * master word tables without the academy visibility policy.
+ */
 @Service
 class DictService(
-    @Autowired private val wordDao: WordDao
+    private val academyService: AcademyService,
+    private val objectMapper: ObjectMapper
 ) {
-    fun getWord(id: String, lang: String): String {
-        val tableName = when (lang) {
-            "ko" -> "kkutu_ko"
-            "en" -> "kkutu_en"
-            else -> ""
-        }
-
-        if (tableName.isEmpty()) return "{\"error\":400}"
-        val words = wordDao.getWords(tableName, id)
-        if (words.isEmpty()) return "{\"error\":404}"
-
-        val word = words.first()
-        return "{\"word\":\"${word.id}\",\"mean\":\"${
-            word.mean.replace(
-                "\"",
-                "\\\""
-            )
-        }\",\"theme\":\"${word.theme}\",\"type\":\"${word.type}\"}"
+    fun getWord(id: String, lang: String): String = try {
+        val word = academyService.getWord(AcademyRuleConfig(lang = lang, dictionary = "COMBINED"), id)
+        objectMapper.writeValueAsString(
+            LegacyDictionaryWord(word.word, word.mean, word.themes.joinToString(","), word.types.joinToString(","))
+        )
+    } catch (_: IllegalArgumentException) {
+        "{\"error\":400}"
+    } catch (_: AcademyRequestException) {
+        "{\"error\":404}"
     }
 
-    fun getWords(startChar: String, lang: String, mission: String?): String {
-        val tableName = when (lang) {
-            "ko" -> "kkutu_ko"
-            "en" -> "kkutu_en"
-            else -> ""
-        }
-
-        if (startChar.isEmpty() || startChar.length > 1) return "{\"error\":400}"
-        if (mission != null && mission.length > 1) return "{\"error\":400}"
-        if (tableName.isEmpty()) return "{\"error\":400}"
-        val words = wordDao.getWordsFromChar(tableName, startChar, mission)
-        if (words.isEmpty()) return "{\"error\":404}"
-
-        val result = words.joinToString(",") {
-            "{\"word\":\"${it.id}\",\"mean\":\"${
-                it.mean.replace(
-                    "\"",
-                    "\\\""
-                )
-            }\",\"theme\":\"${it.theme}\",\"type\":\"${it.type}\"}"
-        }
-        return "[$result]"
-    }
+    /** Prefix enumeration is intentionally unavailable through this legacy service. */
+    fun getWords(@Suppress("UNUSED_PARAMETER") startChar: String, @Suppress("UNUSED_PARAMETER") lang: String, @Suppress("UNUSED_PARAMETER") mission: String?): String =
+        "{\"error\":410}"
 }

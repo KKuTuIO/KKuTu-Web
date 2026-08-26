@@ -13,7 +13,14 @@
   let result = $state(null);
   let suggestion = $state(null);
 
-  let requiredChar = $derived(result?.nextChar || '');
+  let chainRequiredChar = $derived(
+    chain.length
+      ? config.direction === 'REVERSE'
+        ? chain.at(-1)?.[0] || ''
+        : chain.at(-1)?.at(-1) || ''
+      : ''
+  );
+  let requiredChar = $derived(result?.nextChar || chainRequiredChar);
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);

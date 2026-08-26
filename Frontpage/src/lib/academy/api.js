@@ -165,11 +165,15 @@ export const academyApi = {
 };
 
 export function friendlyError(error) {
+  if (error?.name === 'TypeError' && /fetch/i.test(error?.message || '')) {
+    return '서버에 연결하지 못했습니다.';
+  }
+
   const byCode = {
     RATE_LIMITED: '요청이 너무 빠릅니다. 잠시 쉬었다가 다시 시도해 주세요.',
-    WORD_NOT_PUBLIC: '공개 학습 사전에서 확인할 수 없는 단어입니다.',
+    WORD_NOT_PUBLIC: '현재 사전에서 확인할 수 없는 단어입니다.',
     WORD_TOKEN_REQUIRED: '단어 토큰이 부족합니다.',
-    RESTRICTED_LIMIT: '오늘의 어인정 제한 조회 횟수를 모두 사용했습니다.',
+    RESTRICTED_LIMIT: '오늘의 어인정 조회 횟수를 모두 사용했습니다.',
     LOGIN_REQUIRED: '로그인 후 이용할 수 있습니다.',
     NO_CHALLENGE: '현재 규칙으로 만들 수 있는 연습 문제가 없습니다.',
     HTTP_401: '관리자 로그인이 필요합니다.',

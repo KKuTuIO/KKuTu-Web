@@ -38,16 +38,17 @@
     }, 1000);
   }
 
-  async function loadChallenge(forcedChar = null) {
+  async function loadChallenge(forcedChar = null, resetResources = false) {
     loading = true;
     error = '';
     feedback = null;
     hintOpen = false;
     answer = '';
     try {
-      challenge = await academyApi.practice(config, difficulty, forcedChar || startChar || null, usedWords);
-      shields = challenge.shieldCount;
-      startTimer(challenge.timeLimitSeconds);
+      const nextChallenge = await academyApi.practice(config, difficulty, forcedChar || startChar || null, usedWords);
+      challenge = nextChallenge;
+      if (resetResources) shields = nextChallenge.shieldCount;
+      startTimer(nextChallenge.timeLimitSeconds);
       startChar = '';
     } catch (cause) {
       error = friendlyError(cause);
@@ -98,7 +99,7 @@
       }
       usedWords = [...usedWords, bot.word];
       history = [...history, { role: '봇', word: bot.word, from: response.nextChallenge, to: bot.to }];
-      await loadChallenge(bot.to);
+      await loadChallenge(bot.to, false);
     } catch (cause) {
       error = friendlyError(cause);
     } finally {
@@ -112,12 +113,13 @@
     history = [];
     streak = 0;
     solved = 0;
+    shields = 0;
     challenge = null;
     feedback = null;
-    loadChallenge();
+    loadChallenge(null, true);
   }
 
-  onMount(() => loadChallenge());
+  onMount(() => loadChallenge(null, true));
   onDestroy(stopTimer);
 </script>
 
@@ -164,7 +166,7 @@
             <div class="mt-4 flex flex-wrap items-center gap-2">
               <button type="button" onclick={() => hintOpen = !hintOpen} class="inline-flex items-center gap-1 rounded-xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"><span class="material-symbols-outlined text-lg">lightbulb</span>힌트</button>
               <span class="inline-flex items-center gap-1 rounded-xl bg-sky-50 px-3 py-2 text-sm font-bold text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"><span class="material-symbols-outlined text-lg">shield</span>보호막 {shields}</span>
-              <button type="button" onclick={() => loadChallenge()} class="ml-auto inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-500 dark:border-slate-700"><span class="material-symbols-outlined text-lg">skip_next</span>다른 문제</button>
+              <button type="button" onclick={() => loadChallenge(null, false)} class="ml-auto inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-500 dark:border-slate-700"><span class="material-symbols-outlined text-lg">skip_next</span>다른 문제</button>
             </div>
 
             {#if hintOpen}
@@ -190,7 +192,7 @@
             <div class="mt-2 flex flex-wrap gap-2">{#each feedback.bestMoves as move}<button type="button" onclick={() => answer = move.word} class="rounded-lg bg-white px-3 py-1.5 text-sm font-bold shadow-sm dark:bg-slate-800">{move.word} → {move.to}</button>{/each}</div>
           {/if}
           {#if !feedback.accepted && !feedback.shieldUsed}
-            <button type="button" onclick={() => loadChallenge()} class="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white dark:bg-white dark:text-slate-900">다음 문제</button>
+            <button type="button" onclick={() => loadChallenge(null, false)} class="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white dark:bg-white dark:text-slate-900">다음 문제</button>
           {/if}
         </div>
       {/if}
@@ -220,7 +222,7 @@
       <div class="flex items-center justify-between"><h3 class="font-black text-slate-900 dark:text-white">대국 기록</h3><button type="button" onclick={restart} class="text-xs font-bold text-slate-400 hover:text-rose-500">초기화</button></div>
       {#if history.length}
         <ol class="mt-3 grid max-h-96 gap-2 overflow-y-auto pr-1">
-          {#each history.toReversed() as item, index}
+          {#each history.toReversed() as item}
             <li class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
               <div><span class={`mr-2 text-xs font-black ${item.role === '봇' ? 'text-violet-500' : 'text-emerald-600'}`}>{item.role}</span><strong class="dark:text-white">{item.word}</strong></div><span class="text-xs text-slate-400">{item.from}→{item.to}</span>
             </li>

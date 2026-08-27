@@ -1559,6 +1559,10 @@ class ModerationService(
                     if ("EXPERIENCE" in targets) rankingUpdates[profileId] = newScore
                     mapOf(
                         "profileId" to profileId,
+                        "moneyBefore" to before.first,
+                        "moneyAfter" to newMoney,
+                        "scoreBefore" to before.second,
+                        "scoreAfter" to newScore,
                         "moneyDelta" to before.first - newMoney,
                         "scoreDelta" to before.second - newScore
                     )
@@ -1889,20 +1893,37 @@ class ModerationService(
     private fun effects(caseId: Long): List<ModerationEffectSummary> =
         jdbcTemplate.query(
             """
-            SELECT effect_type, starts_at, ends_at, permanent, apply_status
+            SELECT effect_type, starts_at, ends_at, permanent, apply_status, parameters
             FROM moderation_effects WHERE case_id = ? ORDER BY effect_id
             """.trimIndent(),
             { rs, _ ->
+                val parameters = objectMapper.readTree(rs.getString("parameters"))
                 ModerationEffectSummary(
                     rs.getString("effect_type"),
                     rs.instant("starts_at")!!,
                     rs.instant("ends_at"),
                     rs.getBoolean("permanent"),
-                    rs.getString("apply_status")
+                    rs.getString("apply_status"),
+                    parameters.path("percent").takeIf(JsonNode::isNumber)?.asInt(),
+                    resourceAdjustmentSummary(parameters)
                 )
             },
             caseId
         )
+
+    private fun resourceAdjustmentSummary(parameters: JsonNode): ModerationResourceAdjustmentSummary? {
+        val rollback = parameters.path("_rollback")
+        if (!rollback.isArray || rollback.isEmpty) return null
+        val entries = rollback.toList()
+        val requiredFields = listOf("moneyBefore", "moneyAfter", "scoreBefore", "scoreAfter")
+        if (entries.any { entry -> requiredFields.any { !entry.path(it).isNumber } }) return null
+        return ModerationResourceAdjustmentSummary(
+            experienceBefore = entries.sumOf { it.path("scoreBefore").asLong() },
+            experienceAfter = entries.sumOf { it.path("scoreAfter").asLong() },
+            cyberPointBefore = entries.sumOf { it.path("moneyBefore").asLong() },
+            cyberPointAfter = entries.sumOf { it.path("moneyAfter").asLong() }
+        )
+    }
 
     private fun caseCategoryCodes(caseId: Long): List<String> =
         jdbcTemplate.query(

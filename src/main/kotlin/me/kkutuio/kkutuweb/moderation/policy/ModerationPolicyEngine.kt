@@ -28,8 +28,7 @@ class ModerationPolicyEngine(
             Candidate(
                 category = category,
                 offenseNo = offenseNo,
-                effects = resolveEffects(step.effects, startsAt, zoneId),
-                requiresApproval = step.requiresApproval
+                effects = resolveEffects(step.effects, startsAt, zoneId)
             )
         }
 
@@ -54,7 +53,7 @@ class ModerationPolicyEngine(
                 )
             },
             effects = mergedEffects,
-            requiresApproval = candidates.any { it.requiresApproval }
+            requiresApproval = false
         )
     }
 
@@ -100,7 +99,7 @@ class ModerationPolicyEngine(
         return base.copy(
             selectionReason = "${base.selectionReason} / 손님·IP ${guestIpOffense}차",
             effects = listOf(guestEffect),
-            requiresApproval = base.requiresApproval || guestStep.requiresApproval
+            requiresApproval = false
         )
     }
 
@@ -275,8 +274,7 @@ class ModerationPolicyEngine(
     private data class Candidate(
         val category: PolicyCategory,
         val offenseNo: Int,
-        val effects: List<ResolvedPolicyEffect>,
-        val requiresApproval: Boolean
+        val effects: List<ResolvedPolicyEffect>
     )
 
     companion object {

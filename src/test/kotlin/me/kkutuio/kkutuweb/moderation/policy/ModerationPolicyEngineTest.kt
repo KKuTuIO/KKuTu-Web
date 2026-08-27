@@ -2,6 +2,7 @@ package me.kkutuio.kkutuweb.moderation.policy
 
 import tools.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -86,7 +87,7 @@ class ModerationPolicyEngineTest {
             preview.effects.single { it.type == "CHAT_RESTRICTION" }
                 .parameters["durationStackedAfter"]
         )
-        assertTrue(preview.requiresApproval)
+        assertFalse(preview.requiresApproval)
     }
 
     @Test

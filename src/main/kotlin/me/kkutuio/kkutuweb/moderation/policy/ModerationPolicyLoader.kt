@@ -173,6 +173,16 @@ class ModerationPolicyLoader(
             val percent = (effect.parameters["percent"] as? Number)?.toInt()
                 ?: throw IllegalArgumentException("Category $categoryCode resource adjustment needs percent")
             require(percent in 0..100) { "Category $categoryCode resource percent must be between 0 and 100" }
+            require(effect.parameters["mode"] == "DEDUCT_PERCENT") {
+                "Category $categoryCode resource adjustment has an unsupported mode"
+            }
+            val targets = (effect.parameters["targets"] as? Collection<*>)
+                ?.mapNotNull { it as? String }
+                ?.toSet()
+                ?: emptySet()
+            require(targets.isNotEmpty() && targets.all { it in setOf("EXPERIENCE", "CYBER_POINT") }) {
+                "Category $categoryCode resource adjustment has unsupported targets"
+            }
         }
     }
 

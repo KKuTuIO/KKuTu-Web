@@ -48,7 +48,7 @@ class DictService(
         val words = wordDao.getWordsFromChar(tableName, startChar, mission)
         if (words.isEmpty()) return "{\"error\":404}"
 
-        return words.joinToString(prefix = "[", postfix = "]") { word ->
+        return words.joinToString(separator = ",", prefix = "[", postfix = "]") { word ->
             "{\"word\":\"${escapeJson(word.id)}\",\"mean\":\"${escapeJson(word.mean)}\",\"theme\":\"${escapeJson(word.theme)}\",\"type\":\"${escapeJson(word.type)}\"}"
         }
     }

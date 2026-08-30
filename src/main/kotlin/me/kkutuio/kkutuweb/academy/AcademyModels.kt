@@ -183,7 +183,8 @@ data class AcademySimulatorRequest(
     val chain: List<String> = emptyList(),
     val word: String,
     val shields: Int = 0,
-    val botLevel: String? = null
+    val botLevel: String? = null,
+    val specialRule: String = "NONE"
 )
 
 data class AcademySimulatorResponse(
@@ -223,27 +224,10 @@ data class AcademyPracticeHint(
     val sample: String? = null
 )
 
-data class AcademyQuizQuestion(
-    val questionId: String,
-    val date: String,
-    val index: Int,
-    val type: String,
-    val prompt: String,
-    val options: List<String>,
-    val explanationHint: String? = null
-)
-
-data class AcademyQuizAnswerRequest(val questionId: String, val answer: String)
-
-data class AcademyQuizAnswerResponse(
-    val correct: Boolean,
-    val answer: String,
-    val explanation: String
-)
-
 data class AcademyRestrictedSearchRequest(
     val lang: String = "ko",
-    val startChar: String,
+    val startChar: String? = null,
+    val endChar: String? = null,
     val mission: String? = null
 )
 

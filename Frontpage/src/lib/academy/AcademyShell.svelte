@@ -21,21 +21,10 @@
   let active = $state('dictionary');
   let meta = $state(null);
   let config = $state({
-    lang: 'ko',
-    dictionary: 'COMBINED',
-    direction: 'FORWARD',
-    duum: true,
-    minLength: 2,
-    maxLength: 64,
-    includeLoanword: true,
-    includeSpaced: true,
-    includeDialect: true,
-    includeOld: true,
-    includeCultural: true,
-    includeKung: true,
-    themes: [],
-    excludedThemes: [],
-    excludedWords: []
+    lang: 'ko', dictionary: 'COMBINED', direction: 'FORWARD', duum: true,
+    minLength: 2, maxLength: 64, includeLoanword: true, includeSpaced: true,
+    includeDialect: true, includeOld: true, includeCultural: true, includeKung: true,
+    themes: [], excludedThemes: [], excludedWords: []
   });
 
   let showRules = $derived(!['replay', 'restricted'].includes(active));
@@ -51,11 +40,7 @@
   onMount(async () => {
     const requested = new URLSearchParams(window.location.search).get('tab');
     if (tabs.some((tab) => tab.id === requested)) active = requested;
-    try {
-      meta = await academyApi.meta();
-    } catch (_) {
-      meta = null;
-    }
+    try { meta = await academyApi.meta(); } catch (_) { meta = null; }
   });
 </script>
 
@@ -65,16 +50,13 @@
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50 pb-20 text-slate-900 dark:bg-slate-950 dark:text-white">
-  <!-- Global Header is fixed. A real spacer keeps this sticky bar out of the
-       header without making the sticky containing block itself padded. -->
-  <div class="h-16" aria-hidden="true"></div>
-  <nav class="sticky top-16 z-50 border-b border-slate-200 bg-slate-50/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95" aria-label="아카데미 기능">
+  <div class="h-14 lg:h-12" aria-hidden="true"></div>
+  <nav class="sticky top-14 z-50 border-b border-slate-200 bg-slate-50/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 lg:top-12" aria-label="아카데미 기능">
     <div class="mx-auto max-w-[1500px] overflow-x-auto px-4 sm:px-6 lg:px-8">
       <div class="flex min-w-max gap-1 py-3">
         {#each tabs as tab}
           <button type="button" onclick={() => selectTab(tab.id)} class={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition ${active === tab.id ? 'bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'}`} aria-current={active === tab.id ? 'page' : undefined}>
-            <span class="material-symbols-outlined text-xl">{tab.icon}</span>
-            {tab.label}
+            <span class="material-symbols-outlined text-xl">{tab.icon}</span>{tab.label}
           </button>
         {/each}
       </div>
@@ -82,22 +64,12 @@
   </nav>
 
   <main class="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
-    {#if showRules}
-      <div class="mb-5"><RuleBar bind:config {meta} /></div>
-    {/if}
-
-    {#if active === 'dictionary'}
-      <DictionaryPanel {config} {meta} />
-    {:else if active === 'restricted'}
-      <RestrictedPanel {config} {meta} />
-    {:else if active === 'simulator'}
-      <SimulatorPanel {config} />
-    {:else if active === 'practice'}
-      <PracticePanel {config} />
-    {:else if active === 'engine'}
-      <EnginePanel {config} />
-    {:else if active === 'replay'}
-      <ReplayPanel {config} />
-    {/if}
+    {#if showRules}<div class="mb-5"><RuleBar bind:config {meta} /></div>{/if}
+    {#if active === 'dictionary'}<DictionaryPanel {config} {meta} />
+    {:else if active === 'restricted'}<RestrictedPanel {config} {meta} />
+    {:else if active === 'simulator'}<SimulatorPanel {config} />
+    {:else if active === 'practice'}<PracticePanel {config} />
+    {:else if active === 'engine'}<EnginePanel {config} />
+    {:else if active === 'replay'}<ReplayPanel {config} />{/if}
   </main>
 </div>

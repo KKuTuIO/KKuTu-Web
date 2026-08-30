@@ -31,14 +31,6 @@ function queryString(values) {
   return query.toString();
 }
 
-function cleanAcademyText(value) {
-  return String(value || '')
-    .replaceAll('표준 공개 사전', '표준 사전')
-    .replaceAll('공개 학습 사전', '사전')
-    .replaceAll('공개 단어장', '사전')
-    .replaceAll('공개 사전', '사전');
-}
-
 export function configQuery(config) {
   return {
     lang: config.lang,
@@ -60,63 +52,14 @@ export function configQuery(config) {
 
 export const academyApi = {
   meta: () => request('/api/academy/meta'),
-
   search(config, filters) {
     const query = queryString({ ...configQuery(config), ...filters });
     return request(`/api/academy/search?${query}`);
   },
-
   word(config, word) {
-    const query = queryString({
-      dictionary: config.dictionary,
-      direction: config.direction,
-      duum: config.duum
-    });
+    const query = queryString({ dictionary: config.dictionary, direction: config.direction, duum: config.duum });
     return request(`/api/academy/word/${encodeURIComponent(config.lang)}/${encodeURIComponent(word)}?${query}`);
   },
-
-  analyze(config, options = {}) {
-    return request('/api/academy/analyze', {
-      method: 'POST',
-      body: JSON.stringify({ config, ...options })
-    });
-  },
-
-  compare(base, compared) {
-    return request('/api/academy/compare', {
-      method: 'POST',
-      body: JSON.stringify({ base, compared })
-    });
-  },
-
-  strategy(config, startChar, usedWords = [], depth = 10) {
-    return request('/api/academy/strategy', {
-      method: 'POST',
-      body: JSON.stringify({ config, startChar, usedWords, depth })
-    });
-  },
-
-  simulator(config, chain, word, shields = 0, botLevel = null, specialRule = 'NONE') {
-    return request('/api/academy/simulator/step', {
-      method: 'POST',
-      body: JSON.stringify({ config, chain, word, shields, botLevel, specialRule })
-    }).then((response) => ({ ...response, message: cleanAcademyText(response?.message) }));
-  },
-
-  practice(config, difficulty, startChar = null, usedWords = []) {
-    return request('/api/academy/practice/challenge', {
-      method: 'POST',
-      body: JSON.stringify({ config, difficulty, startChar, usedWords })
-    });
-  },
-
-  practiceAnswer(config, requiredChar, usedWords, word, shields = 0) {
-    return request('/api/academy/practice/answer', {
-      method: 'POST',
-      body: JSON.stringify({ config, requiredChar, usedWords, word, shields })
-    });
-  },
-
   restricted(lang, position, char, mission) {
     return request('/api/academy/restricted/search', {
       method: 'POST',
@@ -128,49 +71,33 @@ export const academyApi = {
       })
     });
   },
-
   replay(gameId) {
-    return request(`/api/replay/game/${encodeURIComponent(gameId)}?includeDetail=true`);
+    return request(`/api/academy/replay/v1/${encodeURIComponent(gameId)}`);
   },
-
   adminPublished(lang, page = 0, size = 50) {
-    const query = queryString({ page, size });
-    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}?${query}`);
+    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}?${queryString({ page, size })}`);
   },
-
   adminPublish(lang, word, reason = '관리자 공개') {
     return request(`/api/admin/academy/public/${encodeURIComponent(lang)}/${encodeURIComponent(word)}`, {
-      method: 'PUT',
-      body: JSON.stringify({ reason })
+      method: 'PUT', body: JSON.stringify({ reason })
     });
   },
-
   adminBulkPublish(lang, words, reason = '관리자 일괄 공개') {
     return request(`/api/admin/academy/public/${encodeURIComponent(lang)}/bulk`, {
-      method: 'POST',
-      body: JSON.stringify({ words, reason })
+      method: 'POST', body: JSON.stringify({ words, reason })
     });
   },
-
   adminUnpublish(lang, word) {
-    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}/${encodeURIComponent(word)}`, {
-      method: 'DELETE'
-    });
+    return request(`/api/admin/academy/public/${encodeURIComponent(lang)}/${encodeURIComponent(word)}`, { method: 'DELETE' });
   },
-
   adminRefresh(lang = null) {
     const query = queryString({ lang });
-    return request(`/api/admin/academy/refresh${query ? `?${query}` : ''}`, {
-      method: 'POST'
-    });
+    return request(`/api/admin/academy/refresh${query ? `?${query}` : ''}`, { method: 'POST' });
   }
 };
 
 export function friendlyError(error) {
-  if (error?.name === 'TypeError' && /fetch/i.test(error?.message || '')) {
-    return '서버에 연결하지 못했습니다.';
-  }
-
+  if (error?.name === 'TypeError' && /fetch/i.test(error?.message || '')) return '서버에 연결하지 못했습니다.';
   const byCode = {
     RATE_LIMITED: '요청이 너무 빠릅니다. 잠시 쉬었다가 다시 시도해 주세요.',
     WORD_NOT_PUBLIC: '현재 사전에서 확인할 수 없는 단어입니다.',
@@ -183,8 +110,10 @@ export function friendlyError(error) {
     SAFE_BLOCKED: '안전 규칙에서는 남은 응수가 없는 수를 사용할 수 없습니다.',
     SAFE_WORD_BLOCKED: '안전 규칙에서 사용할 수 없는 단어입니다.',
     GENTLE_BLOCKED: '젠틀 규칙에서는 상대에게 최소 5개의 응수를 남겨야 합니다.',
+    CORPUS_UNAVAILABLE: '학습 사전 파일을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    CLIENT_ENGINE_UNAVAILABLE: '이 브라우저에서는 학습 엔진을 사용할 수 없습니다.',
     HTTP_401: '관리자 로그인이 필요합니다.',
     HTTP_403: '단어 관리 권한이 필요합니다.'
   };
-  return byCode[error?.code] || cleanAcademyText(error?.message) || '알 수 없는 오류가 발생했습니다.';
+  return byCode[error?.code] || error?.message || '알 수 없는 오류가 발생했습니다.';
 }

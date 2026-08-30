@@ -53,28 +53,17 @@ data class AcademyCorpusSnapshot(
         AcademyDuum.connects(required, source(word), config.duum, config.lang)
 }
 
-data class AcademyClientCounterIndex(
-    val version: Long,
-    val counts: Map<String, Int>
-)
-
-private data class AcademyCounterCacheKey(val config: AcademyRuleConfig, val version: Long)
-
 @Service
 class AcademyCorpusService(private val academyDao: AcademyDao) {
     private val version = AtomicLong(1)
     private val baseCache = Caffeine.newBuilder()
         .maximumSize(2)
-        .expireAfterWrite(Duration.ofMinutes(10))
+        .expireAfterWrite(Duration.ofHours(6))
         .build<String, List<AcademyCorpusWord>>()
     private val snapshotCache = Caffeine.newBuilder()
-        .maximumSize(24)
-        .expireAfterAccess(Duration.ofMinutes(5))
+        .maximumSize(8)
+        .expireAfterAccess(Duration.ofMinutes(15))
         .build<AcademyRuleConfig, AcademyCorpusSnapshot>()
-    private val counterCache = Caffeine.newBuilder()
-        .maximumSize(24)
-        .expireAfterAccess(Duration.ofMinutes(10))
-        .build<AcademyCounterCacheKey, AcademyClientCounterIndex>()
 
     fun normalize(raw: AcademyRuleConfig): AcademyRuleConfig {
         val lang = raw.lang.lowercase().takeIf { it == "ko" || it == "en" } ?: "ko"
@@ -102,24 +91,21 @@ class AcademyCorpusService(private val academyDao: AcademyDao) {
         return snapshotCache.get(config) { createSnapshot(config) }!!
     }
 
-    /**
-     * Static, cacheable baseline counts for browser-side chain accounting.
-     * The browser subtracts already-used words locally; no per-turn count query is needed.
-     */
-    fun clientCounterIndex(raw: AcademyRuleConfig): AcademyClientCounterIndex {
-        val snapshot = snapshot(raw)
-        val key = AcademyCounterCacheKey(snapshot.config, snapshot.version)
-        return counterCache.get(key) { createClientCounterIndex(snapshot) }!!
+    fun clientPackWords(rawLang: String): List<AcademyCorpusWord> {
+        val lang = rawLang.lowercase().takeIf { it == "ko" || it == "en" }
+            ?: throw IllegalArgumentException("지원하지 않는 언어입니다.")
+        return baseWords(lang)
     }
+
+    fun currentVersion(): Long = version.get()
 
     fun refresh(lang: String? = null) {
         if (lang == null) baseCache.invalidateAll() else baseCache.invalidate(lang.lowercase())
         snapshotCache.invalidateAll()
-        counterCache.invalidateAll()
         version.incrementAndGet()
     }
 
-    @Scheduled(fixedDelay = 10 * 60 * 1000L)
+    @Scheduled(fixedDelay = 6 * 60 * 60 * 1000L)
     fun scheduledRefresh() {
         refresh()
     }
@@ -155,18 +141,6 @@ class AcademyCorpusService(private val academyDao: AcademyDao) {
             byStart = words.groupBy(AcademyCorpusWord::startChar),
             byEnd = words.groupBy(AcademyCorpusWord::endChar),
             version = version.get()
-        )
-    }
-
-    private fun createClientCounterIndex(snapshot: AcademyCorpusSnapshot): AcademyClientCounterIndex {
-        val sourceIndex = if (snapshot.direction == AcademyDirection.FORWARD) snapshot.byStart else snapshot.byEnd
-        val required = linkedSetOf<String>()
-        sourceIndex.keys.forEach { actual ->
-            required += AcademyDuum.requiredForms(actual, snapshot.config.duum, snapshot.config.lang)
-        }
-        return AcademyClientCounterIndex(
-            version = snapshot.version,
-            counts = required.associateWith { snapshot.connectionWords(it).size }
         )
     }
 

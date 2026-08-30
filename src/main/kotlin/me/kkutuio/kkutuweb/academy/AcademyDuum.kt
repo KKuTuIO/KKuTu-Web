@@ -27,7 +27,7 @@ object AcademyDuum {
         val initial = offset / (28 * 21)
         val medial = (offset / 28) % 21
         val final = offset % 28
-        val initialJamo = initial + 0x1100
+        var initialJamo = initial + 0x1100
         val medialJamo = medial + 0x1161
 
         val transformed = when (initialJamo) {
@@ -40,7 +40,8 @@ object AcademyDuum {
             else -> null
         } ?: return null
 
-        val composed = ((transformed - 0x1100) * 21 + medial) * 28 + final + 0xAC00
+        initialJamo = transformed
+        val composed = ((initialJamo - 0x1100) * 21 + medial) * 28 + final + 0xAC00
         return composed.toChar().toString()
     }
 
@@ -49,40 +50,6 @@ object AcademyDuum {
         val transformed = transform(required)
         return if (transformed == null || transformed == required) setOf(required)
         else linkedSetOf(required, transformed)
-    }
-
-    /**
-     * Returns every required syllable for which a word beginning/ending with
-     * [actualSource] is a legal answer. This is the inverse of [acceptedSources]
-     * and lets clients decrement dynamic manner counts without another server query.
-     */
-    fun requiredForms(actualSource: String, enabled: Boolean, lang: String): Set<String> {
-        if (!enabled || lang != "ko") return setOf(actualSource)
-        val character = actualSource.firstOrNull() ?: return emptySet()
-        val offset = character.code - 0xAC00
-        if (offset !in 0..11171) return setOf(actualSource)
-
-        val medial = (offset / 28) % 21
-        val final = offset % 28
-        val result = linkedSetOf(actualSource)
-        fun candidate(initial: Int): String {
-            val composed = (initial * 21 + medial) * 28 + final + 0xAC00
-            return composed.toChar().toString()
-        }
-
-        // A transformed source beginning with ㄴ may originate from ㄹ.
-        if (offset / (28 * 21) == 2) {
-            val rieul = candidate(5)
-            if (transform(rieul) == actualSource) result += rieul
-        }
-        // A transformed source beginning with ㅇ may originate from ㄹ and/or ㄴ.
-        if (offset / (28 * 21) == 11) {
-            val rieul = candidate(5)
-            val nieun = candidate(2)
-            if (transform(rieul) == actualSource) result += rieul
-            if (transform(nieun) == actualSource) result += nieun
-        }
-        return result
     }
 
     fun connects(required: String, actual: String, enabled: Boolean, lang: String): Boolean =

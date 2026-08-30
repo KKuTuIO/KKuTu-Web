@@ -1,12 +1,3 @@
-/*
- * KKuTu-Web (https://github.com/KKuTuIO/KKuTu-Web)
- * Copyright (C) 2021 KKuTuIO <admin@kkutu.io>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
 package me.kkutuio.kkutuweb.academy
 
 import jakarta.servlet.http.HttpServletRequest
@@ -41,9 +32,9 @@ class AcademyApi(
         val messages = localePropertyLoader.getMessages(Locale.KOREAN)
         return AcademyMetaResponse(
             dictionaries = listOf(
-                AcademyOption("BASIC", "기초 사전", "일반 속성의 기본 단어로 연습합니다."),
-                AcademyOption("STANDARD", "표준 사전", "비어인정 단어 전체를 사용합니다."),
-                AcademyOption("COMBINED", "통합 공개 사전", "비어인정과 관리자가 공개한 어인정을 사용합니다.")
+                AcademyOption("BASIC", "기초 사전", "기본 단어를 사용합니다."),
+                AcademyOption("STANDARD", "표준 사전", "비어인정 단어를 사용합니다."),
+                AcademyOption("COMBINED", "전체 사전", "사용 가능한 전체 단어를 사용합니다.")
             ),
             directions = listOf(
                 AcademyOption("FORWARD", "끝말잇기", "앞 단어의 마지막 글자로 시작합니다."),
@@ -51,13 +42,13 @@ class AcademyApi(
             ),
             botLevels = listOf(
                 AcademyOption("RANDOM", "무작위", "가능한 단어 중 무작위로 선택합니다."),
-                AcademyOption("BALANCED", "표준", "사용 빈도와 공격력을 함께 고려합니다."),
-                AcademyOption("EXPERT", "고수 선택", "승패 상태와 수읽기를 우선합니다.")
+                AcademyOption("BALANCED", "표준", "인기도와 스택을 함께 고려합니다."),
+                AcademyOption("EXPERT", "고수 선택", "상대의 남은 응수 수를 우선합니다.")
             ),
             difficulties = listOf(
                 AcademyOption("BEGINNER", "입문", "정답과 충분한 힌트를 제공합니다."),
                 AcademyOption("STANDARD", "표준", "15초 제한과 한 번의 보호막을 사용합니다."),
-                AcademyOption("EXPERT", "실전", "짧은 제한 시간에 공격 루트를 찾아야 합니다.")
+                AcademyOption("EXPERT", "실전", "짧은 제한 시간에 루트를 찾아야 합니다.")
             ),
             themes = messages.filterKeys { it.startsWith("word.theme.") }
                 .mapKeys { it.key.removePrefix("word.theme.") },
@@ -116,15 +107,7 @@ class AcademyApi(
                 includeKung = includeKung,
                 themes = csv(themes),
                 excludedThemes = csv(excludedThemes)
-            ),
-            text,
-            match,
-            start,
-            end,
-            mission,
-            sort,
-            page,
-            size
+            ), text, match, start, end, mission, sort, page, size
         )
     }
 
@@ -144,60 +127,6 @@ class AcademyApi(
         )
     }
 
-    @PostMapping("/analyze")
-    fun analyze(@RequestBody body: AcademyAnalysisRequest, request: HttpServletRequest): AcademyAnalysisResponse {
-        enforcePublicRate("analyze", request, 20, 60)
-        return academyService.analyze(body)
-    }
-
-    @PostMapping("/compare")
-    fun compare(@RequestBody body: AcademyCompareRequest, request: HttpServletRequest): AcademyCompareResponse {
-        enforcePublicRate("compare", request, 10, 60)
-        return academyService.compare(body)
-    }
-
-    @PostMapping("/strategy")
-    fun strategy(@RequestBody body: AcademyStrategyRequest, request: HttpServletRequest): AcademyStrategyResponse {
-        enforcePublicRate("strategy", request, 30, 60)
-        return academyService.strategy(body)
-    }
-
-    @PostMapping("/simulator/step")
-    fun simulator(
-        @RequestBody body: AcademySimulatorRequest,
-        request: HttpServletRequest
-    ): AcademySimulatorResponse {
-        enforcePublicRate("simulator", request, 120, 60)
-        return academyService.simulator(body)
-    }
-
-    @PostMapping("/practice/challenge")
-    fun practice(
-        @RequestBody body: AcademyPracticeRequest,
-        request: HttpServletRequest
-    ): AcademyPracticeChallenge {
-        enforcePublicRate("practice", request, 60, 60)
-        return academyService.practice(body)
-    }
-
-    @GetMapping("/quiz/daily")
-    fun quiz(
-        @RequestParam(defaultValue = "0") index: Int,
-        request: HttpServletRequest
-    ): AcademyQuizQuestion {
-        enforcePublicRate("quiz", request, 60, 60)
-        return academyService.dailyQuiz(index)
-    }
-
-    @PostMapping("/quiz/answer")
-    fun answerQuiz(
-        @RequestBody body: AcademyQuizAnswerRequest,
-        request: HttpServletRequest
-    ): AcademyQuizAnswerResponse {
-        enforcePublicRate("quiz-answer", request, 120, 60)
-        return academyService.answerQuiz(body)
-    }
-
     @PostMapping("/restricted/search")
     fun restricted(
         @RequestBody body: AcademyRestrictedSearchRequest,
@@ -208,19 +137,12 @@ class AcademyApi(
         val accountUuid = loginService.accountUuid(session)
             ?: throw AcademyRequestException(401, "LOGIN_REQUIRED", "통합계정 로그인이 필요합니다.")
         val remaining = rateLimitService.consumeRestricted(
-            accountUuid,
-            request.getIp(),
-            AcademyService.RESTRICTED_DAILY_LIMIT
-        ) ?: throw AcademyRequestException(429, "RESTRICTED_LIMIT", "어인정 제한 조회 한도를 초과했거나 보안 저장소를 사용할 수 없습니다.")
+            accountUuid, request.getIp(), AcademyService.RESTRICTED_DAILY_LIMIT
+        ) ?: throw AcademyRequestException(429, "RESTRICTED_LIMIT", "어인정 조회 한도를 초과했거나 현재 조회할 수 없습니다.")
         return academyService.restrictedSearch(body, session, remaining)
     }
 
-    private fun enforcePublicRate(
-        scope: String,
-        request: HttpServletRequest,
-        maximum: Int,
-        windowSeconds: Long
-    ) {
+    private fun enforcePublicRate(scope: String, request: HttpServletRequest, maximum: Int, windowSeconds: Long) {
         if (!rateLimitService.allowPublic(scope, request.getIp(), maximum, windowSeconds)) {
             throw AcademyRequestException(429, "RATE_LIMITED", "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.")
         }
@@ -231,7 +153,7 @@ class AcademyApi(
 
 data class AcademyErrorResponse(val code: String, val message: String)
 
-@RestControllerAdvice(assignableTypes = [AcademyApi::class, AcademyAdminApi::class])
+@RestControllerAdvice(assignableTypes = [AcademyApi::class, AcademyAdminApi::class, AcademyCorpusPackApi::class])
 class AcademyExceptionHandler {
     @ExceptionHandler(AcademyRequestException::class)
     fun academyError(error: AcademyRequestException, response: HttpServletResponse): AcademyErrorResponse {

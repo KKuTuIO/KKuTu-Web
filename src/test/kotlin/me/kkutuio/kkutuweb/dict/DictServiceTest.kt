@@ -18,7 +18,7 @@ class DictServiceTest {
                 Word(
                     id = "가나다",
                     type = "1,2",
-                    mean = "첫째 뜻\n둘째 \\\"뜻\\\"",
+                    mean = "첫째 뜻\n둘째 \"뜻\"",
                     hit = 17,
                     flag = 2,
                     theme = "GAME,ODW"
@@ -29,7 +29,7 @@ class DictServiceTest {
         val result = DictService(wordDao).getWord("가나다", "ko")
 
         assertEquals(
-            "{\"word\":\"가나다\",\"mean\":\"첫째 뜻\\n둘째 \\\\\\\"뜻\\\\\\\"\",\"theme\":\"GAME,ODW\",\"type\":\"1,2\"}",
+            "{\"word\":\"가나다\",\"mean\":\"첫째 뜻\\n둘째 \\\"뜻\\\"\",\"theme\":\"GAME,ODW\",\"type\":\"1,2\"}",
             result
         )
         verify(wordDao).getWords("kkutu_ko", "가나다")

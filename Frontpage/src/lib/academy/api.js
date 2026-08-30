@@ -96,10 +96,10 @@ export const academyApi = {
     });
   },
 
-  simulator(config, chain, word, shields = 0, botLevel = null) {
+  simulator(config, chain, word, shields = 0, botLevel = null, specialRule = 'NONE') {
     return request('/api/academy/simulator/step', {
       method: 'POST',
-      body: JSON.stringify({ config, chain, word, shields, botLevel })
+      body: JSON.stringify({ config, chain, word, shields, botLevel, specialRule })
     }).then((response) => ({ ...response, message: cleanAcademyText(response?.message) }));
   },
 
@@ -117,25 +117,15 @@ export const academyApi = {
     });
   },
 
-  quiz(index) {
-    return request(`/api/academy/quiz/daily?index=${encodeURIComponent(index)}`).then((response) => ({
-      ...response,
-      prompt: cleanAcademyText(response?.prompt),
-      explanationHint: cleanAcademyText(response?.explanationHint)
-    }));
-  },
-
-  answerQuiz(questionId, answer) {
-    return request('/api/academy/quiz/answer', {
-      method: 'POST',
-      body: JSON.stringify({ questionId, answer })
-    }).then((response) => ({ ...response, explanation: cleanAcademyText(response?.explanation) }));
-  },
-
-  restricted(lang, startChar, mission) {
+  restricted(lang, position, char, mission) {
     return request('/api/academy/restricted/search', {
       method: 'POST',
-      body: JSON.stringify({ lang, startChar, mission: mission || null })
+      body: JSON.stringify({
+        lang,
+        startChar: position === 'START' ? char : null,
+        endChar: position === 'END' ? char : null,
+        mission: mission || null
+      })
     });
   },
 
@@ -188,6 +178,11 @@ export function friendlyError(error) {
     RESTRICTED_LIMIT: '오늘의 어인정 조회 횟수를 모두 사용했습니다.',
     LOGIN_REQUIRED: '로그인 후 이용할 수 있습니다.',
     NO_CHALLENGE: '현재 규칙으로 만들 수 있는 연습 문제가 없습니다.',
+    FIRST_MOVE_FINISH: '첫 수에는 바로 끝나는 단어를 사용할 수 없습니다.',
+    MANNER_BLOCKED: '매너 규칙에서는 받을 단어가 없는 수를 사용할 수 없습니다.',
+    SAFE_BLOCKED: '안전 규칙에서는 남은 응수가 없는 수를 사용할 수 없습니다.',
+    SAFE_WORD_BLOCKED: '안전 규칙에서 사용할 수 없는 단어입니다.',
+    GENTLE_BLOCKED: '젠틀 규칙에서는 상대에게 최소 5개의 응수를 남겨야 합니다.',
     HTTP_401: '관리자 로그인이 필요합니다.',
     HTTP_403: '단어 관리 권한이 필요합니다.'
   };

@@ -53,6 +53,13 @@ data class AcademyCorpusSnapshot(
         AcademyDuum.connects(required, source(word), config.duum, config.lang)
 }
 
+data class AcademyClientCounterIndex(
+    val version: Long,
+    val counts: Map<String, Int>
+)
+
+private data class AcademyCounterCacheKey(val config: AcademyRuleConfig, val version: Long)
+
 @Service
 class AcademyCorpusService(private val academyDao: AcademyDao) {
     private val version = AtomicLong(1)
@@ -64,6 +71,10 @@ class AcademyCorpusService(private val academyDao: AcademyDao) {
         .maximumSize(24)
         .expireAfterAccess(Duration.ofMinutes(5))
         .build<AcademyRuleConfig, AcademyCorpusSnapshot>()
+    private val counterCache = Caffeine.newBuilder()
+        .maximumSize(24)
+        .expireAfterAccess(Duration.ofMinutes(10))
+        .build<AcademyCounterCacheKey, AcademyClientCounterIndex>()
 
     fun normalize(raw: AcademyRuleConfig): AcademyRuleConfig {
         val lang = raw.lang.lowercase().takeIf { it == "ko" || it == "en" } ?: "ko"
@@ -91,9 +102,20 @@ class AcademyCorpusService(private val academyDao: AcademyDao) {
         return snapshotCache.get(config) { createSnapshot(config) }!!
     }
 
+    /**
+     * Static, cacheable baseline counts for browser-side chain accounting.
+     * The browser subtracts already-used words locally; no per-turn count query is needed.
+     */
+    fun clientCounterIndex(raw: AcademyRuleConfig): AcademyClientCounterIndex {
+        val snapshot = snapshot(raw)
+        val key = AcademyCounterCacheKey(snapshot.config, snapshot.version)
+        return counterCache.get(key) { createClientCounterIndex(snapshot) }!!
+    }
+
     fun refresh(lang: String? = null) {
         if (lang == null) baseCache.invalidateAll() else baseCache.invalidate(lang.lowercase())
         snapshotCache.invalidateAll()
+        counterCache.invalidateAll()
         version.incrementAndGet()
     }
 
@@ -133,6 +155,18 @@ class AcademyCorpusService(private val academyDao: AcademyDao) {
             byStart = words.groupBy(AcademyCorpusWord::startChar),
             byEnd = words.groupBy(AcademyCorpusWord::endChar),
             version = version.get()
+        )
+    }
+
+    private fun createClientCounterIndex(snapshot: AcademyCorpusSnapshot): AcademyClientCounterIndex {
+        val sourceIndex = if (snapshot.direction == AcademyDirection.FORWARD) snapshot.byStart else snapshot.byEnd
+        val required = linkedSetOf<String>()
+        sourceIndex.keys.forEach { actual ->
+            required += AcademyDuum.requiredForms(actual, snapshot.config.duum, snapshot.config.lang)
+        }
+        return AcademyClientCounterIndex(
+            version = snapshot.version,
+            counts = required.associateWith { snapshot.connectionWords(it).size }
         )
     }
 

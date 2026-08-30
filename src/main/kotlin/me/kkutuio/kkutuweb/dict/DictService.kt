@@ -19,61 +19,54 @@
 package me.kkutuio.kkutuweb.dict
 
 import me.kkutuio.kkutuweb.word.WordDao
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
-/**
- * Compatibility service for the established dictionary APIs.
- *
- * Word Academy applies its own public-corpus policy through AcademyService;
- * these legacy endpoints continue to query the complete game dictionary and
- * keep their historical JSON response shape.
- */
 @Service
 class DictService(
-    private val wordDao: WordDao
+    @Autowired private val wordDao: WordDao
 ) {
     fun getWord(id: String, lang: String): String {
-        val tableName = tableName(lang) ?: return "{\"error\":400}"
-        val word = wordDao.getWords(tableName, id).firstOrNull()
-            ?: return "{\"error\":404}"
+        val tableName = when (lang) {
+            "ko" -> "kkutu_ko"
+            "en" -> "kkutu_en"
+            else -> ""
+        }
 
-        return "{\"word\":\"${escapeJson(word.id)}\",\"mean\":\"${escapeJson(word.mean)}\",\"theme\":\"${escapeJson(word.theme)}\",\"type\":\"${escapeJson(word.type)}\"}"
+        if (tableName.isEmpty()) return "{\"error\":400}"
+        val words = wordDao.getWords(tableName, id)
+        if (words.isEmpty()) return "{\"error\":404}"
+
+        val word = words.first()
+        return "{\"word\":\"${word.id}\",\"mean\":\"${
+            word.mean.replace(
+                "\"",
+                "\\\""
+            )
+        }\",\"theme\":\"${word.theme}\",\"type\":\"${word.type}\"}"
     }
 
     fun getWords(startChar: String, lang: String, mission: String?): String {
-        val tableName = tableName(lang) ?: return "{\"error\":400}"
-        if (startChar.length != 1) return "{\"error\":400}"
-        if (mission != null && mission.length > 1) return "{\"error\":400}"
+        val tableName = when (lang) {
+            "ko" -> "kkutu_ko"
+            "en" -> "kkutu_en"
+            else -> ""
+        }
 
+        if (startChar.isEmpty() || startChar.length > 1) return "{\"error\":400}"
+        if (mission != null && mission.length > 1) return "{\"error\":400}"
+        if (tableName.isEmpty()) return "{\"error\":400}"
         val words = wordDao.getWordsFromChar(tableName, startChar, mission)
         if (words.isEmpty()) return "{\"error\":404}"
 
-        return words.joinToString(separator = ",", prefix = "[", postfix = "]") { word ->
-            "{\"word\":\"${escapeJson(word.id)}\",\"mean\":\"${escapeJson(word.mean)}\",\"theme\":\"${escapeJson(word.theme)}\",\"type\":\"${escapeJson(word.type)}\"}"
+        val result = words.joinToString(",") {
+            "{\"word\":\"${it.id}\",\"mean\":\"${
+                it.mean.replace(
+                    "\"",
+                    "\\\""
+                )
+            }\",\"theme\":\"${it.theme}\",\"type\":\"${it.type}\"}"
         }
-    }
-
-    private fun tableName(lang: String): String? = when (lang) {
-        "ko" -> "kkutu_ko"
-        "en" -> "kkutu_en"
-        else -> null
-    }
-
-    private fun escapeJson(value: String): String = buildString(value.length) {
-        value.forEach { char ->
-            when (char) {
-                '\\' -> append("\\\\")
-                '"' -> append("\\\"")
-                '\b' -> append("\\b")
-                '\u000C' -> append("\\f")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
-                else -> {
-                    if (char.code < 0x20) append("\\u%04x".format(char.code))
-                    else append(char)
-                }
-            }
-        }
+        return "[$result]"
     }
 }

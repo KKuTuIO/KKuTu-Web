@@ -18,27 +18,25 @@
 
 package me.kkutuio.kkutuweb.dict
 
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
-import jakarta.servlet.http.HttpSession
-import me.kkutuio.kkutuweb.extension.isGuest
-import me.kkutuio.kkutuweb.locale.LocalePropertyLoader
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpSession
+import me.kkutuio.kkutuweb.shop.ShopService
+import me.kkutuio.kkutuweb.extension.isGuest
+import me.kkutuio.kkutuweb.locale.LocalePropertyLoader
 import java.util.Locale
 
-/**
- * Legacy dictionary endpoints are kept independent from Word Academy.
- * Existing clients rely on both the full dictionary visibility and the
- * historical JSON response contract of these routes.
- */
 @RestController
 class DictApi(
-    private val dictService: DictService,
-    private val localePropertyLoader: LocalePropertyLoader
+    @Autowired private val dictService: DictService,
+    @Autowired private val shopService: ShopService,
+    @Autowired private val localePropertyLoader: LocalePropertyLoader
 ) {
     @GetMapping("/dictionary/meta", "/api/dictionary/meta", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getMetadata(): DictionaryMetadata {
@@ -50,16 +48,13 @@ class DictApi(
                 .mapKeys { it.key.removePrefix("word.class.") }
         )
     }
-
-    @GetMapping(
-        "/dictionary/{lang}/{word}",
-        "/api/dictionary/{lang}/{word}",
-        produces = [MediaType.APPLICATION_JSON_VALUE]
-    )
+    @GetMapping("/dictionary/{lang}/{word}", "/api/dictionary/{lang}/{word}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getWord(
         @PathVariable word: String,
         @PathVariable lang: String
-    ): String = dictService.getWord(word, lang)
+    ): String {
+        return dictService.getWord(word, lang)
+    }
 
     @GetMapping("/wordsheet/{lang}/{startChar}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getWords(
@@ -70,8 +65,7 @@ class DictApi(
         response: HttpServletResponse,
         session: HttpSession
     ): String {
-        val referer = request.getHeader("referer")
-        if (referer == null || !referer.contains("kkutu.io")) {
+        if (request.getHeader("referer") == null || !request.getHeader("referer").contains("kkutu.io")) {
             response.status = HttpServletResponse.SC_FORBIDDEN
             return "{\"error\":403}"
         }
@@ -79,9 +73,13 @@ class DictApi(
             response.status = HttpServletResponse.SC_UNAUTHORIZED
             return "{\"error\":400}"
         }
-
-        // Preserve the legacy result shape without the former artificial
-        // 4-10 second delay. Word Academy has separate restricted endpoints.
+        /*val tokenResult = shopService.consumeToken(session, if (mission != null) 2 else 1)
+        if (tokenResult.contains("\"error\"")) {
+            response.status = HttpServletResponse.SC_PAYMENT_REQUIRED
+            return tokenResult
+        }*/
+        Thread.sleep((4000..10000).random().toLong())
+        // 단어토큰 사용 (단, 토큰이 부족한 경우 오류 반환)
         return dictService.getWords(startChar, lang, mission)
     }
 }

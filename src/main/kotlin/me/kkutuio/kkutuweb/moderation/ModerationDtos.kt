@@ -125,7 +125,8 @@ data class ModerationCaseSummary(
     val issuedAt: Instant,
     val issuedBy: String,
     val revokedAt: Instant?,
-    val effects: List<ModerationEffectSummary>
+    val effects: List<ModerationEffectSummary>,
+    val reports: List<ModerationReportSummary> = emptyList()
 )
 
 data class ModerationEffectSummary(

@@ -1855,7 +1855,8 @@ class ModerationService(
                     rs.instant("issued_at")!!,
                     rs.getString("issued_by"),
                     rs.instant("revoked_at"),
-                    effects(caseId)
+                    effects(caseId),
+                    caseReports(caseId)
                 )
             },
             userId,
@@ -1883,7 +1884,8 @@ class ModerationService(
                     rs.instant("issued_at")!!,
                     rs.getString("issued_by"),
                     rs.instant("revoked_at"),
-                    effects(caseId)
+                    effects(caseId),
+                    caseReports(caseId)
                 )
             },
             ip,
@@ -1910,6 +1912,19 @@ class ModerationService(
             },
             caseId
         )
+
+    private fun caseReports(caseId: Long): List<ModerationReportSummary> = jdbcTemplate.query(
+        """
+        SELECT r.report_id, r.target_id, host(r.target_ip) AS target_ip,
+               r.category_code, r.reason, r.detail, r.status, r.time
+        FROM moderation_case_reports cr
+        JOIN report_log r ON r.report_id = cr.report_id
+        WHERE cr.case_id = ?
+        ORDER BY r.time DESC, r.report_id DESC
+        """.trimIndent(),
+        { rs, _ -> mapReportSummary(rs) },
+        caseId
+    )
 
     private fun resourceAdjustmentSummary(parameters: JsonNode): ModerationResourceAdjustmentSummary? {
         val rollback = parameters.path("_rollback")
@@ -2069,24 +2084,8 @@ class ModerationService(
         subjectKey: String,
         reportIds: List<Long>
     ) {
-        require(reportIds.isNotEmpty()) { "제재 변경에는 연결된 신고가 필요합니다." }
+        require(reportIds.isNotEmpty()) { "제재 변경에는 신고를 하나 이상 연결해야 합니다." }
         requireOverrideSubject(caseId, subjectType, subjectKey)
-
-        val ids = reportIds.distinct()
-        val placeholders = ids.joinToString(",") { "?" }
-        val count = jdbcTemplate.queryForObject(
-            """
-            SELECT COUNT(*) FROM report_log r
-            WHERE r.report_id IN ($placeholders)
-              AND r.status IN ('RESOLVED', 'OVERRIDDEN')
-              AND (SELECT cr.case_id FROM moderation_case_reports cr
-                   WHERE cr.report_id = r.report_id
-                   ORDER BY cr.case_id DESC LIMIT 1) = ?
-            """.trimIndent(),
-            Int::class.java,
-            *ids.toMutableList<Any>().apply { add(caseId) }.toTypedArray()
-        )
-        require(count == ids.size) { "현재 제재와 연결되지 않은 신고가 포함되어 있습니다." }
     }
 
     private fun requireOverrideSubject(caseId: Long, subjectType: String, subjectKey: String) {

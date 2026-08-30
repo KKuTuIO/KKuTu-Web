@@ -203,6 +203,12 @@ class UserDao(
         jdbcTemplate.update(sql, *valueString.toTypedArray())
     }
 
+    /** Temporarily releases the player's old nickname while a deletion request is pending. */
+    fun setPendingDeletionNickname(id: String, nickname: String, meanableNick: String): Boolean = jdbcTemplate.update(
+        "UPDATE users SET nickname=?, \"meanableNick\"=? WHERE _id=?",
+        nickname, meanableNick, id
+    ) == 1
+
     fun archiveAndDelete(id: String): Boolean {
         val archived = jdbcTemplate.update(
             "INSERT INTO users_deleted SELECT users.*, CURRENT_TIMESTAMP FROM users WHERE _id=? ON CONFLICT (_id) DO UPDATE SET archived_at=EXCLUDED.archived_at",

@@ -242,6 +242,12 @@ class IdentityDao(
         Boolean::class.java, accountId
     ) == true
 
+    fun pendingProfilePresentationRows(accountId: UUID): List<Map<String, Any?>> = jdbc.queryForList(
+        "SELECT id::text AS profile_user_id, legacy_user_id, nickname, nickname_tag FROM game_profile " +
+            "WHERE account_id=? AND status='ACTIVE' AND deletion_scheduled_at IS NOT NULL",
+        accountId
+    )
+
     fun dueProfileIds(): List<Map<String, Any?>> = jdbc.queryForList(
         "SELECT id, legacy_user_id, id::text AS profile_user_id FROM game_profile WHERE status='ACTIVE' AND deletion_scheduled_at IS NOT NULL AND deletion_scheduled_at <= CURRENT_TIMESTAMP ORDER BY deletion_scheduled_at LIMIT 100"
     )

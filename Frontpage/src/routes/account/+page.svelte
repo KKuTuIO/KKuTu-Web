@@ -201,7 +201,9 @@
         }
         if (action.startsWith('identity-link:')) await linkProvider(action.slice('identity-link:'.length), true);
         if (action.startsWith('profile-delete:')) await requestProfileDeletion(action.slice('profile-delete:'.length), true);
+        if (action.startsWith('profile-delete-cancel:')) await cancelProfileDeletion(action.slice('profile-delete-cancel:'.length), true);
         if (action === 'account-delete') await requestAccountDeletion(true);
+        if (action === 'account-delete-cancel') await cancelAccountDeletion(true);
     }
 
     function avatarUrl(seed = currentIdentifier) {
@@ -244,9 +246,26 @@
         }
     }
 
-    async function cancelProfileDeletion(profileId) {
+    async function requireStrongReauthentication(action) {
+        try {
+            const response = await fetch('/api/account/reauthentication/strong/status');
+            if (!response.ok) throw new Error('status_failed');
+            const status = await response.json();
+            if (!status.required) return true;
+
+            rememberProtectedAction(action);
+            requestReauthentication();
+        } catch (_) {
+            notify('본인확인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+        }
+        return false;
+    }
+
+    async function cancelProfileDeletion(profileId, afterReauthentication = false) {
+        if (!afterReauthentication && !await requireStrongReauthentication(`profile-delete-cancel:${profileId}`)) return;
         const response = await call(`/api/account/profile/${encodeURIComponent(profileId)}/deletion`, {method: 'DELETE'});
         if (response) {
+            clearProtectedAction();
             closeModal();
             await load();
         }
@@ -263,9 +282,11 @@
         }
     }
 
-    async function cancelAccountDeletion() {
+    async function cancelAccountDeletion(afterReauthentication = false) {
+        if (!afterReauthentication && !await requireStrongReauthentication('account-delete-cancel')) return;
         const response = await call('/api/account/deletion', {method: 'DELETE'});
         if (response) {
+            clearProtectedAction();
             closeModal();
             await load();
         }
@@ -674,7 +695,10 @@
     }
 
     async function reauthenticate() {
-        const strong = pendingProtectedAction === 'account-delete' || pendingProtectedAction.startsWith('profile-delete:');
+        const strong = pendingProtectedAction === 'account-delete'
+            || pendingProtectedAction === 'account-delete-cancel'
+            || pendingProtectedAction.startsWith('profile-delete:')
+            || pendingProtectedAction.startsWith('profile-delete-cancel:');
         const response = await fetch(strong ? '/api/account/reauthenticate/strong' : '/api/account/reauthenticate', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', ...csrfHeaders()},

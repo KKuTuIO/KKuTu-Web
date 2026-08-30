@@ -51,6 +51,10 @@ class RankDao(
         opsForZSet.remove(REDIS_KEY, id)
     }
 
+    fun updateScore(id: String, score: Long) {
+        redisTemplate.opsForZSet().add(REDIS_KEY, id, score.toDouble())
+    }
+
     fun removeDeleted(ids: List<String>): Long {
         if (ids.isEmpty()) return 0
 

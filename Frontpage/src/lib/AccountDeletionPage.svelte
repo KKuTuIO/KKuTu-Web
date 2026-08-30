@@ -149,8 +149,23 @@
         return `/api/account/reauthenticate/oauth/${encodeURIComponent(provider)}/strong?return=${encodeURIComponent(returnUrl)}`;
     }
 
+    async function requireStrongReauthentication(action) {
+        try {
+            const response = await fetch('/api/account/reauthentication/strong/status');
+            if (!response.ok) throw new Error('status_failed');
+            const status = await response.json();
+            if (!status.required) return true;
+
+            requestReauthentication(action);
+        } catch (_) {
+            error = '본인확인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+        }
+        return false;
+    }
+
     async function cancelDeletion(retry = false) {
         if (!pending || submitting) return;
+        if (!retry && !await requireStrongReauthentication('cancel')) return;
         submitting = true;
         error = '';
         try {

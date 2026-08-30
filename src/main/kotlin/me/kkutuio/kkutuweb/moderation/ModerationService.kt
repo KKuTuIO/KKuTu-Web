@@ -651,9 +651,6 @@ class ModerationService(
             ipOffenseCount(resolved.ip, request.overrideCaseId),
             request.occurredAt
         )
-        if (preview.requiresApproval) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "이 단계는 별도 승인 절차가 필요합니다.")
-        }
         val displayReason = preview.violations.firstOrNull { it.selectedAsPrimary }?.categoryName
             ?: request.summary.trim()
         require(displayReason.isNotBlank()) { "표시할 제재 사유를 결정할 수 없습니다." }
@@ -778,9 +775,6 @@ class ModerationService(
             currentCounters(accountUuid, request.overrideCaseId),
             request.occurredAt
         )
-        if (preview.requiresApproval) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "이 단계는 별도 승인 절차가 필요합니다.")
-        }
         val displayReason = request.custom?.reason?.trim()
             ?: preview.violations
                 .firstOrNull { it.selectedAsPrimary }
@@ -902,7 +896,8 @@ class ModerationService(
                 "GAME_RESTRICTION",
                 "CHAT_RESTRICTION",
                 "NICKNAME_RESET",
-                "NICKNAME_CHANGE_RESTRICTION"
+                "NICKNAME_CHANGE_RESTRICTION",
+                "RESOURCE_ADJUSTMENT"
             )
         }) {
             kickAccountUuids.add(accountUuid)
@@ -1524,6 +1519,17 @@ class ModerationService(
             "GAME_RESTRICTION", "CHAT_RESTRICTION" -> markApplied(effectId)
             "RESOURCE_ADJUSTMENT" -> {
                 val percent = (effect.parameters["percent"] as Number).toInt().coerceIn(0, 100)
+                val targets = (effect.parameters["targets"] as? Collection<*>)
+                    ?.mapNotNull { it as? String }
+                    ?.toSet()
+                    ?: emptySet()
+                require(effect.parameters["mode"] == "DEDUCT_PERCENT") {
+                    "지원하지 않는 자원 조정 방식입니다."
+                }
+                require(targets.isNotEmpty() && targets.all { it in RESOURCE_ADJUSTMENT_TARGETS }) {
+                    "지원하지 않는 자원 조정 대상입니다."
+                }
+                val rankingUpdates = mutableMapOf<String, Long>()
                 val rollbacks = profileIds.mapNotNull { profileId ->
                     val before = jdbcTemplate.query(
                         """
@@ -1533,28 +1539,37 @@ class ModerationService(
                         { rs, _ -> rs.getLong("money") to rs.getLong("score") },
                         profileId
                     ).firstOrNull() ?: return@mapNotNull null
-                    val newMoney = BigDecimal.valueOf(before.first)
-                        .multiply(BigDecimal.valueOf((100 - percent).toLong()))
-                        .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
-                    val newScore = BigDecimal.valueOf(before.second)
-                        .multiply(BigDecimal.valueOf((100 - percent).toLong()))
-                        .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact()
+                    val newMoney = if ("CYBER_POINT" in targets) {
+                        remainingResourceAfterDeduction(before.first, percent)
+                    } else before.first
+                    val newScore = if ("EXPERIENCE" in targets) {
+                        remainingResourceAfterDeduction(before.second, percent)
+                    } else before.second
                     jdbcTemplate.update(
                         """
                         UPDATE users SET money = ?,
-                            kkutu = jsonb_set(kkutu::jsonb, '{score}', to_jsonb(?::bigint))::json
+                            kkutu = jsonb_set(
+                                COALESCE(kkutu::jsonb, '{}'::jsonb),
+                                '{score}', to_jsonb(?::bigint)
+                            )::json
                         WHERE _id = ?
                         """.trimIndent(),
                         newMoney, newScore, profileId
                     )
+                    if ("EXPERIENCE" in targets) rankingUpdates[profileId] = newScore
                     mapOf(
                         "profileId" to profileId,
+                        "moneyBefore" to before.first,
+                        "moneyAfter" to newMoney,
+                        "scoreBefore" to before.second,
+                        "scoreAfter" to newScore,
                         "moneyDelta" to before.first - newMoney,
                         "scoreDelta" to before.second - newScore
                     )
                 }
                 storeEffectRollback(effectId, rollbacks)
                 markApplied(effectId)
+                scheduleRankingUpdates(rankingUpdates)
             }
             "NICKNAME_RESET" -> {
                 val rollbacks = profileIds.mapNotNull { profileId ->
@@ -1650,12 +1665,37 @@ class ModerationService(
         )
     }
 
+    private fun loadProfileScores(profileIds: Collection<String>): Map<String, Long> =
+        profileIds.associateWith { profileId ->
+            jdbcTemplate.query(
+                "SELECT COALESCE((kkutu->>'score')::bigint, 0) FROM users WHERE _id = ?",
+                { rs, _ -> rs.getLong(1) },
+                profileId
+            ).firstOrNull() ?: 0L
+        }
+
+    private fun scheduleRankingUpdates(scores: Map<String, Long>) {
+        if (scores.isEmpty()) return
+        TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
+            override fun afterCommit() {
+                scores.forEach { (profileId, score) ->
+                    try {
+                        rankDao.updateScore(profileId, score)
+                    } catch (e: Exception) {
+                        logger.error("Failed to update ranking after resource adjustment: profileId={}", profileId, e)
+                    }
+                }
+            }
+        })
+    }
+
     private fun reverseEffect(effectId: Long, effectType: String, accountUuid: String?, parameters: JsonNode) {
         val rollback = parameters.path("_rollback")
         if (rollback.isMissingNode || rollback.isNull || accountUuid == null) return
         val entries = if (rollback.isArray) rollback.toList() else listOf(rollback)
         when (effectType) {
             "RESOURCE_ADJUSTMENT" -> {
+                val rankingProfileIds = linkedSetOf<String>()
                 entries.forEach { entry ->
                     val profileId = entry.path("profileId").asString(null)
                         ?: profileIdsForAccountUuid(accountUuid).firstOrNull()
@@ -1664,7 +1704,7 @@ class ModerationService(
                         """
                         UPDATE users SET money = money + ?,
                             kkutu = jsonb_set(
-                                kkutu::jsonb, '{score}',
+                                COALESCE(kkutu::jsonb, '{}'::jsonb), '{score}',
                                 to_jsonb(COALESCE((kkutu->>'score')::bigint, 0) + ?)
                             )::json
                         WHERE _id = ?
@@ -1673,7 +1713,9 @@ class ModerationService(
                         entry.path("scoreDelta").asLong(0),
                         profileId
                     )
+                    rankingProfileIds.add(profileId)
                 }
+                scheduleRankingUpdates(loadProfileScores(rankingProfileIds))
             }
             "NICKNAME_RESET" -> {
                 entries.forEach { entry ->
@@ -1813,7 +1855,8 @@ class ModerationService(
                     rs.instant("issued_at")!!,
                     rs.getString("issued_by"),
                     rs.instant("revoked_at"),
-                    effects(caseId)
+                    effects(caseId),
+                    caseReports(caseId)
                 )
             },
             userId,
@@ -1841,7 +1884,8 @@ class ModerationService(
                     rs.instant("issued_at")!!,
                     rs.getString("issued_by"),
                     rs.instant("revoked_at"),
-                    effects(caseId)
+                    effects(caseId),
+                    caseReports(caseId)
                 )
             },
             ip,
@@ -1851,20 +1895,50 @@ class ModerationService(
     private fun effects(caseId: Long): List<ModerationEffectSummary> =
         jdbcTemplate.query(
             """
-            SELECT effect_type, starts_at, ends_at, permanent, apply_status
+            SELECT effect_type, starts_at, ends_at, permanent, apply_status, parameters
             FROM moderation_effects WHERE case_id = ? ORDER BY effect_id
             """.trimIndent(),
             { rs, _ ->
+                val parameters = objectMapper.readTree(rs.getString("parameters"))
                 ModerationEffectSummary(
                     rs.getString("effect_type"),
                     rs.instant("starts_at")!!,
                     rs.instant("ends_at"),
                     rs.getBoolean("permanent"),
-                    rs.getString("apply_status")
+                    rs.getString("apply_status"),
+                    parameters.path("percent").takeIf(JsonNode::isNumber)?.asInt(),
+                    resourceAdjustmentSummary(parameters)
                 )
             },
             caseId
         )
+
+    private fun caseReports(caseId: Long): List<ModerationReportSummary> = jdbcTemplate.query(
+        """
+        SELECT r.report_id, r.target_id, host(r.target_ip) AS target_ip,
+               r.category_code, r.reason, r.detail, r.status, r.time
+        FROM moderation_case_reports cr
+        JOIN report_log r ON r.report_id = cr.report_id
+        WHERE cr.case_id = ?
+        ORDER BY r.time DESC, r.report_id DESC
+        """.trimIndent(),
+        { rs, _ -> mapReportSummary(rs) },
+        caseId
+    )
+
+    private fun resourceAdjustmentSummary(parameters: JsonNode): ModerationResourceAdjustmentSummary? {
+        val rollback = parameters.path("_rollback")
+        if (!rollback.isArray || rollback.isEmpty) return null
+        val entries = rollback.toList()
+        val requiredFields = listOf("moneyBefore", "moneyAfter", "scoreBefore", "scoreAfter")
+        if (entries.any { entry -> requiredFields.any { !entry.path(it).isNumber } }) return null
+        return ModerationResourceAdjustmentSummary(
+            experienceBefore = entries.sumOf { it.path("scoreBefore").asLong() },
+            experienceAfter = entries.sumOf { it.path("scoreAfter").asLong() },
+            cyberPointBefore = entries.sumOf { it.path("moneyBefore").asLong() },
+            cyberPointAfter = entries.sumOf { it.path("moneyAfter").asLong() }
+        )
+    }
 
     private fun caseCategoryCodes(caseId: Long): List<String> =
         jdbcTemplate.query(
@@ -2010,24 +2084,8 @@ class ModerationService(
         subjectKey: String,
         reportIds: List<Long>
     ) {
-        require(reportIds.isNotEmpty()) { "제재 변경에는 연결된 신고가 필요합니다." }
+        require(reportIds.isNotEmpty()) { "제재 변경에는 신고를 하나 이상 연결해야 합니다." }
         requireOverrideSubject(caseId, subjectType, subjectKey)
-
-        val ids = reportIds.distinct()
-        val placeholders = ids.joinToString(",") { "?" }
-        val count = jdbcTemplate.queryForObject(
-            """
-            SELECT COUNT(*) FROM report_log r
-            WHERE r.report_id IN ($placeholders)
-              AND r.status IN ('RESOLVED', 'OVERRIDDEN')
-              AND (SELECT cr.case_id FROM moderation_case_reports cr
-                   WHERE cr.report_id = r.report_id
-                   ORDER BY cr.case_id DESC LIMIT 1) = ?
-            """.trimIndent(),
-            Int::class.java,
-            *ids.toMutableList<Any>().apply { add(caseId) }.toTypedArray()
-        )
-        require(count == ids.size) { "현재 제재와 연결되지 않은 신고가 포함되어 있습니다." }
     }
 
     private fun requireOverrideSubject(caseId: Long, subjectType: String, subjectKey: String) {
@@ -2608,6 +2666,7 @@ class ModerationService(
 
     companion object {
         private val RELATED_ACCESS_TYPES = setOf("PCID", "IP")
+        private val RESOURCE_ADJUSTMENT_TARGETS = setOf("EXPERIENCE", "CYBER_POINT")
         private val RELATED_ACCESS_HOURS = setOf(24, 48, 72, 168)
         private val RELATED_ACCESS_LIMITS = setOf(10, 30, 50, 100)
         private val IPV4_REGEX = Regex("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$")
@@ -2617,4 +2676,12 @@ class ModerationService(
             "^[A-Za-z0-9_-]+-\\d{4}-\\d{2}-\\d{2} \\d{2}\\.\\d{2}\\.\\d{2}\\.txt$"
         )
     }
+}
+
+internal fun remainingResourceAfterDeduction(current: Long, deductionPercent: Int): Long {
+    require(deductionPercent in 0..100) { "deductionPercent must be between 0 and 100" }
+    return BigDecimal.valueOf(current.coerceAtLeast(0))
+        .multiply(BigDecimal.valueOf((100 - deductionPercent).toLong()))
+        .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR)
+        .longValueExact()
 }

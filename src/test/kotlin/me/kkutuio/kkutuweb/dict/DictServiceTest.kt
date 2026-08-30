@@ -60,7 +60,7 @@ class DictServiceTest {
         val result = DictService(wordDao).getWords("가", "ko", null)
 
         assertEquals(
-            "[{\"word\":\"가방\",\"mean\":\"물건을 넣는 도구\",\"theme\":\"\",\"type\":\"1\"}, {\"word\":\"가위\",\"mean\":\"자르는 도구\",\"theme\":\"\",\"type\":\"1\"}]",
+            "[{\"word\":\"가방\",\"mean\":\"물건을 넣는 도구\",\"theme\":\"\",\"type\":\"1\"},{\"word\":\"가위\",\"mean\":\"자르는 도구\",\"theme\":\"\",\"type\":\"1\"}]",
             result
         )
         verify(wordDao).getWordsFromChar("kkutu_ko", "가", null)

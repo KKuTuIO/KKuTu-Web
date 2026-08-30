@@ -6,36 +6,74 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package me.kkutuio.kkutuweb.dict
 
-import me.kkutuio.kkutuweb.academy.AcademyRequestException
-import me.kkutuio.kkutuweb.academy.AcademyRuleConfig
-import me.kkutuio.kkutuweb.academy.AcademyService
+import me.kkutuio.kkutuweb.word.WordDao
 import org.springframework.stereotype.Service
-import tools.jackson.databind.ObjectMapper
 
 /**
- * Compatibility wrapper retained for older callers. It must never query the
- * master word tables without the academy visibility policy.
+ * Compatibility service for the established dictionary APIs.
+ *
+ * Word Academy applies its own public-corpus policy through AcademyService;
+ * these legacy endpoints continue to query the complete game dictionary and
+ * keep their historical JSON response shape.
  */
 @Service
 class DictService(
-    private val academyService: AcademyService,
-    private val objectMapper: ObjectMapper
+    private val wordDao: WordDao
 ) {
-    fun getWord(id: String, lang: String): String = try {
-        val word = academyService.getWord(AcademyRuleConfig(lang = lang, dictionary = "COMBINED"), id)
-        objectMapper.writeValueAsString(
-            LegacyDictionaryWord(word.word, word.mean, word.themes.joinToString(","), word.types.joinToString(","))
-        )
-    } catch (_: IllegalArgumentException) {
-        "{\"error\":400}"
-    } catch (_: AcademyRequestException) {
-        "{\"error\":404}"
+    fun getWord(id: String, lang: String): String {
+        val tableName = tableName(lang) ?: return "{\"error\":400}"
+        val word = wordDao.getWords(tableName, id).firstOrNull()
+            ?: return "{\"error\":404}"
+
+        return "{\"word\":\"${escapeJson(word.id)}\",\"mean\":\"${escapeJson(word.mean)}\",\"theme\":\"${escapeJson(word.theme)}\",\"type\":\"${escapeJson(word.type)}\"}"
     }
 
-    /** Prefix enumeration is intentionally unavailable through this legacy service. */
-    fun getWords(@Suppress("UNUSED_PARAMETER") startChar: String, @Suppress("UNUSED_PARAMETER") lang: String, @Suppress("UNUSED_PARAMETER") mission: String?): String =
-        "{\"error\":410}"
+    fun getWords(startChar: String, lang: String, mission: String?): String {
+        val tableName = tableName(lang) ?: return "{\"error\":400}"
+        if (startChar.length != 1) return "{\"error\":400}"
+        if (mission != null && mission.length > 1) return "{\"error\":400}"
+
+        val words = wordDao.getWordsFromChar(tableName, startChar, mission)
+        if (words.isEmpty()) return "{\"error\":404}"
+
+        return words.joinToString(prefix = "[", postfix = "]") { word ->
+            "{\"word\":\"${escapeJson(word.id)}\",\"mean\":\"${escapeJson(word.mean)}\",\"theme\":\"${escapeJson(word.theme)}\",\"type\":\"${escapeJson(word.type)}\"}"
+        }
+    }
+
+    private fun tableName(lang: String): String? = when (lang) {
+        "ko" -> "kkutu_ko"
+        "en" -> "kkutu_en"
+        else -> null
+    }
+
+    private fun escapeJson(value: String): String = buildString(value.length) {
+        value.forEach { char ->
+            when (char) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                '\b' -> append("\\b")
+                '\u000C' -> append("\\f")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> {
+                    if (char.code < 0x20) append("\\u%04x".format(char.code))
+                    else append(char)
+                }
+            }
+        }
+    }
 }

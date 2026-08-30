@@ -6,18 +6,16 @@
   import SimulatorPanel from './SimulatorPanel.svelte';
   import PracticePanel from './PracticePanel.svelte';
   import EnginePanel from './EnginePanel.svelte';
-  import QuizPanel from './QuizPanel.svelte';
   import ReplayPanel from './ReplayPanel.svelte';
   import RestrictedPanel from './RestrictedPanel.svelte';
 
   const tabs = [
     { id: 'dictionary', label: '단어 찾기', icon: 'dictionary' },
+    { id: 'restricted', label: '어인정 조회', icon: 'lock' },
     { id: 'simulator', label: '수순 실험', icon: 'conversion_path' },
     { id: 'practice', label: '루트 대결', icon: 'swords' },
     { id: 'engine', label: '전략 엔진', icon: 'account_tree' },
-    { id: 'quiz', label: '오늘의 퀴즈', icon: 'quiz' },
-    { id: 'replay', label: '게임 복기', icon: 'movie_edit' },
-    { id: 'restricted', label: '어인정 조회', icon: 'lock' }
+    { id: 'replay', label: '게임 복기', icon: 'movie_edit' }
   ];
 
   let active = $state('dictionary');
@@ -40,7 +38,7 @@
     excludedWords: []
   });
 
-  let showRules = $derived(!['quiz', 'replay', 'restricted'].includes(active));
+  let showRules = $derived(!['replay', 'restricted'].includes(active));
 
   function selectTab(id) {
     active = id;
@@ -66,8 +64,11 @@
   <meta name="description" content="끄투리오 단어 검색, 끝말잇기 시뮬레이터, 루트전 연습과 전략 분석을 제공합니다." />
 </svelte:head>
 
-<div class="min-h-screen bg-slate-50 pb-20 pt-16 text-slate-900 dark:bg-slate-950 dark:text-white">
-  <nav class="sticky top-16 z-40 border-b border-slate-200 bg-slate-50/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90" aria-label="아카데미 기능">
+<div class="min-h-screen bg-slate-50 pb-20 text-slate-900 dark:bg-slate-950 dark:text-white">
+  <!-- Global Header is fixed. A real spacer keeps this sticky bar out of the
+       header without making the sticky containing block itself padded. -->
+  <div class="h-16" aria-hidden="true"></div>
+  <nav class="sticky top-16 z-50 border-b border-slate-200 bg-slate-50/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95" aria-label="아카데미 기능">
     <div class="mx-auto max-w-[1500px] overflow-x-auto px-4 sm:px-6 lg:px-8">
       <div class="flex min-w-max gap-1 py-3">
         {#each tabs as tab}
@@ -87,18 +88,16 @@
 
     {#if active === 'dictionary'}
       <DictionaryPanel {config} {meta} />
+    {:else if active === 'restricted'}
+      <RestrictedPanel {config} {meta} />
     {:else if active === 'simulator'}
       <SimulatorPanel {config} />
     {:else if active === 'practice'}
       <PracticePanel {config} />
     {:else if active === 'engine'}
       <EnginePanel {config} />
-    {:else if active === 'quiz'}
-      <QuizPanel />
     {:else if active === 'replay'}
       <ReplayPanel {config} />
-    {:else if active === 'restricted'}
-      <RestrictedPanel {config} {meta} />
     {/if}
   </main>
 </div>

@@ -3,7 +3,8 @@
   import WordCard from './WordCard.svelte';
 
   let { config, meta = null } = $props();
-  let startChar = $state('');
+  let position = $state('START');
+  let edgeChar = $state('');
   let mission = $state('');
   let loading = $state(false);
   let error = $state('');
@@ -11,11 +12,12 @@
   let confirmOpen = $state(false);
 
   let tokenCost = $derived(mission.trim() ? 2 : 1);
+  let positionLabel = $derived(position === 'END' ? '끝 글자' : '시작 글자');
 
   function prepare(event) {
     event.preventDefault();
-    if (startChar.trim().length !== 1 || (mission.trim() && mission.trim().length !== 1)) {
-      error = '시작 글자와 미션은 각각 한 글자로 입력해 주세요.';
+    if (edgeChar.trim().length !== 1 || (mission.trim() && mission.trim().length !== 1)) {
+      error = `${positionLabel}와 미션은 각각 한 글자로 입력해 주세요.`;
       return;
     }
     error = '';
@@ -28,7 +30,7 @@
     error = '';
     response = null;
     try {
-      response = await academyApi.restricted(config.lang, startChar.trim(), mission.trim());
+      response = await academyApi.restricted(config.lang, position, edgeChar.trim(), mission.trim());
     } catch (cause) {
       error = friendlyError(cause);
     } finally {
@@ -47,17 +49,22 @@
     </div>
 
     <form onsubmit={prepare} class="mt-6 grid min-w-0 gap-4">
+      <div class="grid min-w-0 grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800">
+        <button type="button" onclick={() => position = 'START'} class={`rounded-xl px-4 py-2.5 text-sm font-black transition ${position === 'START' ? 'bg-white text-violet-700 shadow-sm dark:bg-slate-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400'}`}>시작하는 단어</button>
+        <button type="button" onclick={() => position = 'END'} class={`rounded-xl px-4 py-2.5 text-sm font-black transition ${position === 'END' ? 'bg-white text-violet-700 shadow-sm dark:bg-slate-700 dark:text-violet-300' : 'text-slate-500 dark:text-slate-400'}`}>끝나는 단어</button>
+      </div>
+
       <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
         <label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">
-          시작 글자
-          <input bind:value={startChar} maxlength="1" placeholder="가" class="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-3xl font-black outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+          {positionLabel}
+          <input bind:value={edgeChar} maxlength="1" placeholder={position === 'END' ? '가' : '가'} class="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-3xl font-black outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
         </label>
         <label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">
           <span>미션 <span class="text-xs font-normal text-slate-400">선택</span></span>
           <input bind:value={mission} maxlength="1" placeholder="라" class="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-3xl font-black outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
         </label>
       </div>
-      <button type="submit" disabled={loading || startChar.trim().length !== 1} class="inline-flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-black text-white hover:bg-violet-700 disabled:opacity-50">
+      <button type="submit" disabled={loading || edgeChar.trim().length !== 1} class="inline-flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-black text-white hover:bg-violet-700 disabled:opacity-50">
         <span class={`material-symbols-outlined ${loading ? 'animate-spin' : ''}`}>{loading ? 'progress_activity' : 'confirmation_number'}</span>
         단어 토큰 {tokenCost}개로 조회
       </button>
@@ -95,7 +102,7 @@
     <section class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
       <span class="grid h-12 w-12 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"><span class="material-symbols-outlined">confirmation_number</span></span>
       <h3 class="mt-4 text-xl font-black text-slate-900 dark:text-white">단어 토큰을 사용하시겠습니까?</h3>
-      <p class="mt-2 text-sm leading-6 text-slate-500">‘{startChar}’ 시작{mission ? ` · ‘${mission}’ 미션` : ''} 조건으로 조회하며 토큰 {tokenCost}개를 사용합니다.</p>
+      <p class="mt-2 text-sm leading-6 text-slate-500">‘{edgeChar}’로 {position === 'END' ? '끝나는' : '시작하는'} 단어{mission ? ` · ‘${mission}’ 미션` : ''}을 조회하며 토큰 {tokenCost}개를 사용합니다.</p>
       <div class="mt-6 grid grid-cols-2 gap-3">
         <button type="button" onclick={() => confirmOpen = false} class="rounded-xl border border-slate-200 px-4 py-3 font-black text-slate-500 dark:border-slate-700">취소</button>
         <button type="button" onclick={search} class="rounded-xl bg-violet-600 px-4 py-3 font-black text-white">사용하기</button>

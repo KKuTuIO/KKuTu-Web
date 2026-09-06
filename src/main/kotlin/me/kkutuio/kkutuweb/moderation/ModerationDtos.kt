@@ -125,7 +125,8 @@ data class ModerationCaseSummary(
     val issuedAt: Instant,
     val issuedBy: String,
     val revokedAt: Instant?,
-    val effects: List<ModerationEffectSummary>
+    val effects: List<ModerationEffectSummary>,
+    val reports: List<ModerationReportSummary> = emptyList()
 )
 
 data class ModerationEffectSummary(
@@ -133,7 +134,16 @@ data class ModerationEffectSummary(
     val startsAt: Instant,
     val endsAt: Instant?,
     val permanent: Boolean,
-    val status: String
+    val status: String,
+    val adjustmentPercent: Int? = null,
+    val resourceAdjustment: ModerationResourceAdjustmentSummary? = null
+)
+
+data class ModerationResourceAdjustmentSummary(
+    val experienceBefore: Long,
+    val experienceAfter: Long,
+    val cyberPointBefore: Long,
+    val cyberPointAfter: Long
 )
 
 data class AccountSanctionCaseSummary(

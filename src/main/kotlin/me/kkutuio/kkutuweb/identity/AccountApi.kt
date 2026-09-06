@@ -12,6 +12,8 @@ import me.kkutuio.kkutuweb.moderation.AdminModerationAuthorizer
 import me.kkutuio.kkutuweb.block.BlockService
 import me.kkutuio.kkutuweb.SessionAttribute
 import me.kkutuio.kkutuweb.setting.AdminSetting
+import me.kkutuio.kkutuweb.user.UserDao
+import me.kkutuio.kkutuweb.ranking.RankDao
 import org.springframework.http.ResponseEntity
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
@@ -57,7 +59,9 @@ class AccountApi(
     private val moderation: ModerationService,
     private val adminAuthorizer: AdminModerationAuthorizer,
     private val blockService: BlockService,
-    private val moderationRetention: ModerationRetentionService
+    private val moderationRetention: ModerationRetentionService,
+    private val users: UserDao,
+    private val ranks: RankDao
 ) {
     @GetMapping("/csrf") fun csrf(request: HttpServletRequest): Map<String, String> {
         val token = (request.getAttribute(CsrfToken::class.java.name) ?: request.getAttribute("_csrf")) as? CsrfToken
@@ -207,20 +211,25 @@ class AccountApi(
     @GetMapping("/connected-applications") fun connectedApplications(session: HttpSession): List<Map<String, Any?>> =
         dao.listConnectedApplications(accounts.requireCurrentAccount(session).id)
 
+    @Transactional
     @PostMapping("/profile/{profileId}/deletion") fun requestProfileDeletion(@PathVariable profileId: String, session: HttpSession): Map<String, Any?> {
         val account = strongMutable(session)
         val id = parseProfileId(profileId)
         if (dao.countActiveProfiles(account.id) <= 1) throw IdpException("profile_deletion_unavailable", "계정에 프로필이 하나만 남아 있어 삭제할 수 없습니다. 계정 탈퇴를 신청하거나 새 프로필을 먼저 만들어 주세요.", 409)
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
         val scheduled = dao.requestProfileDeletion(account.id, id) ?: throw IdpException("profile_deletion_unavailable", "삭제할 수 없는 프로필입니다.", 409)
+        applyPendingDeletionPresentation(account.id, "계정삭제대기")
         dao.audit(account.id, "GAME_PROFILE_DELETION_REQUESTED", metadata = mapOf("profile_id" to id.toString(), "scheduled_at" to scheduled.toString()))
         return mapOf("scheduled_at" to scheduled)
     }
 
+    @Transactional
     @DeleteMapping("/profile/{profileId}/deletion") fun cancelProfileDeletion(@PathVariable profileId: String, session: HttpSession): ResponseEntity<Void> {
         val account = strongMutable(session)
         val id = parseProfileId(profileId)
+        val pendingProfiles = dao.pendingProfilePresentationRows(account.id).filter { it["profile_user_id"]?.toString() == id.toString() }
         if (!dao.cancelProfileDeletion(account.id, id)) throw IdpException("not_found", "삭제 신청 중인 프로필을 찾을 수 없습니다.", 404)
+        restorePendingDeletionPresentation(pendingProfiles)
         dao.audit(account.id, "GAME_PROFILE_DELETION_CANCELLED", metadata = mapOf("profile_id" to id.toString()))
         return ResponseEntity.noContent().build()
     }
@@ -236,6 +245,7 @@ class AccountApi(
         if (dao.listConnectedApplications(account.id).isNotEmpty()) throw IdpException("connected_apps_present", "연결된 앱을 먼저 해제해 주세요.", 409)
         moderationRetention.assertDeletionCanPreserveRestrictions(account)
         val scheduled = dao.requestAccountDeletion(account.id) ?: throw IdpException("account_deletion_unavailable", "계정 탈퇴 신청을 처리할 수 없습니다.", 409)
+        applyPendingDeletionPresentation(account.id, "계정탈퇴대기")
         dao.audit(account.id, "ACCOUNT_DELETION_REQUESTED", metadata = mapOf("scheduled_at" to scheduled.toString()))
         return mapOf("scheduled_at" to scheduled)
     }
@@ -243,7 +253,9 @@ class AccountApi(
     @DeleteMapping("/deletion") fun cancelAccountDeletion(session: HttpSession): ResponseEntity<Void> {
         val account = strong(session)
         if (account.status != AccountStatus.ACTIVE) throw IdpException("account_unavailable", "현재 계정 상태에서는 탈퇴 신청을 해제할 수 없습니다.", 403)
+        val pendingProfiles = dao.pendingProfilePresentationRows(account.id)
         if (!dao.cancelAccountDeletion(account.id)) throw IdpException("not_found", "계정 탈퇴 신청을 찾을 수 없습니다.", 404)
+        restorePendingDeletionPresentation(pendingProfiles)
         dao.audit(account.id, "ACCOUNT_DELETION_CANCELLED")
         return ResponseEntity.noContent().build()
     }
@@ -336,11 +348,37 @@ class AccountApi(
     }
     private fun strong(session: HttpSession): Account {
         val account = accounts.requireCurrentAccount(session)
-        if (!session.hasStrongAuthentication()) throw IdpException("reauthentication_required", "강화된 본인확인이 필요합니다.", 401)
+        if (!session.hasStrongAuthentication()) throw IdpException("reauthentication_required", "본인확인이 필요합니다.", 401)
         return account
     }
     private fun isAccountRestricted(account: Account): Boolean =
         account.status != AccountStatus.ACTIVE || blockService.hasAccountRestriction(moderationRetention.effectiveSubject(account).toString())
+
+    private fun applyPendingDeletionPresentation(accountId: java.util.UUID, aliasPrefix: String) {
+        val nicknameSuffix = dao.nicknameSuffix(accountId)
+        dao.pendingProfilePresentationRows(accountId).forEach { profile ->
+            val alias = "$aliasPrefix#$nicknameSuffix"
+            val normalizedAlias = alias.replace(Regex("[-_ ]*"), "").lowercase()
+            val legacyId = profile["legacy_user_id"]?.toString()
+            val profileId = profile["profile_user_id"]?.toString()
+            if (legacyId != null && users.setPendingDeletionNickname(legacyId, alias, normalizedAlias)) return@forEach
+            if (profileId != null) users.setPendingDeletionNickname(profileId, alias, normalizedAlias)
+        }
+        dao.pendingProfilePresentationRows(accountId).flatMap { profile ->
+            listOfNotNull(profile["legacy_user_id"]?.toString(), profile["profile_user_id"]?.toString())
+        }.distinct().let(ranks::removeDeleted)
+    }
+
+    private fun restorePendingDeletionPresentation(profiles: List<Map<String, Any?>>) {
+        profiles.forEach { profile ->
+            val nickname = profile["nickname"]?.toString() ?: return@forEach
+            val normalizedNickname = nickname.replace(Regex("[-_ ]*"), "").lowercase()
+            val legacyId = profile["legacy_user_id"]?.toString()
+            val profileId = profile["profile_user_id"]?.toString()
+            if (legacyId != null && users.setPendingDeletionNickname(legacyId, nickname, normalizedNickname)) return@forEach
+            if (profileId != null) users.setPendingDeletionNickname(profileId, nickname, normalizedNickname)
+        }
+    }
     private fun profileLimit(session: HttpSession): Int =
         if (adminAuthorizer.hasPrivilege(session, AdminSetting.Privilege.ADMIN_PROFILE)) 5 else 3
     private fun parseProfileId(value: String): java.util.UUID = runCatching { java.util.UUID.fromString(value) }.getOrElse { throw IdpException("invalid_request", "잘못된 프로필입니다.") }

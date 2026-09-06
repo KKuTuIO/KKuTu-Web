@@ -1,6 +1,15 @@
 server:
   port: <Port>
   forward-headers-strategy: framework
+  compression:
+    enabled: true
+    min-response-size: 1024
+    mime-types:
+      - application/json
+      - application/octet-stream
+      - text/html
+      - text/css
+      - application/javascript
   servlet:
     session:
       tracking-modes: cookie
@@ -31,7 +40,7 @@ spring:
     host: <SMTP Host>
     port: 587
     username: <SMTP Username>
-    password: <SMTP Password>
+    password: <Password>
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true

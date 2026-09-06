@@ -25,7 +25,7 @@ class RecordAPI(
     @Autowired private val kKuTuSetting: KKuTuSetting,
     @Autowired private val loginService: LoginService
 ) {
-    private val detailPayloadFields = arrayOf("rm", "p", "w", "x", "i", "mv", "rs", "a")
+    private val detailPayloadFields = arrayOf("rm", "p", "w", "x", "i", "mv", "rs", "a", "ap")
 
     private fun setPublicImmutablePayloadCache(response: HttpServletResponse) {
         response.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable")

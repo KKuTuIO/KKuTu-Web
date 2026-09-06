@@ -10,6 +10,20 @@ import org.springframework.data.redis.core.ZSetOperations
 
 class RankDaoTest {
     @Test
+    fun `score updates are written to the live ranking`() {
+        @Suppress("UNCHECKED_CAST")
+        val redisTemplate = mock(RedisTemplate::class.java) as RedisTemplate<String, Any>
+        @Suppress("UNCHECKED_CAST")
+        val zSetOperations = mock(ZSetOperations::class.java) as ZSetOperations<String, Any>
+
+        `when`(redisTemplate.opsForZSet()).thenReturn(zSetOperations)
+
+        RankDao(redisTemplate).updateScore("profile-id", 1234)
+
+        verify(zSetOperations).add("KKuTu_Score", "profile-id", 1234.0)
+    }
+
+    @Test
     fun `deleted users are removed from current and snapshot rankings`() {
         @Suppress("UNCHECKED_CAST")
         val redisTemplate = mock(RedisTemplate::class.java) as RedisTemplate<String, Any>

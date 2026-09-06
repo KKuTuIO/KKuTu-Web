@@ -205,7 +205,7 @@
     <p class="relative z-[1] mt-3 text-center text-sm text-slate-200 sm:text-base">끄투리오의 랭킹과 순위 변동을 확인하세요.</p>
   </section>
 
-  <main class="relative z-[2] mx-2 -mt-16 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/30 backdrop-blur md:mx-auto md:p-5 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
+  <main class="relative z-[2] mx-4 -mt-16 mb-24 max-w-[1216px] rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/30 backdrop-blur md:p-5 lg:mx-8 xl:mx-auto dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
     <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
     {#each topRankData.data.data as rank, i}
       {@const delta = displayDelta(rank.delta)}

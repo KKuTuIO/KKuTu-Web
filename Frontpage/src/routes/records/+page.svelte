@@ -12,7 +12,7 @@
   import ReplayPlayer from '../../lib/ReplayPlayer.svelte';
   import { getReplaySupport } from '../../lib/replayModel.js';
 
-  const title = 'Records';
+  const title = '전적 검색';
   const ALLOWED_PAGE_SIZES = [10, 30, 50];
   const SEARCH_TYPE = {
     nickname: 'nickname',
@@ -110,6 +110,18 @@
     noobserver: '도중 입장 불가'
   };
   const CHAIN_MODE_SET = new Set(['EKT', 'KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT', 'HUN', 'KDA', 'EDA']);
+  const LANGUAGE_LABEL = {
+    ko: '한국어',
+    en: '영어',
+    ja: '일본어',
+    zh: '중국어'
+  };
+  const CHANNEL_LABEL = [
+    '감자(손님)', '냉이(손님)', '다래', '레몬', '망고',
+    '보리', '상추', '아욱', '자두', '참외',
+    '커피', '토란', '포도', '호박', '꽈리',
+    '딸기', '뽕잎', '쑥갓', '찔레', '고구마'
+  ];
 
   let searchType = $state(SEARCH_TYPE.nickname);
   let searchNick = $state('');
@@ -120,6 +132,7 @@
   let loadingHistory = $state(false);
   let authStateLoaded = $state(false);
   let isGuest = $state(true);
+  let isAdmin = $state(false);
   let dashboardLoading = $state(false);
   let currentUserId = '';
   let errorMessage = '';
@@ -187,6 +200,18 @@
       labels.push(label);
     }
     return labels;
+  }
+
+  function getLanguageLabel(lang) {
+    const value = String(lang || '').trim();
+    return LANGUAGE_LABEL[value.toLowerCase()] || value || '-';
+  }
+
+  function getChannelLabel(channel) {
+    const index = Number(channel);
+    return Number.isInteger(index) && index >= 0 && index < CHANNEL_LABEL.length
+      ? CHANNEL_LABEL[index]
+      : String(channel ?? '-');
   }
 
   function syncQuery() {
@@ -1167,9 +1192,11 @@
     try {
       const auth = await loadAuth();
       isGuest = auth?.status === 'Guest user' || !auth?.profileId;
+      isAdmin = auth?.isAdmin === true;
       currentUserId = isGuest ? '' : auth.profileId;
     } catch {
       isGuest = true;
+      isAdmin = false;
     } finally {
       authStateLoaded = true;
     }
@@ -1322,7 +1349,7 @@
   </div>
 
   {#if currentStatus === 'user' && profile}
-    <div in:fly={{ y: 18, duration: 220 }} class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
+    <div in:fly={{ y: 18, duration: 220 }} class="mx-4 -mt-14 mb-24 max-w-[1216px] rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:p-4 lg:mx-8 xl:mx-auto dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="rounded-xl overflow-hidden border border-gray-300/70 dark:border-gray-700">
         <div class="flex flex-col gap-5 bg-gradient-to-br from-emerald-50 to-sky-50 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between dark:from-slate-800 dark:to-slate-900">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
@@ -1473,14 +1500,17 @@
                       {:else if detailMap[row.gameId]?.error}
                         <div class="text-sm text-red-600">상세 정보를 불러오지 못했습니다.</div>
                       {:else if detailMap[row.gameId]}
-                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex items-center justify-between gap-2">
-                          <div class="cursor-text select-text" role="button" tabindex="0" onclick={selectTextFromCurrentTarget} onkeydown={(event) => event.key === 'Enter' && selectTextFromCurrentTarget(event)}>경기번호: <code data-select-text>{row.gameId}</code></div>
+                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex flex-wrap items-center justify-between gap-2">
+                          <div class="flex min-w-0 flex-wrap items-center gap-2">
+                            <div class="cursor-text select-text" role="button" tabindex="0" onclick={selectTextFromCurrentTarget} onkeydown={(event) => event.key === 'Enter' && selectTextFromCurrentTarget(event)}>경기번호: <code data-select-text>{row.gameId}</code></div>
+                            <a class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600" href={`/academy?tab=replay&game=${encodeURIComponent(row.gameId)}`}>게임 복기</a>
+                          </div>
                           <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" onclick={() => downloadAndOpenReplay(row.gameId)}>
                             <span class="material-symbols-outlined text-base">play_circle</span> 리플레이 보기
                           </button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          <div>채널: <b>{detailMap[row.gameId].channel}</b></div>
+                          <div>채널: <b>{getChannelLabel(detailMap[row.gameId].channel)}</b></div>
                           <div>방 번호: <b>{detailMap[row.gameId].roomId}</b></div>
                           <div>
                             특수규칙:
@@ -1494,7 +1524,7 @@
                               <b>-</b>
                             {/if}
                           </div>
-                          <div>언어: <b>{detailMap[row.gameId].lang}</b></div>
+                          <div>언어: <b>{getLanguageLabel(detailMap[row.gameId].lang)}</b></div>
                           <div>경기 시간: <b>{formatDuration(detailMap[row.gameId].durationMs)}</b></div>
                           <div>압축 크기: <b>{Number(detailMap[row.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
                         </div>
@@ -1671,10 +1701,12 @@
                             상세 낱말 내역을 표시하지 못했습니다.
                           </div>
                         {/if}
-                        <AdminKeyTrace
-                          gameId={row.gameId}
-                          players={detailMap[row.gameId].replayView?.players || []}
-                        />
+                        {#if isAdmin}
+                          <AdminKeyTrace
+                            gameId={row.gameId}
+                            players={detailMap[row.gameId].replayView?.players || []}
+                          />
+                        {/if}
                       {/if}
                     </div>
                   {/if}
@@ -1694,7 +1726,7 @@
   {/if}
 
   {#if currentStatus === 'game' && gameSearchResult}
-    <div in:fly={{ y: 18, duration: 220 }} class="mx-2 -mt-14 mb-24 max-w-screen-xl rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:mx-auto md:p-4 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
+    <div in:fly={{ y: 18, duration: 220 }} class="mx-4 -mt-14 mb-24 max-w-[1216px] rounded-2xl border border-slate-300/40 bg-slate-100/95 p-3 text-slate-900 shadow-2xl shadow-slate-950/20 backdrop-blur md:p-4 lg:mx-8 xl:mx-auto dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100">
       <section class="mt-2">
         <h3 class="text-2xl font-bold mb-3">경기 조회 결과</h3>
         <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
@@ -1718,7 +1750,7 @@
           {#if expandedGameId === gameSearchResult.gameId && detailMap[gameSearchResult.gameId]}
             <div in:slide={{ duration: 180 }} class="border-t border-slate-200 px-4 pb-4 pt-4 dark:border-slate-700">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                <div>채널: <b>{detailMap[gameSearchResult.gameId].channel}</b></div>
+                <div>채널: <b>{getChannelLabel(detailMap[gameSearchResult.gameId].channel)}</b></div>
                 <div>방 번호: <b>{detailMap[gameSearchResult.gameId].roomId}</b></div>
                 <div>
                   특수규칙:
@@ -1732,14 +1764,15 @@
                     <b>-</b>
                   {/if}
                 </div>
-                <div>언어: <b>{detailMap[gameSearchResult.gameId].lang}</b></div>
+                <div>언어: <b>{getLanguageLabel(detailMap[gameSearchResult.gameId].lang)}</b></div>
                 <div>경기 시간: <b>{formatDuration(detailMap[gameSearchResult.gameId].durationMs)}</b></div>
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
               </div>
-              <div class="mt-3 flex justify-end">
+              <div class="mt-3 flex flex-wrap justify-end gap-2">
+                <a class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600" href={`/academy?tab=replay&game=${encodeURIComponent(gameSearchResult.gameId)}`}>게임 복기</a>
                 <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" onclick={() => downloadAndOpenReplay(gameSearchResult.gameId)}>
                   <span class="material-symbols-outlined text-base">play_circle</span>
-                    리플레이 보기
+                  리플레이 보기
                 </button>
               </div>
               <div class="mt-3 text-sm">
@@ -1902,10 +1935,12 @@
                   </div>
                 {/if}
               {/if}
-              <AdminKeyTrace
-                gameId={gameSearchResult.gameId}
-                players={detailMap[gameSearchResult.gameId].replayView?.players || []}
-              />
+              {#if isAdmin}
+                <AdminKeyTrace
+                  gameId={gameSearchResult.gameId}
+                  players={detailMap[gameSearchResult.gameId].replayView?.players || []}
+                />
+              {/if}
             </div>
           {/if}
         </article>

@@ -46,7 +46,7 @@ export const academyApi = {
     });
   },
   replay(gameId) {
-    return request(`/api/academy/replay/v1/${encodeURIComponent(gameId)}`);
+    return request(`/api/replay/game/${encodeURIComponent(gameId)}?includeDetail=true`);
   },
   adminPublished(lang, page = 0, size = 50) {
     return request(`/api/admin/academy/public/${encodeURIComponent(lang)}?${queryString({ page, size })}`);

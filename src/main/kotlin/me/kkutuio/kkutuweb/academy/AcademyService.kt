@@ -27,6 +27,7 @@ class AcademyService(
     private val shopService: ShopService
 ) {
     companion object {
+        private val UNSEARCHABLE_INJEONG_THEMES = setOf("SYS", "e03", "KKT", "HBW", "SBW", "DDW", "ODW", "EMW")
         const val ANALYSIS_EXCLUDED_WORD_LIMIT = 1_000
         const val ANALYSIS_DEPTH_LIMIT = 30
         const val INJEONG_DAILY_LIMIT = 25
@@ -50,6 +51,7 @@ class AcademyService(
         require(start.isEmpty() || start.length == 1) { "시작 글자는 한 글자여야 합니다." }
         require(end.isEmpty() || end.length == 1) { "끝 글자는 한 글자여야 합니다." }
         require(theme == null || theme.length <= 64) { "주제 코드가 올바르지 않습니다." }
+        require(theme == null || theme !in UNSEARCHABLE_INJEONG_THEMES) { "조회할 수 없는 주제입니다." }
         require(mission == null || mission.length == 1) { "미션 글자는 한 글자여야 합니다." }
 
         val tokenCost = if (mission == null) 1 else 2

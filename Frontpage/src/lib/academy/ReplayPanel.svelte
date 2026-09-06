@@ -1,8 +1,9 @@
 <script>
   import { onMount } from 'svelte';
+  import { academyClient } from './academyClient.js';
   import { academyApi, friendlyError } from './api.js';
 
-  let { config } = $props();
+  let { config = $bindable() } = $props();
   let gameId = $state('');
   let replay = $state(null);
   let loading = $state(false);
@@ -98,7 +99,7 @@
     if (!required) return;
     loading = true;
     try {
-      alternatives = await academyApi.strategy(config, required, uniqueAccepted, 6);
+      alternatives = await academyClient.strategy(config, required, uniqueAccepted, 6);
     } catch (cause) {
       error = friendlyError(cause);
     } finally {

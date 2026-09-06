@@ -2,6 +2,8 @@
   import { academyApi, friendlyError } from './api.js';
   import WordCard from './WordCard.svelte';
 
+  const excludedThemeCodes = new Set(['SYS', 'e03', 'KKT', 'HBW', 'SBW', 'DDW', 'ODW', 'EMW']);
+
   let { config = $bindable(), meta = null } = $props();
   let criterion = $state('START');
   let edgeChar = $state('');
@@ -14,7 +16,9 @@
 
   let tokenCost = $derived(mission.trim() ? 2 : 1);
   let positionLabel = $derived(criterion === 'END' ? '끝 글자' : '시작 글자');
-  let themeOptions = $derived(Object.entries(meta?.themes || {}).sort((a, b) => a[1].localeCompare(b[1], 'ko')));
+  let themeOptions = $derived(Object.entries(meta?.themes || {})
+    .filter(([code, label]) => label.trim() !== '★' && !excludedThemeCodes.has(code))
+    .sort((a, b) => a[1].localeCompare(b[1], 'ko')));
   let queryValue = $derived(criterion === 'THEME' ? theme : edgeChar.trim());
   let queryReady = $derived(criterion === 'THEME' ? !!theme : edgeChar.trim().length === 1);
 
@@ -73,19 +77,19 @@
         <label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">
           {criterion === 'THEME' ? '주제' : positionLabel}
           {#if criterion === 'THEME'}
-            <select bind:value={theme} class="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 font-bold outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            <select bind:value={theme} class="h-[4.25rem] w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 font-bold outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
               <option value="">주제 선택</option>
               {#each themeOptions as [code, label]}
                 <option value={code}>{label} · {code}</option>
               {/each}
             </select>
           {:else}
-            <input bind:value={edgeChar} maxlength="1" placeholder="가" class="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-3xl font-black outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+            <input bind:value={edgeChar} maxlength="1" placeholder="가" class="h-[4.25rem] w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center text-3xl font-black outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
           {/if}
         </label>
         <label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">
           <span>미션 <span class="text-xs font-normal text-slate-400">선택</span></span>
-          <input bind:value={mission} maxlength="1" placeholder="라" class="w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-center text-3xl font-black outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
+          <input bind:value={mission} maxlength="1" placeholder="라" class="h-[4.25rem] w-full min-w-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-center text-3xl font-black outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" />
         </label>
       </div>
       <button type="submit" disabled={loading || !queryReady} class="inline-flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 font-black text-white hover:bg-violet-700 disabled:opacity-50">

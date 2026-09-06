@@ -28,12 +28,14 @@ import jakarta.servlet.http.HttpServletResponse
  import me.kkutuio.kkutuweb.extension.getOAuthUser
  import me.kkutuio.kkutuweb.record.RecordCheckRateLimiter
  import me.kkutuio.kkutuweb.login.LoginService
+ import me.kkutuio.kkutuweb.setting.KKuTuSetting
  
  @RestController
  class UserApi(
      @Autowired private val userService: UserService,
      @Autowired private val recordCheckRateLimiter: RecordCheckRateLimiter,
-     @Autowired private val loginService: LoginService
+     @Autowired private val loginService: LoginService,
+     @Autowired private val kKuTuSetting: KKuTuSetting
  ) {
      @GetMapping("/box", produces = [MediaType.APPLICATION_JSON_VALUE])
      fun getBox(session: HttpSession): String {
@@ -89,6 +91,7 @@ import jakarta.servlet.http.HttpServletResponse
                 "authVendor" to authVendor,
                 "vendorId" to vendorId,
                 "profileId" to profile.id,
+                "isAdmin" to (loginService.accountUuid(session)?.let(kKuTuSetting.getAdminIds()::contains) == true),
                 "name" to profile.name,
                 "image" to profile.image.replace("=s50", ""),
                 "gender" to oauthUser.gender?.name,

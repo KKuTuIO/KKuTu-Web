@@ -31,13 +31,6 @@
     return state || '-';
   }
 
-  function specialRuleLabel(value) {
-    if (value === 'MANNER') return '매너';
-    if (value === 'SAFE') return '안전';
-    if (value === 'GENTLE') return '젠틀';
-    return '없음';
-  }
-
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     const start = params.get('start');
@@ -131,12 +124,11 @@
   }
 </script>
 
-<div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+<div class="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
   <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 md:p-7">
     <div class="flex min-w-0 flex-wrap items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-black text-slate-900 dark:text-white">수순 실험</h2>
-        <p class="mt-1 text-sm text-slate-400">{specialRuleLabel(specialRule)} 규칙 · 계산은 브라우저에서 처리됩니다.</p>
       </div>
       <div class="flex shrink-0 gap-2">
         <button type="button" onclick={undo} disabled={!chain.length} class="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600 disabled:opacity-40 dark:border-slate-700 dark:text-slate-300"><span class="material-symbols-outlined text-lg">undo</span>한 수 뒤로</button>
@@ -188,7 +180,7 @@
     {/if}
   </section>
 
-  <aside class="grid h-fit min-w-0 gap-4 xl:sticky xl:top-28">
+  <aside class="grid h-fit min-w-0 gap-4 lg:sticky lg:top-28">
     <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <h3 class="font-black text-slate-900 dark:text-white">실험 설정</h3>
       <div class="mt-4 grid min-w-0 gap-4">

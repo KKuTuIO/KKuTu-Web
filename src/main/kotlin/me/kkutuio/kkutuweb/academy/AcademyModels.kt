@@ -51,18 +51,10 @@ data class AcademyMetaResponse(
 data class AcademyOption(val value: String, val label: String, val description: String)
 
 data class AcademyLimits(
-    val publicSearchPageSize: Int,
     val analysisExcludedWordLimit: Int,
     val analysisDepthLimit: Int,
-    val restrictedDailyLimit: Int,
-    val restrictedResultLimit: Int
-)
-
-data class AcademySearchResponse(
-    val items: List<AcademyWordView>,
-    val page: Int,
-    val size: Int,
-    val hasNext: Boolean
+    val injeongDailyLimit: Int,
+    val injeongResultLimit: Int
 )
 
 data class AcademyWordView(
@@ -224,14 +216,14 @@ data class AcademyPracticeHint(
     val sample: String? = null
 )
 
-data class AcademyRestrictedSearchRequest(
+data class AcademyInjeongSearchRequest(
     val lang: String = "ko",
     val startChar: String? = null,
     val endChar: String? = null,
     val mission: String? = null
 )
 
-data class AcademyRestrictedSearchResponse(
+data class AcademyInjeongSearchResponse(
     val items: List<AcademyWordView>,
     val consumedTokens: Int,
     val remainingDailyQueries: Int

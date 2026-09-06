@@ -7,11 +7,11 @@
   import PracticePanel from './PracticePanel.svelte';
   import EnginePanel from './EnginePanel.svelte';
   import ReplayPanel from './ReplayPanel.svelte';
-  import RestrictedPanel from './RestrictedPanel.svelte';
+  import InjeongPanel from './InjeongPanel.svelte';
 
   const tabs = [
-    { id: 'dictionary', label: '단어 찾기', icon: 'dictionary' },
-    { id: 'restricted', label: '어인정 조회', icon: 'lock' },
+    { id: 'dictionary', label: '일반 단어 찾기', icon: 'dictionary' },
+    { id: 'injeong', label: '어인정 조회', icon: 'verified' },
     { id: 'simulator', label: '수순 실험', icon: 'conversion_path' },
     { id: 'practice', label: '루트 대결', icon: 'swords' },
     { id: 'engine', label: '전략 엔진', icon: 'account_tree' },
@@ -27,7 +27,7 @@
     themes: [], excludedThemes: [], excludedWords: []
   });
 
-  let showRules = $derived(!['replay', 'restricted'].includes(active));
+  let showRules = $derived(!['replay', 'injeong'].includes(active));
 
   function selectTab(id) {
     active = id;
@@ -52,7 +52,7 @@
 <div class="min-h-screen bg-slate-50 pb-20 text-slate-900 dark:bg-slate-950 dark:text-white">
   <div class="h-14 lg:h-12" aria-hidden="true"></div>
   <nav class="sticky top-14 z-50 border-b border-slate-200 bg-slate-50/95 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 lg:top-12" aria-label="아카데미 기능">
-    <div class="mx-auto max-w-[1500px] overflow-x-auto px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-screen-xl overflow-x-auto px-4 sm:px-6 lg:px-8">
       <div class="flex min-w-max gap-1 py-3">
         {#each tabs as tab}
           <button type="button" onclick={() => selectTab(tab.id)} class={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition ${active === tab.id ? 'bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'}`} aria-current={active === tab.id ? 'page' : undefined}>
@@ -63,10 +63,10 @@
     </div>
   </nav>
 
-  <main class="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
+  <main class="mx-auto max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8">
     {#if showRules}<div class="mb-5"><RuleBar bind:config {meta} /></div>{/if}
     {#if active === 'dictionary'}<DictionaryPanel {config} {meta} />
-    {:else if active === 'restricted'}<RestrictedPanel {config} {meta} />
+    {:else if active === 'injeong'}<InjeongPanel {config} {meta} />
     {:else if active === 'simulator'}<SimulatorPanel {config} />
     {:else if active === 'practice'}<PracticePanel {config} />
     {:else if active === 'engine'}<EnginePanel {config} />

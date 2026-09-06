@@ -22,69 +22,22 @@ class AcademyRequestException(
 @Service
 class AcademyService(
     private val academyDao: AcademyDao,
-    private val restrictedDao: AcademyRestrictedDao,
+    private val injeongDao: AcademyInjeongDao,
     private val corpusService: AcademyCorpusService,
     private val shopService: ShopService
 ) {
     companion object {
-        const val PUBLIC_SEARCH_MAX_SIZE = 100
         const val ANALYSIS_EXCLUDED_WORD_LIMIT = 1_000
         const val ANALYSIS_DEPTH_LIMIT = 30
-        const val RESTRICTED_DAILY_LIMIT = 25
-        const val RESTRICTED_RESULT_LIMIT = 20
+        const val INJEONG_DAILY_LIMIT = 25
+        const val INJEONG_RESULT_LIMIT = 20
     }
 
-    fun search(
-        rawConfig: AcademyRuleConfig,
-        text: String,
-        match: String,
-        startChar: String,
-        endChar: String,
-        mission: String,
-        sort: String,
-        page: Int,
-        size: Int
-    ): AcademySearchResponse {
-        val config = corpusService.normalize(rawConfig)
-        val safeSize = size.coerceIn(1, PUBLIC_SEARCH_MAX_SIZE)
-        validateSingleCharacter(startChar, "시작 글자")
-        validateSingleCharacter(endChar, "끝 글자")
-        validateSingleCharacter(mission, "미션 글자")
-        val rows = academyDao.search(
-            config,
-            AcademySearchQuery(
-                text = text.take(100),
-                match = match,
-                startChar = startChar,
-                endChar = endChar,
-                mission = mission,
-                sort = sort,
-                page = page,
-                size = safeSize
-            )
-        )
-        return AcademySearchResponse(
-            items = rows.take(safeSize).map { toView(it, config) },
-            page = page.coerceAtLeast(0),
-            size = safeSize,
-            hasNext = rows.size > safeSize
-        )
-    }
-
-    fun getWord(rawConfig: AcademyRuleConfig, word: String): AcademyWordView {
-        val config = corpusService.normalize(rawConfig)
-        val normalizedWord = word.trim()
-        require(normalizedWord.isNotEmpty() && normalizedWord.length <= 128) { "단어가 올바르지 않습니다." }
-        val record = academyDao.getVisibleWord(config, normalizedWord)
-            ?: throw AcademyRequestException(404, "WORD_NOT_PUBLIC", "현재 사전에서 확인할 수 없는 단어입니다.")
-        return toView(record, config)
-    }
-
-    fun restrictedSearch(
-        request: AcademyRestrictedSearchRequest,
+    fun injeongSearch(
+        request: AcademyInjeongSearchRequest,
         session: HttpSession,
         remainingDailyQueries: Int
-    ): AcademyRestrictedSearchResponse {
+    ): AcademyInjeongSearchResponse {
         val lang = request.lang.lowercase().takeIf { it == "ko" || it == "en" }
             ?: throw AcademyRequestException(400, "INVALID_LANG", "지원하지 않는 언어입니다.")
         val start = request.startChar?.trim().orEmpty()
@@ -101,15 +54,15 @@ class AcademyService(
             throw AcademyRequestException(402, "WORD_TOKEN_REQUIRED", "단어 토큰이 부족하거나 사용할 수 없습니다.")
         }
 
-        val records = restrictedDao.search(
+        val records = injeongDao.search(
             lang = lang,
             startChar = start.takeIf(String::isNotEmpty),
             endChar = end.takeIf(String::isNotEmpty),
             mission = mission,
-            limit = RESTRICTED_RESULT_LIMIT
+            limit = INJEONG_RESULT_LIMIT
         )
         val config = corpusService.normalize(AcademyRuleConfig(lang = lang, dictionary = "COMBINED"))
-        return AcademyRestrictedSearchResponse(
+        return AcademyInjeongSearchResponse(
             items = records.map { toView(it, config) },
             consumedTokens = tokenCost,
             remainingDailyQueries = remainingDailyQueries
@@ -183,7 +136,4 @@ class AcademyService(
         else -> "LOW"
     }
 
-    private fun validateSingleCharacter(value: String, label: String) {
-        require(value.isBlank() || value.trim().length == 1) { "${label}은 한 글자여야 합니다." }
-    }
 }

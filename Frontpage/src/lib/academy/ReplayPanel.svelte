@@ -117,8 +117,8 @@
   }
 </script>
 
-<div class="grid min-w-0 gap-5 xl:grid-cols-[330px_minmax(0,1fr)]">
-  <aside class="h-fit min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 xl:sticky xl:top-28">
+<div class="grid min-w-0 gap-5 lg:grid-cols-[330px_minmax(0,1fr)]">
+  <aside class="h-fit min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-28">
     <div class="flex min-w-0 items-center gap-3">
       <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300"><span class="material-symbols-outlined">movie_edit</span></span>
       <h2 class="font-black text-slate-900 dark:text-white">내 게임 복기</h2>

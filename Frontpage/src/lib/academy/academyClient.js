@@ -2,6 +2,14 @@ let worker;
 let sequence = 0;
 const pending = new Map();
 
+export function toWorkerPayload(value) {
+  if (Array.isArray(value)) return Array.from(value, toWorkerPayload);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, toWorkerPayload(item)]));
+  }
+  return value;
+}
+
 function ensureWorker() {
   if (worker) return worker;
   if (typeof Worker === 'undefined') {
@@ -28,14 +36,21 @@ function ensureWorker() {
 function call(operation, payload) {
   const active = ensureWorker();
   const id = ++sequence;
+  const message = { id, operation, payload: toWorkerPayload(payload) };
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });
-    active.postMessage({ id, operation, payload });
+    try {
+      active.postMessage(message);
+    } catch (error) {
+      pending.delete(id);
+      reject(error);
+    }
   });
 }
 
 export const academyClient = {
   preload(config) { return call('preload', { config }); },
+  search(config, filters) { return call('search', { config, ...filters }); },
   simulate(config, chain, word, shields = 0, botLevel = null, specialRule = 'NONE') {
     return call('simulate', { config, chain, word, shields, botLevel, specialRule });
   },

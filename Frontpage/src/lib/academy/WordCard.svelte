@@ -20,9 +20,6 @@
     globalThis.speechSynthesis.speak(utterance);
   }
 
-  function cleanMean(value) {
-    return String(value || '').replace(/＂\d+＂/g, ' · ').replace(/^\s*·\s*/, '').trim();
-  }
 </script>
 
 <article class={`group min-w-0 rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:hover:border-emerald-700 ${compact ? 'p-4' : 'p-5'}`}>
@@ -40,10 +37,6 @@
       <span class="material-symbols-outlined text-xl">volume_up</span>
     </button>
   </div>
-
-  {#if !compact && cleanMean(word.mean)}
-    <p class="mt-3 line-clamp-3 whitespace-pre-line break-words text-sm leading-6 text-slate-600 dark:text-slate-300">{cleanMean(word.mean)}</p>
-  {/if}
 
   <div class="mt-3 flex min-w-0 flex-wrap items-center gap-2">
     {#each word.themes.slice(0, compact ? 2 : 5) as theme}

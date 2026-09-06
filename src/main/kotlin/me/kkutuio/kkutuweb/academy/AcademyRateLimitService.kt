@@ -35,11 +35,11 @@ class AcademyRateLimitService(private val redis: StringRedisTemplate) {
             true
         }
 
-    /** Restricted lookups fail closed when Redis is unavailable. */
-    fun consumeRestricted(accountUuid: String, ip: String, dailyMaximum: Int): Int? = try {
+    /** Injeong lookups fail closed when Redis is unavailable. */
+    fun consumeInjeong(accountUuid: String, ip: String, dailyMaximum: Int): Int? = try {
         val day = LocalDate.now().toString()
-        val accountCount = increment("restricted:account:$day", accountUuid, 48 * 60 * 60L)
-        val ipCount = increment("restricted:ip:$day", ip, 48 * 60 * 60L)
+        val accountCount = increment("injeong:account:$day", accountUuid, 48 * 60 * 60L)
+        val ipCount = increment("injeong:ip:$day", ip, 48 * 60 * 60L)
         if (accountCount > dailyMaximum || ipCount > dailyMaximum * 3L) null
         else (dailyMaximum - accountCount.toInt()).coerceAtLeast(0)
     } catch (error: Exception) {

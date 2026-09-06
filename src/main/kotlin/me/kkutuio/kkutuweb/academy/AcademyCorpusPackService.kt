@@ -21,8 +21,6 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.security.MessageDigest
 import java.time.Duration
-import kotlin.math.ln
-import kotlin.math.roundToInt
 
 private const val CORPUS_SCHEMA = 1
 private const val CORPUS_MAX_AGE_SECONDS = 15_552_000 // 180 days
@@ -76,6 +74,19 @@ class AcademyCorpusPackService(private val corpusService: AcademyCorpusService) 
 
     private fun build(lang: String): AcademyCorpusPack {
         val words = corpusService.clientPackWords(lang).sortedBy(AcademyCorpusWord::word)
+        val rankedWords = words.sortedWith(compareByDescending<AcademyCorpusWord> { it.hit }.thenBy { it.word })
+        val popularityTiers = buildMap {
+            var previousHit: Int? = null
+            var tier = 10
+            rankedWords.forEachIndexed { index, word ->
+                if (word.hit != previousHit) {
+                    val percentileBand = (((index + 1) * 10) + rankedWords.size - 1) / rankedWords.size.coerceAtLeast(1)
+                    tier = (11 - percentileBand).coerceIn(1, 10)
+                    previousHit = word.hit
+                }
+                put(word.word, tier)
+            }
+        }
         val buffer = ByteArrayOutputStream(words.size.coerceAtLeast(1) * 12)
         DataOutputStream(buffer).use { out ->
             out.write(byteArrayOf('K'.code.toByte(), 'W'.code.toByte(), 'D'.code.toByte(), 'B'.code.toByte()))
@@ -85,7 +96,7 @@ class AcademyCorpusPackService(private val corpusService: AcademyCorpusService) 
             for (word in words) {
                 writeUtf8(out, word.word)
                 out.writeShort(word.flags and 0xFFFF)
-                out.writeByte(popularityBucket(word.hit))
+                out.writeByte(popularityTiers.getValue(word.word))
                 out.writeByte(if (word.publishedOverride) 1 else 0)
                 writeUtf8(out, word.theme)
             }
@@ -103,11 +114,6 @@ class AcademyCorpusPackService(private val corpusService: AcademyCorpusService) 
         require(bytes.size <= 65_535) { "코퍼스 문자열이 너무 깁니다." }
         out.writeShort(bytes.size)
         out.write(bytes)
-    }
-
-    private fun popularityBucket(hit: Int): Int {
-        val score = if (hit <= 0) 0.0 else ln(hit.toDouble() + 1.0) / ln(2.0)
-        return (score * 16.0).roundToInt().coerceIn(0, 255)
     }
 
     private fun normalizeLang(rawLang: String): String = rawLang.lowercase().takeIf { it == "ko" || it == "en" }

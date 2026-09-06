@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { academyApi, friendlyError } from './api.js';
+  import { academyClient } from './academyClient.js';
+  import { friendlyError } from './api.js';
   import WordCard from './WordCard.svelte';
 
   let { config, meta = null } = $props();
@@ -19,7 +20,7 @@
     loading = true;
     error = '';
     try {
-      result = await academyApi.search(config, {
+      result = await academyClient.search(config, {
         text,
         match,
         start,
@@ -55,14 +56,14 @@
   onMount(() => search(0));
 </script>
 
-<div class="grid min-w-0 gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
-  <aside class="h-fit min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 xl:sticky xl:top-28">
+<div class="grid min-w-0 gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
+  <aside class="h-fit min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-28">
     <div class="flex min-w-0 items-center gap-3">
       <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
         <span class="material-symbols-outlined">dictionary</span>
       </span>
       <div class="min-w-0">
-        <h2 class="text-lg font-black text-slate-900 dark:text-white">단어 찾기</h2>
+        <h2 class="text-lg font-black text-slate-900 dark:text-white">일반 단어 찾기</h2>
         <p class="truncate text-xs text-slate-500 dark:text-slate-400">조건에 맞는 단어를 검색합니다.</p>
       </div>
     </div>

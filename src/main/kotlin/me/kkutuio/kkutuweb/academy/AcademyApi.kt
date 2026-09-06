@@ -10,11 +10,9 @@ import me.kkutuio.kkutuweb.login.LoginService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import java.util.Locale
@@ -55,100 +53,29 @@ class AcademyApi(
             parts = messages.filterKeys { it.startsWith("word.class.") }
                 .mapKeys { it.key.removePrefix("word.class.") },
             limits = AcademyLimits(
-                publicSearchPageSize = AcademyService.PUBLIC_SEARCH_MAX_SIZE,
                 analysisExcludedWordLimit = AcademyService.ANALYSIS_EXCLUDED_WORD_LIMIT,
                 analysisDepthLimit = AcademyService.ANALYSIS_DEPTH_LIMIT,
-                restrictedDailyLimit = AcademyService.RESTRICTED_DAILY_LIMIT,
-                restrictedResultLimit = AcademyService.RESTRICTED_RESULT_LIMIT
+                injeongDailyLimit = AcademyService.INJEONG_DAILY_LIMIT,
+                injeongResultLimit = AcademyService.INJEONG_RESULT_LIMIT
             )
         )
     }
 
-    @GetMapping("/search")
-    fun search(
-        @RequestParam(defaultValue = "ko") lang: String,
-        @RequestParam(defaultValue = "COMBINED") dictionary: String,
-        @RequestParam(defaultValue = "FORWARD") direction: String,
-        @RequestParam(defaultValue = "true") duum: Boolean,
-        @RequestParam(defaultValue = "2") minLength: Int,
-        @RequestParam(defaultValue = "64") maxLength: Int,
-        @RequestParam(defaultValue = "true") includeLoanword: Boolean,
-        @RequestParam(defaultValue = "true") includeSpaced: Boolean,
-        @RequestParam(defaultValue = "true") includeDialect: Boolean,
-        @RequestParam(defaultValue = "true") includeOld: Boolean,
-        @RequestParam(defaultValue = "true") includeCultural: Boolean,
-        @RequestParam(defaultValue = "true") includeKung: Boolean,
-        @RequestParam(defaultValue = "") themes: String,
-        @RequestParam(defaultValue = "") excludedThemes: String,
-        @RequestParam(defaultValue = "") text: String,
-        @RequestParam(defaultValue = "CONTAINS") match: String,
-        @RequestParam(defaultValue = "") start: String,
-        @RequestParam(defaultValue = "") end: String,
-        @RequestParam(defaultValue = "") mission: String,
-        @RequestParam(defaultValue = "HIT_DESC") sort: String,
-        @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "30") size: Int,
-        request: HttpServletRequest
-    ): AcademySearchResponse {
-        enforcePublicRate("search", request, 120, 60)
-        return academyService.search(
-            AcademyRuleConfig(
-                lang = lang,
-                dictionary = dictionary,
-                direction = direction,
-                duum = duum,
-                minLength = minLength,
-                maxLength = maxLength,
-                includeLoanword = includeLoanword,
-                includeSpaced = includeSpaced,
-                includeDialect = includeDialect,
-                includeOld = includeOld,
-                includeCultural = includeCultural,
-                includeKung = includeKung,
-                themes = csv(themes),
-                excludedThemes = csv(excludedThemes)
-            ), text, match, start, end, mission, sort, page, size
-        )
-    }
-
-    @GetMapping("/word/{lang}/{word}")
-    fun word(
-        @PathVariable lang: String,
-        @PathVariable word: String,
-        @RequestParam(defaultValue = "COMBINED") dictionary: String,
-        @RequestParam(defaultValue = "FORWARD") direction: String,
-        @RequestParam(defaultValue = "true") duum: Boolean,
-        request: HttpServletRequest
-    ): AcademyWordView {
-        enforcePublicRate("word", request, 180, 60)
-        return academyService.getWord(
-            AcademyRuleConfig(lang = lang, dictionary = dictionary, direction = direction, duum = duum),
-            word
-        )
-    }
-
-    @PostMapping("/restricted/search")
-    fun restricted(
-        @RequestBody body: AcademyRestrictedSearchRequest,
+    @PostMapping("/injeong/search")
+    fun injeong(
+        @RequestBody body: AcademyInjeongSearchRequest,
         request: HttpServletRequest,
         session: HttpSession
-    ): AcademyRestrictedSearchResponse {
+    ): AcademyInjeongSearchResponse {
         if (session.isGuest()) throw AcademyRequestException(401, "LOGIN_REQUIRED", "로그인 후 이용할 수 있습니다.")
         val accountUuid = loginService.accountUuid(session)
             ?: throw AcademyRequestException(401, "LOGIN_REQUIRED", "통합계정 로그인이 필요합니다.")
-        val remaining = rateLimitService.consumeRestricted(
-            accountUuid, request.getIp(), AcademyService.RESTRICTED_DAILY_LIMIT
-        ) ?: throw AcademyRequestException(429, "RESTRICTED_LIMIT", "어인정 조회 한도를 초과했거나 현재 조회할 수 없습니다.")
-        return academyService.restrictedSearch(body, session, remaining)
+        val remaining = rateLimitService.consumeInjeong(
+            accountUuid, request.getIp(), AcademyService.INJEONG_DAILY_LIMIT
+        ) ?: throw AcademyRequestException(429, "INJEONG_LIMIT", "어인정 조회 한도를 초과했거나 현재 조회할 수 없습니다.")
+        return academyService.injeongSearch(body, session, remaining)
     }
 
-    private fun enforcePublicRate(scope: String, request: HttpServletRequest, maximum: Int, windowSeconds: Long) {
-        if (!rateLimitService.allowPublic(scope, request.getIp(), maximum, windowSeconds)) {
-            throw AcademyRequestException(429, "RATE_LIMITED", "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.")
-        }
-    }
-
-    private fun csv(value: String): List<String> = value.split(',').map(String::trim).filter(String::isNotEmpty)
 }
 
 data class AcademyErrorResponse(val code: String, val message: String)

@@ -45,6 +45,7 @@ self.onmessage = async (event) => {
     const engine = await loadEngine(lang);
     let result;
     switch (operation) {
+      case 'search': result = engine.search(payload); break;
       case 'simulate': result = engine.simulate(payload); break;
       case 'practice': result = engine.practice(payload); break;
       case 'practiceAnswer': result = engine.practiceAnswer(payload); break;

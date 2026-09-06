@@ -262,6 +262,14 @@ function rankStackMoves(moves, level = 'EXPERT') {
   return list.sort((a, b) => a.defenseCount - b.defenseCount || b.hit - a.hit || b.word.length - a.word.length || a.word.localeCompare(b.word));
 }
 
+function attackGrade(defenseCount) {
+  if (defenseCount === 0) return 'FINISH';
+  if (defenseCount <= 2) return 'VERY_HIGH';
+  if (defenseCount <= 5) return 'HIGH';
+  if (defenseCount <= 15) return 'MEDIUM';
+  return 'LOW';
+}
+
 function buildGraph(view) {
   const nodes = new Set();
   for (const word of view.words) {
@@ -451,6 +459,68 @@ export class AcademyLocalEngine {
     const config = normalizeConfig(rawConfig);
     const key = graphKey(config);
     return this.graphCache.get(key) || cachePut(this.graphCache, key, buildGraph(new CorpusView(this.pack, config)));
+  }
+
+  search({ config, text = '', match = 'CONTAINS', start = '', end = '', mission = '', sort = 'HIT_DESC', page = 0, size = 30 }) {
+    const view = this.view(config);
+    const query = String(text || '').trim().slice(0, 100).toLocaleLowerCase();
+    const startChar = String(start || '').trim().slice(0, 1).toLocaleLowerCase();
+    const endChar = String(end || '').trim().slice(0, 1).toLocaleLowerCase();
+    const missionChar = String(mission || '').trim().slice(0, 1).toLocaleLowerCase();
+    const safePage = Math.max(0, Math.min(10_000, Number(page) || 0));
+    const safeSize = Math.max(1, Math.min(100, Number(size) || 30));
+    const matchType = ['EXACT', 'STARTS_WITH', 'ENDS_WITH'].includes(match) ? match : 'CONTAINS';
+
+    const matchesQuery = (word) => {
+      if (!query) return true;
+      if (matchType === 'EXACT') return word === query;
+      if (matchType === 'STARTS_WITH') return word.startsWith(query);
+      if (matchType === 'ENDS_WITH') return word.endsWith(query);
+      return word.includes(query);
+    };
+
+    const compareWords = (first, second) => {
+      if (sort === 'WORD_DESC') return second.word.localeCompare(first.word);
+      if (sort === 'LENGTH_ASC') return first.word.length - second.word.length || first.word.localeCompare(second.word);
+      if (sort === 'LENGTH_DESC') return second.word.length - first.word.length || first.word.localeCompare(second.word);
+      if (sort === 'HIT_ASC') return first.popularity - second.popularity || first.word.localeCompare(second.word);
+      if (sort === 'WORD_ASC') return first.word.localeCompare(second.word);
+      return second.popularity - first.popularity || first.word.localeCompare(second.word);
+    };
+
+    const offset = safePage * safeSize;
+    const rows = view.words
+      .filter((item) => {
+        const word = item.word.toLocaleLowerCase();
+        return matchesQuery(word)
+          && (!startChar || word.startsWith(startChar))
+          && (!endChar || word.endsWith(endChar))
+          && (!missionChar || word.includes(missionChar));
+      })
+      .sort(compareWords)
+      .slice(offset, offset + safeSize + 1);
+
+    const items = rows.slice(0, safeSize).map((item) => {
+      const startCharValue = item.word[0] || '';
+      const endCharValue = item.word.at(-1) || '';
+      const nextChar = view.destination(item);
+      const defenseCount = view.connectionWords(nextChar).length;
+      return {
+        word: item.word,
+        themes: [...item.themes],
+        hit: item.popularity,
+        flags: item.flags,
+        length: item.word.length,
+        startChar: startCharValue,
+        endChar: endCharValue,
+        nextChar,
+        defenseCount,
+        attackGrade: attackGrade(defenseCount),
+        publishedOverride: item.publishedOverride
+      };
+    });
+
+    return { items, page: safePage, size: safeSize, hasNext: rows.length > safeSize };
   }
 
   simulate({ config, chain = [], word: text, shields = 0, botLevel = null, specialRule = 'NONE' }) {

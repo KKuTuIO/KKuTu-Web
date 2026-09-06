@@ -83,7 +83,7 @@
   onDestroy(stopTimer);
 </script>
 
-<div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_350px]">
+<div class="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_350px]">
   <section class="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
     <div class="bg-gradient-to-br from-emerald-600 to-teal-700 p-6 text-white md:p-8">
       <div class="flex min-w-0 flex-wrap items-center justify-between gap-4"><h2 class="text-3xl font-black">루트 대결</h2><div class="flex flex-wrap gap-2"><div class="rounded-2xl bg-white/15 px-4 py-3 text-center backdrop-blur"><span class="block text-xs text-emerald-100">연속 성공</span><strong class="text-2xl">{streak}</strong></div><div class="rounded-2xl bg-white/15 px-4 py-3 text-center backdrop-blur"><span class="block text-xs text-emerald-100">해결</span><strong class="text-2xl">{solved}</strong></div></div></div>
@@ -111,7 +111,7 @@
     </div>
   </section>
 
-  <aside class="grid h-fit min-w-0 gap-4 xl:sticky xl:top-28">
+  <aside class="grid h-fit min-w-0 gap-4 lg:sticky lg:top-28">
     <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"><h3 class="font-black text-slate-900 dark:text-white">연습 설정</h3><div class="mt-4 grid min-w-0 gap-4"><label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">난이도<select bind:value={difficulty} onchange={restart} class="w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800 dark:text-white"><option value="BEGINNER">입문 · 무제한 시간</option><option value="STANDARD">표준 · 15초</option><option value="EXPERT">실전 · 8초</option></select></label><label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">시작 음절 <span class="text-xs font-normal text-slate-400">비우면 자동 선택</span><div class="flex min-w-0 gap-2"><input bind:value={startChar} maxlength="1" class="w-full min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-lg font-black dark:border-slate-700 dark:bg-slate-800 dark:text-white" /><button type="button" onclick={restart} class="shrink-0 rounded-xl bg-slate-900 px-4 font-black text-white dark:bg-white dark:text-slate-900">시작</button></div></label></div></section>
     <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center justify-between"><h3 class="font-black text-slate-900 dark:text-white">대국 기록</h3><button type="button" onclick={restart} class="text-xs font-bold text-slate-400 hover:text-rose-500">초기화</button></div>{#if history.length}<ol class="mt-3 grid max-h-96 min-w-0 gap-2 overflow-y-auto pr-1">{#each history.toReversed() as item}<li class="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800"><div class="min-w-0"><span class={`mr-2 text-xs font-black ${item.role === '봇' ? 'text-violet-500' : 'text-emerald-600'}`}>{item.role}</span><strong class="break-all dark:text-white">{item.word}</strong></div><span class="shrink-0 text-xs text-slate-400">{item.from}→{item.to}</span></li>{/each}</ol>{:else}<p class="mt-3 text-sm text-slate-400">아직 기록이 없습니다.</p>{/if}</section>
   </aside>

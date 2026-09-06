@@ -30,7 +30,7 @@
     error = '';
     response = null;
     try {
-      response = await academyApi.restricted(config.lang, position, edgeChar.trim(), mission.trim());
+      response = await academyApi.injeong(config.lang, position, edgeChar.trim(), mission.trim());
     } catch (cause) {
       error = friendlyError(cause);
     } finally {
@@ -43,7 +43,7 @@
   <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 md:p-7">
     <div class="flex min-w-0 items-center gap-3">
       <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300">
-        <span class="material-symbols-outlined">lock_open</span>
+        <span class="material-symbols-outlined">verified</span>
       </span>
       <h2 class="min-w-0 text-2xl font-black text-slate-900 dark:text-white">어인정 조회</h2>
     </div>

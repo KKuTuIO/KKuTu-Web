@@ -116,3 +116,45 @@ describe('Academy client engine special rules', () => {
     expect(result.code).toBe('SAFE_WORD_BLOCKED');
   });
 });
+
+describe('Academy client engine search', () => {
+  it('filters, sorts, and paginates the downloaded corpus', () => {
+    const local = engine([
+      corpusWord('가방', { popularity: 10, themes: ['life'] }),
+      corpusWord('가위', { popularity: 10 }),
+      corpusWord('나비', { popularity: 30 }),
+      corpusWord('다가', { popularity: 40 })
+    ]);
+
+    const result = local.search({
+      config,
+      text: '가',
+      match: 'CONTAINS',
+      start: '가',
+      sort: 'HIT_DESC',
+      page: 0,
+      size: 1
+    });
+
+    expect(result.hasNext).toBe(true);
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      word: '가방',
+      themes: ['life'],
+      nextChar: '방',
+      defenseCount: 0,
+      attackGrade: 'FINISH'
+    });
+  });
+
+  it('honors reverse direction when calculating the next character', () => {
+    const local = engine([corpusWord('가방'), corpusWord('방울')]);
+    const result = local.search({
+      config: { ...config, direction: 'REVERSE' },
+      text: '방울',
+      match: 'EXACT'
+    });
+
+    expect(result.items[0]).toMatchObject({ nextChar: '방', startChar: '방', endChar: '울' });
+  });
+});

@@ -61,9 +61,9 @@
   }
 </script>
 
-<div class="grid min-w-0 gap-5 2xl:grid-cols-[360px_minmax(0,1fr)]">
-  <aside class="h-fit min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 2xl:sticky 2xl:top-28">
-    <div class="flex items-center gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"><span class="material-symbols-outlined">account_tree</span></span><div><h2 class="font-black text-slate-900 dark:text-white">전략 엔진</h2><p class="text-xs text-slate-400">브라우저에서 계산</p></div></div>
+<div class="grid min-w-0 gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+  <aside class="h-fit min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:sticky lg:top-28">
+    <div class="flex items-center gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300"><span class="material-symbols-outlined">account_tree</span></span><h2 class="font-black text-slate-900 dark:text-white">전략 엔진</h2></div>
     <div class="mt-5 grid min-w-0 gap-4">
       <label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">n수 이내 승리 깊이<div class="flex min-w-0 items-center gap-3"><input type="range" min="1" max="20" bind:value={maxPly} class="min-w-0 flex-1 accent-violet-600" /><strong class="w-10 shrink-0 text-center text-lg text-violet-700 dark:text-violet-300">{maxPly}</strong></div></label>
       <label class="grid min-w-0 gap-1 text-sm font-bold text-slate-600 dark:text-slate-300">제외 단어<textarea bind:value={exclusions} rows="6" placeholder="한 줄 또는 쉼표로 구분" class="w-full min-w-0 resize-y rounded-2xl border border-slate-200 bg-slate-50 p-3 font-mono text-sm outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"></textarea><span class="text-right text-xs font-normal text-slate-400">{words(exclusions).length}/1000</span></label>
@@ -75,7 +75,7 @@
   <section class="min-w-0">
     {#if error}<p class="mb-4 break-words rounded-2xl bg-rose-50 p-4 text-sm font-bold text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{error}</p>{/if}
     {#if !analysis}
-      <div class="grid min-h-[520px] min-w-0 place-items-center rounded-3xl border border-dashed border-slate-300 bg-white/60 p-8 text-center dark:border-slate-700 dark:bg-slate-900/60"><div><span class="material-symbols-outlined text-6xl text-violet-300 dark:text-violet-800">schema</span><h2 class="mt-4 text-2xl font-black text-slate-800 dark:text-white">전체 음절 그래프 분석</h2><p class="mt-2 text-sm text-slate-400">계산은 현재 기기의 Web Worker에서 실행됩니다.</p><button type="button" onclick={runAnalysis} class="mt-5 rounded-2xl bg-violet-600 px-6 py-3 font-black text-white">분석 시작</button></div></div>
+      <div class="grid min-h-[520px] min-w-0 place-items-center rounded-3xl border border-dashed border-slate-300 bg-white/60 p-8 text-center dark:border-slate-700 dark:bg-slate-900/60"><div><span class="material-symbols-outlined text-6xl text-violet-300 dark:text-violet-800">schema</span><h2 class="mt-4 text-2xl font-black text-slate-800 dark:text-white">전체 음절 그래프 분석</h2><button type="button" onclick={runAnalysis} class="mt-5 rounded-2xl bg-violet-600 px-6 py-3 font-black text-white">분석 시작</button></div></div>
     {:else}
       <div class="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <div class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"><span class="text-xs text-slate-400">단어</span><strong class="mt-1 block text-2xl dark:text-white">{analysis.corpusSize.toLocaleString()}</strong></div>

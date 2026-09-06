@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository
 import java.sql.ResultSet
 
 @Repository
-class AcademyRestrictedDao(private val jdbcTemplate: JdbcTemplate) {
+class AcademyInjeongDao(private val jdbcTemplate: JdbcTemplate) {
     fun search(
         lang: String,
         startChar: String?,

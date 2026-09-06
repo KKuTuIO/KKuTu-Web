@@ -31,37 +31,10 @@ function queryString(values) {
   return query.toString();
 }
 
-export function configQuery(config) {
-  return {
-    lang: config.lang,
-    dictionary: config.dictionary,
-    direction: config.direction,
-    duum: config.duum,
-    minLength: config.minLength,
-    maxLength: config.maxLength,
-    includeLoanword: config.includeLoanword,
-    includeSpaced: config.includeSpaced,
-    includeDialect: config.includeDialect,
-    includeOld: config.includeOld,
-    includeCultural: config.includeCultural,
-    includeKung: config.includeKung,
-    themes: config.themes,
-    excludedThemes: config.excludedThemes
-  };
-}
-
 export const academyApi = {
   meta: () => request('/api/academy/meta'),
-  search(config, filters) {
-    const query = queryString({ ...configQuery(config), ...filters });
-    return request(`/api/academy/search?${query}`);
-  },
-  word(config, word) {
-    const query = queryString({ dictionary: config.dictionary, direction: config.direction, duum: config.duum });
-    return request(`/api/academy/word/${encodeURIComponent(config.lang)}/${encodeURIComponent(word)}?${query}`);
-  },
-  restricted(lang, position, char, mission) {
-    return request('/api/academy/restricted/search', {
+  injeong(lang, position, char, mission) {
+    return request('/api/academy/injeong/search', {
       method: 'POST',
       body: JSON.stringify({
         lang,
@@ -102,7 +75,7 @@ export function friendlyError(error) {
     RATE_LIMITED: '요청이 너무 빠릅니다. 잠시 쉬었다가 다시 시도해 주세요.',
     WORD_NOT_PUBLIC: '현재 사전에서 확인할 수 없는 단어입니다.',
     WORD_TOKEN_REQUIRED: '단어 토큰이 부족합니다.',
-    RESTRICTED_LIMIT: '오늘의 어인정 조회 횟수를 모두 사용했습니다.',
+    INJEONG_LIMIT: '오늘의 어인정 조회 횟수를 모두 사용했습니다.',
     LOGIN_REQUIRED: '로그인 후 이용할 수 있습니다.',
     NO_CHALLENGE: '현재 규칙으로 만들 수 있는 연습 문제가 없습니다.',
     FIRST_MOVE_FINISH: '첫 수에는 바로 끝나는 단어를 사용할 수 없습니다.',

@@ -22,6 +22,7 @@ data class ServerManagementOverview(
 @RequestMapping("/api/admin/server-management")
 class GameServerManagementApi(
     private val service: GameServerManagementService,
+    private val webRestartService: WebServerRestartService,
     private val authorizer: AdminModerationAuthorizer
 ) {
     @GetMapping
@@ -38,6 +39,12 @@ class GameServerManagementApi(
     fun status(@PathVariable channelId: Int, session: HttpSession): Pm2ProcessStatus {
         authorizer.require(session, AdminSetting.Privilege.GAME_SERVER_RESTART)
         return service.processStatus(channelId)
+    }
+
+    @PostMapping("/web/restart")
+    fun restartWebServer(session: HttpSession): WebRestartResponse {
+        val actor = authorizer.require(session, AdminSetting.Privilege.GAME_SERVER_RESTART)
+        return webRestartService.schedule(actor)
     }
 
     @PostMapping("/{channelId}/process/{action}")

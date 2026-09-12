@@ -56,6 +56,56 @@
 
     let finalData = $state([]);
 
+    const WEB_API_NEWS_BASE = import.meta.env.VITE_WEB_API_NEWS_BASE || 'https://webapi.kkutu.io/v1/news';
+    let selectedNewsTab = $state('all');
+    let newsLoading = $state(true);
+    let newsError = $state('');
+    let newsRequestId = 0;
+    let newsData = $state({
+        defaultTab: 'all',
+        selectedTab: {
+            slug: 'all',
+            name: '전체보기',
+            apiPath: '/v1/news/all',
+            boardUrl: 'https://cafe.naver.com/kkutuio'
+        },
+        tabs: [
+            {
+                slug: 'all',
+                name: '전체보기',
+                apiPath: '/v1/news/all',
+                boardUrl: 'https://cafe.naver.com/kkutuio',
+                enabled: true
+            }
+        ],
+        items: []
+    });
+
+    async function loadNewsTab(slug) {
+        const requestId = ++newsRequestId;
+        selectedNewsTab = slug;
+        newsLoading = true;
+        newsError = '';
+
+        try {
+            const response = await fetch(`${WEB_API_NEWS_BASE}/${encodeURIComponent(slug)}`);
+            if (!response.ok) throw new Error(`KKuTuIO Web API returned ${response.status}`);
+
+            const payload = await response.json();
+            if (requestId === newsRequestId) {
+                newsData = payload;
+                if (Array.isArray(payload.legacyData)) finalData = payload.legacyData;
+            }
+        } catch (error) {
+            if (requestId === newsRequestId) {
+                newsError = '새로운 소식을 불러오지 못했습니다.';
+                console.error(error);
+            }
+        } finally {
+            if (requestId === newsRequestId) newsLoading = false;
+        }
+    }
+
     async function updateSlides() {
         await tick();
         if (!glideRoot || slideData.length === 0) return;
@@ -140,12 +190,11 @@
 		} else {
 			console.log("User is not logged in");
 		}
+
+        loadNewsTab('all');
 		
         // Fetch slide data
         try {
-            const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
-            finalData = await cafeResponse_events.json();
-
             const slideResponse = await fetch('https://static.kkutu.io/slides.json');
             const loadedSlides = await slideResponse.json();
             if (Array.isArray(loadedSlides)) slideData = loadedSlides;
@@ -484,30 +533,62 @@
 
         <!-- Patch note area -->
         <div class="dark:text-white rounded-full p-2 flex flex-col">
-            <div class="mb-6 justify-between flex items-center">
-                <h2 class="font-semibold text-2xl items-center flex justify-center">
+            <div class="mb-4 flex items-center justify-between gap-3 lg:mb-6">
+                <h2 class="flex shrink-0 items-center text-xl font-semibold lg:text-2xl">
                     <span class="material-symbols-outlined mr-2">
                         notifications
                     </span>
                     새로운 소식</h2>
-                <a href="https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=8&search.boardtype=L" target="_blank">
-                    <button
-                    class="flex items-center justify-center text-gray-400 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 py-1 px-1 rounded-full transform ease-in duration-100 active:scale-95">
-                    <span class="material-symbols-outlined">
-                       add
-                    </span>
-                </button>
-            </a>
+                <div class="flex min-w-0 flex-1 items-center justify-end gap-2">
+                    <label class="sr-only" for="news-tab-select">소식 게시판</label>
+                    <select
+                        id="news-tab-select"
+                        class="min-w-0 max-w-44 rounded-full border-0 bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-800 lg:hidden dark:bg-gray-700 dark:text-white"
+                        value={selectedNewsTab}
+                        onchange={(event) => loadNewsTab(event.currentTarget.value)}
+                    >
+                        {#each newsData.tabs as newsTab}
+                            <option value={newsTab.slug} disabled={newsTab.enabled === false}>{newsTab.name}</option>
+                        {/each}
+                    </select>
+                    <nav class="hidden min-w-0 flex-1 gap-1 overflow-x-auto pb-1 lg:flex lg:justify-end" aria-label="소식 게시판">
+                        {#each newsData.tabs as newsTab}
+                            <button
+                                type="button"
+                                class={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition-colors ${selectedNewsTab === newsTab.slug ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'} disabled:cursor-not-allowed disabled:opacity-35`}
+                                aria-pressed={selectedNewsTab === newsTab.slug}
+                                disabled={newsTab.enabled === false}
+                                onclick={() => loadNewsTab(newsTab.slug)}
+                            >
+                                {newsTab.name}
+                            </button>
+                        {/each}
+                    </nav>
+                    <a href={newsData.selectedTab?.boardUrl || 'https://cafe.naver.com/kkutuio'} target="_blank" rel="noopener" aria-label={`${newsData.selectedTab?.name || '전체'} 게시판에서 더 보기`}>
+                        <span class="material-symbols-outlined flex items-center justify-center rounded-full p-1 text-gray-400 transition hover:bg-gray-200 hover:text-gray-500 active:scale-95 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-400">
+                            add
+                        </span>
+                    </a>
+                </div>
             </div>
-            <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4">
-                {#each finalData.slice(0, 4) as cafeNotice}
-                <!-- Card -->
-                <a href={`https://cafe.naver.com/kkutuio/${cafeNotice.articleId}`} class="dark:text-gray-200 lg:dark:text-white text-gray-800 lg:text-black lg:border border-gray-200 dark:border-gray-700 flex flex-col" target="_blank">
-                    <img src={`https://cdn.kkutu.io/img/front/${cafeNotice.menuId}.png`} class="hidden lg:block h-32 w-full object-cover" alt="Patch note"/>
-                    <h3 class="lg:px-3 pb-2 lg:pb-0 pt-2 truncate">{cafeNotice.subject}</h3>
-                    <p class="hidden lg:block text-gray-400 text-sm px-3 pb-2">{cafeNotice.content}</p>
-                </a>
-                {/each}
+            <div class="min-h-36 lg:min-h-48 grid grid-cols-1 lg:grid-cols-4 lg:gap-4" data-news-list>
+                {#if newsLoading && newsData.items.length === 0}
+                    <p class="col-span-full py-12 text-center text-gray-400">새로운 소식을 불러오는 중입니다.</p>
+                {:else if newsError && newsData.items.length === 0}
+                    <p class="col-span-full py-12 text-center text-gray-400">{newsError}</p>
+                {:else}
+                    {#each newsData.items as cafeNotice}
+                        <a href={cafeNotice.articleUrl} class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-gray-200 py-3 text-gray-800 dark:border-gray-700 dark:text-gray-200 lg:flex lg:flex-col lg:items-stretch lg:gap-0 lg:border lg:py-0 lg:text-black lg:dark:text-white" target="_blank" rel="noopener" data-news-item>
+                            <img src={cafeNotice.bannerUrl} class="hidden h-32 w-full object-cover lg:block" alt={`${cafeNotice.menuName} 배너`}/>
+                            <h3 class="min-w-0 truncate lg:px-3 lg:pb-1 lg:pt-2">{cafeNotice.subject}</h3>
+                            <span class="shrink-0 text-sm text-gray-500 lg:hidden dark:text-gray-400">{cafeNotice.displayDate}</span>
+                            <div class="hidden items-center justify-between gap-2 pb-2 text-sm text-gray-400 lg:flex lg:px-3">
+                                <span>{cafeNotice.displayDate}</span>
+                                <span class="truncate">{cafeNotice.menuName}</span>
+                            </div>
+                        </a>
+                    {/each}
+                {/if}
             </div>
         </div>
 

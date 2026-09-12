@@ -117,15 +117,26 @@ class KKuTuSetting(
         ?.mapNotNull { it.stringValue()?.trim()?.takeIf(String::isNotEmpty) }
         ?: emptyList()
 
-    fun getGameServers() = kkutu["gameServers"].toList().map {
+    fun getGameServers() = kkutu["gameServers"].toList().mapIndexed { channelIndex, it ->
+        val cid = it["cid"].shortValue()
+        val management = it["management"]?.takeUnless(JsonNode::isNull)?.let { node ->
+            GameServerManagementSetting(
+                sshTarget = node["sshTarget"].stringValue().trim(),
+                workingDirectory = node["workingDirectory"].stringValue().trim(),
+                pm2ProcessName = node["pm2ProcessName"].stringValue().trim(),
+                sshPort = node["sshPort"]?.takeUnless(JsonNode::isNull)?.intValue()
+            )
+        }
         GameServerSetting(
             it["isSecure"].booleanValue(),
             it["publicHost"].stringValue(),
             it["key"].stringValue(),
             it["host"].stringValue(),
             it["port"].intValue(),
-            it["cid"].shortValue(),
-            parseGameServerReconnectSetting(it["reconnect"])
+            cid,
+            parseGameServerReconnectSetting(it["reconnect"]),
+            it["name"]?.stringValue()?.trim()?.takeIf(String::isNotEmpty) ?: "채널 $channelIndex",
+            management
         )
     }
 

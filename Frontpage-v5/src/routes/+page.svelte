@@ -193,8 +193,9 @@
         } else console.log("User is not logged in");
 
         try {
-            const cafeResponse_events = await fetch('https://static.kkutu.io/cafe.json');
-            finalData = await cafeResponse_events.json();
+            const webApiResponse = await fetch('https://webapi.kkutu.io/v1/news/all');
+            const webApiPayload = await webApiResponse.json();
+            finalData = Array.isArray(webApiPayload.legacyData) ? webApiPayload.legacyData : [];
 
             const slideResponse = await fetch('https://static.kkutu.io/slides.json');
             slideData = await slideResponse.json();

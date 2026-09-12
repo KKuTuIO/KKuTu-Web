@@ -3,6 +3,7 @@
   "maxPlayers": 400,
   "gameServers": [
     {
+      "name": "감자",
       "is-secure": true,
       "public-host": "<Your WebSocket Domain>",
       "key": "<Key>",
@@ -12,6 +13,11 @@
       "reconnect": {
         "enabled": true,
         "retryInterval": 86400
+      },
+      "management": {
+        "sshTarget": "kkutu-potato",
+        "workingDirectory": "/srv/kkutu-game",
+        "pm2ProcessName": "kkutu-potato"
       }
     }
   ],

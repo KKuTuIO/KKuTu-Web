@@ -41,6 +41,8 @@ data class AdminSetting(
         API_ACCESS,
         IDP_CLIENT_MANAGE,
         ADMIN_PROFILE,
+        GAME_SERVER_RESTART,
+        GAME_SOURCE_MANAGE,
         ADMIN_MANAGE
     }
 }

@@ -155,9 +155,13 @@ class GameServerManagementService(
 
     private fun runRemote(management: GameServerManagementSetting, script: String, timeoutSeconds: Long): CommandResult {
         val command = mutableListOf(
-            "ssh", "-n", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1"
+            "ssh", "-n", "-T", "-o", "BatchMode=yes", "-o", "PreferredAuthentications=publickey",
+            "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1"
         )
         management.sshPort?.let { command += listOf("-p", it.toString()) }
+        management.sshKeyPath?.let {
+            command += listOf("-o", "IdentitiesOnly=yes", "-i", it)
+        }
         command += listOf(management.sshTarget, "sh", "-lc", shellQuote(script))
         return runner.run(command, timeoutSeconds)
     }

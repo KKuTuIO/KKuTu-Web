@@ -18,6 +18,8 @@
 
 package me.kkutuio.kkutuweb.setting
 
+import java.nio.file.Paths
+
 data class GameServerSetting(
     val isSecure: Boolean,
     val publicHost: String,
@@ -38,7 +40,8 @@ data class GameServerManagementSetting(
     val sshTarget: String,
     val workingDirectory: String,
     val pm2ProcessName: String,
-    val sshPort: Int? = null
+    val sshPort: Int? = null,
+    val sshKeyPath: String? = null
 ) {
     init {
         require(sshTarget.matches(Regex("[A-Za-z0-9][A-Za-z0-9_.@:-]{0,254}"))) { "management.sshTarget contains unsupported characters" }
@@ -47,6 +50,11 @@ data class GameServerManagementSetting(
         }
         require(pm2ProcessName.matches(Regex("[A-Za-z0-9_.:-]{1,128}"))) { "management.pm2ProcessName contains unsupported characters" }
         require(sshPort == null || sshPort in 1..65535) { "management.sshPort must be between 1 and 65535" }
+        require(sshKeyPath?.let { path ->
+            runCatching {
+                path.isNotBlank() && !path.contains('\n') && !path.contains('\r') && Paths.get(path).isAbsolute
+            }.getOrDefault(false)
+        } ?: true) { "management.sshKeyPath must be an absolute path" }
     }
 }
 

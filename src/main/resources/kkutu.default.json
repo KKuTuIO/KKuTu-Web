@@ -16,6 +16,7 @@
       },
       "management": {
         "sshTarget": "kkutu-potato",
+        "sshKeyPath": "/opt/kkutu-web/ssh/game-server-ed25519",
         "workingDirectory": "/srv/kkutu-game",
         "pm2ProcessName": "kkutu-potato"
       }

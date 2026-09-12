@@ -124,7 +124,8 @@ class KKuTuSetting(
                 sshTarget = node["sshTarget"].stringValue().trim(),
                 workingDirectory = node["workingDirectory"].stringValue().trim(),
                 pm2ProcessName = node["pm2ProcessName"].stringValue().trim(),
-                sshPort = node["sshPort"]?.takeUnless(JsonNode::isNull)?.intValue()
+                sshPort = node["sshPort"]?.takeUnless(JsonNode::isNull)?.intValue(),
+                sshKeyPath = node["sshKeyPath"]?.takeUnless(JsonNode::isNull)?.stringValue()?.trim()
             )
         }
         GameServerSetting(

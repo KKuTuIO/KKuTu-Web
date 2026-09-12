@@ -40,6 +40,9 @@ class GameServerManagementServiceTest {
         assertThrows(IllegalArgumentException::class.java) {
             GameServerManagementSetting("-oProxyCommand=evil", "/srv/game", "game")
         }
+        assertThrows(IllegalArgumentException::class.java) {
+            GameServerManagementSetting("game-host", "/srv/game", "game", sshKeyPath = "keys/game-server")
+        }
     }
 
     @Test
@@ -48,7 +51,10 @@ class GameServerManagementServiceTest {
         val server = GameServerSetting(
             true, "game.example", "key", "127.0.0.1", 8080, 1,
             GameServerReconnectSetting(true, 30), "감자",
-            GameServerManagementSetting("game-host", "/srv/game dir", "kkutu-potato")
+            GameServerManagementSetting(
+                "game-host", "/srv/game dir", "kkutu-potato",
+                sshKeyPath = "/opt/kkutu-web/ssh/game-server-ed25519"
+            )
         )
         Mockito.`when`(setting.getGameServers()).thenReturn(listOf(server))
         val commands = CopyOnWriteArrayList<List<String>>()
@@ -71,6 +77,10 @@ class GameServerManagementServiceTest {
 
         assertEquals(ServerOperationStatus.SUCCEEDED, result.status)
         assertEquals("ssh", commands.single().first())
+        assertTrue(commands.single().containsAll(listOf(
+            "PreferredAuthentications=publickey", "IdentitiesOnly=yes", "-i",
+            "/opt/kkutu-web/ssh/game-server-ed25519"
+        )))
         assertTrue(commands.single().last().contains("git pull --ff-only origin"))
         assertTrue(commands.single().last().contains("release/4.2.2"))
         assertTrue(commands.single().last().contains("pnpm --dir server exec tsc --noEmitOnError -p tsconfig.json"))

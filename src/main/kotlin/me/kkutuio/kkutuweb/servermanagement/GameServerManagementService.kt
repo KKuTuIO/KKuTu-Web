@@ -28,7 +28,8 @@ data class Pm2ProcessStatus(
     val status: String,
     val pid: Long?,
     val startedAt: Long?,
-    val restartCount: Int?
+    val restartCount: Int?,
+    val error: String? = null
 )
 
 data class ServerOperationSnapshot(
@@ -64,21 +65,22 @@ class GameServerManagementService(
             runRemote(management, "pm2 jlist", STATUS_TIMEOUT_SECONDS)
         } catch (error: Exception) {
             val message = "SSH 상태 조회 명령을 시작하지 못했습니다: ${safeException(error)}"
-            logger.warn("game-server-management status failed channel={} stage=START message={}", channelId, message)
-            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, message)
+            return unavailableStatus(channelId, "START", message)
         }
         if (result.timedOut) {
             val message = "SSH/PM2 상태 조회 시간이 초과되었습니다.${failureSuffix(result.output)}"
-            logger.warn("game-server-management status failed channel={} stage=TIMEOUT message={}", channelId, message)
-            throw ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, message)
+            return unavailableStatus(channelId, "TIMEOUT", message)
         }
         if (result.exitCode != 0) {
             val message = "SSH/PM2 명령이 실패했습니다 (종료 코드 ${result.exitCode}).${failureSuffix(result.output)}"
-            logger.warn("game-server-management status failed channel={} stage=COMMAND message={}", channelId, message)
-            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, message)
+            return unavailableStatus(channelId, "COMMAND", message)
         }
-        return parsePm2Status(result.output, management.pm2ProcessName)
-            ?: Pm2ProcessStatus("not_found", null, null, null)
+        return try {
+            parsePm2Status(result.output, management.pm2ProcessName)
+                ?: Pm2ProcessStatus("not_found", null, null, null)
+        } catch (error: ResponseStatusException) {
+            unavailableStatus(channelId, "PARSE", error.reason ?: "PM2 상태 응답을 해석하지 못했습니다.")
+        }
     }
 
     fun startProcess(channelId: Int, actorId: String, type: ServerOperationType): ServerOperationSnapshot {
@@ -199,6 +201,11 @@ class GameServerManagementService(
             startedAt = environment?.get("pm_uptime")?.longValue()?.takeIf { it > 0 },
             restartCount = environment?.get("restart_time")?.intValue()
         )
+    }
+
+    private fun unavailableStatus(channelId: Int, stage: String, message: String): Pm2ProcessStatus {
+        logger.warn("game-server-management status unavailable channel={} stage={} message={}", channelId, stage, message)
+        return Pm2ProcessStatus("unavailable", null, null, null, message)
     }
 
     private fun cleanup() {

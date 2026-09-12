@@ -10,8 +10,6 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import org.springframework.http.HttpStatus
-import org.springframework.web.server.ResponseStatusException
 import tools.jackson.databind.ObjectMapper
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -103,11 +101,12 @@ class GameServerManagementServiceTest {
             ObjectMapper()
         )
 
-        val error = assertThrows(ResponseStatusException::class.java) { service.processStatus(0) }
+        val status = service.processStatus(0)
+        val diagnostic = requireNotNull(status.error)
 
-        assertEquals(HttpStatus.BAD_GATEWAY, error.statusCode)
-        assertTrue(error.reason!!.contains("종료 코드 255"))
-        assertTrue(error.reason!!.contains("Permission denied (publickey)."))
+        assertEquals("unavailable", status.status)
+        assertTrue(diagnostic.contains("종료 코드 255"))
+        assertTrue(diagnostic.contains("Permission denied (publickey)."))
         service.close()
     }
 }

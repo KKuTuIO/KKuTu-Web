@@ -60,9 +60,23 @@ class GameServerManagementService(
 
     fun processStatus(channelId: Int): Pm2ProcessStatus {
         val (_, management) = managedServer(channelId)
-        val result = runRemote(management, "pm2 jlist", STATUS_TIMEOUT_SECONDS)
-        if (result.timedOut) throw ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, "PM2 상태 조회 시간이 초과되었습니다.")
-        if (result.exitCode != 0) throw ResponseStatusException(HttpStatus.BAD_GATEWAY, safeFailure(result.output, "PM2 상태를 조회하지 못했습니다."))
+        val result = try {
+            runRemote(management, "pm2 jlist", STATUS_TIMEOUT_SECONDS)
+        } catch (error: Exception) {
+            val message = "SSH 상태 조회 명령을 시작하지 못했습니다: ${safeException(error)}"
+            logger.warn("game-server-management status failed channel={} stage=START message={}", channelId, message)
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, message)
+        }
+        if (result.timedOut) {
+            val message = "SSH/PM2 상태 조회 시간이 초과되었습니다.${failureSuffix(result.output)}"
+            logger.warn("game-server-management status failed channel={} stage=TIMEOUT message={}", channelId, message)
+            throw ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, message)
+        }
+        if (result.exitCode != 0) {
+            val message = "SSH/PM2 명령이 실패했습니다 (종료 코드 ${result.exitCode}).${failureSuffix(result.output)}"
+            logger.warn("game-server-management status failed channel={} stage=COMMAND message={}", channelId, message)
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, message)
+        }
         return parsePm2Status(result.output, management.pm2ProcessName)
             ?: Pm2ProcessStatus("not_found", null, null, null)
     }
@@ -169,11 +183,13 @@ class GameServerManagementService(
     private fun parsePm2Status(output: String, processName: String): Pm2ProcessStatus? {
         val start = output.indexOf('[')
         val end = output.lastIndexOf(']')
-        if (start < 0 || end < start) throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "PM2 응답 형식이 올바르지 않습니다.")
+        if (start < 0 || end < start) {
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "PM2 상태 응답을 해석하지 못했습니다.${failureSuffix(output)}")
+        }
         val processes = try {
             objectMapper.readTree(output.substring(start, end + 1))
         } catch (error: Exception) {
-            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "PM2 응답 형식이 올바르지 않습니다.")
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "PM2 상태 응답이 올바른 JSON이 아닙니다.${failureSuffix(output)}")
         }
         val process = processes.firstOrNull { it["name"]?.stringValue() == processName } ?: return null
         val environment = process["pm2_env"]
@@ -236,5 +252,17 @@ class GameServerManagementService(
 
         private fun safeFailure(output: String, fallback: String): String = output.lineSequence()
             .take(8).joinToString("\n").take(2_000).ifBlank { fallback }
+
+        private fun failureSuffix(output: String): String {
+            val diagnostic = if (output.contains("\"pm2_env\"") || output.contains("\"env\"")) {
+                "PM2 JSON 출력이 손상되어 원문을 숨겼습니다."
+            } else {
+                safeFailure(output, "출력 없음")
+            }
+            return "\n원격 출력: $diagnostic"
+        }
+
+        private fun safeException(error: Exception): String = error.message?.lineSequence()?.firstOrNull()?.take(500)
+            ?: error.javaClass.simpleName
     }
 }

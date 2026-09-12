@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 import tools.jackson.databind.ObjectMapper
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -84,6 +86,28 @@ class GameServerManagementServiceTest {
         assertTrue(commands.single().last().contains("git pull --ff-only origin"))
         assertTrue(commands.single().last().contains("release/4.2.2"))
         assertTrue(commands.single().last().contains("pnpm --dir server exec tsc --noEmitOnError -p tsconfig.json"))
+        service.close()
+    }
+
+    @Test
+    fun `status failure exposes the SSH exit code and diagnostic output`() {
+        val setting = Mockito.mock(KKuTuSetting::class.java)
+        Mockito.`when`(setting.getGameServers()).thenReturn(listOf(GameServerSetting(
+            true, "game.example", "key", "127.0.0.1", 8080, 1,
+            GameServerReconnectSetting(true, 30), "감자",
+            GameServerManagementSetting("opc@s0", "/srv/game", "game-0")
+        )))
+        val service = GameServerManagementService(
+            setting,
+            RemoteCommandRunner { _, _ -> CommandResult(255, "Permission denied (publickey).", false) },
+            ObjectMapper()
+        )
+
+        val error = assertThrows(ResponseStatusException::class.java) { service.processStatus(0) }
+
+        assertEquals(HttpStatus.BAD_GATEWAY, error.statusCode)
+        assertTrue(error.reason!!.contains("종료 코드 255"))
+        assertTrue(error.reason!!.contains("Permission denied (publickey)."))
         service.close()
     }
 }

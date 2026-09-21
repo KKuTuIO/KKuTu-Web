@@ -32,20 +32,8 @@ class GlobalExceptionHandler {
 
     // 오류가 발생했지만, 핸들링이 되지 않았을 경우 이곳에서 처리한다.
     @ExceptionHandler(Exception::class)
-    fun unhandledException(e: Exception): ResponseEntity<Map<String, Any?>> {
+    fun unhandledException(e: Exception): ResponseEntity<Map<String, Int>> {
         logger.error("Got unhandled exception : ", e)
-
-        val errorType = e.javaClass.simpleName
-        val msg = e.message ?: "A"
-        val cause = e.cause?.message ?: "B"
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-            mapOf(
-                "error" to 470,
-                "type" to errorType,
-                "message" to msg,
-                "cause" to cause
-            )
-        )
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("error" to 470))
     }
 }

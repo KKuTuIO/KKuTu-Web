@@ -109,7 +109,6 @@ class GameServerManagementService(
         val script = """
             set -eu
             cd -- ${shellQuote(management.workingDirectory)}
-            test -z "$(git status --porcelain)" || { echo "Working tree is not clean; source update aborted." >&2; exit 1; }
             git fetch --prune origin $quotedRefspec
             if git show-ref --verify --quiet refs/heads/$quotedBranch; then
               git checkout $quotedBranch

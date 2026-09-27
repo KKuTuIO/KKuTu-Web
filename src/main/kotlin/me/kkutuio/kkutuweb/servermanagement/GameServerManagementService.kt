@@ -109,33 +109,46 @@ class GameServerManagementService(
         val script = """
             set -eu
             cd -- ${shellQuote(management.workingDirectory)}
+
             STASHED=false
             STASH_RESTORED=false
+
             on_exit() {
-            code=${'$'}?
-            if [ "${'$'}STASHED" = true ] && [ "${'$'}STASH_RESTORED" = false ]; then
-                echo "WARNING: local changes remain stashed (run: git stash list)" >&2
-            fi
-            exit ${'$'}code
+              code=${'$'}?
+              if [ "${'$'}STASHED" = true ] && [ "${'$'}STASH_RESTORED" = false ]; then
+                echo "WARNING: Update failed. Rolling back local changes..." >&2
+                git reset --hard > /dev/null 2>&1
+                if ! git stash pop; then
+                  echo "CRITICAL: Rollback conflict! Aborting stash pop." >&2
+                  git reset --hard > /dev/null 2>&1
+                  echo "Local changes remain stashed. Run 'git stash list' manually." >&2
+                fi
+              fi
+              exit ${'$'}code
             }
             trap on_exit EXIT
 
             if [ -n "${'$'}(git status --porcelain)" ]; then
-            git stash push --include-untracked -m "before source update"
-            STASHED=true
+              git stash push --include-untracked -m "auto-backup before source update"
+              STASHED=true
             fi
 
             git fetch --prune origin $quotedRefspec
             if git show-ref --verify --quiet refs/heads/$quotedBranch; then
-            git checkout $quotedBranch
+              git checkout $quotedBranch
             else
-            git checkout -b $quotedBranch --track $quotedRemoteBranch
+              git checkout -b $quotedBranch --track $quotedRemoteBranch
             fi
+
             git pull --ff-only origin $quotedBranch
 
             if [ "${'$'}STASHED" = true ]; then
-            git stash pop
-            STASH_RESTORED=true
+              if ! git stash pop; then
+                echo "ERROR: Conflict detected while restoring local files (e.g. kkutu.json)!" >&2
+                git reset --hard HEAD > /dev/null 2>&1
+                exit 1
+              fi
+              STASH_RESTORED=true
             fi
 
             pnpm --dir server exec tsc --noEmitOnError -p tsconfig.json

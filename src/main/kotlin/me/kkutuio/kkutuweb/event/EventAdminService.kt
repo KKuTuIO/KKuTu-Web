@@ -96,6 +96,7 @@ class EventAdminService(private val jdbc: JdbcTemplate, private val mapper: Obje
         require(request.startsAt > 0 && request.startsAt < request.endsAt && request.endsAt <= request.expiresAt) { "행사 시작·종료·만료 시각의 순서가 올바르지 않습니다." }
         require(request.priority in -10_000..10_000) { "우선순위 범위가 올바르지 않습니다." }
         require(request.definition.isObject) { "행사 설정은 JSON 객체여야 합니다." }
+        require(request.definition.path("EVENT_PERMANENT").isMissingNode || request.definition.path("EVENT_PERMANENT").isBoolean) { "상시 행사 여부는 true 또는 false여야 합니다." }
         assignExchangeIds(request.definition, id)
         validateWordPiece(request.definition.path("EVENT_WORDPIECE"))
         validatePoint(request.definition.path("EVENT_POINT"))
@@ -148,6 +149,7 @@ class EventAdminService(private val jdbc: JdbcTemplate, private val mapper: Obje
         exchanges.forEach { exchange ->
             val id = exchange.path("id").asString()
             if (id.isNotBlank()) require(idPattern.matches(id) && ids.add(id)) { "교환 ID가 올바르지 않거나 중복되었습니다: $id" }
+            require(exchange.path("enabled").isMissingNode || exchange.path("enabled").isBoolean) { "교환 사용 여부는 true 또는 false여야 합니다." }
             require(exchange.path("cost").isObject && exchange.path("gives").isObject && exchange.path("gives").size() > 0) { "교환 비용과 지급품 설정이 올바르지 않습니다." }
             val interval = exchange.path("buyLimitInterval").asLong(86400)
             require(exchange.path("stockLimit").asLong(0) >= 0 && exchange.path("buyLimit").asLong(0) >= 0 && interval > 0 && interval % 86400L == 0L) {

@@ -149,8 +149,12 @@ class EventAdminService(private val jdbc: JdbcTemplate, private val mapper: Obje
             val id = exchange.path("id").asString()
             if (id.isNotBlank()) require(idPattern.matches(id) && ids.add(id)) { "교환 ID가 올바르지 않거나 중복되었습니다: $id" }
             require(exchange.path("cost").isObject && exchange.path("gives").isObject && exchange.path("gives").size() > 0) { "교환 비용과 지급품 설정이 올바르지 않습니다." }
-            require(exchange.path("stockLimit").asLong(0) >= 0 && exchange.path("buyLimit").asLong(0) >= 0 && exchange.path("buyLimitInterval").asLong(86400) > 0) { "교환 제한 값이 올바르지 않습니다." }
-            (exchange.path("cost").properties() + exchange.path("gives").properties()).forEach { (_, amount) -> require(amount.asLong() > 0) { "교환 아이템 수량은 1 이상이어야 합니다." } }
+            val interval = exchange.path("buyLimitInterval").asLong(86400)
+            require(exchange.path("stockLimit").asLong(0) >= 0 && exchange.path("buyLimit").asLong(0) >= 0 && interval > 0 && interval % 86400L == 0L) {
+                "교환 제한은 1일 이상의 정수 단위로 설정해야 합니다."
+            }
+            exchange.path("cost").properties().forEach { (_, amount) -> require(amount.asLong() >= 0) { "교환 비용은 0 이상이어야 합니다." } }
+            exchange.path("gives").properties().forEach { (_, amount) -> require(amount.asLong() > 0) { "교환 지급 수량은 1 이상이어야 합니다." } }
         }
     }
 

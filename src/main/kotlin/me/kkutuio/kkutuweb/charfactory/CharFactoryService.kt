@@ -21,11 +21,13 @@ package me.kkutuio.kkutuweb.charfactory
 import tools.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
+import me.kkutuio.kkutuweb.event.EventMetricService
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.shop.ShopService
 import me.kkutuio.kkutuweb.user.UserDao
 import me.kkutuio.kkutuweb.word.WordDao
 import org.postgresql.util.PGobject
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import jakarta.servlet.http.HttpSession
@@ -40,8 +42,11 @@ class CharFactoryService(
     @Autowired private val userDao: UserDao,
     @Autowired private val wordDao: WordDao,
     @Autowired private val shopService: ShopService,
-    @Autowired private val loginService: LoginService
+    @Autowired private val loginService: LoginService,
+    @Autowired private val eventMetricService: EventMetricService
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     fun previewCharFactory(word: String, l: Int, b: String): CFResult {
         return if (l == -1) getCfEventRewards(word, b == "1") else getCfRewards(word, l, b == "1")
     }
@@ -132,6 +137,14 @@ class CharFactoryService(
                 "box" to userBoxJsonObj
             )
         )
+        try {
+            eventMetricService.record(
+                user.id, "word.combine", 1,
+                mapOf("lang" to findLanguage(wordString), "eventPieces" to event, "blend" to blend, "length" to wordString.length)
+            )
+        } catch (error: Exception) {
+            logger.warn("글자 조합 행사 미션 기록 실패: {}", error.message)
+        }
         return "{\"result\":200,\"box\":${user.box.toJson()},\"money\":$afterMoney,\"gain\":${
             objectMapper.writeValueAsString(
                 gained

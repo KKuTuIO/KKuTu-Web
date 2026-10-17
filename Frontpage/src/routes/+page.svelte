@@ -61,6 +61,15 @@
     let newsLoading = $state(true);
     let newsError = $state('');
     let newsRequestId = 0;
+    let newsTabs = $state([
+        {
+            slug: 'all',
+            name: '전체보기',
+            apiPath: '/v1/news/all',
+            boardUrl: 'https://cafe.naver.com/kkutuio',
+            enabled: true
+        }
+    ]);
     let newsData = $state({
         defaultTab: 'all',
         selectedTab: {
@@ -94,6 +103,7 @@
             const payload = await response.json();
             if (requestId === newsRequestId) {
                 newsData = payload;
+                if (slug === 'all' && Array.isArray(payload.tabs)) newsTabs = payload.tabs;
                 if (Array.isArray(payload.legacyData)) finalData = payload.legacyData;
             }
         } catch (error) {
@@ -547,12 +557,12 @@
                         value={selectedNewsTab}
                         onchange={(event) => loadNewsTab(event.currentTarget.value)}
                     >
-                        {#each newsData.tabs as newsTab}
+                        {#each newsTabs as newsTab}
                             <option value={newsTab.slug} disabled={newsTab.enabled === false}>{newsTab.name}</option>
                         {/each}
                     </select>
                     <nav class="hidden min-w-0 flex-1 gap-1 overflow-x-auto pb-1 lg:flex lg:justify-end" aria-label="소식 게시판">
-                        {#each newsData.tabs as newsTab}
+                        {#each newsTabs as newsTab}
                             <button
                                 type="button"
                                 class={`shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold transition-colors ${selectedNewsTab === newsTab.slug ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'} disabled:cursor-not-allowed disabled:opacity-35`}

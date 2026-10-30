@@ -33,7 +33,8 @@ class MailboxAdminService(
     )
 
     @Transactional
-    fun create(request: MailboxAdminMailRequest, adminId: String): MailboxAdminMail {
+    fun create(request: MailboxAdminMailRequest, adminId: String, canManageRewards: Boolean): MailboxAdminMail {
+        requireNoticeAccess(request.rewards, canManageRewards)
         val normalized = validate(request)
         try {
             jdbcTemplate.update(
@@ -57,10 +58,12 @@ class MailboxAdminService(
     }
 
     @Transactional
-    fun update(mailId: String, request: MailboxAdminMailRequest, adminId: String): MailboxAdminMail {
+    fun update(mailId: String, request: MailboxAdminMailRequest, adminId: String, canManageRewards: Boolean): MailboxAdminMail {
         require(request.id == mailId) { "우편 ID는 수정할 수 없습니다." }
+        requireNoticeAccess(request.rewards, canManageRewards)
         val normalized = validate(request)
-        val before = find(mailId)
+        val before = find(mailId, lock = true)
+        requireNoticeAccess(before.rewards, canManageRewards)
         jdbcTemplate.update(
             """
             UPDATE mailbox
@@ -81,8 +84,9 @@ class MailboxAdminService(
     }
 
     @Transactional
-    fun delete(mailId: String, adminId: String) {
-        val before = find(mailId)
+    fun delete(mailId: String, adminId: String, canManageRewards: Boolean) {
+        val before = find(mailId, lock = true)
+        requireNoticeAccess(before.rewards, canManageRewards)
         jdbcTemplate.update("DELETE FROM mailbox WHERE _id = ?", mailId)
         audit(mailId, "DELETE", before, null, adminId)
     }
@@ -206,12 +210,18 @@ class MailboxAdminService(
         }
     }
 
-    private fun find(mailId: String): MailboxAdminMail = jdbcTemplate.query(
+    private fun requireNoticeAccess(rewards: JsonNode, canManageRewards: Boolean) {
+        if (!canManageRewards && (!rewards.isArray || rewards.size() != 0)) {
+            throw ResponseStatusException(HttpStatus.FORBIDDEN, "공지 우편 권한으로는 보상이 포함된 우편을 관리할 수 없습니다.")
+        }
+    }
+
+    private fun find(mailId: String, lock: Boolean = false): MailboxAdminMail = jdbcTemplate.query(
         """
         SELECT _id, name, content, distribution_start_at, distribution_end_at, claim_end_at,
                max_distribution_count, distributed_count, eligibility, per_user_claim_limit,
                rewards, active, created_at, updated_at
-        FROM mailbox WHERE _id = ?
+        FROM mailbox WHERE _id = ?${if (lock) " FOR UPDATE" else ""}
         """.trimIndent(),
         ::mapMail,
         mailId

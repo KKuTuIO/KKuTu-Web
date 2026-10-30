@@ -31,6 +31,7 @@ data class AdminSetting(
         WORD,
         CROSSWORD,
         MAILBOX,
+        MAILBOX_NOTICE,
         EVENT,
         SHOP,
         USER_MODERATION_READ,

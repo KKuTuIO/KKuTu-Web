@@ -24,15 +24,15 @@ class MailboxAdminApi(
 ) {
     @GetMapping("/mailbox")
     fun list(session: HttpSession): List<MailboxAdminMail> {
-        authorizer.require(session, AdminSetting.Privilege.MAILBOX)
+        authorizer.requireAny(session, AdminSetting.Privilege.MAILBOX, AdminSetting.Privilege.MAILBOX_NOTICE)
         return service.list()
     }
 
     @PostMapping("/mailbox")
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@RequestBody body: MailboxAdminMailRequest, session: HttpSession): MailboxAdminMail {
-        val actor = authorizer.require(session, AdminSetting.Privilege.MAILBOX)
-        return service.create(body, actor)
+        val actor = authorizer.requireAny(session, AdminSetting.Privilege.MAILBOX, AdminSetting.Privilege.MAILBOX_NOTICE)
+        return service.create(body, actor, authorizer.hasPrivilege(session, AdminSetting.Privilege.MAILBOX))
     }
 
     @PutMapping("/mailbox/{mailId}")
@@ -41,15 +41,15 @@ class MailboxAdminApi(
         @RequestBody body: MailboxAdminMailRequest,
         session: HttpSession
     ): MailboxAdminMail {
-        val actor = authorizer.require(session, AdminSetting.Privilege.MAILBOX)
-        return service.update(mailId, body, actor)
+        val actor = authorizer.requireAny(session, AdminSetting.Privilege.MAILBOX, AdminSetting.Privilege.MAILBOX_NOTICE)
+        return service.update(mailId, body, actor, authorizer.hasPrivilege(session, AdminSetting.Privilege.MAILBOX))
     }
 
     @DeleteMapping("/mailbox/{mailId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable mailId: String, session: HttpSession) {
-        val actor = authorizer.require(session, AdminSetting.Privilege.MAILBOX)
-        service.delete(mailId, actor)
+        val actor = authorizer.requireAny(session, AdminSetting.Privilege.MAILBOX, AdminSetting.Privilege.MAILBOX_NOTICE)
+        service.delete(mailId, actor, authorizer.hasPrivilege(session, AdminSetting.Privilege.MAILBOX))
     }
 
     @GetMapping("/mailbox-audits")
@@ -62,7 +62,7 @@ class MailboxAdminApi(
         @RequestParam(defaultValue = "") admin: String,
         session: HttpSession
     ): ListResponse<MailboxAuditEntry> {
-        authorizer.require(session, AdminSetting.Privilege.MAILBOX)
+        authorizer.requireAny(session, AdminSetting.Privilege.MAILBOX, AdminSetting.Privilege.MAILBOX_NOTICE)
         return service.audits(page, size, sort, mailId, action, admin)
     }
 }

@@ -44,3 +44,5 @@ oauth.json
 in_game_kkutu.js
 /node_modules/
 /logs/
+
+.env

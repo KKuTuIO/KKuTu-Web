@@ -1,0 +1,219 @@
+/* Same order Tailwind declares; stating it first keeps our component classes below its utilities. */
+@layer theme, base, components, utilities;
+
+@font-face {
+	font-family: 'NanumSquare Neo';
+	font-weight: 400;
+	font-display: swap;
+	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'NanumSquare Neo';
+	font-weight: 700;
+	font-display: swap;
+	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'NanumSquare Neo';
+	font-weight: 800;
+	font-display: swap;
+	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'NanumSquare Neo';
+	font-weight: 900;
+	font-display: swap;
+	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.ttf) format('truetype');
+}
+
+/* Game client theme. Accent green is the homepage's (#55aa55); `-strong` is the same hue
+   darkened until white text on it passes 4.5:1. Dark values follow prefers-color-scheme,
+   like the homepage's dark: variants. */
+.kk {
+	--kk-bg: #f1f6f1;
+	--kk-surface: #ffffff;
+	--kk-surface-2: #f5f8f5;
+	--kk-line: #dce5dc;
+	--kk-line-strong: #b9c8b9;
+	--kk-text: #18211a;
+	--kk-muted: #556456;
+	/* Theme: green-500 for decoration, green-700 where white text sits on it (4.5:1), green-100 for soft fills. */
+	--kk-accent: #22c55e;
+	--kk-accent-strong: #15803d;
+	--kk-accent-soft: #dcfce7;
+	/* Solid fills (primary buttons, selected chips, checked boxes) use green-500 itself; the stronger green
+	   above is only for text on light surfaces. */
+	--kk-fill: #22c55e;
+	--kk-fill-edge: #15803d;
+	--kk-panel: #f4f4f5; /* very light neutral for secondary panels */
+	--kk-warn: #b45309;
+	--kk-warn-soft: #fdf0dc;
+	--kk-danger: #c62828;
+	--kk-danger-soft: #fde8e8;
+	--kk-blue: #2563eb;
+	--kk-shadow: 0 2px 0 var(--kk-line-strong);
+	/* Radius scale: small (list options, tooltips, tags) / control (buttons, inputs, chips) / surface (cards, dialogs).
+	   Only circles (avatars, dots, bars, thumbs) are fully round. Tailwind's rounded-* are pinned to it below. */
+	--kk-r-sm: 0.5rem;
+	--kk-r-md: 0.75rem;
+	--kk-r-lg: 1rem;
+	--radius-md: var(--kk-r-sm);
+	--radius-lg: var(--kk-r-sm);
+	--radius-xl: var(--kk-r-md);
+	--radius-2xl: var(--kk-r-lg);
+	--radius-3xl: var(--kk-r-lg);
+	/* Call-to-action: green-500 to teal-500, left to right, with a hard darker edge. */
+	--kk-cta-from: #22c55e;
+	--kk-cta-to: #14b8a6;
+	--kk-cta-edge: #0f7a5c;
+	font-family: 'NanumSquare Neo', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	color: var(--kk-text);
+	background: var(--kk-bg);
+}
+@media (prefers-color-scheme: dark) {
+	.kk {
+		--kk-bg: #0f1510;
+		--kk-surface: #172019;
+		--kk-surface-2: #1d2820;
+		--kk-line: #2a382c;
+		--kk-line-strong: #3d4f3f;
+		--kk-text: #e8f0e8;
+		--kk-muted: #9fb2a0;
+		--kk-accent: #4ade80;
+		--kk-accent-strong: #16a34a;
+		--kk-accent-soft: #14301f;
+		--kk-fill: #16a34a;
+		--kk-fill-edge: #0e6b30;
+		--kk-panel: #1b211d;
+		--kk-warn: #fbbf24;
+		--kk-warn-soft: #3a2f12;
+		--kk-danger: #ff8a80;
+		--kk-danger-soft: #3b1d1d;
+		--kk-blue: #7db3ff;
+		--kk-shadow: 0 2px 0 rgb(0 0 0 / 0.5);
+		--kk-cta-from: #16a34a;
+		--kk-cta-to: #0d9488;
+		--kk-cta-edge: #0a5e4c;
+	}
+}
+.kk dialog { color: var(--kk-text); background: var(--kk-surface); }
+.kk ::selection { background: var(--kk-accent-soft); }
+
+/* Components (in a layer so Tailwind utilities on the same element win) */
+@layer components {
+	.kk-card { background: var(--kk-surface); border: 1.5px solid var(--kk-line); border-radius: var(--kk-r-lg); box-shadow: var(--kk-shadow); }
+	.kk-input { background: var(--kk-surface-2); border: 1.5px solid var(--kk-line); border-radius: var(--kk-r-md); color: inherit; }
+	.kk-input:focus-within, .kk-input:focus { outline: none; border-color: var(--kk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-accent) 28%, transparent); }
+	.kk-btn { min-height: 2.75rem; padding: 0 1.1rem; border-radius: var(--kk-r-md); font-weight: 800; border: 1.5px solid var(--kk-line-strong); background: var(--kk-surface); box-shadow: 0 3px 0 var(--kk-line-strong); transition: transform 0.08s, box-shadow 0.08s, background 0.1s, filter 0.1s; }
+	.kk-btn:hover:not(:disabled) { background: var(--kk-accent-soft); }
+	.kk-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--kk-line-strong); }
+	.kk-btn:disabled { opacity: 0.5; }
+	.kk-btn-primary { color: #fff; border-color: transparent; background: var(--kk-fill); text-shadow: 0 1px 0 rgb(0 0 0 / 0.25); box-shadow: 0 3px 0 var(--kk-fill-edge); }
+	.kk-btn-primary:hover:not(:disabled) { background: var(--kk-fill); filter: brightness(1.06); }
+	.kk-btn-primary:active:not(:disabled) { box-shadow: 0 1px 0 var(--kk-fill-edge); }
+	.kk-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.05rem 0.55rem; border-radius: var(--kk-r-sm); background: var(--kk-accent-soft); color: var(--kk-accent-strong); font-size: 0.75rem; font-weight: 700; }
+	.kk-bar { height: 0.6rem; border-radius: 999px; background: var(--kk-line); overflow: hidden; }
+	.kk-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--kk-accent); }
+	.kk-tab { min-height: 2.75rem; flex: 1; font-weight: 700; color: var(--kk-muted); border-bottom: 3px solid transparent; }
+	.kk-tab[aria-pressed='true'], .kk-tab[aria-selected='true'] { color: var(--kk-text); border-bottom-color: var(--kk-accent); }
+	/* The two big lobby buttons share one structure (icon block + centred label) so they size identically. */
+	.kk-btn-lg { display: inline-flex; align-items: stretch; min-height: 3.5rem; padding: 0; overflow: hidden; font-size: 1.125rem; border-radius: var(--kk-r-md); box-shadow: 0 4px 0 var(--kk-line-strong); }
+	.kk-btn-lg > .kk-btn-icon { display: grid; place-items: center; width: 3.5rem; flex: none; }
+	.kk-btn-lg > .kk-btn-label { display: grid; flex: 1; place-items: center; padding: 0 1.25rem 0 0.25rem; white-space: nowrap; }
+	.kk-btn-lg:active:not(:disabled) { box-shadow: 0 2px 0 var(--kk-line-strong); }
+
+	/* 트로피 리그: a dark arena button with gold trim. Hovering warms the background and lets embers drift up. */
+	.kk-btn-league {
+		position: relative;
+		color: #ffd66b;
+		border: 0;
+		text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+		background: #1d1812;
+		box-shadow: 0 4px 0 #5a3d0c, inset 0 0 0 1px rgb(255 205 90 / 0.35);
+		transition: background-color 0.18s, color 0.18s, transform 0.08s, box-shadow 0.08s;
+	}
+	.kk-btn-league > .kk-btn-icon, .kk-btn-league > .kk-btn-label { position: relative; z-index: 1; }
+	.kk-btn-league:hover:not(:disabled), .kk-btn-league:focus-visible:not(:disabled) { background: #6b4b12; color: #fff4cc; }
+	.kk-btn-league:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #5a3d0c, inset 0 0 0 1px rgb(255 205 90 / 0.35); }
+
+	/* Embers: small sparks that rise and fade, only animated (and visible) while the button is pointed at. */
+	.kk-embers { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; }
+	.kk-embers > b {
+		position: absolute;
+		bottom: 4px;
+		left: calc(var(--x) * 1%);
+		width: 3px;
+		height: 3px;
+		border-radius: 50%;
+		background: #ffc24d;
+		box-shadow: 0 0 4px 1px rgb(255 160 40 / 0.9);
+		opacity: 0;
+		animation: kk-ember var(--d) ease-out infinite;
+		animation-delay: var(--delay);
+		animation-play-state: paused;
+	}
+	.kk-btn-league:hover:not(:disabled) .kk-embers, .kk-btn-league:focus-visible:not(:disabled) .kk-embers { opacity: 1; }
+	.kk-btn-league:hover:not(:disabled) .kk-embers > b, .kk-btn-league:focus-visible:not(:disabled) .kk-embers > b { animation-play-state: running; }
+
+	/* The call-to-action: horizontal green-to-teal gradient, no border, play icon straight on the gradient. */
+	.kk-btn-hero {
+		color: #fff;
+		border: 0;
+		text-shadow: 0 1px 1px rgb(0 0 0 / 0.3);
+		background: linear-gradient(90deg, var(--kk-cta-from), var(--kk-cta-to));
+		box-shadow: 0 4px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3);
+	}
+	.kk-btn-hero:hover:not(:disabled) { background: linear-gradient(90deg, var(--kk-cta-from), var(--kk-cta-to)); filter: brightness(1.06); }
+	.kk-btn-hero:active:not(:disabled) { box-shadow: 0 2px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3); transform: translateY(2px); }
+
+}
+
+/* Floating tool windows (FloatWindow): translucent until pointed at, focused or dragged. */
+.kk-float { transition: opacity 0.15s ease; }
+.kk-float[data-ghost='true'] { opacity: 0.5; }
+.kk-float[data-ghost='true']:hover, .kk-float[data-ghost='true']:focus-within, .kk-float[data-dragging='true'] { opacity: 1; }
+
+/* Dialog motion: overshooting spring in, quick anticipation-and-shrink out. */
+.kk-bouncy[open] { animation: kk-pop-in 0.26s cubic-bezier(0.34, 1.7, 0.64, 1) both; }
+.kk-bouncy[open]::backdrop { animation: kk-fade-in 0.15s ease-out both; }
+.kk-bouncy.kk-closing { animation: kk-pop-out 0.18s ease-in both; }
+.kk-bouncy.kk-closing::backdrop { animation: kk-fade-out 0.18s ease-in both; }
+@keyframes kk-pop-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes kk-pop-out { 0% { transform: none; opacity: 1; } 30% { transform: scale(1.04); opacity: 1; } 100% { transform: translateY(20px) scale(0.6); opacity: 0; } }
+@keyframes kk-fade-in { from { opacity: 0; } }
+@keyframes kk-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+	.kk-bouncy[open], .kk-bouncy.kk-closing, .kk-bouncy[open]::backdrop, .kk-bouncy.kk-closing::backdrop { animation-duration: 0.01ms; }
+}
+
+/* macOS-style close: red traffic-light dot, glyph shows on hover/focus. */
+.kk-close { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; }
+.kk-close > span { display: grid; place-items: center; width: 0.95rem; height: 0.95rem; border-radius: 999px; background: #ff5f57; border: 1px solid #e0443e; color: #4c0b07; font-size: 0.7rem; font-weight: 900; line-height: 1; }
+.kk-close > span > svg { opacity: 0; transition: opacity 0.1s; }
+.kk-close:hover > span > svg, .kk-close:focus-visible > span > svg { opacity: 1; }
+.kk-close:focus-visible > span { outline: 2px solid var(--kk-accent); outline-offset: 2px; }
+
+@keyframes kk-ember {
+	0% { transform: translate(0, 0) scale(1); opacity: 0; }
+	15% { opacity: 1; }
+	100% { transform: translate(var(--drift, 6px), -46px) scale(0.3); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.kk-embers { display: none; }
+}
+
+@keyframes kk-check-pop { 0% { transform: scale(0.3); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.kk-check-pop { animation: kk-check-pop 0.2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .kk-check-pop { animation: none; } }
+
+/* Scrollbars: slim, rounded thumb that darkens on hover. Firefox gets the standard properties;
+   Chromium/Safari get the pseudo-elements (and must not get the standard ones, which would override them). */
+.kk * { scrollbar-width: thin; scrollbar-color: var(--kk-line-strong) transparent; }
+@supports selector(::-webkit-scrollbar) {
+	.kk * { scrollbar-width: auto; scrollbar-color: auto; }
+	.kk ::-webkit-scrollbar { width: 12px; height: 12px; }
+	.kk ::-webkit-scrollbar-track { background: transparent; }
+	.kk ::-webkit-scrollbar-thumb { background: var(--kk-line-strong); border: 3px solid transparent; background-clip: content-box; border-radius: 999px; }
+	.kk ::-webkit-scrollbar-thumb:hover { background: var(--kk-muted); background-clip: content-box; }
+	.kk ::-webkit-scrollbar-corner { background: transparent; }
+}

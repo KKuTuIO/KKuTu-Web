@@ -9,7 +9,7 @@ const config = {
 			// these options are set automatically — see below
 			pages: '../src/main/resources/static',
 			assets: '../src/main/resources/static',
-			fallback: undefined,
+			fallback: '200.html',
 			precompress: false,
 			strict: true
 		})

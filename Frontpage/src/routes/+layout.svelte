@@ -29,7 +29,10 @@
 	  {/if}
   </svelte:head>
   
-  <div class="app">
+  {#if page.url.pathname.startsWith('/play')}
+	{@render children?.()}
+{:else}
+<div class="app">
 	  {#if page.url.pathname.includes('man')}
 	  <HeaderMan />
 	  {:else if page.url.pathname.includes('event_')}
@@ -47,4 +50,5 @@
 	  {/if}
   
   </div>
+{/if}
   

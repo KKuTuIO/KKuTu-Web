@@ -17,7 +17,7 @@ class AccountPageController(
     @GetMapping("/account", "/account/security", "/account/services")
     fun account(session: HttpSession): String {
         if (accounts.currentAccount(session) == null) return "redirect:/login"
-        return if (loginService.needsSetup(session)) "redirect:/setup" else "forward:/account.html"
+        return if (loginService.needsSetup(session)) "redirect:/play/0" else "forward:/account.html"
     }
     @GetMapping("/account/apps")
     fun connectedApplications(session: HttpSession): String = if (accounts.currentAccount(session) == null) "redirect:/login" else "forward:/account/apps.html"

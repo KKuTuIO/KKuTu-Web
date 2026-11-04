@@ -23,6 +23,7 @@ import me.kkutuio.kkutuweb.game.GameClientManager
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.view.RedirectView
 import jakarta.servlet.http.HttpSession
@@ -39,7 +40,10 @@ class ServersApi(
     }
 
     @GetMapping("/game/recommended")
-    fun redirectToRecommendedServer(session: HttpSession): RedirectView {
+    fun redirectToRecommendedServer(
+        session: HttpSession,
+        @RequestParam(required = false) client: String?
+    ): RedirectView {
         val servers = gameClientManager.getPlayers()
         val configuration = recommendedChannelService.getConfiguration()
         val allowedChannels = if (session.isGuest()) GUEST_CHANNELS else null
@@ -50,7 +54,8 @@ class ServersApi(
             allowedChannels
         )
 
-        return RedirectView("/game/server/$channel")
+        // `client=new` opens the Svelte client (/play/{n}); anything else keeps the legacy client.
+        return RedirectView(if (client == "new") "/play/$channel" else "/game/server/$channel")
     }
 }
 

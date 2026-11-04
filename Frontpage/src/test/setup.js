@@ -26,3 +26,24 @@ if (!Element.prototype.animate) {
 		};
 	};
 }
+
+// jsdom has no ResizeObserver (used by Svelte's bind:clientWidth); sizes stay 0 in tests.
+if (typeof ResizeObserver === 'undefined') {
+	globalThis.ResizeObserver = class {
+		observe() {}
+		unobserve() {}
+		disconnect() {}
+	};
+}
+
+// jsdom's <dialog> has no showModal/close; model just the open state.
+if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
+	HTMLDialogElement.prototype.showModal = function () {
+		this.setAttribute('open', '');
+	};
+	HTMLDialogElement.prototype.show = HTMLDialogElement.prototype.showModal;
+	HTMLDialogElement.prototype.close = function () {
+		this.removeAttribute('open');
+		this.dispatchEvent(new Event('close'));
+	};
+}

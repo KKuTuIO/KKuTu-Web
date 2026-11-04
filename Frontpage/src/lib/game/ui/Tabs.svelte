@@ -3,13 +3,17 @@
 	 * Horizontal tab strip (WAI-ARIA tablist). The parent renders the panels:
 	 *   <Tabs bind:value tabs={[{id,label}]} idPrefix="x" />
 	 *   <div role="tabpanel" id="x-panel-{id}" aria-labelledby="x-tab-{id}">…</div>
-	 * @type {{tabs:{id:string,label:string}[], value:string, idPrefix:string, label?:string}}
+	 * `orientation="vertical"` stacks the tabs (indicator on the right edge) and uses Up/Down arrows.
+	 * @type {{tabs:{id:string,label:string,count?:number}[], value:string, idPrefix:string, label?:string, orientation?:'horizontal'|'vertical'}}
 	 */
-	let { tabs = [], value = $bindable(), idPrefix, label = '' } = $props();
+	let { tabs = [], value = $bindable(), idPrefix, label = '', orientation = 'horizontal' } = $props();
+	const vertical = $derived(orientation === 'vertical');
 	let els = $state([]);
 	function nav(e, i) {
 		const n = tabs.length;
-		const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: n - 1 }[e.key];
+		const next = vertical ? 'ArrowDown' : 'ArrowRight';
+		const prev = vertical ? 'ArrowUp' : 'ArrowLeft';
+		const to = { [next]: i + 1, [prev]: i - 1, Home: 0, End: n - 1 }[e.key];
 		if (to === undefined) return;
 		e.preventDefault();
 		const j = (to + n) % n;
@@ -18,7 +22,7 @@
 	}
 </script>
 
-<div role="tablist" aria-label={label} class="flex border-b border-(color:--kk-line)">
+<div role="tablist" aria-orientation={orientation} aria-label={label} class="flex {vertical ? 'flex-col' : 'border-b border-(color:--kk-line)'}">
 	{#each tabs as tab, i (tab.id)}
 		<button
 			bind:this={els[i]}
@@ -30,7 +34,7 @@
 			tabindex={value === tab.id ? 0 : -1}
 			onclick={() => (value = tab.id)}
 			onkeydown={(e) => nav(e, i)}
-			class="kk-tab focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--kk-accent)"
-		>{tab.label}</button>
+			class="kk-tab inline-flex items-center justify-center gap-1.5 {vertical ? 'kk-tab-v' : ''} focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-(--kk-accent)"
+		>{tab.label}{#if tab.count}<span class="rounded-full px-2 py-0.5 text-xs leading-none font-extrabold tabular-nums {value === tab.id ? 'bg-(--kk-accent-soft) text-(color:--kk-accent-strong)' : 'bg-(--kk-surface-2) text-(color:--kk-muted)'}">{tab.count}</span>{/if}</button>
 	{/each}
 </div>

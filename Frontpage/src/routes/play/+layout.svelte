@@ -1,5 +1,6 @@
 <script>
 	import '$lib/game/game.css';
+	import '$lib/game/nickSkins.css';
 	let { children } = $props();
 </script>
 

@@ -21,7 +21,8 @@ class AcademyInjeongDao(private val jdbcTemplate: JdbcTemplate) {
         endChar: String?,
         theme: String?,
         mission: String?,
-        limit: Int
+        limit: Int,
+        word: String? = null
     ): List<AcademyWordRecord> {
         val table = when (lang) {
             "ko" -> "kkutu_ko"
@@ -52,6 +53,10 @@ class AcademyInjeongDao(private val jdbcTemplate: JdbcTemplate) {
         if (!theme.isNullOrBlank()) {
             clauses += "? = ANY(string_to_array(COALESCE(w.theme, ''), ','))"
             values += theme
+        }
+        if (!word.isNullOrBlank()) {
+            clauses += "w._id ILIKE ? ESCAPE '\\'"
+            values += escapeLike(word)
         }
         if (!mission.isNullOrBlank()) {
             clauses += "w._id ILIKE ? ESCAPE '\\'"

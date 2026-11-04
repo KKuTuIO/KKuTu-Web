@@ -38,9 +38,11 @@
 		if (delay > 0) timer = setTimeout(() => (open = true), delay);
 		else open = true;
 	}
+	// A focused target that an update removes fires `focusout` while Svelte is still tearing the page down, and writing state then is
+	// refused (state_unsafe_mutation): closing a moment later is invisible and always allowed.
 	function hide() {
 		clearTimeout(timer);
-		open = false;
+		if (open) queueMicrotask(() => (open = false));
 	}
 
 	$effect(() => {

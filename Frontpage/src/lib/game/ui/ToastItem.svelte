@@ -1,12 +1,13 @@
 <script>
 	import { t } from '../i18n.svelte.js';
+	import { cdnImg } from '../../cdn.js';
 	import { fly } from 'svelte/transition';
 	import Icon from '../lobby/Icon.svelte';
 	import { dismiss, pause, resume } from './toast.svelte.js';
 
 	let { toast } = $props();
 
-	// Legacy toast icon set (static/img/play/toast). Errors and warnings share the alert icon.
+	// Legacy toast icon set (cdn img/play/toast). Errors and warnings share the alert icon.
 	const iconFor = { info: 'info', success: 'info', warn: 'alert', error: 'alert' };
 
 	const THRESHOLD = 70; // px of horizontal drag that counts as a swipe-away
@@ -54,7 +55,7 @@
 	style:opacity={dragging ? Math.max(0.35, 1 - Math.abs(dx) / 260) : 1}
 	class="group pointer-events-auto relative flex w-fit max-w-[min(24rem,100%)] cursor-grab touch-pan-y items-center gap-2.5 rounded-xl border-[1.5px] border-(color:--kk-line-strong) bg-(--kk-surface) py-2.5 pr-3 pl-3 text-sm font-bold text-(color:--kk-text) shadow-[0_2px_0_var(--kk-line-strong)] select-none {dragging ? 'cursor-grabbing' : 'transition-[transform,opacity] duration-200'}"
 >
-	<img src="/img/play/toast/{toast.icon ?? iconFor[toast.kind] ?? 'info'}.png" alt="" aria-hidden="true" draggable="false" class="h-5 w-auto shrink-0" />
+	<img src={cdnImg(`play/toast/${toast.icon ?? iconFor[toast.kind] ?? 'info'}.png`)} alt="" aria-hidden="true" draggable="false" class="h-5 w-auto shrink-0" />
 	<span class="min-w-0 break-keep">{toast.message}</span>
 	<button
 		type="button"

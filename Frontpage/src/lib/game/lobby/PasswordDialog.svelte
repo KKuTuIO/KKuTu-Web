@@ -1,7 +1,8 @@
 <script>
 	import { t } from '../i18n.svelte.js';
 	import Dialog from './Dialog.svelte';
-	let { room = null, onsubmit } = $props();
+	/** `room` is bindable: closing clears it, so the same room can be opened again. */
+	let { room = $bindable(null), onsubmit } = $props();
 	let open = $state(false);
 	let pw = $state('');
 	$effect(() => {

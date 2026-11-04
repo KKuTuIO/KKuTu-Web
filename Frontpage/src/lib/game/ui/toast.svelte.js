@@ -1,5 +1,7 @@
 /** Global toast queue. Call `toast(...)` from anywhere; <ToastHost/> renders it. */
 export const toasts = $state([]);
+/** Everything that was said in a toast, newest first: the legacy client listed these under 알림. */
+export const history = $state([]);
 const timers = new Map();
 const left = new Map(); // id -> { start, remaining } so hover pauses the countdown instead of resetting it
 let seq = 0;
@@ -26,6 +28,8 @@ function arm(id, ms) {
  */
 export function toast(message, { kind = 'info', icon, duration = 3800 } = {}) {
 	const id = ++seq;
+	history.unshift({ id, message, kind, icon, at: Date.now() });
+	if (history.length > 30) history.pop();
 	toasts.push({ id, message, kind, icon, duration });
 	if (toasts.length > 4) dismiss(toasts[0].id);
 	arm(id, duration);

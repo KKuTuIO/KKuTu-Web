@@ -6,9 +6,10 @@
 	 * The list lives in the browser's top layer (popover), so neither a scrolling nor an animated (transformed)
 	 * dialog can clip or offset it, and it flips upward when there is no room below.
 	 * Options may be `disabled` (shown, announced as unavailable, skipped by the keyboard) and carry a `badge`.
-	 * @type {{options:{value:any,label:string,disabled?:boolean,badge?:string}[], value:any, label?:string, onchange?:(v:any)=>void}}
+	 * `leading(option)` draws a mark before the label (in the closed box and in the rows); `dense` is a smaller box.
+	 * @type {{options:{value:any,label:string,disabled?:boolean,badge?:string}[], value:any, label?:string, onchange?:(v:any)=>void, leading?:import('svelte').Snippet<[any]>, dense?:boolean}}
 	 */
-	let { options = [], value = $bindable(), label = '', onchange } = $props();
+	let { options = [], value = $bindable(), label = '', onchange, leading, dense = false } = $props();
 	let open = $state(false);
 	let active = $state(0);
 	let trigger = $state();
@@ -140,9 +141,9 @@
 	aria-activedescendant={open ? `${uid}-${active}` : undefined}
 	onclick={() => (open ? hide() : show())}
 	onkeydown={key}
-	class="kk-input flex h-11 w-full items-center justify-between gap-2 rounded-xl px-3 text-left"
+	class="kk-input flex {dense ? 'h-9 text-sm' : 'h-11'} w-full items-center justify-between gap-2 rounded-xl px-3 text-left"
 >
-	<span class="min-w-0 truncate">{selected?.label ?? ''}</span>
+	<span class="flex min-w-0 items-center gap-2">{#if leading && selected}{@render leading(selected)}{/if}<span class="min-w-0 truncate">{selected?.label ?? ''}</span></span>
 	<Icon name="expand_more" class="shrink-0 text-(color:--kk-muted) transition-transform {open ? 'rotate-180' : ''}" />
 </button>
 
@@ -171,7 +172,7 @@
 				onclick={() => choose(i)}
 				class="flex min-h-10 items-center justify-between gap-2 rounded-lg px-3 {o.disabled ? 'cursor-not-allowed opacity-55' : 'cursor-pointer'} {i === active && !o.disabled ? 'bg-(--kk-accent-soft)' : ''} {o.value === value ? 'font-extrabold text-(color:--kk-accent-strong)' : ''}"
 			>
-				<span class="flex min-w-0 items-center gap-2"><span class="truncate">{o.label}</span>{#if o.badge}<span class="kk-chip shrink-0">{o.badge}</span>{/if}</span>
+				<span class="flex min-w-0 items-center gap-2">{#if leading}{@render leading(o)}{/if}<span class="truncate">{o.label}</span>{#if o.badge}<span class="kk-chip shrink-0">{o.badge}</span>{/if}</span>
 				{#if o.value === value}<Icon name="check" size={18} />{/if}
 			</li>
 		{/each}

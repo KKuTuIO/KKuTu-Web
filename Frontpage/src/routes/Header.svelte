@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 
 	import ProfileSwitcher from '$lib/ProfileSwitcher.svelte';
+	import { loadClientPref, recommendedUrl } from '$lib/clientPref.svelte.js';
 	import {loadAuth, loadBlock, loadUser} from '$lib/session.js';
 
 	let user = $state("Guest User");
@@ -12,6 +13,7 @@
 	let activeProfileId = $state("");
 	let name = $state("Moremi");
 	let ingameName = $state("");
+	const p = $derived(page.url.pathname);
 	let mobileMenuOpen = $state(false);
 
 	// 타임 릴리즈
@@ -44,6 +46,7 @@
 	}
 	
 	onMount(async () => {
+	loadClientPref();
 	// 12월 26일 0시 5분 이후부터 타임 릴리즈 기능 활성화
 	const today = new Date();
 	const releaseDate = new Date('2024-12-26T00:05:00');
@@ -122,123 +125,76 @@
 	});
 
 </script>
+<svelte:head>
+	<style>
+		.nav-item { color: var(--kk-muted); }
+		.nav-item:hover { background: var(--kk-surface-2); color: var(--kk-text); }
+		.nav-item[aria-current='page'] { background: var(--c); color: #111; font-weight: 800; }
+	</style>
+</svelte:head>
 
-<header class="top-0 fixed w-full z-[60]">
-	<div class="bg-white dark:bg-gray-800 shadow lg:py-2 py-3">
-		<nav class="max-w-screen-xl mx-auto flex items-center justify-between px-4 lg:px-8 lg:py-0" aria-label="Global">
-		<div class="flex lg:flex-1">
-			<button type="button" class="mr-2 grid h-9 w-9 place-items-center rounded-xl text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 lg:hidden" aria-label="메뉴 열기" aria-expanded={mobileMenuOpen} onclick={() => (mobileMenuOpen = true)}>
-				<span class="material-symbols-outlined">menu</span>
-			</button>
-		<!--{#if page.url.pathname === '/' || page.url.pathname === '/index.html'}
-			<a href="/event_8th.html" class="md:flex" rel="external">
-				<span class="sr-only">끄투리오 8주년</span>
-				<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_8th.png" alt="끄투리오"/>
-				<img class="h-8 hidden dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
-			</a>
-		{:else}
-		8주년 랜딩 완료 후 주석 해제
-		{/if}-->
-			<a href="/" class="md:flex items-center space-x-2" style={mourning ? 'filter: grayscale(100%)' : ''}>
-				<span class="sr-only">끄투리오</span>
-				<div class="flex items-center space-x-4">
-					<img class="h-8 max-[360px]:h-7 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
-				</div>
-				<div class="flex items-center space-x-2">
-					<img class="h-8 hidden max-[360px]:h-7 dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/>
-				</div>
-			</a>
-		
-		</div>
-		<div class="hidden lg:flex lg:flex-1 justify-center gap-x-6">
-			<a href="/" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					home
-				</span>
-					홈</a>
-			<a href="/rank" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					trophy
-				</span>
-				랭킹</a>
-			<a href="/records" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					id_card
-				</span>
-                전적</a>
-			<a target="_blank" href="https://cafe.naver.com/kkutuio" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					local_cafe
-				</span>
-				공식카페</a>
-			<a target="_blank" href="https://kkutu.wiki" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					book_2
-				</span>
-				리오위키</a>
-			<a href="/academy" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					school
-				</span>
-                아카데미</a>
-			<a target="_blank" href="https://cs.kkutu.io" class="link-header">
-				<span class="material-symbols-outlined icons-header">
-					help
-				</span>
-				고객지원</a>
-		</div>
-		<div class="flex flex-1 justify-end gap-x-2">
+<header class="kk fixed top-0 z-[60] w-full">
+	<div class="flex h-16 items-center gap-3 border-b border-(color:--kk-line) bg-(--kk-surface) px-4 md:px-6">
+		<button type="button" class="grid h-10 w-10 place-items-center rounded-xl text-(color:--kk-muted) transition-colors hover:bg-(--kk-surface-2) lg:hidden" aria-label="메뉴 열기" aria-expanded={mobileMenuOpen} onclick={() => (mobileMenuOpen = true)}>
+			<span class="material-symbols-outlined">menu</span>
+		</button>
+		<a href="/" class="flex shrink-0 items-center" style={mourning ? 'filter: grayscale(100%)' : ''}>
+			<span class="sr-only">끄투리오</span>
+			<!-- Phones: symbol only (as in the game client). lg and up: full wordmark. -->
+			<img class="h-8 lg:hidden dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_main.svg" alt="끄투리오"/>
+			<img class="hidden h-8 dark:max-lg:block" src="https://cdn.kkutu.io/img/bi/bi_white.svg" alt="" aria-hidden="true"/>
+			<img class="hidden h-8 lg:block dark:lg:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/>
+			<img class="hidden h-8 dark:lg:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="" aria-hidden="true"/>
+		</a>
+		<nav class="mx-auto hidden min-w-0 items-center gap-1 lg:flex" aria-label="Global">
+			<a href="/" style:--c="#B0D2F3" aria-current={p === '/' ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">home</span>홈</a>
+			<a href="/rank" style:--c="#FFADD3" aria-current={(p === '/rank' || (p !== '/' && p.startsWith('/rank'))) ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">trophy</span>랭킹</a>
+			<a href="/records" style:--c="#D9FF82" aria-current={(p === '/records' || (p !== '/' && p.startsWith('/records'))) ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">id_card</span>전적</a>
+			<a href="https://cafe.naver.com/kkutuio" target="_blank" rel="noopener" style:--c="#B3E7B7" aria-current={false ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">local_cafe</span>공식카페</a>
+			<a href="https://kkutu.wiki" target="_blank" rel="noopener" style:--c="#FFC67F" aria-current={false ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">book_2</span>리오위키</a>
+			<a href="https://cs.kkutu.io" target="_blank" rel="noopener" style:--c="#BBBBBB" aria-current={false ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">help</span>고객지원</a>
+		</nav>
+		<div class="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
 			{#if user == "Guest User"}
-				<!--<button on:click={() => showDialog.set(true)}
-				class="bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
-				게임 시작
-				</button>--->
-				<a href="/game/recommended" rel="external" onclick={guardRestrictedNavigation}
-				class="shrink-0 whitespace-nowrap bg-gray-200 text-gray-500 font-semibold dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
-				게임 시작
-				</a>
-				<a href="/login" aria-label="로그인" title="로그인"
-				class:bg-gray-300={accountRestricted} class:text-gray-500={accountRestricted} class="shrink-0 whitespace-nowrap bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex items-center justify-center rounded-full py-1 px-3 max-[420px]:h-9 max-[420px]:w-9 max-[420px]:p-0 max-[360px]:h-8 max-[360px]:w-8 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
-				<span class="max-[420px]:hidden">로그인</span>
-				<span class="material-symbols-outlined hidden text-xl max-[420px]:block max-[360px]:text-lg" aria-hidden="true">login</span>
+				<a href={recommendedUrl()} rel="external" onclick={guardRestrictedNavigation} class="kk-btn kk-btn-hero hidden h-10 min-h-0 items-center gap-1.5 whitespace-nowrap px-4 text-sm lg:inline-flex"><span class="material-symbols-outlined" style="font-size:20px;font-variation-settings:'FILL' 1" aria-hidden="true">play_arrow</span>게임 시작</a>
+				<a href="/login" aria-label="로그인" class="kk-btn kk-btn-primary inline-flex h-10 min-h-0 items-center gap-1.5 whitespace-nowrap px-4 text-sm" class:opacity-60={accountRestricted}>
+					<span class="material-symbols-outlined" style="font-size:20px" aria-hidden="true">login</span><span class="max-[420px]:sr-only">로그인</span>
 				</a>
 			{:else}
-				<!--<button on:click={() => showDialog.set(true)}
-				class="shrink-0 whitespace-nowrap bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
-				게임 시작
-				</button>-->
-				<a href="/game/recommended" rel="external" onclick={guardRestrictedNavigation}
-				class="bg-[#55aa55] hover:bg-[#51a351] font-bold text-white flex rounded-full py-1 px-3 transform ease-in duration-100 active:scale-95 hover:backdrop-blur-lg">
-				게임 시작
+				<a href={recommendedUrl()} rel="external" onclick={guardRestrictedNavigation} class="kk-btn kk-btn-hero hidden h-10 min-h-0 items-center gap-1.5 whitespace-nowrap px-4 text-sm lg:inline-flex">
+					<span class="material-symbols-outlined" style="font-size:20px;font-variation-settings:'FILL' 1" aria-hidden="true">play_arrow</span>게임 시작
 				</a>
 				<ProfileSwitcher
 					profileSeed={activeProfileId || `${authVendor}:${vendorId}`}
 					profileName={ingameName.replace(/<[^>]*>/g, '')}
 					accountLabel={data?.email || name}
 				/>
-			
 			{/if}
 		</div>
-		</nav>
 	</div>
 	{#if mobileMenuOpen}
 		<div class="fixed inset-0 z-[70] lg:hidden">
-			<button type="button" class="absolute inset-0 cursor-default bg-slate-950/50 backdrop-blur-[2px]" aria-label="메뉴 닫기" onclick={() => (mobileMenuOpen = false)}></button>
-			<aside class="relative flex h-full w-[min(82vw,320px)] flex-col bg-white shadow-2xl dark:bg-slate-900" aria-label="모바일 메뉴">
-				<div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+			<button type="button" class="absolute inset-0 cursor-default bg-black/50" aria-label="메뉴 닫기" onclick={() => (mobileMenuOpen = false)}></button>
+			<aside class="relative flex h-full w-[min(82vw,320px)] flex-col border-r border-(color:--kk-line) bg-(--kk-surface)" aria-label="모바일 메뉴">
+				<div class="flex h-16 items-center justify-between border-b border-(color:--kk-line) px-5">
 					<a href="/" class="flex items-center" onclick={() => (mobileMenuOpen = false)}><img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_vertical_main.png" alt="끄투리오"/><img class="hidden h-8 dark:block" src="https://cdn.kkutu.io/img/bi/bi_vertical_white.png" alt="끄투리오"/></a>
-					<button type="button" class="grid h-9 w-9 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="메뉴 닫기" onclick={() => (mobileMenuOpen = false)}><span class="material-symbols-outlined">close</span></button>
+					<button type="button" class="grid h-10 w-10 place-items-center rounded-xl text-(color:--kk-muted) transition-colors hover:bg-(--kk-surface-2)" aria-label="메뉴 닫기" onclick={() => (mobileMenuOpen = false)}><span class="material-symbols-outlined">close</span></button>
 				</div>
 				<nav class="flex flex-1 flex-col gap-1 p-3" aria-label="모바일 탐색">
-					<a href="/" onclick={() => (mobileMenuOpen = false)} class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-slate-500">home</span>홈</a>
-					<a href="/rank" onclick={() => (mobileMenuOpen = false)} class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-amber-500">trophy</span>랭킹</a>
-					<a href="/records" onclick={() => (mobileMenuOpen = false)} class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sky-500">id_card</span>전적</a>
-					<a target="_blank" href="https://cafe.naver.com/kkutuio" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-emerald-500">local_cafe</span>공식카페</a>
-					<a target="_blank" href="https://kkutu.wiki" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-violet-500">book_2</span>리오위키</a>
-					<a href="/academy" onclick={() => (mobileMenuOpen = false)} class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-rose-500">school</span>아카데미</a>
-					<a target="_blank" href="https://cs.kkutu.io" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-indigo-500">help</span>고객지원</a>
+					<a href="/" onclick={() => (mobileMenuOpen = false)} style:--c="#B0D2F3" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">home</span>홈</a>
+					<a href="/rank" onclick={() => (mobileMenuOpen = false)} style:--c="#FFADD3" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">trophy</span>랭킹</a>
+					<a href="/records" onclick={() => (mobileMenuOpen = false)} style:--c="#D9FF82" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">id_card</span>전적</a>
+					<a href="https://cafe.naver.com/kkutuio" target="_blank" rel="noopener" onclick={() => (mobileMenuOpen = false)} style:--c="#B3E7B7" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">local_cafe</span>공식카페</a>
+					<a href="https://kkutu.wiki" target="_blank" rel="noopener" onclick={() => (mobileMenuOpen = false)} style:--c="#FFC67F" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">book_2</span>리오위키</a>
+					<a href="https://cs.kkutu.io" target="_blank" rel="noopener" onclick={() => (mobileMenuOpen = false)} style:--c="#BBBBBB" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">help</span>고객지원</a>
 				</nav>
-				<p class="border-t border-slate-200 px-5 py-4 text-xs text-slate-400 dark:border-slate-700">&copy; 주식회사 큐브시티, 모든 권리 보유.</p>
+				<p class="border-t border-(color:--kk-line) px-5 py-4 text-xs text-(color:--kk-muted)">&copy; 주식회사 큐브시티, 모든 권리 보유.</p>
 			</aside>
 		</div>
 	{/if}

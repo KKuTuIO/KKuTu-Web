@@ -39,8 +39,8 @@ class ShopDao(
         return jdbcTemplate.query(sql, shopMapper)
     }
 
-    fun increaseHit(id: String) {
-        val sql = "UPDATE kkutu_shop SET hit = hit + 1 WHERE _id = ?"
-        jdbcTemplate.update(sql, id)
+    fun increaseHit(id: String, count: Int = 1) {
+        val sql = "UPDATE kkutu_shop SET hit = hit + ? WHERE _id = ?"
+        jdbcTemplate.update(sql, count, id)
     }
 }

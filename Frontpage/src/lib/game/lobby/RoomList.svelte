@@ -9,6 +9,13 @@
 	import RoomRow from './RoomRow.svelte';
 	let { store, onjoin } = $props();
 	const s = $derived(store.ui);
+	// The table needs this much width; where it would scroll sideways the rooms default to tiles (until the user picks a view).
+	const TABLE_MIN = 960;
+	let width = $state(0);
+	$effect(() => {
+		if (s.viewPicked || !width) return;
+		s.view = width < TABLE_MIN ? 'tile' : 'list';
+	});
 	let menu = $state(false);
 	let missing = $state(null);
 	$effect(() => {
@@ -25,7 +32,7 @@
 	}
 </script>
 
-<section class="kk-card flex min-h-80 min-w-0 flex-1 flex-col overflow-hidden">
+<section bind:clientWidth={width} class="kk-card flex min-h-80 min-w-0 flex-1 flex-col overflow-hidden">
 	<div class="flex flex-wrap items-center gap-2.5 border-b border-(color:--kk-line) px-3.5 py-2">
 		<form onsubmit={submit} class="kk-input flex h-12 min-w-0 flex-1 items-center gap-2 rounded-xl px-4 sm:max-w-sm">
 			<Icon name="search" />
@@ -39,7 +46,8 @@
 			{#if menu}
 				<div role="group" aria-label={t('play.rooms.sortFilterLabel')} class="absolute top-12 right-0 z-10 w-64 kk-card p-3">
 					<p class="pb-1 text-xs font-bold text-(color:--kk-muted)">{t('play.rooms.sort')}</p>
-					<RadioGroup label={t('play.rooms.sort')} bind:value={s.sort} options={[{ value: 'recent', label: t('play.rooms.sort.recent') }, { value: 'crowded', label: t('play.rooms.sort.crowded') }, { value: 'joinable', label: t('play.rooms.sort.joinable') }]} />
+					<RadioGroup label={t('play.rooms.sort')} bind:value={s.sort} options={[{ value: 'recent', label: t('play.rooms.sort.recent') }, { value: 'crowded', label: t('play.rooms.sort.crowded') }]} />
+					<div class="pt-1"><Checkbox bind:checked={s.joinableFirst}>{t('play.rooms.sort.joinable')}</Checkbox></div>
 					<hr class="my-1.5 border-(color:--kk-line)" />
 					<p class="pb-1 text-xs font-bold text-(color:--kk-muted)">{t('play.rooms.filter')}</p>
 					<Checkbox bind:checked={s.waitingOnly}>{t('play.rooms.filter.waiting')}</Checkbox>
@@ -50,7 +58,10 @@
 		</div>
 		<div role="group" aria-label={t('play.rooms.view')} class="hidden overflow-hidden rounded-xl border-[1.5px] border-(color:--kk-line-strong) md:flex">
 			{#each [['list', 'view_list', 'play.rooms.view.list'], ['tile', 'grid_view', 'play.rooms.view.tile']] as [v, icon, key]}
-				<Tooltip text={t(key)} placement="bottom"><button type="button" aria-pressed={s.view === v} aria-label={t(key)} onclick={() => (s.view = v)} class="grid size-11 place-items-center {s.view === v ? 'bg-(--kk-fill) text-white' : 'bg-(--kk-surface) text-(color:--kk-muted) hover:bg-(--kk-accent-soft)'}"><Icon name={icon} /></button></Tooltip>
+				<Tooltip text={t(key)} placement="bottom"><button type="button" aria-pressed={s.view === v} aria-label={t(key)} onclick={() => {
+							s.view = v;
+							s.viewPicked = true;
+						}} class="grid size-11 place-items-center {s.view === v ? 'bg-(--kk-fill) text-white' : 'bg-(--kk-surface) text-(color:--kk-muted) hover:bg-(--kk-accent-soft)'}"><Icon name={icon} /></button></Tooltip>
 			{/each}
 		</div>
 	</div>

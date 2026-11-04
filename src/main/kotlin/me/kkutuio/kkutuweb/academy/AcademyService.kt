@@ -37,7 +37,7 @@ class AcademyService(
     fun injeongSearch(
         request: AcademyInjeongSearchRequest,
         session: HttpSession,
-        remainingDailyQueries: Int
+        remainingDailyQueries: Int?
     ): AcademyInjeongSearchResponse {
         val lang = request.lang.lowercase().takeIf { it == "ko" || it == "en" }
             ?: throw AcademyRequestException(400, "INVALID_LANG", "지원하지 않는 언어입니다.")
@@ -45,19 +45,25 @@ class AcademyService(
         val end = request.endChar?.trim().orEmpty()
         val theme = request.theme?.trim()?.takeIf(String::isNotEmpty)
         val mission = request.mission?.trim()?.takeIf(String::isNotEmpty)
-        require(listOf(start.isNotEmpty(), end.isNotEmpty(), theme != null).count { it } == 1) {
-            "시작 글자, 끝 글자 또는 특정 주제 중 하나를 선택해 주세요."
+        val exact = request.word?.trim()?.takeIf(String::isNotEmpty)
+        require(listOf(start.isNotEmpty(), end.isNotEmpty(), theme != null, exact != null).count { it } == 1) {
+            "시작 글자, 끝 글자, 특정 주제 또는 일치하는 단어 중 하나를 선택해 주세요."
         }
+        require(exact == null || exact.length <= 64) { "단어는 64자를 넘을 수 없습니다." }
+        require(exact == null || mission == null) { "일치하는 단어 조회에는 미션을 함께 쓸 수 없습니다." }
         require(start.isEmpty() || start.length == 1) { "시작 글자는 한 글자여야 합니다." }
         require(end.isEmpty() || end.length == 1) { "끝 글자는 한 글자여야 합니다." }
         require(theme == null || theme.length <= 64) { "주제 코드가 올바르지 않습니다." }
         require(theme == null || theme !in UNSEARCHABLE_INJEONG_THEMES) { "조회할 수 없는 주제입니다." }
         require(mission == null || mission.length == 1) { "미션 글자는 한 글자여야 합니다." }
 
-        val tokenCost = if (mission == null) 1 else 2
-        val payment = shopService.consumeToken(session, tokenCost)
-        if (payment.contains("\"error\"")) {
-            throw AcademyRequestException(402, "WORD_TOKEN_REQUIRED", "단어 토큰이 부족하거나 사용할 수 없습니다.")
+        // Checking one exact word is free; listing words by their edges or theme costs tokens.
+        val tokenCost = if (exact != null) 0 else if (mission == null) 1 else 2
+        if (tokenCost > 0) {
+            val payment = shopService.consumeToken(session, tokenCost)
+            if (payment.contains("\"error\"")) {
+                throw AcademyRequestException(402, "WORD_TOKEN_REQUIRED", "단어 토큰이 부족하거나 사용할 수 없습니다.")
+            }
         }
 
         val records = injeongDao.search(
@@ -66,6 +72,7 @@ class AcademyService(
             endChar = end.takeIf(String::isNotEmpty),
             theme = theme,
             mission = mission,
+            word = exact,
             limit = INJEONG_RESULT_LIMIT
         )
         val config = corpusService.normalize(AcademyRuleConfig(lang = lang, dictionary = "COMBINED"))

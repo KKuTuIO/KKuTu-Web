@@ -1,30 +1,7 @@
 /* Same order Tailwind declares; stating it first keeps our component classes below its utilities. */
 @layer theme, base, components, utilities;
 
-@font-face {
-	font-family: 'NanumSquare Neo';
-	font-weight: 400;
-	font-display: swap;
-	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-bRg.ttf) format('truetype');
-}
-@font-face {
-	font-family: 'NanumSquare Neo';
-	font-weight: 700;
-	font-display: swap;
-	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-cBd.ttf) format('truetype');
-}
-@font-face {
-	font-family: 'NanumSquare Neo';
-	font-weight: 800;
-	font-display: swap;
-	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-dEb.ttf) format('truetype');
-}
-@font-face {
-	font-family: 'NanumSquare Neo';
-	font-weight: 900;
-	font-display: swap;
-	src: url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.woff) format('woff'), url(https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquareNeo/NanumSquareNeoTTF-eHv.ttf) format('truetype');
-}
+/* NanumSquare Neo is hosted in KKuTu-Static (https://cdn.kkutu.io/css/nanum-square-neo.css, linked from app.html). */
 
 /* Game client theme. Accent green is the homepage's (#55aa55); `-strong` is the same hue
    darkened until white text on it passes 4.5:1. Dark values follow prefers-color-scheme,
@@ -49,8 +26,24 @@
 	--kk-warn: #b45309;
 	--kk-warn-soft: #fdf0dc;
 	--kk-danger: #c62828;
+	--kk-danger-fill: #c62828; /* solid button fill: white text stays readable in both themes */
+	--kk-ping-good: #16a34a; /* connection indicator */
+	--kk-ping-fair: #eab308;
+	--kk-ping-poor: #dc2626;
+	--kk-whisper: #5b5bd6;
 	--kk-danger-soft: #fde8e8;
 	--kk-blue: #2563eb;
+	/* Room slot status colours (hues from the legacy room screen, darkened for white text) */
+	--kk-st-master: #cf4323;
+	--kk-st-ready: #2b74c9;
+	--kk-st-spectate: #6d46ef;
+	--kk-st-practice: #e1ba2d;
+	--kk-st-wait: #6b7280;
+	--kk-team-0: #d0d0d0;
+	--kk-team-1: #ff5555;
+	--kk-team-2: #ffbf30;
+	--kk-team-3: #88c525;
+	--kk-team-4: #4a90d6;
 	--kk-shadow: 0 2px 0 var(--kk-line-strong);
 	/* Radius scale: small (list options, tooltips, tags) / control (buttons, inputs, chips) / surface (cards, dialogs).
 	   Only circles (avatars, dots, bars, thumbs) are fully round. Tailwind's rounded-* are pinned to it below. */
@@ -88,6 +81,11 @@
 		--kk-warn: #fbbf24;
 		--kk-warn-soft: #3a2f12;
 		--kk-danger: #ff8a80;
+		--kk-danger-fill: #b92d2d;
+		--kk-ping-good: #4ade80;
+		--kk-ping-fair: #facc15;
+		--kk-ping-poor: #f87171;
+		--kk-whisper: #9d9dff;
 		--kk-danger-soft: #3b1d1d;
 		--kk-blue: #7db3ff;
 		--kk-shadow: 0 2px 0 rgb(0 0 0 / 0.5);
@@ -101,6 +99,9 @@
 
 /* Components (in a layer so Tailwind utilities on the same element win) */
 @layer components {
+	/* A dialog that steps aside for a full-screen effect: the card and its content vanish, the backdrop stays. */
+	.kk-card.kk-ghost { background: transparent !important; border-color: transparent; box-shadow: none; }
+	.kk-card.kk-ghost > * { visibility: hidden; }
 	.kk-card { background: var(--kk-surface); border: 1.5px solid var(--kk-line); border-radius: var(--kk-r-lg); box-shadow: var(--kk-shadow); }
 	.kk-input { background: var(--kk-surface-2); border: 1.5px solid var(--kk-line); border-radius: var(--kk-r-md); color: inherit; }
 	.kk-input:focus-within, .kk-input:focus { outline: none; border-color: var(--kk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-accent) 28%, transparent); }
@@ -116,7 +117,16 @@
 	.kk-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--kk-accent); }
 	.kk-tab { min-height: 2.75rem; flex: 1; font-weight: 700; color: var(--kk-muted); border-bottom: 3px solid transparent; }
 	.kk-tab[aria-pressed='true'], .kk-tab[aria-selected='true'] { color: var(--kk-text); border-bottom-color: var(--kk-accent); }
+	/* Vertical tabs: the indicator sits on the right edge (the left side of the panel is rounded). */
+	.kk-tab-v { flex: none; border-bottom: 0; border-right: 3px solid transparent; padding: 0 0.75rem; }
+	.kk-tab-v[aria-selected='true'] { border-bottom-color: transparent; border-right-color: var(--kk-accent); background: var(--kk-surface); }
 	/* The two big lobby buttons share one structure (icon block + centred label) so they size identically. */
+	/* Pressed-in state for toggles such as 준비 (amber, like the legacy ready button) */
+	.kk-btn-amber { color: #3a2300; border-color: transparent; background: #f5a623; box-shadow: 0 4px 0 #a96a05; }
+	.kk-btn-amber:hover:not(:disabled) { background: #f7b445; }
+	.kk-btn-danger { color: #fff; border-color: transparent; background: var(--kk-danger-fill); box-shadow: 0 3px 0 color-mix(in srgb, var(--kk-danger-fill) 60%, black); }
+	/* the plain .kk-btn hover paints a pale green: that made the white label unreadable */
+	.kk-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--kk-danger-fill) 88%, white); }
 	.kk-btn-lg { display: inline-flex; align-items: stretch; min-height: 3.5rem; padding: 0; overflow: hidden; font-size: 1.125rem; border-radius: var(--kk-r-md); box-shadow: 0 4px 0 var(--kk-line-strong); }
 	.kk-btn-lg > .kk-btn-icon { display: grid; place-items: center; width: 3.5rem; flex: none; }
 	.kk-btn-lg > .kk-btn-label { display: grid; flex: 1; place-items: center; padding: 0 1.25rem 0 0.25rem; white-space: nowrap; }
@@ -201,6 +211,14 @@
 @media (prefers-reduced-motion: reduce) {
 	.kk-embers { display: none; }
 }
+
+/* A room setting that just changed blinks three times (legacy ModifiedBlink). */
+.kk-nudge { animation: kk-nudge 1.6s ease-in-out 3; }
+@keyframes kk-nudge { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.35); } 40% { transform: scale(0.95); } }
+@media (prefers-reduced-motion: reduce) { .kk-nudge { animation: none; } }
+.kk-blink { animation: kk-blink 1s ease 3; }
+@keyframes kk-blink { 50% { opacity: 0.2; } }
+@media (prefers-reduced-motion: reduce) { .kk-blink { animation: none; background: var(--kk-accent-soft); } }
 
 @keyframes kk-check-pop { 0% { transform: scale(0.3); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
 .kk-check-pop { animation: kk-check-pop 0.2s ease-out; }

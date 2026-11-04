@@ -1,13 +1,14 @@
 <script module>
-	// Shared across windows: where each one was last left (by id), and which one is on top.
-	const remembered = new Map();
+	// Shared across windows: which one is on top. (A window never remembers where it was left: every opening is a fresh start.)
 	let topZ = 40;
 </script>
 
 <script>
+	import { untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { t } from '../i18n.svelte.js';
 	import Icon from './Icon.svelte';
+	import { playSound } from '../audio.svelte.js';
 
 	/**
 	 * A movable, non-modal window for tools you use while playing (dictionary, ...).
@@ -16,7 +17,7 @@
 	 * - No dimmed backdrop and nothing behind it is blocked, so the game keeps running.
 	 * - It fades to 50% while the pointer is away (`ghost`), and is fully opaque on hover, while it has
 	 *   keyboard focus (so typing in it stays readable) and while being dragged.
-	 * - It remembers where you left it (per `id`) and comes to the front when pressed.
+	 * - It opens in its default place every time and comes to the front when pressed.
 	 * @type {{open?:boolean, title:string, id:string, width?:string, ghost?:boolean, children?:import('svelte').Snippet, onclose?:()=>void}}
 	 */
 	let { open = $bindable(false), title, id, width = '26rem', ghost = true, children, onclose } = $props();
@@ -35,7 +36,15 @@
 		const w = el?.offsetWidth ?? 0;
 		x = clamp(nx, KEEP - w, window.innerWidth - KEEP);
 		y = clamp(ny, 0, window.innerHeight - 48);
-		remembered.set(id, { x, y });
+	}
+	// When the window's size changes (a tab with more content, a wider one) it is brought back inside the screen, so it never hangs
+	// off the bottom or the right edge. (A drag may still push it part-way out: only a size change re-fits it.)
+	function fit() {
+		if (!el || dragging) return;
+		const h = el.offsetHeight;
+		const w = el.offsetWidth;
+		if (h <= window.innerHeight - 16) y = clamp(y, 8, window.innerHeight - h - 8);
+		if (w <= window.innerWidth - 16) x = clamp(x, 8, window.innerWidth - w - 8);
 	}
 	const raise = () => (z = ++topZ);
 	function close() {
@@ -43,17 +52,33 @@
 		onclose?.();
 	}
 
-	// Opening: restore the last position, or start roughly centred and a little high.
+	// Opening: start roughly centred and a little high.
+	// Only `open` and `el` may re-run this: place() reads x and y, and without untrack every pixel of a drag would
+	// count as "opening" again (sound, raise and re-centre each time).
 	$effect(() => {
 		if (!open || !el) return;
-		raise();
-		const was = remembered.get(id);
-		if (was) place(was.x, was.y);
-		else place((window.innerWidth - el.offsetWidth) / 2, Math.max(72, (window.innerHeight - el.offsetHeight) / 3));
-		const onResize = () => place(x, y);
-		window.addEventListener('resize', onResize);
-		return () => window.removeEventListener('resize', onResize);
+		return untrack(() => {
+			playSound('dialog', { ui: true });
+			raise();
+			place((window.innerWidth - el.offsetWidth) / 2, Math.max(72, (window.innerHeight - el.offsetHeight) / 3));
+			const onResize = () => place(x, y);
+			window.addEventListener('resize', onResize);
+			const ro = new ResizeObserver(() => untrack(fit));
+			ro.observe(el);
+			return () => {
+				window.removeEventListener('resize', onResize);
+				ro.disconnect();
+			};
+		});
 	});
+
+	// Esc closes the window in front, wherever the keyboard focus is (it isn't inside a window that was only just
+	// opened); not while a modal dialog or a drop-down list has the keyboard, which close themselves first.
+	function escape(e) {
+		if (e.key !== 'Escape' || !open || e.defaultPrevented || z !== topZ) return;
+		if (document.querySelector('dialog[open], [role=listbox]:popover-open')) return;
+		close();
+	}
 
 	function down(e) {
 		raise();
@@ -75,6 +100,8 @@
 	}
 </script>
 
+<svelte:window onkeydown={escape} />
+
 {#if open}
 	<!-- Escape is a convenience; the close button is the accessible way out. -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -88,7 +115,6 @@
 		data-dragging={dragging}
 		transition:fade={{ duration: 120 }}
 		onpointerdown={raise}
-		onkeydown={(e) => e.key === 'Escape' && close()}
 		class="kk-card kk-float fixed flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden"
 		style="left:{x}px;top:{y}px;width:min({width},calc(100vw - 1rem));z-index:{z}"
 	>

@@ -8,6 +8,7 @@
   
 	import './styles.css';
 	import '../app.css';
+	import '$lib/game/game.css';
 	/**
 	 * @typedef {Object} Props
 	 * @property {import('svelte').Snippet} [children]
@@ -32,7 +33,7 @@
   {#if page.url.pathname.startsWith('/play')}
 	{@render children?.()}
 {:else}
-<div class="app">
+<div class="kk app min-h-screen">
 	  {#if page.url.pathname.includes('man')}
 	  <HeaderMan />
 	  {:else if page.url.pathname.includes('event_')}
@@ -41,7 +42,7 @@
 	  <Header />
 	  {/if}
   
-	  <main>
+	  <main class="pt-16">
 		  {@render children?.()}
 	  </main>
   

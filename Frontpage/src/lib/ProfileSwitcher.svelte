@@ -1,4 +1,5 @@
 <script>
+    import { confirmLeave } from '$lib/game/leaveGuard.svelte.js';
     import { createEventDispatcher } from 'svelte';
     import { onMount } from 'svelte';
     import {uniqueProfiles} from './profiles.js';
@@ -68,8 +69,9 @@
         }
     }
 
-    function openProfileCreate() {
+    async function openProfileCreate() {
         open = false;
+        if (!(await confirmLeave())) return;
         window.location.href = '/account?create_profile=1';
     }
 
@@ -89,6 +91,7 @@
 
     async function selectProfile(profile) {
         if (!profile?.id || switching) return;
+        if (!(await confirmLeave())) return;
         if (profile.deletion_scheduled_at) {
             window.location.href = `/account/profile-delete?profile_id=${encodeURIComponent(profile.id)}`;
             return;
@@ -113,7 +116,8 @@
         }
     }
 
-    function logout() {
+    async function logout() {
+        if (!(await confirmLeave())) return;
         if (window.confirm('정말로 로그아웃 할까요?')) window.location.href = 'https://kkutu.io/logout';
     }
 </script>

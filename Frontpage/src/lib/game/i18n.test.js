@@ -42,11 +42,19 @@ describe('locale files', () => {
 	}
 	// keys built at runtime
 	const dynamic = [
-		...['lobby', 'rank', 'shop', 'dict', 'replay', 'news', 'help', 'mail', 'settings'].map((id) => `play.nav.${id}`),
+		...['LobbyBGM', 'LobbyBGM_NEW', 'LobbyBGM_2024_Fall', 'LobbyBGM_2024_Winter', 'LobbyBGM_2025_8th', 'LobbyBGM_2025_Winter', 'LobbyBGM_2026_Spring', 'LobbyBGM_2026_10th'].map((k) => `play.audio.lobby.${k}`),
+		...['kkutu', 'kkutuio', 'new_start', 'acoustic'].map((k) => `play.audio.set.${k}`),
+		...['terms', 'operation', 'privacy'].flatMap((k) => [`play.policy.${k}`, `play.policy.${k}Version`]),
+		...[0, 1, 2, 3, 4, 5].map((n) => `play.ai.level.${n}`),
+		...['joined', 'left'].map((k) => `play.room.notice.${k}`),
+		...['master', 'ready', 'wait', 'spectate', 'practice'].map((k) => `play.room.status.${k}`),
+		...['lobby', 'rank', 'shop', 'dict', 'replay', 'news', 'progress', 'help', 'mail', 'settings'].map((id) => `play.nav.${id}`),
 		...[1, 2, 3, 4, 5, 6, 7].map((n) => `play.quick.roomTitle.${n}`),
 		...[449, 402, 479, 457, 440].map((c) => `play.close.${c}`),
-		...['NETWORK', 'LOGIN_REQUIRED', 'SETUP_REQUIRED', 'BLOCKED', 'ACCOUNT_BLOCKED', 'NO_SUCH_SERVER'].map((c) => `play.error.${c}`),
-		'play.rooms.view.list', 'play.rooms.view.tile', 'play.tip.1', 'play.create.group.ko', 'play.create.group.en', 'play.create.group.other'
+		...['NETWORK', 'LOGIN_REQUIRED', 'ACCOUNT_REQUIRED', 'REGISTER_DISABLED', 'BLOCKED', 'ACCOUNT_BLOCKED', 'NO_SUCH_SERVER'].map((c) => `play.error.${c}`),
+		...['right', 'left'].map((k) => `play.settings.hand.${k}`),
+		...['good', 'fair', 'poor', 'offline', 'unknown'].map((k) => `play.status.${k}`),
+		'play.rooms.view.list', 'play.rooms.view.tile', 'play.tip.1', 'play.setup.error.600', 'play.setup.error.601', 'play.setup.error.602', 'play.setup.error.603', 'play.setup.error.620', 'play.setup.error.BAD_REQUEST', 'play.setup.error.generic', 'play.create.group.ko', 'play.create.group.en', 'play.create.group.other'
 	];
 	it('finds the keys it should check', () => expect(used.size).toBeGreaterThan(60));
 	it.each(['message.properties', 'message_ko.properties'])('%s defines every key the client uses', (name) => {

@@ -126,7 +126,7 @@
   let searchType = $state(SEARCH_TYPE.nickname);
   let searchNick = $state('');
   let currentStatus = $state('main');
-  let selectedTab = $state('profile');
+  let selectedTab = $state('history'); // the page only shows 경기 내역 now: the profile and the statistics live in the game's profile window
   let uid = $state('');
   let loading = $state(false);
   let loadingHistory = $state(false);
@@ -788,7 +788,7 @@
 
   async function openAccountInfo(id) {
     await searchPlayerById(id);
-    selectedTab = 'profile';
+    selectedTab = 'history';
   }
 
   function getParticipantLabel(participant) {
@@ -948,7 +948,7 @@
     currentStatus = 'user';
     if (resetPage) {
       page = 1;
-      selectedTab = 'profile';
+      selectedTab = 'history';
       historyLoaded = false;
     }
     syncQuery();
@@ -956,7 +956,7 @@
       const [loadedProfile, replayModeStats] = await Promise.all([loadProfile(signal), loadModeStats(signal)]);
       profile = { ...loadedProfile };
       modeStats = buildModeStats(loadedProfile?.record || {}, replayModeStats || []);
-      if (selectedTab === 'profile') void ensureHistoryLoaded();
+      void ensureHistoryLoaded();
       syncQuery();
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -1273,78 +1273,14 @@
         </a>
       </div>
     {/if}
-    {#if authStateLoaded && !isGuest && currentStatus === 'main' && !searchNick.trim()}
-      {#if dashboardLoading}
-        <div class="relative z-[1] mt-5 flex w-full max-w-3xl items-center justify-center gap-2 rounded-2xl border border-white/15 bg-slate-950/45 px-5 py-5 text-sm font-medium text-slate-100 backdrop-blur">
-          <span class="material-symbols-outlined animate-spin">progress_activity</span>
-          내 전적 요약을 불러오는 중이에요.
-        </div>
-      {:else if profile}
-        <div in:fade={{ duration: 180 }} class="relative z-[1] mt-5 w-full max-w-5xl rounded-2xl border border-white/15 bg-slate-950/55 p-4 shadow-xl backdrop-blur sm:p-5">
-          <div class="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm font-medium text-sky-200">내 전적 한눈에 보기</p>
-              <h2 class="mt-1 text-2xl font-black text-white sm:text-3xl">{@html processNick(profile.nickname)}님, 반가워요!</h2>
-              <p class="mt-1 text-sm text-slate-300">
-                {#if profile.rank}{Number(profile.rank).toLocaleString()}등 · {/if}레벨 {profile.level} · 경험치 {Number(profile.score).toLocaleString()}점
-              </p>
-            </div>
-            <button class="inline-flex shrink-0 items-center justify-center gap-1 rounded-xl bg-white px-4 py-2.5 text-sm font-extrabold text-slate-900 transition hover:bg-sky-100" onclick={() => showMyRecords('profile')}>
-              내 전체 전적
-              <span class="material-symbols-outlined text-base">arrow_forward</span>
-            </button>
-          </div>
-
-          <div class="mt-4 grid gap-3 md:grid-cols-2">
-            <article class="flex h-full flex-col rounded-xl border border-emerald-300/20 bg-emerald-400/10 p-4 text-left">
-              <div class="flex items-center gap-2 text-sm font-bold text-emerald-200"><span class="material-symbols-outlined text-lg">recommend</span>오늘의 추천 게임 유형</div>
-              {#if getRecommendedMode()}
-                {@const recommended = getRecommendedMode()}
-                <p class="mt-3 text-xl font-black text-white">{recommended.modeName}</p>
-                <p class="mt-1 text-sm text-slate-200">승률 {recommended.winRate.toFixed(2)}% · {recommended.games.toLocaleString()}판 · {recommended.playHours.toFixed(1)}시간</p>
-                <button class="mt-auto pt-4 text-sm font-bold text-emerald-200 transition hover:text-white" onclick={() => showMyRecords('stats')}>게임 유형 통계 보기 →</button>
-              {:else}
-                <p class="mt-3 text-sm text-slate-200">추천을 만들 만큼 기록된 경기가 아직 없어요.</p>
-              {/if}
-            </article>
-
-            <article class="flex h-full flex-col rounded-xl border border-violet-300/20 bg-violet-400/10 p-4 text-left">
-              <div class="flex items-center gap-2 text-sm font-bold text-violet-200"><span class="material-symbols-outlined text-lg">school</span>보완할 게임 유형</div>
-              {#if getNeedsWorkMode()}
-                {@const needsWork = getNeedsWorkMode()}
-                <p class="mt-3 text-xl font-black text-white">{needsWork.modeName}</p>
-                <p class="mt-1 text-sm text-slate-200">승률 {needsWork.winRate.toFixed(2)}% · {needsWork.games.toLocaleString()}판</p>
-                <button class="mt-auto pt-4 text-sm font-bold text-violet-200 transition hover:text-white" onclick={() => showMyRecords('history')}>경기 내역 보기 →</button>
-              {:else}
-                <p class="mt-3 text-sm text-slate-200">10판 이상 기록된 모드가 생기면 알려드릴게요.</p>
-              {/if}
-            </article>
-          </div>
-
-          <section class="mt-4 overflow-hidden rounded-xl border border-white/15 bg-slate-950/40 text-left">
-            <div class="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <div class="flex items-center gap-2 text-sm font-bold text-sky-200"><span class="material-symbols-outlined text-lg">history</span>최근 경기</div>
-              <button class="text-sm font-bold text-sky-200 transition hover:text-white" onclick={() => showMyRecords('history')}>전체 보기 →</button>
-            </div>
-            {#if historyRows.length}
-              <div class="divide-y divide-white/10">
-                {#each historyRows.slice(0, 10) as row (row.gameId)}
-                  <button class="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5" onclick={() => showMyRecords('history')}>
-                    <span class={`inline-flex h-9 w-11 shrink-0 items-center justify-center rounded-lg text-sm font-black ${row.won ? 'bg-amber-300 text-slate-950' : 'bg-white/10 text-white'}`}>#{row.placement}</span>
-                    <span class="min-w-0 flex-1">
-                      <span class="block truncate text-sm font-bold text-white">{getModeLabel(row)} · {row.roomTitle || '제목 없음'}</span>
-                      <span class="mt-0.5 block text-xs text-slate-300">{formatAgo(row.startedAt)} · {Number(row.score).toLocaleString()}점 · 경험치 +{Number(row.exp || 0).toLocaleString()}</span>
-                    </span>
-                    <span class="text-xs font-semibold text-slate-300">{row.playerCount}명</span>
-                  </button>
-                {/each}
-              </div>
-            {:else}
-              <p class="px-4 py-5 text-sm text-slate-300">최근 3년 내 경기 기록이 없습니다.</p>
-            {/if}
-          </section>
-        </div>
-      {/if}
+    {#if authStateLoaded && !isGuest && currentStatus === 'main' && !searchNick.trim() && profile}
+      <div in:fade={{ duration: 180 }} class="relative z-[1] mt-5 flex w-full max-w-3xl items-center justify-between gap-3 rounded-2xl border border-white/15 bg-slate-950/45 px-4 py-3 text-left shadow-lg backdrop-blur">
+        <p class="min-w-0 truncate text-sm font-medium text-slate-100 sm:text-base">{@html processNick(profile.nickname)}</p>
+        <button class="inline-flex shrink-0 items-center gap-1 rounded-xl bg-white px-4 py-2 text-sm font-extrabold text-slate-900 transition hover:bg-sky-100" onclick={() => showMyRecords('history')}>
+          내 경기 내역
+          <span class="material-symbols-outlined text-base">arrow_forward</span>
+        </button>
+      </div>
     {/if}
   </div>
 
@@ -1396,53 +1332,12 @@
           </button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 bg-slate-900 p-2">
-          <button class={getTabClass(selectedTab === 'profile')} onclick={async () => { selectedTab = 'profile'; await ensureHistoryLoaded(); }}>
-            <span class="material-symbols-outlined text-base">person</span> 사용자 정보
-          </button>
-          <button class={getTabClass(selectedTab === 'stats')} onclick={() => (selectedTab = 'stats')}>
-            <span class="material-symbols-outlined text-base">query_stats</span> 통계
-          </button>
-          <button class={getTabClass(selectedTab === 'history')} onclick={async () => { selectedTab = 'history'; await ensureHistoryLoaded(); }}>
-            <span class="material-symbols-outlined text-base">history</span> 경기 내역
-          </button>
-        </div>
       </section>
 
-      {#if selectedTab === 'profile' || selectedTab === 'stats'}
-        <section class="mt-5">
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {#if modeStats.length}
-              {#each modeStats.slice(0, selectedTab === 'stats' ? modeStats.length : 3) as stat (stat.key)}
-                <article in:fade={{ duration: 180 }} class="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-900">
-                  <div class="flex items-center gap-2 text-xl font-bold text-blue-600 dark:text-blue-300">
-                    <span class="material-symbols-outlined">stadia_controller</span>
-                    {stat.modeName}
-                  </div>
-                  <div class="mt-3 flex items-end gap-1 text-5xl font-black">
-                    {stat.playHours.toFixed(1)}
-                    <span class="text-xl font-medium">시간</span>
-                  </div>
-                  <div class="mt-4 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">emoji_events</span>우승</span><b>{stat.wins.toLocaleString()}회</b></div>
-                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">balance</span>반타작</span><b>{Math.max(0, stat.games - stat.wins - stat.losses).toLocaleString()}회</b></div>
-                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">trending_down</span>패배</span><b>{stat.losses.toLocaleString()}회</b></div>
-                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">sports_esports</span>경기</span><b>{stat.games.toLocaleString()}회</b></div>
-                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">percent</span>승률</span><b>{stat.winRate.toFixed(2)}%</b></div>
-                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">spellcheck</span>낱말 입력</span><b>{stat.acceptedWords.toLocaleString()}회</b></div>
-                  <div class="mt-2 flex items-center justify-between text-lg"><span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">auto_awesome</span>획득 경험치</span><b>{stat.exp.toLocaleString()}</b></div>
-                </article>
-              {/each}
-            {:else}
-              <article class="rounded-2xl border border-slate-200 bg-white/95 p-4 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">기록된 통계가 없습니다.</article>
-            {/if}
-          </div>
-        </section>
-      {/if}
-
-      {#if selectedTab === 'profile' || selectedTab === 'history'}
+      {#if selectedTab === 'history'}
         <section class="mt-6">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="text-2xl font-bold">{selectedTab === 'profile' ? '최근 경기' : '경기 내역'}</h3>
+            <h3 class="text-2xl font-bold">경기 내역</h3>
             <div class="flex items-center gap-2 text-sm">
               <span>쪽 당 행</span>
               <select class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" bind:value={pageSize} onchange={changePageSize}>
@@ -1503,7 +1398,7 @@
                         <div class="text-sm text-gray-600 dark:text-gray-300 mb-3 flex flex-wrap items-center justify-between gap-2">
                           <div class="flex min-w-0 flex-wrap items-center gap-2">
                             <div class="cursor-text select-text" role="button" tabindex="0" onclick={selectTextFromCurrentTarget} onkeydown={(event) => event.key === 'Enter' && selectTextFromCurrentTarget(event)}>경기번호: <code data-select-text>{row.gameId}</code></div>
-                            <a class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600" href={`/academy?tab=replay&game=${encodeURIComponent(row.gameId)}`}>게임 복기</a>
+                            <a class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600" href={`/play/0?view=academy&tab=replay&game=${encodeURIComponent(row.gameId)}`}>게임 복기</a>
                           </div>
                           <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" onclick={() => downloadAndOpenReplay(row.gameId)}>
                             <span class="material-symbols-outlined text-base">play_circle</span> 리플레이 보기
@@ -1769,7 +1664,7 @@
                 <div>압축 크기: <b>{Number(detailMap[gameSearchResult.gameId].payloadSize || 0).toLocaleString()} bytes</b></div>
               </div>
               <div class="mt-3 flex flex-wrap justify-end gap-2">
-                <a class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600" href={`/academy?tab=replay&game=${encodeURIComponent(gameSearchResult.gameId)}`}>게임 복기</a>
+                <a class="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600" href={`/play/0?view=academy&tab=replay&game=${encodeURIComponent(gameSearchResult.gameId)}`}>게임 복기</a>
                 <button class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md border bg-white transition hover:bg-slate-100 dark:bg-gray-700 dark:hover:bg-slate-600" onclick={() => downloadAndOpenReplay(gameSearchResult.gameId)}>
                   <span class="material-symbols-outlined text-base">play_circle</span>
                   리플레이 보기

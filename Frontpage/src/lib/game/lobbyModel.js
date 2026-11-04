@@ -15,12 +15,15 @@ export const roomMeta = (r) => t('play.rooms.meta', { rounds: r.rounds, time: r.
 // First character of the last word of the mode name ("한국어 쿵쿵따" -> 쿵), independent of language.
 export const modeGlyph = (r) => (r.mode.trim().split(/\s+/).pop() ?? '').charAt(0);
 
+/** How many friends a player may have (the server refuses more: error 452). */
+export const FRIEND_LIMIT = 200;
+
 /** @param {Room} r */
 export const isJoinable = (r) => !r.playing && r.cur < r.max;
 
 /**
  * @param {Room[]} rooms
- * @param {{query?:string,sort?:'recent'|'crowded'|'joinable',waitingOnly?:boolean,hasSeat?:boolean,hideLocked?:boolean}} o
+ * @param {{query?:string,sort?:'recent'|'crowded',joinableFirst?:boolean,waitingOnly?:boolean,hasSeat?:boolean,hideLocked?:boolean}} o
  */
 export function filterRooms(rooms, o = {}) {
 	const q = (o.query ?? '').trim();
@@ -31,10 +34,9 @@ export function filterRooms(rooms, o = {}) {
 		if (q && !(String(r.no).includes(q) || r.title.includes(q))) return false;
 		return true;
 	});
-	if (o.sort === 'crowded') out = [...out].sort((a, b) => b.cur - a.cur);
-	else if (o.sort === 'joinable')
-		out = [...out].sort((a, b) => Number(isJoinable(b)) - Number(isJoinable(a)) || b.no - a.no);
-	else out = [...out].sort((a, b) => b.no - a.no);
+	// 1st: rooms you can walk into (optional), then the chosen order.
+	const order = o.sort === 'crowded' ? (x, y) => y.cur - x.cur || y.no - x.no : (x, y) => y.no - x.no;
+	out = [...out].sort((x, y) => (o.joinableFirst ? Number(isJoinable(y)) - Number(isJoinable(x)) : 0) || order(x, y));
 	return out;
 }
 
@@ -75,4 +77,56 @@ export function groupModes(modes, rules) {
 	return ['ko', 'en', 'other']
 		.map((id) => ({ id, modes: groups[id].sort((a, b) => rank(a.key) - rank(b.key) || a.index - b.index) }))
 		.filter((g) => g.modes.length);
+}
+
+/**
+ * Seat grid for a waiting room: how many columns/rows make the `limit` seats fill the available area with
+ * cards close to a comfortable shape, instead of a few huge cards or a lot of dead space.
+ * @param {number} width available px   @param {number} height available px   @param {number} limit seats
+ * @returns {{cols:number, rows:number, cardW:number, cardH:number}}
+ */
+export function seatLayout(width, height, limit, { gap = 12, ideal = 1.45, minW = 170, minH = 104 } = {}) {
+	const n = Math.max(1, limit);
+	let best = null;
+	for (let cols = 1; cols <= n; cols++) {
+		const rows = Math.ceil(n / cols);
+		const cardW = (width - gap * (cols - 1)) / cols;
+		const cardH = (height - gap * (rows - 1)) / rows;
+		if (cardW <= 0 || cardH <= 0) continue;
+		// Penalise too-small cards heavily, then pick the shape closest to `ideal`; wasted cells are a small cost.
+		const small = (cardW < minW ? (minW - cardW) / minW : 0) + (cardH < minH ? (minH - cardH) / minH : 0);
+		const score = small * 10 + Math.abs(Math.log(cardW / cardH / ideal)) + (cols * rows - n) * 0.3;
+		if (!best || score < best.score) best = { cols, rows, cardW, cardH, score };
+	}
+	return best ? { cols: best.cols, rows: best.rows, cardW: best.cardW, cardH: best.cardH } : { cols: 1, rows: n, cardW: width, cardH: minH };
+}
+
+/**
+ * One row of a player's record for a mode, as the legacy profile shows it. `r` = [plays, wins, score, ?, losses].
+ * Draws ("half" wins) are what is left after wins and losses, and count half in the win rate.
+ */
+export function recordRow(r) {
+	const plays = Number(r?.[0]) || 0;
+	const wins = Number(r?.[1]) || 0;
+	const losses = Math.min(Math.max(0, Number(r?.[4]) || 0), Math.max(0, plays - wins));
+	const halves = Math.max(0, plays - wins - losses);
+	const rate = plays === 0 ? 0 : Math.round(((wins + halves * 0.5) / plays) * 100 * 1000) / 1000;
+	return { plays, wins, losses, rate, score: Number(r?.[2]) || 0 };
+}
+
+/** A rule's option codes. Some settings files call the optional 단어장 "inj" instead of "inp"; both mean the same. */
+export const ruleCodes = (rule) => (rule?.opts ?? []).map((c) => (c === 'inj' ? 'inp' : c));
+/** Does a room of this rule (with these options) need word themes picked? ("ijp": always, "inp": when its option is on) */
+export function needsThemes(rule, opts) {
+	const codes = ruleCodes(rule);
+	return codes.includes('ijp') || (codes.includes('inp') && !!opts?.injeongpick);
+}
+
+/** Round-trip time (ms) up to which the connection counts as good / fair; above that it is poor. */
+export const PING_GOOD = 100;
+export const PING_FAIR = 250;
+/** "good" | "fair" | "poor", or "unknown" while nothing has been measured. */
+export function pingLevel(ms) {
+	if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0) return 'unknown';
+	return ms <= PING_GOOD ? 'good' : ms <= PING_FAIR ? 'fair' : 'poor';
 }

@@ -75,7 +75,11 @@
 		}
 	});
 
-	const openRecords = (id) => window.open(`/records?type=id&q=${encodeURIComponent(id)}`, '_blank', 'noopener');
+	// Legacy: a ranking row opens that player's profile. (The profile window floats above the page, so the ranking steps aside.)
+	const showProfile = (id) => {
+		store.hooks.openProfile?.(id);
+		open = false;
+	};
 	async function copyId(id) {
 		try {
 			await navigator.clipboard.writeText(id);
@@ -100,7 +104,8 @@
 			<ul class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 				{#each top as r, i (r.id)}
 					{@const d = displayDelta(r.delta)}
-					<li class="kk-card relative flex flex-col gap-2 overflow-hidden p-3 pt-4">
+					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+					<li class="kk-card relative flex cursor-pointer flex-col gap-2 overflow-hidden p-3 pt-4 hover:bg-(--kk-accent-soft)" onclick={() => showProfile(r.id)}>
 						<span class="absolute inset-x-0 top-0 h-1" style:background={medal[i] ?? medal[3]}></span>
 						<div class="flex items-start justify-between gap-2">
 							<span class="rounded-lg bg-(--kk-text) px-2 py-0.5 text-xs font-black text-(--kk-surface)">{t('play.rank.rankValue', { n: r.rank + 1 })}</span>
@@ -110,7 +115,7 @@
 								<span class="size-14"></span>
 							{/await}
 						</div>
-						<p class="flex min-w-0 items-center gap-1.5 text-sm font-extrabold"><LevelIcon score={Number(r.score)} size={20} /><span class="truncate">{@render who(r)}</span></p>
+						<button type="button" class="flex min-w-0 items-center gap-1.5 text-left text-sm font-extrabold" onclick={(e) => { e.stopPropagation(); showProfile(r.id); }}><LevelIcon score={Number(r.score)} size={20} /><span class="truncate">{@render who(r)}</span></button>
 						<div class="mt-auto flex items-end justify-between gap-2 border-t border-(color:--kk-line) pt-2">
 							<span class="text-sm font-black tabular-nums">{t('play.rank.scoreValue', { n: Number(r.score).toLocaleString() })}</span>
 							<span class="text-xs font-black {deltaClass[d.dir]}" aria-label={t('play.rank.delta', { delta: d.text })}>{d.text}</span>
@@ -153,7 +158,8 @@
 				<tbody class={loading ? 'opacity-60' : ''}>
 					{#each rows as r (r.id)}
 						{@const d = displayDelta(r.delta)}
-						<tr class="group border-t border-(color:--kk-line) hover:bg-(--kk-accent-soft)">
+						<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+						<tr class="group cursor-pointer border-t border-(color:--kk-line) hover:bg-(--kk-accent-soft)" onclick={() => showProfile(r.id)}>
 							<td class="px-3 py-2 text-center font-black tabular-nums">{t('play.rank.rankValue', { n: r.rank + 1 })}</td>
 							<td class="max-w-0 px-3 py-2 font-bold"><span class="block truncate">{@render who(r)}</span></td>
 							<td class="px-3 py-2"><div class="flex justify-center"><LevelIcon score={Number(r.score)} size={22} /></div></td>
@@ -161,8 +167,8 @@
 							<td class="px-3 py-2 text-center font-black {deltaClass[d.dir]}" aria-label={t('play.rank.delta', { delta: d.text })}>{d.text}</td>
 							<td class="px-2 py-1">
 								<div class="flex justify-end gap-0.5 opacity-60 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-									<Tooltip text={t('play.rank.records')} placement="bottom"><button type="button" aria-label="{t('play.rank.records')}: {r.name ?? ''}" onclick={() => openRecords(r.id)} class="grid size-9 place-items-center rounded-lg hover:bg-(--kk-surface)"><Icon name="id_card" size={20} /></button></Tooltip>
-									<Tooltip text={t('play.rank.copyId')} placement="bottom"><button type="button" aria-label="{t('play.rank.copyId')}: {r.name ?? ''}" onclick={() => copyId(r.id)} class="grid size-9 place-items-center rounded-lg hover:bg-(--kk-surface)"><Icon name="content_copy" size={20} /></button></Tooltip>
+									<Tooltip text={t('play.rank.records')} placement="bottom"><button type="button" aria-label="{t('play.rank.records')}: {r.name ?? ''}" onclick={(e) => { e.stopPropagation(); showProfile(r.id); }} class="grid size-9 place-items-center rounded-lg hover:bg-(--kk-surface)"><Icon name="id_card" size={20} /></button></Tooltip>
+									<Tooltip text={t('play.rank.copyId')} placement="bottom"><button type="button" aria-label="{t('play.rank.copyId')}: {r.name ?? ''}" onclick={(e) => { e.stopPropagation(); copyId(r.id); }} class="grid size-9 place-items-center rounded-lg hover:bg-(--kk-surface)"><Icon name="content_copy" size={20} /></button></Tooltip>
 								</div>
 							</td>
 						</tr>

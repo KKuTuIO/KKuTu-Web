@@ -7,7 +7,7 @@ function requiredScore(lv) {
 	return Math.round(m * (d + Math.floor(lv / 5) * a + Math.floor((lv * lv) / 225) * b + Math.floor((lv * lv) / 2025) * c));
 }
 
-const EXP = [];
+export const EXP = [];
 EXP.push(requiredScore(1));
 for (let i = 2; i < MAX_LEVEL; i++) EXP.push(EXP[i - 2] + requiredScore(i));
 EXP[MAX_LEVEL - 1] = Infinity;

@@ -3,9 +3,18 @@
 	import { t } from '../i18n.svelte.js';
 	import ProfileSwitcher from '$lib/ProfileSwitcher.svelte';
 	import Icon from './Icon.svelte';
+	import Logo from './Logo.svelte';
 	import GameIcon from './GameIcon.svelte';
+	import MailMenu from './MailMenu.svelte';
+	import { confirm } from '../ui/confirm.svelte.js';
 	let { store, active = 'lobby', onselect } = $props();
 	const me = $derived(store.me);
+	const guest = $derived(store.net.guest);
+	// Anywhere in the client the logo asks first: it leaves the game page for the portal.
+	async function leaveToPortal(e) {
+		e.preventDefault();
+		if (await confirm({ message: store.currentRoom?.playing ? t('play.leave.playing') : t('play.leave.message'), ok: t('play.leave.go'), cancel: t('play.leave.stay') })) location.href = '/';
+	}
 
 	// `color` is each button's theme colour from the legacy client's menu.html. It is shown only while the
 	// item is open.
@@ -17,11 +26,15 @@
 		{ id: 'replay', icon: 'replay', color: '#D9FF82' },
 		{ id: 'news', icon: 'campaign', color: '#FFC67F' }
 	];
-	const utilities = [
+	// Guests have no mailbox, balance or announcements; 이어하기 takes the announcements' place (as in the legacy client).
+	const guestMenu = menu.map((m) => (m.id === 'news' ? { id: 'progress', icon: 'cloud_upload', color: m.color } : m));
+	const memberUtilities = [
 		{ id: 'mail', icon: 'mail', color: '#FECDD3' },
 		{ id: 'help', icon: 'help', color: '#BBBBBB' },
 		{ id: 'settings', icon: 'settings', color: '#CCCCCC' }
 	];
+	const items = $derived(guest ? guestMenu : menu);
+	const utilities = $derived(guest ? memberUtilities.filter((u) => u.id !== 'mail') : memberUtilities);
 	const fmt = (n) => (n ?? 0).toLocaleString();
 </script>
 
@@ -32,46 +45,60 @@
 -->
 {#snippet item(m, { strip = false, utility = false } = {})}
 	{@const on = m.id === active}
+	<!--
+		Moving between menus animates like a chipped nav: the chosen item fills with its colour and its label slides open,
+		the one left behind folds its label back in (on the phone strip it is the icon that folds in and out instead).
+	-->
 	<Tooltip text={t(`play.nav.${m.id}`)} placement="bottom">
 		<button
 			type="button"
 			aria-current={on ? 'page' : undefined}
+			aria-label={t(`play.nav.${m.id}`)}
 			onclick={() => onselect?.(m.id)}
 			style:--c={m.color}
-			class="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-xl font-bold whitespace-nowrap transition-colors {on
+			class="inline-flex h-10 min-w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl font-bold whitespace-nowrap transition-all duration-300 ease-out {on
 				? 'bg-(--c) px-3.5 font-extrabold text-[#111]'
-				: `${utility ? 'px-2.5' : 'px-2.5 xl:px-3.5'} text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)`}"
+				: `${utility ? 'px-2.5' : 'px-2.5 xl:px-3.5'} bg-transparent text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)`}"
 		>
-			<Icon name={m.icon} size={22} fill={on} />
-			<span class={on || strip ? (utility && !on ? 'sr-only' : '') : utility ? 'sr-only' : 'sr-only xl:not-sr-only'}>{t(`play.nav.${m.id}`)}</span>
+			<!-- width goes 0 -> its own size through a 0fr -> 1fr grid track, so the motion follows the real width, not a guessed maximum -->
+			<span class="grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-300 ease-out {strip && !on ? 'grid-cols-[0fr] opacity-0' : 'grid-cols-[1fr] opacity-100'}"><span class="flex min-w-0 items-center overflow-hidden"><Icon name={m.icon} size={22} fill={on} /></span></span>
+			<span
+				class="grid shrink-0 items-center transition-[grid-template-columns,opacity,margin] duration-300 ease-out {on || strip
+					? utility && !on
+						? 'ml-0 grid-cols-[0fr] opacity-0'
+						: `grid-cols-[1fr] opacity-100 ${strip && !on ? 'ml-0' : 'ml-1.5'}`
+					: utility
+						? 'ml-0 grid-cols-[0fr] opacity-0'
+						: 'ml-0 grid-cols-[0fr] opacity-0 xl:ml-1.5 xl:grid-cols-[1fr] xl:opacity-100'}"><span class="flex min-w-0 items-center overflow-hidden whitespace-nowrap leading-none">{t(`play.nav.${m.id}`)}</span></span>
 		</button>
 	</Tooltip>
 {/snippet}
 
 <header class="flex min-h-16 shrink-0 items-center gap-3 border-b border-(color:--kk-line) bg-(--kk-surface) px-4 md:px-6">
-	<a href="/" class="flex shrink-0 items-center" aria-label={t('play.home')}>
+	<a href="/" class="flex shrink-0 items-center" aria-label={t('play.home')} data-own-guard onclick={leaveToPortal}>
 		<!-- Symbol only, at every size. -->
-		<img class="h-8 dark:hidden" src="https://cdn.kkutu.io/img/bi/bi_main.svg" alt={t('play.brand')} />
-		<img class="hidden h-8 dark:block" src="https://cdn.kkutu.io/img/bi/bi_white.svg" alt="" aria-hidden="true" />
+		<Logo class="h-8" />
 	</a>
 	<nav aria-label={t('play.nav.label')} class="hidden min-w-0 items-center gap-1 md:ml-4 md:flex">
-		{#each menu as m (m.id)}{@render item(m)}{/each}
+		{#each items as m (m.id)}{@render item(m)}{/each}
 	</nav>
 	<div class="ml-auto flex shrink-0 items-center gap-2">
-		{#if me}
+		{#if me && !guest}
 			<Tooltip text={t('play.currency.pingHint')}><span class="inline-flex h-10 items-center gap-2 rounded-xl bg-(--kk-surface-2) pr-4 pl-2 font-extrabold tabular-nums"><GameIcon name="ping" size={26} />{fmt(me.money)}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.currency.ping')}</span></span></Tooltip>
 			<Tooltip text={t('play.stat.winHint')}><span class="hidden h-10 items-center gap-2 rounded-xl bg-(--kk-surface-2) pr-4 pl-2 font-extrabold tabular-nums lg:inline-flex"><GameIcon name="win" size={26} />{fmt(me.wins)}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.stat.win')}</span></span></Tooltip>
 		{/if}
 		<div class="hidden items-center gap-1 md:flex">
-			{#each utilities as m (m.id)}{@render item(m, { utility: true })}{/each}
+			{#each utilities as m (m.id)}{#if m.id === 'mail'}<MailMenu {store} />{:else}{@render item(m, { utility: true })}{/if}{/each}
 		</div>
-		{#if store.net.id}
+		{#if guest && store.net.id}
+			<a href="/login" rel="external" class="kk-btn kk-btn-primary inline-flex h-10 min-h-0 items-center gap-1.5 px-4 text-sm"><Icon name="login" size={20} />{t('play.signIn')}</a>
+		{:else if store.net.id}
 			<ProfileSwitcher profileSeed={store.net.id} profileName={me?.name ?? ''} accountLabel={store.net.guest ? t('play.guest') : ''} />
 		{/if}
 	</div>
 </header>
-<nav aria-label={t('play.nav.label')} class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-(color:--kk-line) bg-(--kk-surface) px-3 py-1.5 md:hidden">
-	{#each menu as m (m.id)}{@render item(m, { strip: true })}{/each}
+<nav aria-label={t('play.nav.label')} class="flex shrink-0 items-center gap-1 overflow-x-auto [&>*]:shrink-0 border-b border-(color:--kk-line) bg-(--kk-surface) px-3 py-1.5 md:hidden">
+	{#each items as m (m.id)}{@render item(m, { strip: true })}{/each}
 	<span class="mx-1.5 h-5 w-px shrink-0 bg-(--kk-line-strong)" aria-hidden="true"></span>
-	{#each utilities as m (m.id)}{@render item(m, { strip: true, utility: true })}{/each}
+	{#each utilities as m (m.id)}{#if m.id === 'mail'}<MailMenu {store} />{:else}{@render item(m, { strip: true, utility: true })}{/if}{/each}
 </nav>

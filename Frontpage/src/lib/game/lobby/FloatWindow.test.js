@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { playSound } from '../audio.svelte.js';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import FloatWindow from './FloatWindow.svelte';
 
+vi.mock('../audio.svelte.js', () => ({ playSound: vi.fn() }));
 afterEach(cleanup);
 const body = createRawSnippet(() => ({ render: () => '<input aria-label="field">' }));
 const win = () => screen.getByRole('dialog');
@@ -30,6 +32,14 @@ describe('FloatWindow', () => {
 		await fireEvent.pointerUp(handle());
 		expect(win().dataset.dragging).toBe('false');
 	});
+	it('plays its opening sound once, not again for every pixel it is dragged', async () => {
+		vi.mocked(playSound).mockClear();
+		render(FloatWindow, { open: true, title: 'T', id: 'snd', children: body });
+		await fireEvent.pointerDown(handle(), { clientX: 400, clientY: 100, button: 0 });
+		for (let i = 1; i <= 5; i++) await fireEvent.pointerMove(handle(), { clientX: 400 + i, clientY: 100 + i });
+		await fireEvent.pointerUp(handle());
+		expect(playSound).toHaveBeenCalledTimes(1);
+	});
 	it('never lets the title bar leave the screen', async () => {
 		render(FloatWindow, { open: true, title: 'T', id: 'd', children: body });
 		await fireEvent.pointerDown(handle(), { clientX: 10, clientY: 10, button: 0 });
@@ -55,12 +65,20 @@ describe('FloatWindow', () => {
 		await Promise.resolve();
 		expect(screen.queryByRole('dialog')).toBeNull();
 	});
-	it('remembers where it was left', async () => {
+	it('closes with Esc from anywhere, also right after it opened (focus is not inside it yet)', async () => {
+		render(FloatWindow, { open: true, title: 'T', id: 'esc', children: body });
+		expect(win()).toBeTruthy();
+		await fireEvent.keyDown(document.body, { key: 'Escape' });
+		await Promise.resolve();
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+	it('opens in its default place every time, wherever it was left', async () => {
 		const first = render(FloatWindow, { open: true, title: 'T', id: 'g', children: body });
+		const home = pos();
 		await fireEvent.keyDown(handle(), { key: 'ArrowRight', shiftKey: true });
-		const moved = pos();
+		expect(pos()).not.toEqual(home);
 		first.unmount();
 		render(FloatWindow, { open: true, title: 'T', id: 'g', children: body });
-		expect(pos()).toEqual(moved);
+		expect(pos()).toEqual(home);
 	});
 });

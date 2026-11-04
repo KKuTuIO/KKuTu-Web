@@ -3,7 +3,9 @@ import { afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 afterEach(cleanup);
 import Checkbox from './Checkbox.svelte';
+import Switch from './Switch.svelte';
 import RadioGroup from './RadioGroup.svelte';
+import ThemePicker from './ThemePicker.svelte';
 import Seekbar from './Seekbar.svelte';
 import Select from './Select.svelte';
 import Tabs from './Tabs.svelte';
@@ -19,6 +21,18 @@ describe('Checkbox', () => {
 		expect(box.getAttribute('aria-checked')).toBe('false');
 		await fireEvent.click(box);
 		expect(box.getAttribute('aria-checked')).toBe('true');
+		expect(onchange).toHaveBeenLastCalledWith(true);
+	});
+});
+
+describe('Switch', () => {
+	it('flips on click, exposing role=switch and aria-checked', async () => {
+		const onchange = vi.fn();
+		render(Switch, { checked: false, onchange });
+		const sw = screen.getByRole('switch');
+		expect(sw.getAttribute('aria-checked')).toBe('false');
+		await fireEvent.click(sw);
+		expect(sw.getAttribute('aria-checked')).toBe('true');
 		expect(onchange).toHaveBeenLastCalledWith(true);
 	});
 });
@@ -135,5 +149,69 @@ describe('Select with disabled options', () => {
 		await fireEvent.keyDown(box, { key: 'ArrowDown' });
 		await fireEvent.click(screen.getByRole('option', { name: /Trophy/, hidden: true }));
 		expect(onchange).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('Tabs vertical', () => {
+	it('uses Up/Down arrows and reports its orientation', async () => {
+		render(Tabs, { tabs: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], value: 'a', idPrefix: 'v', orientation: 'vertical' });
+		expect(screen.getByRole('tablist').getAttribute('aria-orientation')).toBe('vertical');
+		const [a, b] = screen.getAllByRole('tab');
+		await fireEvent.keyDown(a, { key: 'ArrowRight' });
+		expect(a.getAttribute('aria-selected')).toBe('true'); // horizontal keys ignored
+		await fireEvent.keyDown(a, { key: 'ArrowDown' });
+		expect(b.getAttribute('aria-selected')).toBe('true');
+	});
+});
+
+describe('Seekbar with discrete stops', () => {
+	it('moves between the stops with the keyboard and snaps to them', async () => {
+		const onchange = vi.fn();
+		render(Seekbar, { value: 30, stops: [5, 10, 30, 60, 90], label: 'time', onchange });
+		const bar = screen.getByRole('slider');
+		expect([bar.getAttribute('aria-valuemin'), bar.getAttribute('aria-valuemax')]).toEqual(['5', '90']);
+		await fireEvent.keyDown(bar, { key: 'ArrowRight' });
+		expect(bar.getAttribute('aria-valuenow')).toBe('60');
+		await fireEvent.keyDown(bar, { key: 'End' });
+		expect(bar.getAttribute('aria-valuenow')).toBe('90');
+		await fireEvent.keyDown(bar, { key: 'ArrowRight' });
+		expect(bar.getAttribute('aria-valuenow')).toBe('90'); // clamped
+		await fireEvent.keyDown(bar, { key: 'PageDown' });
+		expect(bar.getAttribute('aria-valuenow')).toBe('30');
+		expect(onchange).toHaveBeenLastCalledWith(30);
+	});
+	it('shows the value, both ends and tick numbers', () => {
+		render(Seekbar, { value: 3, min: 1, max: 5, label: 'r', format: (v) => `${v}R` });
+		expect(screen.getAllByText('3R').length).toBeGreaterThan(0); // bubble
+		expect(screen.getByText('1R')).toBeTruthy();
+		expect(screen.getByText('5R')).toBeTruthy();
+	});
+});
+
+describe('ThemePicker', () => {
+	const themes = { A1: '문학', B2: '물리', SYS: '시스템', X9: '★' };
+	const open = async () => fireEvent.click(screen.getByRole('button', { name: /주제/ }));
+
+	it('picks one theme from a radio list and shows its name; excluded codes are never offered', async () => {
+		const onchange = vi.fn();
+		render(ThemePicker, { themes, value: '', exclude: ['SYS'], label: '주제', placeholder: '고르세요', onchange });
+		await open();
+		expect(screen.queryByRole('radio', { name: '시스템' })).toBeNull();
+		expect(screen.queryByRole('radio', { name: '★' })).toBeNull();
+		await fireEvent.click(screen.getByRole('radio', { name: '물리' }));
+		expect(onchange).toHaveBeenLastCalledWith('B2');
+		expect(screen.getByRole('button', { name: /물리/ })).toBeTruthy();
+	});
+
+	it('picks several with checkboxes, lists their names on the button, and narrows the list by search', async () => {
+		const onchange = vi.fn();
+		render(ThemePicker, { themes, value: [], multiple: true, label: '주제', placeholder: '전체', onchange });
+		await open();
+		await fireEvent.click(screen.getByRole('checkbox', { name: '문학' }));
+		await fireEvent.click(screen.getByRole('checkbox', { name: '물리' }));
+		expect(onchange).toHaveBeenLastCalledWith(['A1', 'B2']);
+		await fireEvent.input(screen.getByPlaceholderText('주제 검색'), { target: { value: '물' } });
+		expect(screen.queryByRole('checkbox', { name: '문학' })).toBeNull();
+		expect(screen.getByRole('button', { name: /문학, 물리/ })).toBeTruthy();
 	});
 });

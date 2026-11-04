@@ -1,0 +1,420 @@
+/*
+ * The in-game board, carried over from the legacy client (in_kkutu.css / style.css) rule for rule: the stage is part of
+ * the game's identity, so its geometry, colours and motion are the legacy ones. Only the background art is new (SVG).
+ * Everything lives under `.kkg` (the stage) and `.kkr` (the result board). Legacy used content-box sizing and floats.
+ */
+.kkg, .kkg *, .kkr, .kkr * { box-sizing: content-box; }
+.kkg img, .kkr img { display: inline; vertical-align: baseline; max-width: none; }
+.kkg div, .kkr div { float: left; }
+
+/* The box: 1000x410 plus the 5px padding of a legacy .Product, with the vector background art. */
+.kkg {
+	position: relative;
+	float: none;
+	padding: 5px;
+	width: 1000px;
+	height: 425px;
+	border-radius: 0;
+	color: #111111;
+	font-size: 12px;
+	line-height: normal;
+	user-select: none;
+}
+/* the title strip is the room head (legacy setRoomHead) */
+.kkg .product-title { height: 12px; width: 1000px; padding: 3px; border-bottom: 1px solid #CCCCCC; border-radius: 5px; margin: 0 0 5px; color: #222222; background-color: #DDDDDD; }
+.kkg .product-title h5 { float: left; margin: 0; font-size: 11px; font-weight: bold; }
+.kkg .room-head-number { text-align: center; }
+.kkg .room-head-title { font-weight: bold; width: 205px; padding-left: 2px; }
+.kkg .room-head-mode { margin-right: 5px; width: 555px; height: 13px; text-align: right; }
+.kkg .room-head-limit { width: 70px; text-align: center; }
+.kkg .room-head-round { width: 70px; text-align: center; }
+.kkg .room-head-time { width: 54px; text-align: center; }
+.kkg .product-body { padding: 0 5px 0 5px; font-size: 12px; width: 990px; }
+
+/* mission (left hand) and chain (right hand) */
+.kkg .items, .kkg .chain {
+	padding-top: 55px;
+	width: 100px;
+	height: 45px;
+	font-size: 24px;
+	color: #EEEEEE;
+	font-weight: bold;
+	text-align: center;
+	text-shadow: 0px 1px 5px #141414;
+}
+.kkg .items { margin: 50px 40px 0px 105px; background-image: url('https://cdn.kkutu.io/img/kkutu/lefthand.png'); }
+.kkg .chain { margin: 50px 105px 0px 40px; background-image: url('https://cdn.kkutu.io/img/kkutu/righthand.png'); }
+
+/* the character: eyes, nose and the display bar */
+.kkg .jjoriping { width: 500px; }
+.kkg .jjoObj { position: relative; }
+.kkg .jjoEyeL { top: 11px; left: 0px; }
+.kkg .jjoNose { top: 9px; left: 181px; }
+.kkg .jjoEyeR { top: 11px; left: 361px; }
+.kkg .jjoDisplayBar {
+	padding: 20px 5px 5px 5px;
+	border: 2px solid #000000;
+	border-bottom-left-radius: 10px;
+	border-bottom-right-radius: 10px;
+	margin-top: -10px;
+	width: 486px;
+	height: 80px;
+	background-color: #DEAF56;
+}
+.kkg .jjo-display {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding: 8px 5px;
+	border-radius: 10px;
+	border-bottom-left-radius: 0px;
+	border-bottom-right-radius: 0px;
+	width: 476px;
+	height: 23px;
+	font-size: 20px;
+	text-align: center;
+	color: #EEEEEE;
+	background-color: rgba(0, 0, 0, 0.7);
+}
+.kkg .jjo-display-word-length { color: orange; font-size: 14px; }
+.kkg .display-text { width: 20px; text-align: center; z-index: 1; }
+.kkg .game-fail-text { animation: kkg-fail-blink 2s linear; color: #FF7777; }
+
+.kkg .jjoDisplayBar .graph {
+	border-left: 1px solid rgba(0, 0, 0, 0.7);
+	border-right: 1px solid rgba(0, 0, 0, 0.7);
+	width: 484px;
+	height: 20px;
+	color: #FFFFFF;
+	box-shadow: none;
+	text-align: right;
+	text-shadow: 0px 1px 3px #141414;
+	overflow: hidden;
+}
+.kkg .jjoDisplayBar .graph-bar { padding-top: 4px; height: 16px; font-size: 11px; white-space: nowrap; overflow: hidden; }
+.kkg .jjo-turn-time { background-color: #70712D; }
+.kkg .jjo-round-time { border-bottom: 1px solid rgba(0, 0, 0, 0.7); border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; background-color: #223C6C; }
+.kkg .jjo-turn-time .graph-bar { background-color: #E6E846; }
+.kkg .jjo-round-time .graph-bar { background-color: #3573E4; }
+.kkg .jjoDisplayBar .graph-bar.round-extreme { background-color: #FF6D6D; }
+
+/* round letters along the top */
+
+/* the last words */
+.kkg .history-holder { width: 990px; height: 40px; overflow: hidden; }
+.kkg .history { width: 1200px; height: 42px; }
+.kkg .history-item { height: 28px; padding: 4px 0px; border-radius: 10px; margin: 3px; color: #EEEEEE; text-align: center; background-color: #232323; }
+.kkg .history-class { padding: 1px; border-radius: 5px; margin-left: 4px; font-size: 11px; color: #111111; background-color: #77AAFF; }
+.kkg .history-mean { float: none !important; padding: 3px 2px 0px 1px; font-size: 11px; color: #AAAAAA; }
+.kkg .ellipse { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kkg .word-head { margin-right: 3px; }
+.kkg .word-m1-head { padding: 0px 1px; margin: 0px 1px; color: #111111; font-weight: bold; background-color: #BBBBBB; }
+.kkg .word-m2-head { color: #44FF44; }
+.kkg .word-m3-head { color: #EEEEEE; }
+.kkg .word-m3-head::before { content: "("; }
+.kkg .word-m3-head::after { content: ")"; }
+.kkg .word-injeong { color: #FFC88A !important; }
+.kkg .word-special { color: #BFFF80 !important; }
+.kkg .word-theme { color: #8ACFFF; }
+.kkg .word-theme::before { content: "<"; }
+.kkg .word-theme::after { content: ">"; }
+
+/* the answer field, laid over the history strip on my turn */
+.kkg .game-input { position: relative; top: -220px; left: 244px; padding: 5px; border-radius: 10px; background-color: rgba(0, 0, 0, 0.7); }
+/* legacy: input, select, textarea { display:block; padding:5px; border:1px solid #AAAAAA; border-radius:10px } */
+.kkg #game-input { display: block; font-family: inherit; padding: 5px; border: 1px solid #AAAAAA; border-radius: 10px; width: 478px; height: 40px; font-size: 20px; outline: none; background-color: #FFFFFF; color: #111111; }
+
+/* the players */
+.kkg .game-body { margin: 0px -1px; width: 992px; height: 195px; overflow-y: scroll; scrollbar-width: none; scroll-behavior: smooth; }
+.kkg .game-body::-webkit-scrollbar { display: none; }
+.kkg .game-user {
+	padding: 1px;
+	border: 3px solid #DDDDDD;
+	border-radius: 10px;
+	margin: 13px 3px 3px 3px;
+	width: 110px;
+	height: 167px;
+	box-shadow: 0px 1px 1px #141414;
+	background-color: #DDDDDD;
+	transition: all 300ms ease;
+}
+.kkg .game-user-current { animation: kkg-current-blink 2s linear infinite; margin-top: 0px; height: 177px; background-color: #DDFFDD; }
+.kkg .game-user-bomb { border-color: #FF6666; }
+.kkg .game-user-image { margin: 3px 5px; width: 100px; height: 100px; }
+.kkg .game-user-level { margin: 1px; width: 18px; height: 18px; }
+.kkg .game-user-name { padding-left: 3px; margin: 3px 0px; width: 87px; height: 20px; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kkg .game-user-score { padding: 0 5px; border-radius: 10px; width: 100px; font-size: 30px; font-weight: bold; }
+.kkg .game-user-score-char { width: 20px; text-align: center; }
+.kkg .game-user.large-room { width: 86px; padding: 0; }
+.kkg .large-room .game-user-image { width: 76px; height: 76px; margin-bottom: 10px; }
+.kkg .large-room.game-user-current { margin-top: 8px; margin-bottom: 8px; height: 167px; }
+.kkg .large-room .game-user-name { width: 86px; font-size: 12px; text-align: center; padding: 0; }
+.kkg .large-room .game-user-score { width: 76px; font-size: 26px; }
+.kkg .large-room .game-user-score-char { width: 15px; }
+.kkg .large-room .game-user-level { margin-left: 40%; }
+.kkg .team-0 { background-color: #D0D0D0 !important; }
+.kkg .team-1 { background-color: #FF5555 !important; }
+.kkg .team-2 { background-color: #FFBF30 !important; }
+.kkg .team-3 { background-color: #88C525 !important; }
+.kkg .team-4 { background-color: #4A90D6 !important; }
+
+/* score that just changed: appended to the card, so it starts from where the score is (legacy .deltaScore / ScoreGoing) */
+.kkg .deltaScore { width: 100%; color: #2255FF; font-weight: bold; text-align: center; text-shadow: 0px 1px 2px #000033; animation: kkg-score-going 2s ease 1; }
+.kkg .deltaScore.bonus { color: #6666FF; }
+.kkg .deltaScore.lost { color: #F59E9E; }
+
+@keyframes kkg-current-blink { 0% { border-color: #3EFF3E; } 50% { border-color: #009000; } 100% { border-color: #3EFF3E; } }
+@keyframes kkg-fail-blink { 0% { text-decoration: line-through; } 25% { text-decoration: inherit; } 50% { text-decoration: line-through; } 75% { text-decoration: inherit; } }
+@keyframes kkg-score-going {
+	0% { margin-top: -80px; font-size: 24px; opacity: 1; }
+	10% { margin-top: -95px; font-size: 36px; opacity: 0.95; }
+	100% { margin-top: -25px; font-size: 20px; opacity: 0.1; }
+}
+@keyframes kkg-lvup-blink { 0% { margin-top: 6px; } 100% { margin-top: 1px; } }
+@media (prefers-reduced-motion: reduce) {
+	.kkg .game-user-current { animation: none; border-color: #3EFF3E; }
+	.kkg .game-fail-text, .kkg .deltaScore { animation: none; }
+}
+
+/* ---- the result board (legacy ResultDiag) ---- */
+.kkr { width: 400px; font-size: 13px; color: #111111; line-height: normal; }
+.kkr .result-board { width: 400px; height: 260px; overflow-y: scroll; }
+.kkr .result-board-item { padding: 5px; border-radius: 5px; margin: 1px; width: 388px; height: 20px; box-shadow: 0px 1px 1px #CCCCCC; background-color: #F4F4F4; }
+.kkr .result-board-me { padding: 4px; border: 1px solid #CCCCCC; background-color: #FAFAFA; }
+.kkr .result-board-rank { padding-top: 3px; border-radius: 10px; width: 41px; height: 17px; text-align: center; }
+.kkr .result-board-level { width: 20px; height: 20px; }
+.kkr .result-board-name { padding-top: 3px; margin-left: 5px; width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kkr .result-board-score { padding-top: 3px; width: 80px; text-align: center; }
+.kkr .result-board-reward { padding-top: 3px; width: 80px; text-align: center; }
+.kkr .result-board-lvup { width: 62px; height: 20px; color: #2626FF; font-size: 13px; text-align: center; text-shadow: 0px 0px 3px #6DA1FF; }
+.kkr .result-board-lvup .icon { float: left; margin-right: 1px; animation: kkg-lvup-blink 1s infinite; }
+.kkr .result-board-lvup div { padding-top: 3px; }
+.kkr .team-0 { background-color: #D0D0D0 !important; }
+.kkr .team-1 { background-color: #FF5555 !important; }
+.kkr .team-2 { background-color: #FFBF30 !important; }
+.kkr .team-3 { background-color: #88C525 !important; }
+.kkr .team-4 { background-color: #4A90D6 !important; }
+.kkr .result-me { padding: 3px; border: 1px solid #CCCCCC; border-radius: 5px; margin: 1px; width: 390px; height: 80px; font-size: 13px; }
+.kkr .result-me-score { width: 195px; color: #3C5FC2; text-align: center; }
+.kkr .result-me-bonus { color: #4BBBFF; font-weight: bold; text-shadow: 0px 0px 2px #C8C8F7; }
+.kkr .result-me-money { width: 195px; color: #555555; text-align: center; }
+.kkr .result-me-level { margin-top: 5px; width: 80px; }
+.kkr .result-me-level-head { width: 80px; text-align: center; }
+.kkr .result-me-level-body { width: 80px; text-align: center; font-size: 30px; font-weight: bold; }
+.kkr .result-me-gauge { border-radius: 10px; margin-top: 5px; width: 308px; height: 49px; overflow: hidden; box-shadow: 0px 1px 1px #CCCCCC; background-color: #333333; }
+.kkr .result-me-gauge > div { height: 100%; }
+.kkr .result-me-before-bar { background-image: url('https://cdn.kkutu.io/img/kkutu/scorebar.png'); }
+.kkr .result-me-current-bar { background-image: url('https://cdn.kkutu.io/img/kkutu/currentbar.png'); }
+.kkr .result-me-bonus-bar { background-image: url('https://cdn.kkutu.io/img/kkutu/bonusbar.png'); }
+.kkr .result-me-score-text { margin-top: -32px; margin-left: 80px; width: 308px; color: #EEEEEE; text-align: center; text-shadow: 0px 1px 1px #141414; }
+.kkr .tail { clear: both; width: 400px; padding-top: 12px; display: flex; justify-content: flex-end; }
+.kkr .tail > * { float: none; }
+
+
+/* the room around the stage carries the same tile, so the board fills its whole area */
+/* the area around (and behind) the stage: the game's tile in the client's palette, same squares as the loading veil */
+.kkg-backdrop { background-color: color-mix(in srgb, var(--kk-accent) 13%, var(--kk-bg)); }
+.kkg-backdrop .kk-gt-light { fill: color-mix(in srgb, var(--kk-accent) 6%, var(--kk-bg)); stroke: color-mix(in srgb, var(--kk-accent) 6%, var(--kk-bg)); stroke-width: 1; }
+.kkg-backdrop .kk-gt-dark { fill: color-mix(in srgb, var(--kk-accent) 13%, var(--kk-bg)); stroke: color-mix(in srgb, var(--kk-accent) 13%, var(--kk-bg)); stroke-width: 1; }
+
+/*
+ * Look of the board and the result in the client's palette (flat, thin lines, small hard shadows). Colours, radii and shadows
+ * only: every size, position and border width above stays as the legacy layout has it.
+ */
+.kkg .jjo-display { background-color: rgba(52, 36, 8, 0.86); color: #FFF8E6; }
+.kkg .jjo-display-word-length { color: #FFD27A; }
+.kkg .game-fail-text { color: #FF7A6E; text-decoration-color: #FF3B30; text-decoration-thickness: 3px; }
+.kkg .jjoDisplayBar .graph { border-left-color: rgba(52, 36, 8, 0.86); border-right-color: rgba(52, 36, 8, 0.86); }
+.kkg .jjo-turn-time { background-color: color-mix(in srgb, var(--kk-accent-strong) 38%, #34240a); }
+.kkg .jjo-turn-time .graph-bar { background-color: var(--kk-accent); }
+.kkg .jjo-round-time { border-bottom-color: rgba(52, 36, 8, 0.86); background-color: color-mix(in srgb, var(--kk-blue) 34%, #34240a); }
+.kkg .jjo-round-time .graph-bar { background-color: var(--kk-blue); }
+.kkg .jjoDisplayBar .graph-bar.round-extreme { background-color: var(--kk-danger-fill); }
+
+.kkg .history-item { color: var(--kk-text); background-color: var(--kk-surface); box-shadow: inset 0 0 0 1.5px var(--kk-line), 0 2px 0 var(--kk-line); }
+.kkg .history-class { color: var(--kk-accent-strong); background-color: var(--kk-accent-soft); }
+.kkg .history-mean { color: var(--kk-muted); }
+
+.kkg .game-input { border-radius: 14px; background-color: var(--kk-surface); box-shadow: inset 0 0 0 1.5px var(--kk-line-strong), 0 3px 0 var(--kk-line-strong); }
+.kkg #game-input { border-color: var(--kk-line); border-radius: 10px; background-color: var(--kk-surface-2); color: var(--kk-text); }
+.kkg #game-input:focus { border-color: var(--kk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-accent) 28%, transparent); }
+
+.kkg .game-user { border-color: var(--kk-line); border-radius: 14px; background-color: var(--kk-surface); color: var(--kk-text); box-shadow: 0 3px 0 var(--kk-line-strong); }
+.kkg .game-user-current { background-color: var(--kk-accent-soft); }
+.kkg .game-user-bomb { border-color: var(--kk-danger); }
+.kkg .game-user-score { color: var(--kk-text); }
+.kkg .deltaScore { color: var(--kk-accent-strong); text-shadow: none; }
+.kkg .deltaScore.bonus { color: var(--kk-warn); }
+.kkg .deltaScore.lost { color: var(--kk-danger); }
+@keyframes kkg-current-blink { 0% { border-color: var(--kk-accent); } 50% { border-color: var(--kk-accent-strong); } 100% { border-color: var(--kk-accent); } }
+@media (prefers-reduced-motion: reduce) { .kkg .game-user-current { border-color: var(--kk-accent); } }
+
+.kkr { color: var(--kk-text); }
+.kkr .result-board-item { background-color: var(--kk-surface-2); box-shadow: inset 0 0 0 1.5px var(--kk-line); border-radius: 8px; }
+.kkr .result-board-me { border-color: var(--kk-accent); background-color: var(--kk-accent-soft); }
+.kkr .result-board-lvup { color: var(--kk-accent-strong); text-shadow: none; }
+.kkr .result-me { border-color: var(--kk-line); border-radius: 12px; background-color: var(--kk-surface-2); }
+.kkr .result-me-score { color: var(--kk-accent-strong); }
+.kkr .result-me-bonus { color: var(--kk-blue); text-shadow: none; }
+.kkr .result-me-money { color: var(--kk-muted); }
+.kkr .result-me-gauge { border-radius: 12px; box-shadow: inset 0 0 0 1.5px var(--kk-line-strong); }
+
+/* JJo, bigger: the word is set like the portal's 게임 시작! button (white, heavy, soft shadow on the brown) */
+.kkg .jjoDisplayBar { position: relative; height: auto; }
+/* the bar follows the mouth, so the holder keeps the open size and nothing below moves */
+.kkg .jjoriping { height: 176px; }
+.kkg .jjo-display {
+	height: 40px;
+	line-height: 40px;
+	font-size: 30px;
+	font-weight: 800;
+	color: #fff;
+	text-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
+	background: linear-gradient(#6b5530, #4a3820);
+}
+.kkg .jjo-display-word-length { font-size: 18px; }
+.kkg .display-text { width: 30px; }
+/* the timer is yellow */
+.kkg .jjo-turn-time { background-color: #5a4710; }
+.kkg .jjo-turn-time .graph-bar { color: #3a2a00; text-shadow: none; font-weight: 800; background-color: #FFD43B; }
+/* JJo's mouth is his container: the yellow timer is the upper teeth, the blue one the lower teeth, and the word between them */
+.kkg .jjo-turn-time { border-radius: 10px 10px 0 0; }
+.kkg .jjo-display { border-radius: 0; overflow: hidden; }
+.kkg .jjoObj { z-index: 4; }
+
+/* the word sits in the middle of the mouth; a long one wraps (the mouth grows), and only an extreme one is cut */
+.kkg .jjo-display { white-space: normal; text-overflow: clip; }
+.kkg .jjo-text { float: none; width: 100%; display: flow-root; text-align: center; line-height: 40px; overflow-wrap: anywhere; }
+.kkg .jjo-ch { display: inline-block; transform-origin: 50% 55%; }
+.kkg .jjoriping { position: relative; z-index: 5; }
+
+/* JJo casts a soft shadow, like the portal's 게임 시작! sign */
+.kkg .jjoDisplayBar { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
+
+/* 자음퀴즈 hints sit where the mission hand is (same width), each a dark chip */
+.kkg .hints { margin: 40px 10px 0px 10px; width: 225px; height: 110px; overflow: hidden; }
+.kkg .hint-item { padding: 5px; border-radius: 5px; margin: 1px 0px; color: #EEEEEE; font-size: 13px; max-height: 63px; overflow: hidden; background-color: #111111; }
+
+/* 타자 대결: a wrong letter is struck out in red */
+.kkg .jjo-fit { float: none; width: 100%; }
+.kkg .jjo-wrong { color: #FF5A4D; text-decoration: line-through; text-decoration-thickness: 3px; }
+
+/* ---- the board layout (legacy `cw`): 솎솎 and 잇땅 ---- */
+.kkg .kkg-cw { display: flex; width: 990px; gap: 10px; padding: 0; }
+.kkg .kkg-cw > div { float: none; }
+.kkg .kkg-cw-left { display: flex; flex-direction: column; width: 324px; }
+.kkg .kkg-cw-left > div { float: none; }
+.kkg .b-left { width: 324px; margin-top: 25px; padding: 5px; box-sizing: border-box; height: 180px; overflow-y: auto; }
+.kkg .bb-word { width: 50%; color: #EEEEEE; }
+.kkg .bb-char { padding: 2px; border-radius: 5px; margin: 1px; width: 10px; text-align: center; background-color: #111111; }
+.kkg .linkland-word { clear: both; width: 100%; color: var(--kk-text); }
+.kkg .cw.jjoriping { margin-top: -10px; width: 322px; }
+.kkg .cw .jjoNose { left: 94px; }
+.kkg .cw .jjoEyeR { left: 183px; }
+.kkg .cw .jjoDisplayBar { width: 308px; height: auto; }
+.kkg .cw .jjo-display { position: relative; box-sizing: content-box; padding: 5px; width: 298px; height: 298px; line-height: normal; border-radius: 0; font-size: 20px; overflow: hidden; }
+.kkg .cw .jjoDisplayBar .graph { width: 306px; }
+.kkg .cw .jjo-turn-time .graph-bar { height: 16px; }
+.kkg .sock-char { display: flex; align-items: center; justify-content: center; text-align: center; }
+.kkg .sock-picked { color: #FFFF44; font-weight: bold; font-size: 24px; }
+.kkg .sock-picked-anim { animation: kkg-sock-pick 0.5s ease-out 0.05s both; }
+@keyframes kkg-sock-pick { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.2); } }
+.kkg .linkland-board { display: block; width: 100%; height: 100%; padding: 0; user-select: none; overflow: hidden; }
+.kkg .linkland-cell { float: left; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, 0.14); color: #EEEEEE; font-size: 16px; line-height: 26px; text-align: center; background: rgba(20, 20, 20, 0.78); transition: background-color 180ms ease; }
+.kkg .linkland-owner-0 { background-color: #D94B4B; }
+.kkg .linkland-owner-1 { background-color: #3979D9; }
+.kkg .linkland-owner-2 { background-color: #31A66B; }
+.kkg .linkland-owner-3 { background-color: #A75BC2; }
+.kkg .linkland-owner-4 { background-color: #D8862F; }
+.kkg .linkland-owner-5 { background-color: #2E9FA3; }
+.kkg .linkland-owner-6 { background-color: #C34984; }
+.kkg .linkland-owner-7 { background-color: #71833A; }
+.kkg .linkland-owner-8 { background-color: #6A63C7; }
+.kkg .linkland-owner-9 { background-color: #9B653A; }
+.kkg .kkg-ll .b-left { height: 125px; }
+.kkg .kkg-cw .game-body { margin: 0; width: 334px; height: 190px; overflow-y: auto; position: static; }
+.kkg .kkg-cw-right { margin-top: 25px; }
+.kkg .kkg-ll .kkg-cw-left .game-body { margin-top: 20px; width: 324px; }
+.kkg .cw .game-user { display: flex; align-items: center; box-sizing: border-box; border: 2px solid var(--kk-line); margin: 1px; width: 330px; height: 22px; padding: 1px 4px; border-radius: 8px; box-shadow: none; position: relative; }
+.kkg .cw .game-user > div { float: none; }
+.kkg .cw .game-user-level { margin: 1px; }
+.kkg .cw .game-user-name { margin: 0 6px 0 0; padding: 0; flex: 1; width: auto; height: auto; font-size: 13px; line-height: 20px; }
+.kkg .cw .game-user-score { display: flex; width: auto; padding: 0 4px; font-size: 15px; font-weight: bold; }
+.kkg .cw .game-user-score-char { width: 10px; }
+/* 워드스택 */
+.kkg .wordstack-piece { display: inline-block; padding: 0 2px; border-radius: 4px; transform-origin: center; }
+.kkg .wordstack-piece-pulse { color: #FFF4B0; background: rgba(255, 92, 64, 0.42); animation: kkg-piece-pulse 0.82s ease-in-out infinite; }
+@keyframes kkg-piece-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 80, 48, 0); } 50% { transform: scale(1.2); box-shadow: 0 0 10px rgba(255, 80, 48, 0.95); } }
+.kkg .round-warning { background: rgba(255, 100, 100, 1) !important; animation: kkg-pulse-red 600ms infinite; }
+@keyframes kkg-pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.wordstack-flying-piece { position: fixed; z-index: 10000; width: 34px; height: 34px; border: 2px solid #FFF2A8; border-radius: 9px; color: #FFFFFF; background: linear-gradient(145deg, #FFB33E, #E5523A); box-shadow: 0 5px 14px rgba(0, 0, 0, 0.42); font-size: 22px; font-weight: bold; line-height: 30px; text-align: center; pointer-events: none; will-change: transform, opacity; }
+@media (prefers-reduced-motion: reduce) { .kkg .wordstack-piece-pulse, .kkg .round-warning, .kkg .sock-picked-anim { animation: none; } }
+
+/* ---- 십자말풀이 ---- */
+.kkg .cwcmd { box-sizing: border-box; height: auto; margin-top: 25px; transition: opacity 0.15s; }
+.kkg .cw-q-head { margin: 3px 0px; width: 100%; font-size: 13px; color: var(--kk-text); text-align: center; min-height: 16px; }
+.kkg #cw-q-input { display: block; box-sizing: border-box; width: 100%; height: 30px; padding: 5px; border: 1px solid var(--kk-line-strong); border-radius: 10px; font-family: inherit; font-size: 15px; background: var(--kk-surface); color: var(--kk-text); outline: none; }
+.kkg #cw-q-input:focus { border-color: var(--kk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-accent) 28%, transparent); }
+.kkg .cw-q-body { box-sizing: border-box; width: 100%; padding: 5px; border-radius: 10px; margin-top: 5px; color: #CCCCCC; background-color: #111111; min-height: 60px; }
+.kkg .cw-bar { position: absolute; border-radius: 10px; cursor: pointer; background-color: #C7C7C7; }
+.kkg .cw-bar:hover, .kkg .cw-bar:focus-visible { background-color: #F2F2F2; z-index: 1; outline: none; }
+.kkg .cw-bar.cw-open { background-color: #777777; pointer-events: none; z-index: 2; }
+.kkg .cw-bar.cw-my-open { background-color: #00A55A; }
+.kkg .cw-cell { padding-top: 4px; border-radius: 5px; margin: 3px; width: 32.5px; height: 28.5px; box-shadow: 0px 1px 1px #000000; color: #111; font-weight: bold; text-align: center; box-sizing: content-box; }
+.kkg .cw-bar.cw-open .cw-cell, .kkg .cw-bar.cw-my-open .cw-cell { color: #fff; }
+
+/* ---- 그림퀴즈: a sketchbook instead of JJo ---- */
+.kkg .sketch { position: relative; display: flex; align-items: center; flex-direction: column; justify-content: flex-start; gap: 0; width: 1010px; height: 572px; color: var(--kk-text); }
+.kkg .sk-top div, .kkg .sk-top span, .kkg .sk-top button, .kkg .sk-top input { float: none; }
+.kkg .sk-top { display: flex; align-items: center; justify-content: center; gap: 16px; width: 1010px; height: 376px; padding-top: 14px; box-sizing: border-box; }
+.kkg .sk-side { width: 112px; flex: none; display: flex; align-items: center; }
+.kkg .sk-left { width: 150px; flex-direction: column; justify-content: center; gap: 8px; }
+.kkg .sk-info { box-sizing: border-box; width: 100%; padding: 8px 10px; border-radius: 14px; background: #166534; border: 2px solid #052e16; box-shadow: 0 3px 0 #052e16; text-align: center; color: #fff; }
+.kkg .sk-panel { width: 100%; padding: 8px; border-radius: 16px; border: 1.5px solid var(--kk-line-strong); background: var(--kk-surface); box-shadow: 0 3px 0 var(--kk-line-strong); }
+.kkg .sk-palette { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.kkg .sk-swatch { aspect-ratio: 1; border-radius: 6px; border: 1.5px solid rgb(0 0 0 / 0.25); padding: 0; cursor: pointer; }
+.kkg .sk-swatch.on { box-shadow: 0 0 0 2px var(--kk-surface), 0 0 0 4px var(--kk-accent); position: relative; }
+.kkg .sk-current { grid-column: 1 / -1; height: 26px; margin-top: 4px; border-radius: 8px; border: 1.5px solid var(--kk-line-strong); }
+.kkg .sk-hints { display: grid; gap: 6px; max-height: 380px; overflow: auto; font-size: 13px; }
+.kkg .sk-hints:empty { display: none; }
+.kkg .sk-hint { padding: 4px 6px; border-radius: 8px; background: var(--kk-surface-2); font-weight: 700; }
+.kkg .sk-toolgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.kkg .sk-btn { display: grid; place-items: center; height: 44px; border-radius: 12px; border: 1.5px solid var(--kk-line-strong); background: var(--kk-surface-2); color: var(--kk-text); box-shadow: 0 2px 0 var(--kk-line-strong); cursor: pointer; }
+.kkg .sk-btn:active { transform: translateY(2px); box-shadow: none; }
+.kkg .sk-btn.on { background: var(--kk-accent-soft); border-color: var(--kk-accent); box-shadow: 0 2px 0 var(--kk-accent); }
+.kkg .sk-clear { grid-column: 1 / -1; background: #fecdd3; color: #7f1d1d; border-color: #e11d48; box-shadow: 0 2px 0 #e11d48; }
+.kkg .sk-sizes { display: flex; justify-content: space-between; margin-top: 10px; }
+.kkg .sk-size { display: grid; place-items: center; width: 20px; height: 24px; padding: 0; border-radius: 8px; border: 1.5px solid var(--kk-line-strong); background: #e5e7eb; cursor: pointer; overflow: hidden; }
+.kkg .sk-size.on { border-color: var(--kk-accent); }
+.kkg .sk-size i { display: block; border-radius: 999px; max-width: 16px; max-height: 16px; }
+.kkg .sk-range { appearance: none; width: 100%; height: 6px; margin: 12px 0 4px; border-radius: 999px; background: linear-gradient(to right, var(--kk-accent) var(--p), var(--kk-line) var(--p)); cursor: pointer; }
+.kkg .sk-range::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 999px; background: var(--kk-surface); border: 3px solid var(--kk-accent); box-shadow: 0 2px 0 var(--kk-line-strong); }
+.kkg .sk-range::-moz-range-thumb { width: 12px; height: 12px; border-radius: 999px; background: var(--kk-surface); border: 3px solid var(--kk-accent); }
+/* the sketchbook: a green cover with two rings, the paper, a stack of pages under it and the clock */
+.kkg .sk-book { position: relative; flex: none; width: 642px; height: 362px; padding: 18px 21px 10px; box-sizing: border-box; border-radius: 18px; background: #166534; border: 2px solid #052e16; box-shadow: 0 5px 0 #052e16; }
+.kkg .sk-coil { position: absolute; left: 0; top: -32px; width: 100%; height: 60px; z-index: 2; pointer-events: none; overflow: visible; }
+.kkg .sk-theme { font-size: 12px; font-weight: 700; color: #bbf7d0; line-height: 16px; }
+.kkg .sk-word { font-size: 20px; font-weight: 900; line-height: 26px; color: #fde047; max-width: 100%; overflow-wrap: anywhere; }
+.kkg .sk-answer { color: #FFFF44; }
+.kkg .sk-page { width: 600px; height: 300px; background: #fff; border-radius: 4px; overflow: hidden; }
+.kkg .sk-picture { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.kkg .sk-stack { height: 6px; margin: 0 4px; border-radius: 0 0 6px 6px; background: repeating-linear-gradient(#fff 0 1px, #cbd5e1 1px 2px); }
+.kkg .sk-time { position: relative; height: 22px; margin-top: 6px; border-radius: 8px; background: #052e16; overflow: hidden; }
+.kkg .sk-time-bar { position: absolute; inset: 0 auto 0 0; background: #facc15; transition: width 0.1s linear; }
+.kkg .sk-time-bar.round-extreme { background: #ef4444; }
+.kkg .sk-time span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000; }
+.kkg canvas { user-select: none; -webkit-user-drag: none; }
+.kkg .sk-page canvas { display: block; }
+.kkg .sk-size i.er { background: #fff; border: 1.5px dashed #6b7280; box-sizing: border-box; }
+.kkg .game-user-drawing { animation: none; border-color: #3b82f6; background-color: color-mix(in srgb, #3b82f6 22%, var(--kk-surface)); color: var(--kk-text); }
+@media (prefers-reduced-motion: reduce) { .kkg .game-user-drawing { border-color: #3b82f6; } }
+/* the page turn between rounds: a sheet hinged on the top edge swings over the rings */
+.kkg .sk-book { perspective: 1800px; }
+.kkg .sk-flip { position: absolute; left: 21px; top: 18px; width: 600px; height: 300px; transform-origin: 50% 0; transform-style: preserve-3d; animation: sk-flip 0.9s cubic-bezier(0.55, 0, 0.35, 1) forwards; z-index: 3; pointer-events: none; }
+.kkg .sk-flip-front, .kkg .sk-flip-back { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 4px; overflow: hidden; }
+.kkg .sk-flip-front { background: #fff; }
+.kkg .sk-flip-front img { display: block; width: 100%; height: 100%; object-fit: fill; }
+.kkg .sk-flip-back { transform: rotateX(180deg); background: linear-gradient(#e2e8f0, #f8fafc 40%); }
+@keyframes sk-flip { from { transform: rotateX(0deg); } to { transform: rotateX(180deg); } }
+@media (prefers-reduced-motion: reduce) { .kkg .sk-flip { display: none; } }
+.kkg .game-user { position: relative; }

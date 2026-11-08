@@ -66,6 +66,16 @@ describe('a game', () => {
 		applyGamePacket(s, { type: 'turnStart', turn: 1, char: '가', subChar: '나', speed: 2, turnTime: 12000, roundTime: 60000, wordLength: 3, gameId: 'g', turnId: 't', inputEpoch: 4 }, 1000);
 		expect(s.game).toMatchObject({ phase: 'turn', current: 'bot', turnAt: 1000, turnTime: 12000, wordLength: 3, gameId: 'g', turnId: 't', inputEpoch: 4, subChar: '나' });
 	});
+	it('keeps the server-decided 한방 range of a good word, and ignores a malformed one', () => {
+		const s = world();
+		applyGamePacket(s, { type: 'roundReady', round: 0, char: '이' });
+		applyGamePacket(s, { type: 'turnStart', turn: 0, char: '이' });
+		applyGamePacket(s, { type: 'turnEnd', ok: true, value: '이리듐', score: 10, bonus: 0, hanbang: [2, 3] });
+		expect(s.game.last.hanbang).toEqual([2, 3]);
+		applyGamePacket(s, { type: 'turnStart', turn: 0, char: '듐' });
+		applyGamePacket(s, { type: 'turnEnd', ok: true, value: '듐프', score: 10, bonus: 0, hanbang: 'x' });
+		expect(s.game.last.hanbang).toBeNull();
+	});
 	it('scores a good word and keeps the chain', () => {
 		const s = world();
 		applyGamePacket(s, { type: 'roundReady', round: 0, char: '가' });
@@ -100,9 +110,10 @@ describe('a game', () => {
 		const s = world();
 		s.meta.labels['kkutu.js.turn.error.409'] = '이미 쓰인 단어';
 		applyGamePacket(s, { type: 'turnError', code: 409, value: '가위' }, 5);
-		expect(s.game.fail).toEqual({ code: 409, text: '이미 쓰인 단어: 가위', at: 5 });
+		expect(s.game.fail).toEqual({ code: 409, text: '이미 쓰인 단어: 가위', word: '가위', at: 5 });
 		applyGamePacket(s, { type: 'turnError', code: 404, value: '없는 말' }, 6);
 		expect(s.game.fail.text).toBe('없는 말');
+		expect(s.game.fail.word).toBe('없는 말'); // what the board strikes out, even when somebody else typed it
 	});
 	it('adds a stack-kill bonus to the player', () => {
 		const s = world();
@@ -236,6 +247,29 @@ describe('the quiz modes', () => {
 		expect(s.users.me.game.score).toBe(2);
 		applyGamePacket(s, { type: 'turnEnd', speed: { me: 310, bot: 280 } });
 		expect(s.game.kpm).toEqual({ me: 310, bot: 280 });
+	});
+	it('keeps every word of the game with the letters nobody could go on from', () => {
+		const s = world();
+		applyGamePacket(s, { type: 'roundReady', round: 1, char: '이' });
+		applyGamePacket(s, { type: 'turnStart', turn: 0, char: '이' });
+		applyGamePacket(s, { type: 'turnEnd', ok: true, value: '이리듐', score: 38, bonus: 0, hanbang: [2, 3] });
+		applyGamePacket(s, { type: 'roundReady', round: 2, char: '가' });
+		applyGamePacket(s, { type: 'turnStart', turn: 0, char: '가' });
+		applyGamePacket(s, { type: 'turnEnd', ok: true, value: '가방', score: 12, bonus: 0 });
+		expect(s.game.played.map((p) => [p.id, p.word, p.round, p.hanbang])).toEqual([['me', '이리듐', 1, [2, 3]], ['me', '가방', 2, null]]);
+	});
+	it('수학 대결: the end of a round tells the questions solved so far, and the next round clears it', () => {
+		const s = quiz('Mathquiz');
+		applyGamePacket(s, { type: 'roundReady', round: 1, list: ['1+1'] });
+		applyGamePacket(s, { type: 'turnStart', turn: 0, roundTime: 60000 });
+		applyGamePacket(s, { type: 'turnEnd', ok: false, speed: { me: 52, bot: 40 }, solved: { me: 314, bot: 120 } });
+		expect(s.game.solved).toEqual({ me: 314, bot: 120 });
+		expect(s.game.kpm).toEqual({ me: 52, bot: 40 }); // the speed is still there for the clients that show it
+		applyGamePacket(s, { type: 'roundReady', round: 2, list: ['2+2'] });
+		expect(s.game.solved).toBeNull();
+		// a packet from a server that does not send it
+		applyGamePacket(s, { type: 'turnEnd', ok: false, speed: { me: 9 } });
+		expect(s.game.solved).toBeNull();
 	});
 	it('수학 대결: my answers are listed with their problem', () => {
 		const s = quiz('Mathquiz');

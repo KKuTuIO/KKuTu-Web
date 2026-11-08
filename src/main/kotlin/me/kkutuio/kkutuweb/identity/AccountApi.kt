@@ -68,6 +68,9 @@ class AccountApi(
             ?: throw IdpException("temporarily_unavailable", "CSRF 토큰을 만들 수 없습니다.", 503)
         return mapOf("token" to token.token, "header" to token.headerName, "parameter" to token.parameterName)
     }
+    /** One-time hints the account has closed (see AccountService.closeNudge). CSRF-protected like the rest of /api/account. */
+    @PostMapping("/nudges/{id}/close") fun closeNudge(@PathVariable id: String, session: HttpSession): Map<String, Any?> =
+        mapOf("closed" to accounts.closeNudge(accounts.requireCurrentAccount(session), id))
     @GetMapping("/summary") fun summary(session: HttpSession): Map<String, Any?> {
         val account = accounts.requireCurrentAccount(session)
         return accounts.summary(account) + ("account_restricted" to isAccountRestricted(account))

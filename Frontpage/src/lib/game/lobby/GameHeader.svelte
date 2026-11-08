@@ -29,7 +29,7 @@
 	}
 	const room = $derived(store.currentRoom);
 	// 퇴장 예약 is for players of a real game only: a spectator or someone practising can just leave (legacy)
-	const canReserve = $derived(!!g && g.phase !== 'ended' && store.net.users[store.net.id]?.game.form !== 'S' && !room?.practice);
+	const canReserve = $derived(!store.replay && !!g && g.phase !== 'ended' && store.net.users[store.net.id]?.game.form !== 'S' && !room?.practice);
 	$effect(() => {
 		if (!canReserve && store.ui.exitReserved) store.ui.exitReserved = false;
 	});
@@ -42,12 +42,19 @@
 </script>
 
 {#if room}
-	<header class="kk-card relative z-20 flex min-h-14 shrink-0 items-center gap-3 rounded-none border-x-0 border-t-0 px-4 py-2">
-		<span class="hidden sm:inline"><Logo class="h-7" /></span>
-		<div class="flex min-w-0 items-center gap-2 {prefs.hideRoom ? 'blur-[5px] hover:blur-none' : ''}">
-			<span class="font-black tabular-nums">{room.practice ? t('kkutu.js.practice') : room.no}</span>
+	<!-- (in a replay the header sits in the page as a card, without the logo, the dictionary and the reserved exit) -->
+	<header class="kk-card relative z-20 flex min-h-14 shrink-0 items-center gap-3 px-4 py-2 {store.replay ? 'rounded-2xl' : 'rounded-none border-x-0 border-t-0'}">
+		{#if !store.replay}<span class="hidden sm:inline"><Logo class="h-7" /></span>{/if}
+		{#snippet roomName()}
+			<span class="font-black tabular-nums">{store.replay ? t('kkutu.js.replay') : room.practice ? t('kkutu.js.practice') : room.no}</span>
 			<h1 class="truncate font-extrabold">{maskBad(room.title || '')}</h1>
-		</div>
+		{/snippet}
+		{#if store.replay || room.practice}
+			<div class="flex min-w-0 items-center gap-2 {prefs.hideRoom ? 'blur-[5px] hover:blur-none' : ''}">{@render roomName()}</div>
+		{:else}
+			<!-- the room's number and title open its menu (방 정보 / 방 신고), as the legacy client's title did -->
+			<button type="button" aria-haspopup="menu" onclick={(e) => store.hooks.openRoomMenu?.(room.no, e)} class="-mx-2 flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left hover:bg-(--kk-surface-2) {prefs.hideRoom ? 'blur-[5px] hover:blur-none focus-visible:blur-none' : ''}">{@render roomName()}</button>
+		{/if}
 		<span class="kk-chip shrink-0">{room.mode}</span>
 		<span class="hidden min-w-0 flex-wrap items-center gap-1.5 xl:flex">
 			{#each room.rules as rule (rule.key)}<span class="kk-chip">{rule.label}</span>{/each}
@@ -72,10 +79,12 @@
 			<li class="inline-flex items-center gap-1"><Icon name="timer" size={18} />{room.time}{second}</li>
 			<li class="inline-flex items-center gap-1"><Icon name="group" size={18} />{room.cur} / {room.limit}</li>
 		</ul>
+		{#if !store.replay}
 		{#if math}
 			<button type="button" onclick={oncalc} aria-label={t('play.calc.title')} class="kk-btn inline-flex shrink-0 items-center gap-1.5"><Icon name="calculate" size={20} /><span class="hidden xl:inline">{t('play.calc.title')}</span></button>
 		{:else}
 			<button type="button" onclick={ondict} aria-label={t('play.nav.dict')} class="kk-btn inline-flex shrink-0 items-center gap-1.5"><Icon name="menu_book" size={20} /><span class="hidden xl:inline">{t('play.nav.dict')}</span></button>
+		{/if}
 		{/if}
 		{#if canReserve}
 			<button type="button" onclick={() => store.toggleExitReserve()} aria-pressed={store.ui.exitReserved} aria-label={reserveLabel} class="kk-btn inline-flex shrink-0 items-center gap-1.5 border-transparent text-white {store.ui.exitReserved ? 'bg-[#db2777] shadow-[0_3px_0_#9d174d]' : 'bg-[#ec4899] shadow-[0_3px_0_#be185d]'}"><Icon name="event_busy" size={20} fill={store.ui.exitReserved} /><span class="hidden xl:inline">{reserveLabel}</span></button>

@@ -4,21 +4,22 @@
 	import Dialog from './Dialog.svelte';
 	import GameOptions from './GameOptions.svelte';
 	import { toast } from '../ui/toast.svelte.js';
-	let { store, open = $bindable(false) } = $props();
+	/** `start`: the mode to open with (the profile's recommendation), else the default one. */
+	let { store, open = $bindable(false), start: startMode = 2 } = $props();
 	let mode = $state(2);
 	let opts = $state({});
 	let injpick = $state([]);
 	// Every opening starts from the defaults.
 	$effect(() => {
 		if (open) {
-			mode = 2;
+			mode = startMode;
 			opts = {};
 			injpick = [];
 		}
 	});
 	const waiting = $derived(Object.values(store.net.rooms).filter((r) => !r.playing && !r.locked && r.cur < r.max && r.modeIndex === mode).length);
 
-	function start(e) {
+	function go(e) {
 		e.preventDefault();
 		const result = store.quickMatch(mode, Object.fromEntries(Object.entries(opts).filter(([, on]) => on)), [...injpick]);
 		// Nothing to join and no themes to open a 단어장 room with: stay and ask for them.
@@ -28,7 +29,7 @@
 </script>
 
 <Dialog bind:open title={t('play.quick.title')}>
-	<form onsubmit={start} class="flex flex-col gap-3">
+	<form onsubmit={go} class="flex flex-col gap-3">
 		<GameOptions net={store.net} bind:mode bind:opts bind:injpick withThemes />
 		<p class="text-xs text-(color:--kk-muted)">{t('play.quick.hint', { count: waiting })}</p>
 		<button class="kk-btn kk-btn-primary inline-flex min-h-12 items-center justify-center gap-1.5 px-6 text-base"><Icon name="play_arrow" fill />{t('play.quick.start')}</button>

@@ -9,8 +9,9 @@
 	import { processWord } from '../wordMean.js';
 	import { maskBad } from '../badwords.js';
 	import { plainText } from '../protocol.js';
-	import { prefs } from '../prefs.svelte.js';
-	import { ms } from '../motion.js';
+	import { prefs, setPref } from '../prefs.svelte.js';
+	import { dockAt, itemReady, ITEMS } from '../items.js';
+	import { ms, reducedMotion } from '../motion.js';
 	import { playSound, playGameBgm } from '../audio.svelte.js';
 	import { IMAGE_CDN, IMAGE_VERSION } from '../images.js';
 	import { confirm } from '../ui/confirm.svelte.js';
@@ -24,6 +25,9 @@
 	import GameLoading from './GameLoading.svelte';
 	import DrawingCanvas from './DrawingCanvas.svelte';
 	import DrawingTools from './DrawingTools.svelte';
+	import ItemBar from './ItemBar.svelte';
+	import ItemZones from './ItemZones.svelte';
+	import ItemFx from './ItemFx.svelte';
 	import '../gameStage.css';
 
 	/**
@@ -43,13 +47,14 @@
 	const boardMode = $derived(BOARD.includes(family)); // 솎솎 and 잇땅 are drawn on the square board layout
 	const supported = $derived(['Classic', 'Hunmin', 'Daneo', 'Jaqwi', 'Typing', 'Mathquiz', 'Wordstack', 'Sock', 'Linkland', 'Crossword', 'Drawing'].includes(family));
 	const reverse = $derived(['KAP', 'EAP'].includes(room?.modeKey));
-	const kkt = $derived(['KKT', 'KFT'].includes(room?.modeKey));
+	const kkt = $derived(room?.modeKey === 'KKT');
 	const parts = $derived(net.meta.moremiParts);
 	const labels = $derived(net.meta.labels);
 
 	// the board is kept out of sight until the veil has covered the screen, so it never shows through the arriving squares
 	let veil = $state('none');
-	const loadingNow = $derived(!g || g.phase === 'loading');
+	// (a replay has no page-wide loading veil: it would cover the player's own controls whenever it is wound back to the start)
+	const loadingNow = $derived(!store.replay && (!g || g.phase === 'loading'));
 	const stageHidden = $derived(veil === 'in' || (loadingNow && veil === 'none'));
 	// the waiting room stays on screen until the veil has covered it, then the board takes its place beneath the veil
 	$effect(() => {
@@ -64,7 +69,15 @@
 	const STAGE_H = $derived(family === 'Drawing' ? 572 : 435);
 	let areaW = $state(0);
 	let areaH = $state(0);
-	const scale = $derived(areaW && areaH ? Math.min(areaW / STAGE_W, areaH / STAGE_H) : 1);
+	let backdropEl = $state();
+	// 아이템전: the items are always in view; at an edge they take room from the stage (it shrinks to fit the rest)
+	const itemOn = $derived(family === 'Classic' && !!room?.opts?.item && !spectating && !!g && g.phase !== 'loading' && !g.result);
+	const dock = $derived(prefs.itemDock);
+	const EDGE_W = 84;
+	const EDGE_H = 56;
+	const padX = $derived(itemOn && (dock === 'left' || dock === 'right') ? EDGE_W : 0);
+	const padY = $derived(itemOn && (dock === 'top' || dock === 'bottom') ? EDGE_H : 0);
+	const scale = $derived(areaW && areaH ? Math.min((areaW - padX) / STAGE_W, (areaH - padY) / STAGE_H) : 1);
 
 	// ---- the players, in turn order ----
 	const seats = $derived(
@@ -73,6 +86,12 @@
 			.filter(Boolean)
 	);
 	const large = $derived(seats.length > 8);
+	// 선두: whoever holds the highest score of the game (all of them on a tie); nothing while the scores are still zero or when playing alone
+	const leaders = $derived.by(() => {
+		if (g?.result || seats.length < 2) return new Set();
+		const top = Math.max(...seats.map((p) => p.game.score ?? 0));
+		return top > 0 ? new Set(seats.filter((p) => (p.game.score ?? 0) === top).map((p) => p.id)) : new Set();
+	});
 	const currentId = $derived(family === 'Jaqwi' ? g?.winner : g?.phase === 'turn' ? g.current : null);
 
 	// ---- the clocks (legacy turnGoing): lengths from the server, counted down on my own clock ----
@@ -81,6 +100,8 @@
 	let roundLeft = $state(0);
 	let turnText = $state('');
 	let roundText = $state('');
+	// the time the clocks of the board run on: now, or a replay's own (it can be paused, and run faster or slower)
+	const clock = () => (store.now ? store.now() : Date.now());
 	let extreme = $state(false);
 	const second = $derived(t('kkutu.js.second'));
 	const clockText = (v) => `${(Math.max(0, v) * 0.001).toFixed(1)}${second}`;
@@ -100,7 +121,7 @@
 		const round = g.roundTime;
 		let raf;
 		const frame = () => {
-			const used = Date.now() - at;
+			const used = clock() - at;
 			turnLeft = turn - used;
 			roundLeft = round - used;
 			turnText = clockText(turnLeft);
@@ -262,9 +283,12 @@
 				hint = splitHint(last.hint, [g.char, g.subChar], reverse);
 				return;
 			}
-			const plan = planReveal({ text: last.value, turnTime: g.turnTime, speed: g.speed, mission: g.mission, kkt, reverse, en: rule?.lang === 'en' });
+			// (a replay at 2x brings the next turn twice as soon: the word's beats, pulses and its eating are scaled by the same rate)
+			const rate = store.speed ? store.speed() : 1;
+			const plan = planReveal({ text: last.value, turnTime: g.turnTime / rate, speed: g.speed, mission: g.mission, kkt, reverse, en: rule?.lang === 'en' });
 			const text = last.value;
-			reveal = { chars: [...text].map((char) => ({ char, mission: char === g.mission, on: false })) };
+			const hb = last.hanbang;
+			reveal = { chars: [...text].map((char, i) => ({ char, mission: char === g.mission, hanbang: !!hb && i >= hb[0] && i < hb[1], on: false })) };
 			// Like the legacy client, each letter comes in on its beat (planReveal: the BEAT pattern of the word's length, one
 			// tick = turn time / 96) with its sound; the word's place in the middle of the mouth is kept from the start, and
 			// the letter zooms in there on a spring.
@@ -283,7 +307,7 @@
 			historyTimers.push(
 				setTimeout(() => {
 					mouthOpen = false; // the word is eaten
-					history = [{ key: ++historyKey, word: last.value, mean: processWord(last.mean, last.theme, labels), wcs: wordClasses(last.wc) }, ...history].slice(0, 6);
+					history = [{ key: ++historyKey, word: last.value, hanbang: last.hanbang, mean: processWord(last.mean, last.theme, labels), wcs: wordClasses(last.wc) }, ...history].slice(0, 6);
 				}, plan.historyAt)
 			);
 		});
@@ -322,7 +346,11 @@
 			if (g.phase === 'ended') return { kind: 'text', text: t('kkutu.js.roundEnd') };
 			return { kind: 'list', first: listLeft[0] ?? '', rest: listLeft.slice(1, lv).join(' ') };
 		}
-		if (failing && g.submitted) return { kind: 'fail', text: g.submitted }; // my refused word, struck out
+		if (itemNote !== null && family === 'Classic') return { kind: 'item', text: t(`game.item.${itemNote}.name`) };
+		// an item the server refused (420-429: used one already this turn, first move, out of time, none left) says why, as legacy did
+		if (failing && g.fail && g.fail.code >= 420 && g.fail.code <= 429) return { kind: 'warn', text: g.fail.text };
+		// my refused word, struck out; `turnError` goes to the whole room, so a refusal of somebody else's word (not the one I typed, which may be left over from an earlier turn) strikes nothing
+		if (failing && g.submitted && g.fail?.word === g.submitted) return { kind: 'fail', text: g.submitted };
 		if (reveal) return { kind: 'reveal', ...reveal };
 		if (hint) return { kind: 'hint', ...hint };
 		if (g.phase === 'ended') return { kind: 'text', text: t('kkutu.js.roundEnd') };
@@ -393,24 +421,91 @@
 	let value = $state('');
 	let field = $state();
 	const canType = $derived(store.myTurn);
+	// The text answers are typed in the room's language. A letter of the other one means the 한/영 key was on the wrong side (e.g. a stray Ctrl+A
+	// or a 한/영 slip): say so above the field, without changing what was typed. 타자 대결 is left out, its fixed texts may mix scripts.
+	const LANG_CHECKED = ['Classic', 'Hunmin', 'Daneo', 'Jaqwi', 'Wordstack', 'Sock', 'Linkland'];
+	const wrongLang = $derived(!value || !LANG_CHECKED.includes(family) ? null : rule?.lang === 'ko' && /[a-z]/i.test(value) ? 'ko' : rule?.lang === 'en' && /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(value) ? 'en' : null);
 	$effect(() => {
 		if (!canType) return;
 		value = '';
 		tick().then(() => field?.focus());
+	});
+	// ---- 아이템전: using an item, and moving the bar (drag the grip onto a place; it is remembered in the prefs) ----
+	function useItem(id) {
+		store.conn.send('useItem', { id });
+	}
+	let itemDrag = $state(false);
+	let hoverDock = $state(null);
+	let answerRect = $state(null);
+	function gripDown(e) {
+		if (e.button) return;
+		e.preventDefault();
+		itemDrag = true;
+		hoverDock = dock;
+		const box = backdropEl?.getBoundingClientRect();
+		const a = document.querySelector('[data-item-anchor]')?.getBoundingClientRect();
+		answerRect = box && a ? { x: a.left - box.left, y: a.top - box.top, w: 506 * scale, h: 84 * scale } : null;
+		const at = (ev) => (box ? dockAt(ev.clientX - box.left, ev.clientY - box.top, box.width, box.height, answerRect, 110) : null);
+		const move = (ev) => (hoverDock = at(ev));
+		const up = (ev) => {
+			const d = at(ev);
+			if (d) setPref('itemDock', d);
+			itemDrag = false;
+			hoverDock = null;
+			window.removeEventListener('pointermove', move);
+			window.removeEventListener('pointerup', up);
+			window.removeEventListener('pointercancel', up);
+		};
+		window.addEventListener('pointermove', move);
+		window.addEventListener('pointerup', up);
+		window.addEventListener('pointercancel', up);
+	}
+	function itemKey(e) {
+		// Shift+1 .. Shift+6 (laptops need Fn for the F keys). `code`, not `key`: with Shift the key is '!', '@', ...
+		if (!itemOn || !e.shiftKey || e.altKey || e.ctrlKey || e.metaKey || !/^Digit[1-6]$/.test(e.code)) return;
+		const el = e.target;
+		// typing '!' in the chat or any other text field stays typing; the answer field is the one place the keys work from
+		if (el instanceof HTMLElement && el.id !== 'game-input' && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+		e.preventDefault();
+		const id = Number(e.code.slice(5)) - 1;
+		if (itemReady(g, id, store.myTurn)) useItem(id);
+	}
+	// what was used shows in the mouth for a moment (legacy)
+	let itemNote = $state(null);
+	let itemFx = $state(null); // the hack animation over the stage: {item, target, at}
+	$effect(() => {
+		const u = g?.itemUse;
+		if (!u || family !== 'Classic') return;
+		itemNote = u.item;
+		if (!reducedMotion()) itemFx = u;
+		playSound('success');
+		const timer = setTimeout(() => (itemNote = null), 1800);
+		const fxTimer = setTimeout(() => (itemFx = null), 1900);
+		return () => {
+			clearTimeout(timer);
+			clearTimeout(fxTimer);
+		};
+	});
+	$effect(() => {
+		void g?.last;
+		void g?.round;
+		itemNote = null;
 	});
 	function keydown(e) {
 		if (store.spaceSubmits(e, value, () => (value = ''))) return;
 		if (e.key === 'Enter' && !e.isComposing) {
 			e.preventDefault();
 			if (store.submitWord(value)) value = '';
-		} else store.telemetry.input(field?.value ?? '');
+		}
 	}
+	// The answer fields report what is typed into them to the server (see telemetry.js); the scope moves with the game.
+	const trace = (node) => store.telemetry.observe(node, () => store.traceScope?.() ?? null);
 
 	// ---- 워드스택: a piece that has been held for 14 s pulses; pieces fly between the players' cards ----
-	let tickNow = $state(Date.now());
+	let tickNow = $state(clock());
 	$effect(() => {
 		if (family !== 'Wordstack') return;
-		const timer = setInterval(() => (tickNow = Date.now()), 500);
+		const timer = setInterval(() => (tickNow = clock()), 500);
 		return () => clearInterval(timer);
 	});
 	const pulsing = (i) => tickNow - (g?.poolAt ?? tickNow) + Number(g?.pieceAges?.[i] ?? 0) >= 14000;
@@ -558,6 +653,7 @@
 	{#each seats as p (p.id)}
 		{@const hidden = !p.robot && p.id !== net.id}
 		<div id="game-user-{p.id}" data-player={p.id} role="button" tabindex="0" onclick={() => store.hooks.openProfile?.(p.id)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), store.hooks.openProfile?.(p.id))} class="game-user {bombs[p.id] || g?.gaveUp?.[p.id] ? 'game-user-bomb' : ''} {family === 'Drawing' && g?.painter === p.id ? 'game-user-drawing' : ''} {family === 'Drawing' && g?.winner === p.id ? 'game-user-current' : ''}">
+			{#if leaders.has(p.id)}<span class="game-user-lead" data-leader>{t('play.game.leader')}</span>{/if}
 			<div class="game-user-level"><LevelIcon level={p.robot ? 1 : p.lv} size={18} maskable={hidden} /></div>
 			<div class="game-user-name ellipse"><NickName user={p} showCheck maskable={hidden} /></div>
 			<div class="game-user-score {p.game.team ? `team-${p.game.team}` : ''}" data-score data-value={Math.round(p.game.score ?? 0)}>
@@ -574,6 +670,7 @@
 								{@const hidden = !p.robot && p.id !== net.id}
 								{#snippet who()}{t('kkutu.js.level')} {p.lv}<br />{p.name}{p.tag ? `#${p.tag}` : ''}{/snippet}
 								<div id="game-user-{p.id}" data-player={p.id} role="button" tabindex="0" onclick={() => store.hooks.openProfile?.(p.id)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), store.hooks.openProfile?.(p.id))} aria-current={currentId === p.id ? 'true' : undefined} class="game-user {currentId === p.id || (family === 'Drawing' && g?.winner === p.id) ? 'game-user-current' : ''} {family === 'Drawing' && g?.painter === p.id ? 'game-user-drawing' : ''} {bombs[p.id] || g?.gaveUp?.[p.id] ? 'game-user-bomb' : ''} {large ? 'large-room' : ''}">
+									{#if leaders.has(p.id)}<span class="game-user-lead" data-leader>{t('play.game.leader')}</span>{/if}
 									<div class="moremi game-user-image"><Moremi equip={p.equip} shop={store.shop} {parts} size={large ? 76 : 100} label={p.name} frame={false} maskable={hidden} /></div>
 									<Tooltip content={who} placement="bottom">
 										<div class="game-user-title">
@@ -582,7 +679,9 @@
 										</div>
 									</Tooltip>
 									<div class="game-user-score {team ? `team-${team}` : ''}" data-score data-value={Math.round(p.game.score ?? 0)}>
-										{#if g?.kpm?.[p.id] !== undefined}
+										{#if g?.solved?.[p.id] !== undefined}
+											<div style="float:none;color:#4444FF;text-align:center" data-solved>{Number(g.solved[p.id]).toLocaleString()}<span style="font-size:11px">{t('play.game.solvedUnit')}</span></div>
+										{:else if g?.kpm?.[p.id] !== undefined}
 											<div style="float:none;color:#4444FF;text-align:center">{g.kpm[p.id]}<span style="font-size:11px">{plainText(t('kkutu.js.kpm'))}</span></div>
 										{:else}
 											{#each scoreChars(shown[p.id] ?? 0) as c, i (i)}<div class="game-user-score-char">{c}</div>{/each}
@@ -595,12 +694,12 @@
 						{/snippet}
 
 {#if room}
-	<GameLoading loading={loadingNow} bind:stage={veil} />
+	{#if !store.replay}<GameLoading loading={loadingNow} bind:stage={veil} />{/if}
 	<section aria-label={t('kkutu.product.game.title')} in:rise|global class="flex min-h-0 flex-1 flex-col items-center" style:visibility={stageHidden ? 'hidden' : undefined} style:position={stageHidden ? 'absolute' : undefined} style:width={stageHidden ? '100%' : undefined}>
 		{#if !supported}
 			<div class="kk-card grid w-full place-items-center p-6 text-center font-bold text-(color:--kk-muted)">{t('play.game.unsupported')}</div>
 		{:else}
-			<div class="kkg-backdrop kk-card relative grid min-h-0 w-full flex-1 place-items-center overflow-hidden" bind:clientWidth={areaW} bind:clientHeight={areaH}>
+			<div class="kkg-backdrop kk-card relative grid min-h-0 w-full flex-1 place-items-center overflow-hidden" bind:this={backdropEl} bind:clientWidth={areaW} bind:clientHeight={areaH} style:padding-left={dock === 'left' ? `${padX}px` : undefined} style:padding-right={dock === 'right' ? `${padX}px` : undefined} style:padding-top={dock === 'top' ? `${padY}px` : undefined} style:padding-bottom={dock === 'bottom' ? `${padY}px` : undefined}>
 				<svg class="absolute inset-0 size-full" aria-hidden="true">
 					<defs>
 						<pattern id="kk-game-tile" width={PATTERN} height={PATTERN} patternUnits="userSpaceOnUse">
@@ -609,6 +708,13 @@
 					</defs>
 					<rect width="100%" height="100%" fill="url(#kk-game-tile)" />
 				</svg>
+				{#if itemOn && dock !== 'answer'}
+					<div style:container-type={dock === 'top' || dock === 'bottom' ? 'inline-size' : undefined} class="absolute z-20 flex justify-center {dock === 'top' ? 'inset-x-0 top-2' : dock === 'bottom' ? 'inset-x-0 bottom-2' : dock === 'left' ? 'inset-y-0 left-2 items-center' : 'inset-y-0 right-2 items-center'}">
+						<ItemBar {store} layout={dock === 'left' || dock === 'right' ? 'rail' : 'row'} onuse={useItem} ongrip={gripDown} onmove={(d) => setPref('itemDock', d)} dragging={itemDrag} />
+					</div>
+				{/if}
+				{#if itemFx}{#key itemFx.at}<ItemFx user={net.users[itemFx.target]} item={ITEMS[itemFx.item]} name={t(`game.item.${itemFx.item}.name`)} shop={store.shop} {parts} />{/key}{/if}
+				{#if itemDrag}<ItemZones hover={hoverDock} answer={answerRect} edgeW={EDGE_W} edgeH={EDGE_H} />{/if}
 				<div style:width="{Math.floor(STAGE_W * scale)}px" style:height="{Math.floor(STAGE_H * scale)}px">
 				<div class="kkg" style:transform="scale({scale})" style:transform-origin="0 0">
 					{#if family === 'Drawing'}
@@ -669,7 +775,7 @@
 								{#if family === 'Crossword'}
 									<div class="b-left cwcmd" style:opacity={g?.sel ? 1 : 0} data-cwcmd>
 										<div class="cw-q-head">{#if cwMean}{t(cwMean.dir == 1 ? 'kkutu.js.cwVert' : 'kkutu.js.cwHorz')}{cwMean.len}{t('kkutu.js.cwL')}{/if}</div>
-										<input bind:this={cwInput} bind:value={cwValue} onkeydown={cwKey} onblur={() => store.selectBar(null)} autocomplete="off" spellcheck="false" aria-label={t('kkutu.product.game.title')} placeholder={t('kkutu.product.game.inputHere')} id="cw-q-input" />
+										<input use:trace bind:this={cwInput} bind:value={cwValue} onkeydown={cwKey} onblur={() => store.selectBar(null)} autocomplete="off" spellcheck="false" aria-label={t('kkutu.product.game.title')} placeholder={t('kkutu.product.game.inputHere')} id="cw-q-input" />
 										<div class="cw-q-body">{#if cwMean}{@render meaning(processWord(cwMean.mean, cwMean.theme, labels))}{/if}</div>
 									</div>
 								{:else}
@@ -735,7 +841,7 @@
 								{#each g?.hints ?? [] as hint, i (i)}<div class="hint-item kkg-hist-in-h">{@render meaning(processWord(hint, '', labels))}</div>{/each}
 							</div>
 						{:else}
-							<div class="items" style:opacity={room.opts?.mission && g?.mission ? 1 : 0}>{g?.mission ?? ''}</div>
+							<div class="items" data-tour="game-mission" style:opacity={room.opts?.mission && g?.mission ? 1 : 0}>{g?.mission ?? ''}</div>
 						{/if}
 						<div class="jjoriping" style:transform="translateY({(BAR_OPEN - barH) / 2}px)">
 							<img class="jjoObj jjoEyeL" src="{IMAGE_CDN}jjoeyeL.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoNose" src="{IMAGE_CDN}jjonose.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoEyeR" src="{IMAGE_CDN}jjoeyeR.svg{IMAGE_VERSION}" alt="" />
@@ -745,9 +851,11 @@
 								</div>
 								<div class="jjo-display" data-display bind:this={displayEl} aria-live="polite" style:height="{Math.max(0, mouthH * openV)}px" style:padding-top="{Math.max(0, 8 * openV)}px" style:padding-bottom="{Math.max(0, 8 * openV)}px" style:overflow={openV > 0.98 && textH <= MOUTH_MAX ? 'visible' : 'hidden'}>
 									<div class="jjo-text" bind:clientHeight={textH}>
-										{#if display.kind === 'fail'}<span class="game-fail-text">{display.text}</span>
+										{#if display.kind === 'item'}<span style="color:#66FF66">{display.text}</span>
+										{:else if display.kind === 'warn'}<span style="color:#FF7A6E">{display.text}</span>
+										{:else if display.kind === 'fail'}<span class="game-fail-text">{display.text}</span>
 										{:else if display.kind === 'reveal'}
-											{#each display.chars as c, i (i)}<span class="jjo-ch" use:zoom={c.on} style:opacity={c.on ? 1 : 0} style:color={c.mission ? '#66FF66' : undefined}>{c.char}</span>{/each}
+											{#each display.chars as c, i (i)}<span class="jjo-ch" use:zoom={c.on} style:opacity={c.on ? 1 : 0} style:color={c.hanbang ? '#FF4D4D' : c.mission ? '#66FF66' : undefined}>{c.char}</span>{/each}
 										{:else if display.kind === 'pieces'}
 											{#each g?.pool ?? [] as piece, i (i)}<span class="wordstack-piece {pulsing(i) ? 'wordstack-piece-pulse' : ''}">{piece}{#if g.subpool?.[i]}<span class="jjo-display-word-length">{g.subpool[i]}</span>{/if}</span>{' '}{/each}
 										{:else if display.kind === 'answer'}<span style="color:#FFFF44">{display.text}</span>
@@ -791,7 +899,7 @@
 									{#snippet tip()}<h5 style="color:#BBBBBB">{@render meaning(h.mean)}</h5>{/snippet}
 									<Tooltip content={tip} placement="bottom">
 										<div class="ellipse history-item kkg-hist-in" data-word={h.word}>
-											{h.word}{#each h.wcs as c (c)}<span class="history-class">{c}</span>{/each}
+											{#if h.hanbang}{h.word.slice(0, h.hanbang[0])}<span style="color:#FF4D4D">{h.word.slice(h.hanbang[0], h.hanbang[1])}</span>{h.word.slice(h.hanbang[1])}{:else}{h.word}{/if}{#each h.wcs as c (c)}<span class="history-class">{c}</span>{/each}
 											<div class="history-mean ellipse">{@render meaning(h.mean)}</div>
 										</div>
 									</Tooltip>
@@ -799,8 +907,14 @@
 							</div>
 						</div>
 						<div class="game-body" bind:this={body}>{@render players()}</div>
-						<div class="game-input" style:display={canType ? 'block' : 'none'}>
-							<input id="game-input" bind:this={field} bind:value oninput={(e) => store.setTyped(value, e.isComposing)} oncompositionend={() => store.setTyped(value)} onkeydown={keydown} autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label={t('kkutu.product.game.title')} placeholder={t('kkutu.product.game.inputHere')} />
+						{#if itemOn}
+							<div class="kkg-item-anchor" data-item-anchor>
+								{#if dock === 'answer'}<div class="kkg-item-answer"><ItemBar {store} layout="grid" onuse={useItem} ongrip={gripDown} onmove={(d) => setPref('itemDock', d)} dragging={itemDrag} /></div>{/if}
+							</div>
+						{/if}
+						<div class="game-input" data-tour="game-input" style:display={canType ? 'block' : 'none'}>
+							{#if wrongLang}<p class="kkg-lang-warn" role="status" data-lang-warn={wrongLang}><Icon name="warning" size={17} fill /><span data-lang-warn-text>{t(`play.game.langWarn.${wrongLang}`)}</span></p>{/if}
+							<input id="game-input" use:trace bind:this={field} bind:value oninput={(e) => store.setTyped(value, e.isComposing)} oncompositionend={() => store.setTyped(value)} onkeydown={keydown} autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label={t('kkutu.product.game.title')} placeholder={t('kkutu.product.game.inputHere')} />
 						</div>
 					</div>
 					{/if}
@@ -812,7 +926,11 @@
 	<GameResult {store} />
 {/if}
 
+<svelte:window onkeydown={itemKey} />
+
 <style>
+	:global(.kkg .kkg-item-anchor) { position: relative; top: -220px; left: 244px; width: 100%; height: 0; }
+	:global(.kkg .kkg-item-answer) { position: absolute; top: 70px; left: 0; width: 506px; }
 	:global(.kkg .kkg-hist-in) {
 		animation: kkg-hist-in 0.5s ease-out both;
 	}

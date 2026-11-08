@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+/* `dark:` follows the device (prefers-color-scheme) unless the root says otherwise: the game client sets `data-theme` while a 테마
+   is worn, so a light theme on a dark device (or the other way round) gets its own light/dark styling. */
+@custom-variant dark {
+	@media (prefers-color-scheme: dark) {
+		&:where(:root:not([data-theme='light']) *) {
+			@slot;
+		}
+	}
+	&:where(:root[data-theme='dark'] *) {
+		@slot;
+	}
+}

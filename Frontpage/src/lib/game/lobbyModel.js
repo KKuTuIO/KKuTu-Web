@@ -59,7 +59,7 @@ export function prettyTime(ms) {
 }
 
 /** Legacy display order of game modes. Modes not listed keep their server order after these. */
-const MODE_ORDER = ['KSH', 'KKT', 'KAP', 'KTY', 'KDA', 'KCW', 'KSS', 'KLT', 'KWS', 'CSQ', 'HUN', 'KDG', 'KFT', 'KMT', 'ESH', 'EKT', 'EAP', 'ETY', 'EDA', 'ESS', 'ELT', 'EWS', 'EDG', 'ECW'];
+const MODE_ORDER = ['KSH', 'KKT', 'KAP', 'KTY', 'KDA', 'KCW', 'KSS', 'KLT', 'KWS', 'CSQ', 'HUN', 'KDG', 'KMT', 'ESH', 'EKT', 'EAP', 'ETY', 'EDA', 'ESS', 'ELT', 'EWS', 'EDG', 'ECW'];
 
 /**
  * Game modes grouped like the legacy room dialog: Korean, English, and "other" (language-less games such
@@ -73,7 +73,7 @@ export function groupModes(modes, rules) {
 	const rank = (k) => (MODE_ORDER.includes(k) ? MODE_ORDER.indexOf(k) : MODE_ORDER.length);
 	const groupOf = (k) => (rules[k]?.rule === 'Mathquiz' ? 'other' : rules[k]?.lang === 'en' ? 'en' : 'ko');
 	const groups = { ko: [], en: [], other: [] };
-	modes.forEach((key, index) => groups[groupOf(key)].push({ key, index }));
+	modes.forEach((key, index) => { if (!rules[key]?.retired) groups[groupOf(key)].push({ key, index }); });
 	return ['ko', 'en', 'other']
 		.map((id) => ({ id, modes: groups[id].sort((a, b) => rank(a.key) - rank(b.key) || a.index - b.index) }))
 		.filter((g) => g.modes.length);

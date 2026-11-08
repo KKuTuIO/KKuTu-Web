@@ -149,14 +149,10 @@
 		<nav class="mx-auto hidden min-w-0 items-center gap-1 lg:flex" aria-label="Global">
 			<a href="/" style:--c="#B0D2F3" aria-current={p === '/' ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
 				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">home</span>홈</a>
-			<a href="/rank" style:--c="#FFADD3" aria-current={(p === '/rank' || (p !== '/' && p.startsWith('/rank'))) ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
-				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">trophy</span>랭킹</a>
 			<a href="/records" style:--c="#D9FF82" aria-current={(p === '/records' || (p !== '/' && p.startsWith('/records'))) ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
-				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">id_card</span>전적</a>
-			<a href="https://cafe.naver.com/kkutuio" target="_blank" rel="noopener" style:--c="#B3E7B7" aria-current={false ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
-				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">local_cafe</span>공식카페</a>
-			<a href="https://kkutu.wiki" target="_blank" rel="noopener" style:--c="#FFC67F" aria-current={false ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
-				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">book_2</span>리오위키</a>
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">replay</span>리플레이</a>
+			<a href="/rank" style:--c="#FFC67F" aria-current={p.startsWith('/rank') ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
+				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">emoji_events</span>랭킹</a>
 			<a href="https://cs.kkutu.io" target="_blank" rel="noopener" style:--c="#BBBBBB" aria-current={false ? 'page' : undefined} class="nav-item inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 font-bold whitespace-nowrap transition-colors xl:px-3.5">
 				<span class="material-symbols-outlined leading-none select-none" style="font-size:22px" aria-hidden="true">help</span>고객지원</a>
 		</nav>
@@ -188,10 +184,8 @@
 				</div>
 				<nav class="flex flex-1 flex-col gap-1 p-3" aria-label="모바일 탐색">
 					<a href="/" onclick={() => (mobileMenuOpen = false)} style:--c="#B0D2F3" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">home</span>홈</a>
-					<a href="/rank" onclick={() => (mobileMenuOpen = false)} style:--c="#FFADD3" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">trophy</span>랭킹</a>
-					<a href="/records" onclick={() => (mobileMenuOpen = false)} style:--c="#D9FF82" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">id_card</span>전적</a>
-					<a href="https://cafe.naver.com/kkutuio" target="_blank" rel="noopener" onclick={() => (mobileMenuOpen = false)} style:--c="#B3E7B7" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">local_cafe</span>공식카페</a>
-					<a href="https://kkutu.wiki" target="_blank" rel="noopener" onclick={() => (mobileMenuOpen = false)} style:--c="#FFC67F" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">book_2</span>리오위키</a>
+					<a href="/records" onclick={() => (mobileMenuOpen = false)} style:--c="#D9FF82" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">replay</span>리플레이</a>
+					<a href="/rank" onclick={() => (mobileMenuOpen = false)} style:--c="#FFC67F" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">emoji_events</span>랭킹</a>
 					<a href="https://cs.kkutu.io" target="_blank" rel="noopener" onclick={() => (mobileMenuOpen = false)} style:--c="#BBBBBB" class="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-(color:--kk-text) transition-colors hover:bg-(--c)/40"><span class="material-symbols-outlined">help</span>고객지원</a>
 				</nav>
 				<p class="border-t border-(color:--kk-line) px-5 py-4 text-xs text-(color:--kk-muted)">&copy; 주식회사 큐브시티, 모든 권리 보유.</p>

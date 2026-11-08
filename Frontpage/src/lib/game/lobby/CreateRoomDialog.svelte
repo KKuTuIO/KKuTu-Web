@@ -3,7 +3,7 @@
 	import { t } from '../i18n.svelte.js';
 	import { untrack } from 'svelte';
 	import { toast } from '../ui/toast.svelte.js';
-	import { confirm } from '../ui/confirm.svelte.js';
+	import { choose } from '../ui/confirm.svelte.js';
 	import Select from '../ui/Select.svelte';
 	import { plainText } from '../protocol.js';
 	import Dialog from './Dialog.svelte';
@@ -121,8 +121,16 @@
 		// A password without 친선전 makes a game whose early leavers lose rating: ask once whether to switch it on.
 		if (!editing && !askedRankGame && password && !opts.rankmode && net.meta.optionDefs && Object.values(net.meta.optionDefs).some((d) => d.name.toLowerCase() === 'rankmode')) {
 			askedRankGame = true;
-			const on = await confirm({ message: (net.meta.labels['kkutu.js.sureRankGame'] ?? '').replace(/<\/?b>/g, ''), ok: net.meta.labels['kkutu.js.sureRankGame.on'], cancel: net.meta.labels['kkutu.js.sureRankGame.off'] });
-			if (on) {
+			// Like the legacy two-handed question: left switches it on, right keeps it off, and closing the question cancels the creation.
+			const pick = await choose({
+				message: (net.meta.labels['kkutu.js.sureRankGame'] ?? '').replace(/<\/?b>/g, ''),
+				options: [
+					{ value: 'on', label: net.meta.labels['kkutu.js.sureRankGame.on'] },
+					{ value: 'off', label: net.meta.labels['kkutu.js.sureRankGame.off'] }
+				]
+			});
+			if (!pick) return;
+			if (pick === 'on') {
 				opts.rankmode = true;
 				form.opts.rankmode = true;
 			}
@@ -152,14 +160,14 @@
 		<div class="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-8">
 			<section aria-labelledby="{uid}-game" class="flex flex-col gap-4">
 				<h3 id="{uid}-game" class="text-sm font-extrabold">{t('play.create.sectionGame')}</h3>
-				<GameModePicker {net} bind:mode idPrefix={uid} />
+				<div data-tour="create-mode"><GameModePicker {net} bind:mode idPrefix={uid} /></div>
 				<!-- Reserve room for the longest rule list so the dialog keeps its height when the game changes. -->
-				<div class="min-h-[20rem]"><GameOptions {net} bind:mode bind:opts bind:injpick withThemes showMode={false} dense /></div>
+				<div data-tour="create-options" class="min-h-[20rem]"><GameOptions {net} bind:mode bind:opts bind:injpick withThemes showMode={false} dense /></div>
 			</section>
 
 			<section aria-labelledby="{uid}-room" class="flex flex-col gap-4">
 				<h3 id="{uid}-room" class="text-sm font-extrabold">{t('play.create.sectionRoom')}</h3>
-				<div class="flex flex-col gap-1">
+				<div data-tour="create-title" class="flex flex-col gap-1">
 					<label for="{uid}-title" class="text-xs font-bold text-(color:--kk-muted)">{t('play.create.roomTitle')}</label>
 					{#if net.guest}
 						<!-- Guests may only use the fixed titles (legacy: the field is replaced by a list). -->
@@ -175,20 +183,20 @@
 						</div>
 					{/if}
 				</div>
-				<div class="flex flex-col gap-1">
+				<div data-tour="create-password" class="flex flex-col gap-1">
 					<label for="{uid}-pw" class="text-xs font-bold text-(color:--kk-muted)">{t('play.create.password')}</label>
 					<input id="{uid}-pw" bind:value={password} type="password" autocomplete="off" maxlength="20" disabled={clearPassword} placeholder={editing?.locked ? t('play.create.pwKeep') : ''} class="h-11 kk-input rounded-xl px-3" />
 					{#if editing?.locked}<Checkbox bind:checked={clearPassword}>{t('play.create.pwClear')}</Checkbox>{/if}
 				</div>
-				<div class="flex flex-col gap-1">
+				<div data-tour="create-limit" class="flex flex-col gap-1">
 					<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.create.limit')}</span>
 					<Seekbar bind:value={limit} min={2} max={store.roomLimitMax} label={t('play.create.limit')} format={(n) => t('play.create.limitValue', { n })} tickLabel={(n) => n} />
 				</div>
-				<div class="flex flex-col gap-1">
+				<div data-tour="create-round" class="flex flex-col gap-1">
 					<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.create.round')}</span>
 					<Seekbar bind:value={round} min={1} max={10} label={t('play.create.round')} format={(n) => t('play.create.roundValue', { n })} />
 				</div>
-				<div class="flex flex-col gap-1">
+				<div data-tour="create-time" class="flex flex-col gap-1">
 					<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.create.time')}</span>
 					<Seekbar bind:value={time} stops={times} label={t('play.create.time')} format={(sec) => t('play.create.timeValue', { n: sec * (rule?.time ?? 1) })} tickLabel={(sec) => sec * (rule?.time ?? 1)} />
 				</div>
@@ -198,7 +206,7 @@
 		<!-- Stays visible while the form scrolls on shorter screens. -->
 		<div class="sticky -bottom-4 z-10 -mx-4 -mb-4 flex items-center justify-between gap-3 border-t border-(color:--kk-line) bg-(--kk-surface) px-4 py-3">
 			<p class="flex items-center gap-1.5 text-xs font-bold text-(color:--kk-muted)"><Icon name="schedule" size={18} />{t('play.create.eta', { n: etaMinutes })}</p>
-			<button class="kk-btn kk-btn-primary min-h-12 px-8 text-base">{editing ? t('play.create.save') : t('play.create.submit')}</button>
+			<button data-tour="create-submit" class="kk-btn kk-btn-primary min-h-12 px-8 text-base">{editing ? t('play.create.save') : t('play.create.submit')}</button>
 		</div>
 	</form>
 </Dialog>

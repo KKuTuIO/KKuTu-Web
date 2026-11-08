@@ -12,10 +12,13 @@
 	import Moremi from './Moremi.svelte';
 	import LevelIcon from './LevelIcon.svelte';
 	import NickName from './NickName.svelte';
+	import TitleBadge from './TitleBadge.svelte';
 	import EmptyState from './EmptyState.svelte';
 	import Icon from './Icon.svelte';
+	import { plainText } from '../protocol.js';
 	import Tooltip from '../ui/Tooltip.svelte';
 	import Tabs from '../ui/Tabs.svelte';
+	import DataTable from '../ui/DataTable.svelte';
 	import PlacementMedal from './PlacementMedal.svelte';
 	import ProfileBox from './ProfileBox.svelte';
 	import BioCard from './BioCard.svelte';
@@ -24,6 +27,7 @@
 	import StatusBubble from './StatusBubble.svelte';
 	import StatusDot from './StatusDot.svelte';
 	import RatingIcon from './RatingIcon.svelte';
+	import { openRating } from './ratingDialog.svelte.js';
 	import Select from '../ui/Select.svelte';
 	import WardrobeDialog from './WardrobeDialog.svelte';
 	import { loadGoodDetails, itemName } from '../shop.js';
@@ -67,7 +71,13 @@
 	const modeStats = $derived(stats ? buildModeStats(user?.record, stats) : []);
 	const recommended = $derived(recommendedMode(modeStats));
 	const needsWork = $derived(needsWorkMode(modeStats));
-	const tabs = $derived([{ id: 'profile', label: t('play.profile.windowTitle') }, { id: 'stats', label: t('play.profile.tab.stats') }, { id: 'history', label: t('play.profile.tab.history') }, ...(isMe ? [{ id: 'box', label: t('kkutu.dialog.profile.dress') }] : [])]);
+	const lockText = $derived(plainText(store.net.meta.labels['kkutu.js.error.438'] ?? ''));
+	// a game that starts while 프로필 관리 is open closes that tab
+	$effect(() => {
+		if (store.dressLocked && tab === 'box') tab = 'profile';
+		if (store.dressLocked) nickOpen = false;
+	});
+	const tabs = $derived([{ id: 'profile', label: t('play.profile.windowTitle') }, { id: 'stats', label: t('play.profile.tab.stats') }, { id: 'history', label: t('play.profile.tab.history') }, ...(isMe ? [{ id: 'box', label: t('kkutu.dialog.profile.dress'), disabled: store.dressLocked, hint: lockText }] : [])]);
 	const canManage = $derived(!!user && store.isMaster && user.id !== net.id);
 	const hidden = $derived(prefs.hideUsers && !isMe && !!user && !user.robot);
 	// The profile banner they equipped; without one (or when its picture is missing) the default banner, as legacy. It fills the stage.
@@ -78,6 +88,16 @@
 	const shut = $derived(!!user && isShut(user.id));
 	const text = (s) => (prefs.filter === 'off' ? s : maskBad(s));
 	const modeName = (key) => i18n.messages[`game.mode.${key}.name`] ?? key;
+	// 매칭 시작 on the two insight panels: opens the quick match dialog with that mode chosen (the player still sees and may change the rules, themes
+	// and so on before anything starts); only from the lobby, where a match can be started
+	const modeIndex = (key) => store.net.meta.modes.indexOf(key);
+	const canMatch = (key) => modeIndex(key) >= 0 && store.net.status === 'ready' && !store.currentRoom;
+	function match(key) {
+		const mode = modeIndex(key);
+		if (mode < 0) return;
+		open = false;
+		store.hooks.openQuick?.(mode);
+	}
 	const place = $derived(
 		!user ? '' : live ? (live.place ? t('play.profile.place.room', { no: live.place }) : t('play.profile.place.lobby')) : user.lastLogin ? t('play.profile.lastSeen', { when: timeAgo(user.lastLogin) }) : t('play.profile.place.offline')
 	);
@@ -165,11 +185,13 @@
 		if (net.users[net.id]) net.users[net.id].exordial = text;
 	}
 	const statusOptions = $derived(['online', 'idle', 'dnd', 'invisible'].map((v) => ({ value: v, label: t(`play.status.${v}`) })));
-	const tbd = () => toast(t('play.profile.tbd'), { kind: 'info' });
-	// 전적 조회: the full record page (the homepage's /records, which already shows every game and the match details).
-	// A game's details and its replay are the 전적 page's job: a row opens that game there.
-	const openGame = (gameId) => window.open(`/records?type=gameId&q=${encodeURIComponent(gameId)}`, '_blank', 'noopener');
-	const openRecords = () => window.open(`/records?type=id&q=${encodeURIComponent(user.id)}`, '_blank', 'noopener');
+	const whisper = () => ((open = false), store.openDm(user.id));
+	const report = () => store.hooks.openReport?.({ type: 'user', id: user.id, name: user.name });
+	// 경기 내역: a game opens in the 리플레이 page (its sheet, and the player)
+	const openGame = (gameId) => {
+		open = false;
+		store.hooks.openReplay?.(gameId);
+	};
 	async function handover() {
 		if (!(await confirm({ message: t('play.confirm.handover') }))) return;
 		store.handover(user.id);
@@ -179,7 +201,28 @@
 		store.kick(user.id, user.robot);
 		open = false;
 	}
+
+	const statColumns = $derived([
+		{ key: 'mode', label: t('play.profile.col.mode'), nowrap: true, class: 'font-bold', pad: 'pl-2.5 pr-1.5 py-1.5' },
+		{ key: 'games', label: t('play.profile.col.games'), align: 'right', nowrap: true, numeric: true },
+		{ key: 'wld', label: t('play.profile.col.wld'), align: 'right', nowrap: true, numeric: true },
+		{ key: 'rate', label: t('play.profile.stat.rate'), align: 'right', nowrap: true, numeric: true },
+		{ key: 'hours', label: t('play.profile.col.hours'), align: 'right', nowrap: true, numeric: true },
+		{ key: 'words', label: t('play.profile.stat.words'), align: 'right', nowrap: true, numeric: true },
+		{ key: 'exp', label: t('play.profile.col.exp'), align: 'right', nowrap: true, numeric: true, pad: 'pl-2.5 pr-1.5 py-1.5' }
+	]);
 </script>
+
+{#snippet cell(m, col)}
+	{#if col.key === 'mode'}{modeName(m.key)}
+	{:else if col.key === 'games'}{m.games.toLocaleString()}
+	{:else if col.key === 'wld'}{m.wins}<span class="text-(color:--kk-muted)"> / {m.halves} / </span>{m.losses}
+	{:else if col.key === 'rate'}{m.winRate.toFixed(1)}%
+	{:else if col.key === 'hours'}{m.hours.toFixed(1)}
+	{:else if col.key === 'words'}{m.acceptedWords.toLocaleString()}
+	{:else}{m.exp.toLocaleString()}{/if}
+{/snippet}
+
 
 {#snippet iconBtn(icon, label, onclick, extra = '')}
 	<Tooltip text={label}><button type="button" aria-label={label} {onclick} class="grid size-10 place-items-center rounded-xl bg-(--kk-surface-2) text-(color:--kk-muted) hover:bg-(--kk-accent-soft) hover:text-(color:--kk-text) {extra}"><Icon name={icon} size={20} /></button></Tooltip>
@@ -201,14 +244,15 @@
 						{#if !user.robot && !user.guest && !(prefs.hideUsers && !isMe)}<StatusBubble message={user.statusMessage ?? ''} {isMe} mask={text} onsave={(m) => store.setStatusMessage(m)} />{/if}
 						{#if isMe}
 							<!-- the wardrobe, floating on the preview's top left corner -->
-							<button type="button" onclick={() => (wardrobeOpen = true)} class="absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/35 py-1.5 pr-3 pl-2 text-xs font-extrabold text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/55 focus-visible:bg-black/55"><Icon name="checkroom" size={17} />{t('play.wardrobe.open')}</button>
+							<Tooltip text={store.dressLocked ? lockText : ''} placement="right"><button type="button" aria-disabled={store.dressLocked || undefined} onclick={() => !store.dressLocked && (wardrobeOpen = true)} class="{store.dressLocked ? 'cursor-not-allowed opacity-50' : ''} absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/35 py-1.5 pr-3 pl-2 text-xs font-extrabold text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/55 focus-visible:bg-black/55"><Icon name="checkroom" size={17} />{t('play.wardrobe.open')}</button></Tooltip>
 						{/if}
 					</div>
 					<div class="flex flex-col gap-2 p-3">
+						<TitleBadge {user} shop={store.shop} size="md" maskable={!isMe && !user.robot} class="self-start" />
 						<div class="flex items-center gap-2">
 							<LevelIcon level={user.robot ? 1 : user.lv} size={26} maskable={!isMe && !user.robot} />
 							<Tooltip text={prefs.hideUsers && !isMe && !user.robot ? t('play.anonymous') : fullNick(user)}><h2 class="min-w-0 flex-1 truncate text-lg leading-tight font-black"><NickName {user} showCheck maskable={!isMe && !user.robot} /></h2></Tooltip>
-							{#if isMe && !user.guest}<Tooltip text={t('play.nick.edit')}><button type="button" aria-label={t('play.nick.edit')} onclick={() => (nickOpen = true)} class="grid size-8 shrink-0 place-items-center rounded-lg text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)"><Icon name="edit" size={18} /></button></Tooltip>{/if}
+							{#if isMe && !user.guest}<Tooltip text={store.dressLocked ? lockText : t('play.nick.edit')}><button type="button" aria-label={t('play.nick.edit')} aria-disabled={store.dressLocked || undefined} onclick={() => !store.dressLocked && (nickOpen = true)} class="{store.dressLocked ? 'cursor-not-allowed opacity-45' : 'hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)'} grid size-8 shrink-0 place-items-center rounded-lg text-(color:--kk-muted)"><Icon name="edit" size={18} /></button></Tooltip>{/if}
 						</div>
 						{#if isMe && !user.guest}<Select dense label={t('play.status.label')} options={statusOptions} value={net.myStatus} onchange={(v) => store.setStatus(v)}>{#snippet leading(o)}<StatusDot status={o.value} size={13} />{/snippet}</Select>{/if}
 						{#if user.robot}
@@ -220,7 +264,7 @@
 							</div>
 							<div class="flex flex-wrap items-center gap-1.5 text-xs font-bold text-(color:--kk-muted)">
 								<span class="inline-flex items-center gap-1"><Icon name={live ? 'location_on' : 'schedule'} size={15} />{place}</span>
-								{#if member && user.rating != null}<Tooltip text="{t(`play.rating.${user.rating}`)} {t('play.rating.all')}"><span class="inline-flex items-center gap-1"><RatingIcon rating={user.rating} size={14} />{t(`play.rating.label.${user.rating}`)}</span></Tooltip>{/if}
+								{#if member && user.rating != null}<Tooltip text={t(`play.rating.${user.rating}`)}><button type="button" onclick={() => openRating(user.rating, isMe)} class="inline-flex cursor-pointer items-center gap-1 rounded-full hover:underline hover:decoration-dotted hover:underline-offset-2"><RatingIcon rating={user.rating} size={14} />{t(`play.rating.label.${user.rating}`)}</button></Tooltip>{/if}
 								{#if !isMe && live && live.status !== 'online'}<span class="inline-flex items-center gap-1"><StatusDot status={live.status} size={11} />{t(`play.status.${live.status}`)}</span>{/if}
 								{#if user.rank}<span class="rounded-full bg-(--kk-accent-soft) px-2 py-0.5 font-extrabold text-(color:--kk-accent-strong)">{t('play.profile.rank', { n: user.rank.toLocaleString() })}</span>{/if}
 								{#if friend}<span class="inline-flex items-center gap-0.5 rounded-full bg-(--kk-accent-soft) px-2 py-0.5 font-extrabold text-(color:--kk-accent-strong)"><Icon name={bestFriend ? 'favorite' : 'check'} size={13} fill />{t(bestFriend ? 'play.friend.best' : 'play.friend.isFriend')}</span>{/if}
@@ -247,13 +291,13 @@
 					<div class="flex flex-wrap gap-2">
 						{#if social}
 							{@render iconBtn('sticky_note_2', t('play.profile.note'), editNote)}
-							{@render iconBtn('chat', t('play.profile.whisper'), tbd)}
+							{@render iconBtn('chat', t('play.profile.whisper'), whisper)}
 							{@render iconBtn('block', t(shut ? 'play.block.unblock' : 'play.profile.block'), () => store.toggleBlock('shut', user.id), shut ? 'bg-(--kk-danger-soft) text-(color:--kk-danger)' : '')}
-							{@render iconBtn('flag', t('play.profile.report'), tbd)}
+							{@render iconBtn('flag', t('play.profile.report'), report)}
 						{:else if !isMe}
-							{@render iconBtn('chat', t('play.profile.whisper'), tbd)}
+							{@render iconBtn('chat', t('play.profile.whisper'), whisper)}
 							{@render iconBtn('block', t(shut ? 'play.block.unblock' : 'play.profile.block'), () => store.toggleBlock('shut', user.id), shut ? 'bg-(--kk-danger-soft) text-(color:--kk-danger)' : '')}
-							{@render iconBtn('flag', t('play.profile.report'), tbd)}
+							{@render iconBtn('flag', t('play.profile.report'), report)}
 						{/if}
 						{#if member}{@render iconBtn('info', t('kkutu.dialog.profile.okgg'), openRecords)}{/if}
 						{@render iconBtn('badge', t('play.profile.copyId'), copyId)}
@@ -302,7 +346,6 @@
 							</ul>
 							<div class="flex flex-wrap items-center gap-2">
 								{#if hasNext}<button type="button" class="kk-btn text-sm" disabled={loadingRows} onclick={more}>{t('play.profile.more')}</button>{/if}
-								<button type="button" class="kk-btn inline-flex items-center gap-1.5 text-sm" onclick={openRecords}><Icon name="open_in_new" size={16} />{t('play.profile.historyDetail')}</button>
 							</div>
 						{:else if loadingRows}
 							<p class="py-5 text-center text-sm text-(color:--kk-muted)">{t('play.profile.loading')}</p>
@@ -313,34 +356,7 @@
 				{:else if tab === 'stats'}
 					<div role="tabpanel" id="profile-panel-stats" aria-labelledby="profile-tab-stats" class="flex flex-col gap-3">
 						{#if modeStats.length}
-							<div class="overflow-x-auto rounded-xl border border-(color:--kk-line)">
-								<table class="w-full text-[13px] whitespace-nowrap">
-									<thead class="bg-(--kk-surface-2) text-[11px] text-(color:--kk-muted)">
-										<tr>
-											<th class="pl-2.5 pr-1.5 py-1.5 text-left font-bold">{t('play.profile.col.mode')}</th>
-											<th class="px-1.5 py-1.5 text-right font-bold">{t('play.profile.col.games')}</th>
-											<th class="px-1.5 py-1.5 text-right font-bold">{t('play.profile.col.wld')}</th>
-											<th class="px-1.5 py-1.5 text-right font-bold">{t('play.profile.stat.rate')}</th>
-											<th class="px-1.5 py-1.5 text-right font-bold">{t('play.profile.col.hours')}</th>
-											<th class="px-1.5 py-1.5 text-right font-bold">{t('play.profile.stat.words')}</th>
-											<th class="pl-2.5 pr-1.5 py-1.5 text-right font-bold">{t('play.profile.col.exp')}</th>
-										</tr>
-									</thead>
-									<tbody>
-										{#each modeStats as m (m.key)}
-											<tr class="border-t border-(color:--kk-line) tabular-nums">
-												<td class="pl-2.5 pr-1.5 py-1.5 font-bold">{modeName(m.key)}</td>
-												<td class="px-1.5 py-1.5 text-right">{m.games.toLocaleString()}</td>
-												<td class="px-1.5 py-1.5 text-right whitespace-nowrap">{m.wins}<span class="text-(color:--kk-muted)"> / {m.halves} / </span>{m.losses}</td>
-												<td class="px-1.5 py-1.5 text-right">{m.winRate.toFixed(1)}%</td>
-												<td class="px-1.5 py-1.5 text-right">{m.hours.toFixed(1)}</td>
-												<td class="px-1.5 py-1.5 text-right">{m.acceptedWords.toLocaleString()}</td>
-												<td class="pl-2.5 pr-1.5 py-1.5 text-right">{m.exp.toLocaleString()}</td>
-											</tr>
-										{/each}
-									</tbody>
-								</table>
-							</div>
+							<DataTable caption={t('play.profile.tab.stats')} columns={statColumns} rows={modeStats} rowKey={(m) => m.key} dense {cell} />
 						{:else if stats}
 							<p class="rounded-xl bg-(--kk-surface-2) px-3 py-4 text-center text-sm text-(color:--kk-muted)">{t('play.profile.noStats')}</p>
 						{:else}
@@ -358,6 +374,7 @@
 									{#if recommended}
 										<p class="text-lg leading-tight font-black">{modeName(recommended.key)}</p>
 										<p class="text-xs text-(color:--kk-muted)">{t('play.profile.insight.recommendLine', { rate: recommended.winRate.toFixed(2), games: recommended.games.toLocaleString(), hours: recommended.hours.toFixed(1) })}</p>
+										{#if canMatch(recommended.key)}<button type="button" class="kk-btn kk-btn-primary mt-auto inline-flex items-center gap-1 self-start text-sm" onclick={() => match(recommended.key)}><Icon name="play_arrow" size={18} fill />{t('play.quick.start')}</button>{/if}
 									{:else}
 										<p class="text-sm text-(color:--kk-muted)">{t('play.profile.insight.recommendNone')}</p>
 									{/if}
@@ -367,6 +384,7 @@
 									{#if needsWork}
 										<p class="text-lg leading-tight font-black">{modeName(needsWork.key)}</p>
 										<p class="text-xs text-(color:--kk-muted)">{t('play.profile.insight.needsLine', { rate: needsWork.winRate.toFixed(2), games: needsWork.games.toLocaleString() })}</p>
+										{#if canMatch(needsWork.key)}<button type="button" class="kk-btn kk-btn-primary mt-auto inline-flex items-center gap-1 self-start text-sm" onclick={() => match(needsWork.key)}><Icon name="play_arrow" size={18} fill />{t('play.quick.start')}</button>{/if}
 									{:else}
 										<p class="text-sm text-(color:--kk-muted)">{t('play.profile.insight.needsNone')}</p>
 									{/if}

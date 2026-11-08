@@ -1,14 +1,23 @@
-import { applyPacket, initialState, plainText } from './protocol.js';
+import { setNudgeState } from './nudges.svelte.js';
+import { setProgress } from './tutorial/progress.svelte.js';
+import { showInjeongHint } from './injeongHint.js';
+import { applyPacket, errorText, initialState, plainText } from './protocol.js';
 import { loadShop } from './images.js';
 import { OKG_MINUTES } from './lobbyModel.js';
 import { toast } from './ui/toast.svelte.js';
-import { playSound, playGameBgm, stopBgm, playLobbyBgm, preloadGameSounds } from './audio.svelte.js';
+import { confirm, notify } from './ui/confirm.svelte.js';
+import { yell } from './ui/yell.svelte.js';
+import { playSound, playGameBgm, stopBgm, playLobbyBgm, isResultBgm, preloadGameSounds } from './audio.svelte.js';
 import { prefs } from './prefs.svelte.js';
 import { isHidden } from './chatFilter.js';
 import { i18n, loadLocale, t } from './i18n.svelte.js';
-import { telemetry } from './telemetry.js';
+import { createTelemetry } from './telemetry.js';
+import { identity } from './identity.js';
 import { QUIZ } from './gameModel.js';
 import { MAX_ATTEMPTS, retryDelay, shouldReconnect } from './reconnect.js';
+import { activeMaintenance, classifyOutage, SCHEDULE_EVERY, SCHEDULE_URL } from './outage.js';
+import { createRecorder } from './replayRec.js';
+import { createGameAudio } from './gameAudio.js';
 
 /** Server messages are HTML snippets (<br>, links); toasts show plain text. */
 export { plainText };
@@ -38,16 +47,51 @@ export function createConnection(server) {
 	let attempt = 0;
 	let retryTimer;
 
+	// Why we are down (see outage.js): the gate says it, and it decides how patient the retrying is.
+	let scheduleAt = 0;
+	function noteOutage(seen) {
+		const kind = classifyOutage({ online: typeof navigator === 'undefined' ? true : navigator.onLine, ...seen });
+		if (!(state.outage?.kind === 'maintenance' && kind !== 'network')) state.outage = { kind };
+		if (kind !== 'network') checkSchedule();
+	}
+	/** Look in the operators' schedule for a maintenance that applies now: its name and reason are shown as they wrote them. */
+	async function checkSchedule() {
+		if (Date.now() - scheduleAt < SCHEDULE_EVERY) return;
+		scheduleAt = Date.now();
+		try {
+			const m = activeMaintenance(await (await fetch(SCHEDULE_URL, { cache: 'no-store' })).json());
+			if (state.status === 'ready' || !state.outage) return;
+			if (m) state.outage = { kind: 'maintenance', ...m };
+			else if (state.outage.kind === 'maintenance') state.outage = { kind: 'unknown' };
+		} catch {
+			// the file is not reachable (offline, or its host is down too): what we saw stays
+		}
+	}
+	/** The ticket could not be had (no network, or the proxy answers instead of the app): the same waiting as for a dropped socket. */
+	function down(seen) {
+		state.error = { code: seen.httpStatus ? `HTTP_${seen.httpStatus}` : 'NETWORK', message: '' };
+		noteOutage(seen);
+		state.status = 'closed';
+		scheduleReconnect();
+	}
+
 	/** Plan the next try, or give up (the gate then offers a manual retry). */
 	function scheduleReconnect() {
 		clearTimeout(retryTimer);
 		if (leaving) return;
-		if (attempt >= MAX_ATTEMPTS) {
+		// Offline: nothing to try until the network is back (the `online` event retries at once).
+		if (state.outage?.kind === 'network') {
+			state.reconnect = { attempt, max: MAX_ATTEMPTS, nextAt: null, exhausted: false, waiting: true };
+			return;
+		}
+		// A maintenance the operators announced is waited out, not given up on.
+		const patient = state.outage?.kind === 'maintenance';
+		if (attempt >= MAX_ATTEMPTS && !patient) {
 			state.reconnect = { attempt, max: MAX_ATTEMPTS, nextAt: null, exhausted: true };
 			return;
 		}
-		const delay = retryDelay(attempt);
-		attempt++;
+		const delay = patient ? 30_000 : retryDelay(attempt);
+		attempt = Math.min(attempt + 1, MAX_ATTEMPTS);
 		state.reconnect = { attempt, max: MAX_ATTEMPTS, nextAt: Date.now() + delay, exhausted: false };
 		retryTimer = setTimeout(retryNow, delay);
 	}
@@ -79,7 +123,9 @@ export function createConnection(server) {
 		let ticket;
 		try {
 			const res = await fetch(`/api/play/${server}/ticket`, { cache: 'no-store' });
-			ticket = await res.json();
+			ticket = await res.json().catch(() => null);
+			// The proxy answers with a page (or 502/503/504) while the web server restarts.
+			if (!ticket || [502, 503, 504].includes(res.status)) return down({ httpStatus: res.status, badBody: !ticket });
 			if (!res.ok) {
 				// A new account has no nickname yet: ask for one here instead of sending the user to another page.
 				if (ticket.code === 'SETUP_REQUIRED') {
@@ -91,13 +137,7 @@ export function createConnection(server) {
 				return;
 			}
 		} catch {
-			state.error = { code: 'NETWORK', message: '' };
-			// While reconnecting, "no network" is just another failed try.
-			if (reconnecting) {
-				state.status = 'closed';
-				scheduleReconnect();
-			} else state.status = 'error';
-			return;
+			return down({}); // no network (or the server is not there at all)
 		}
 		state.meta = { modes: ticket.modes, options: ticket.options, labels: i18n.messages, rules: ticket.rules, optionDefs: ticket.optionDefs, moremiParts: ticket.moremiParts, moremiCategories: ticket.moremiCategories ?? [], moremiGroups: ticket.moremiGroups ?? {}, moremiEquips: ticket.moremiEquips ?? [], pickThemes: ticket.pickThemes ?? { ko: [], en: [] }, version: ticket.version ?? '' };
 		wsUrl = ticket.websocketUrl;
@@ -105,17 +145,19 @@ export function createConnection(server) {
 		// Never hold the loading screen hostage to a slow font/CDN.
 		Promise.race([Promise.all([shopReady, document.fonts?.ready]), new Promise((r) => setTimeout(r, 8000))]).then(() => (state.assetsReady = true));
 		state.guest = ticket.guest;
+		setNudgeState({ signedIn: !ticket.guest, closed: ticket.nudgesClosed });
+		setProgress({ signedIn: !ticket.guest, done: ticket.tutorialDone });
 
 		const sock = (ws = new WebSocket(ticket.websocketUrl));
 		masterHook = onMasterWelcome;
 		sock.onmessage = (e) => handle(e.data, true);
 		function onMasterWelcome(pkt) {
 			if (pkt.type === 'welcome') {
-				// Identity is a mandatory liveness signal (15s). We collect no fingerprint: the server's
-				// schema forbids empty strings, and confidence 0 is explicitly a non-disconnecting value.
-				const n = 'n/a';
-				send('identity', { fingerPrint2: n, fingerjsId: n, mainfpId: n, audioId: n, webglId: n, canvasId: n, pcid: n, confidence: 0 });
+				// Identity is a mandatory signal (the server drops the connection after 15 s without it). Collecting it can take a
+				// moment (the audio probe), so each probe is cut off after 5 s and whatever is missing is sent as 'n/a'.
+				identity().then((report) => send('identity', report));
 				startPing();
+				state.outage = null;
 				if (attempt > 0 || state.reconnect) {
 					attempt = 0;
 					state.reconnect = null;
@@ -134,9 +176,14 @@ export function createConnection(server) {
 			state.myRoom = null; // the room is gone with the session
 			state.preRoom = null;
 			state.error = reconnectable ? { code: e.code, message: '' } : (state.error ?? { code: e.code, message: '' });
-			if (reconnectable) scheduleReconnect();
+			if (reconnectable) {
+				noteOutage({ closeCode: e.code });
+				scheduleReconnect();
+			}
 		};
 	}
+
+	const recorder = createRecorder();
 
 	/** One path for packets from either socket: state, error toasts, 오끄감 notices, room handoff. */
 	function handle(raw, fromMaster) {
@@ -147,23 +194,31 @@ export function createConnection(server) {
 			return;
 		}
 		if (pkt.type === 'pong') state.pingMs = Math.round(performance.now() - sentAt);
+		if (pkt.type === 'turnStart' && !fromMaster) telemetry.turnStart(pkt); // a new input trace context (room worker packets only)
 		const before = pkt.type === 'okg' ? { playTime: state.playTime, count: state.okgCount } : null;
 		const lastLine = state.chat.at(-1);
 		const hadGame = !!state.game;
 		applyPacket(state, pkt);
+		// Broadcasts from "#notice", "#yell" and "#alert": a toast, the scrolling banner, and a dialog (to be confirmed)
+		if (pkt.type === 'notice' && typeof pkt.value === 'string' && pkt.value) toast(plainText(pkt.value), { kind: 'info', icon: 'alert' });
+		else if (pkt.type === 'yell' && typeof pkt.value === 'string') yell(plainText(pkt.value));
+		else if (pkt.type === 'alert' && typeof pkt.value === 'string' && pkt.value) notify({ message: pkt.value });
+		if (pkt.type === 'injeongHint' && state.game?.phase !== 'ended') showInjeongHint(state); // not in a result: now (otherwise when it is closed)
+		if (recorder.feed(state, pkt)) state.replayReady = recorder.done; // a game for a .kkio file: from `starting` to its result
 		// Legacy: whatever the server gave or changed (equipment, box), it then asks for a `refresh` so everyone sees the new look, unless it says `noref`.
 		if (pkt.type === 'obtain' && !pkt.noref && fromMaster && state.status === 'ready') send('refresh');
 		// Leaving (or losing) a game while its sounds are on: the turn clock's ticking and a quiz mode's music must not play on.
 		if (hadGame && !state.game) {
+			if (!recorder.done) (recorder.abandon(), (state.replayReady = false)); // a game that stopped without a result is not worth saving
 			stopTurnSound();
-			stopBgm();
-			playLobbyBgm();
+			if (isResultBgm()) playLobbyBgm({ fromResult: true }); // the result is closed: its music crossfades into the lobby's
+			else (stopBgm(), playLobbyBgm());
 		}
 		// Legacy: every chat line that is shown ticks (the "k" sound of the effect set, on the voice/UI channel).
 		const line = state.chat.at(-1);
 		if (pkt.type === 'chat' && line && line !== lastLine && !line.system && !isHidden(line, state, { ignoreSpectatorRule: true })) playSound('k', { ui: true });
 		if (pkt.type === 'roomStuck') rws?.close(); // legacy: close the room connection
-		gameSounds(pkt);
+		gameAudio.onPacket(pkt);
 		if (pkt.type === 'room' && state.myRoom) preloadGameSounds(); // being in a room means a game may start: have its sounds ready
 		// Legacy: failing a second turn in a row makes me leave (and says why).
 		if (pkt.type === 'turnEnd' && state.game?.combo?.action === 'leave') {
@@ -184,7 +239,7 @@ export function createConnection(server) {
 			const n = state.mails.length;
 			if (n > seenMails) toast(t('play.mail.unread', { n }), { icon: 'mail' });
 			seenMails = n;
-			const a = state.notifications.length;
+			const a = state.notifications.filter((n) => n.kind !== 'REPORT_RESOLVED').length; // a report's result has its own dialog
 			if (a > seenAlerts && !seenAlerts) toast(t('play.mail.unreadAlerts', { n: a }), { icon: 'alert' });
 			seenAlerts = a;
 		}
@@ -196,103 +251,23 @@ export function createConnection(server) {
 			}
 		}
 		if (before) okgNotice(before, pkt);
-		if (pkt.type === 'error' && state.status === 'ready') {
-			// 630 is the answer to a nickname change that worked (the game reports results as codes)
-			toast(plainText(state.meta.labels[`kkutu.js.error.${pkt.code}`] ?? pkt.message) || t('play.error.request', { code: pkt.code }), { kind: Number(pkt.code) === 630 ? 'success' : 'error' });
+		if (pkt.type === 'error' && Number(pkt.code) === 416 && state.status === 'ready') {
+			// The room is in a game: the legacy client asks whether to go in and watch, then enters again as a spectator.
+			confirm({ message: plainText(state.meta.labels['kkutu.js.error.416'] ?? '') }).then((yes) => yes && send('enter', { id: Number(pkt.target), password: enterPassword, spectate: true }));
+		} else if (pkt.type === 'error' && state.status === 'ready') {
+			// 630 is the answer to a nickname change that worked, 652 to a report that was received, 718 to a coupon that was used (the game reports results as codes)
+			toast(errorText(state.meta.labels, pkt) || t('play.error.request', { code: pkt.code }), { kind: [630, 652, 718].includes(Number(pkt.code)) ? 'success' : 'error' });
 		}
 		if (fromMaster) {
 			if (pkt.type === 'preRoom') connectRoom(pkt);
 			masterHook?.(pkt);
 		}
 	}
-	/** The sounds the legacy client makes for the game's packets. */
-	let turnSound; // the ticking of the turn clock, cut off when the turn ends
-	const stopTurnSound = () => {
-		turnSound?.then((h) => h?.stop());
-		turnSound = null;
-	};
-	/** The sounds of the all-at-once modes, as each legacy module plays them. Returns true when the round's music should stop. */
-	function quizSounds(pkt, fam) {
-		const me = state.id;
-		const spectating = state.users[me]?.game.form === 'S';
-		const target = pkt.target && typeof pkt.target === 'object' ? pkt.target.id : (pkt.target ?? pkt.id);
-		if (pkt.type === 'turnHint') {
-			playSound(fam === 'Sock' || fam === 'Linkland' || fam === 'Crossword' ? 'fail' : 'mission');
-			return false;
-		}
-		if (pkt.type !== 'turnEnd') return false;
-		if (fam === 'Jaqwi' || fam === 'Drawing') {
-			if (pkt.giveup) return false;
-			playSound(pkt.answer ? 'horr' : 'success');
-			return !!pkt.answer;
-		}
-		if (fam === 'Sock') {
-			if (pkt.score) playSound(target === me ? 'success' : 'mission');
-			else playSound('horr');
-			return !pkt.score;
-		}
-		if (fam === 'Crossword') {
-			if (pkt.score) playSound(target === me ? 'success' : 'mission');
-			else playSound('horr');
-			return !pkt.score;
-		}
-		if (fam === 'Linkland') {
-			if (!pkt.settlement) playSound(target === me ? 'success' : 'mission');
-			return false;
-		}
-		if (fam === 'Wordstack') {
-			if (pkt.error) playSound('fail');
-			else if (pkt.ok || pkt.isBonus) {
-				if (!pkt.isBonus) {
-					if (target === me) playSound('mission');
-					else if (pkt.attack === me) playSound('kung');
-					else if (spectating) playSound('mission');
-				}
-			} else {
-				playSound('horr');
-				return true;
-			}
-			return false;
-		}
-		// 타자 대결 / 수학 대결
-		if (pkt.error) playSound('fail');
-		else if (pkt.ok) {
-			if (target === me || spectating) playSound('mission');
-		} else {
-			playSound('horr');
-			return true;
-		}
-		return false;
-	}
-	function gameSounds(pkt) {
-		const fam = state.meta.rules[state.rooms[state.myRoom]?.modeKey]?.rule;
-		const quiz = QUIZ.includes(fam);
-		if (quiz && pkt.type === 'turnStart') {
-			// legacy: the quiz modes have a music of their own, a faster one for the last ten seconds
-			telemetry.turnStart(pkt);
-			playGameBgm(pkt.roundTime <= 10000 ? 'JaqwiFastBGM' : 'JaqwiBGM');
-			return;
-		}
-		if (quiz && ['turnHint', 'turnEnd'].includes(pkt.type)) {
-			stopTurnSound();
-			if (quizSounds(pkt, fam)) stopBgm();
-			return;
-		}
-		if (pkt.type === 'turnStart') {
-			telemetry.turnStart(pkt);
-			stopTurnSound();
-			turnSound = playSound(`T${pkt.speed}`);
-		} else if (pkt.type === 'roundEnd') stopTurnSound();
-		else if (pkt.type === 'roundReady' && !pkt.enter) playSound('round_start');
-		else if (pkt.type === 'turnError') playSound('fail');
-		else if (pkt.type === 'turnEnd') {
-			stopTurnSound();
-			if (!pkt.ok) playSound('timeout');
-			else if (pkt.baby) playSound('success');
-		}
-	}
+	const gameAudio = createGameAudio(state);
+	const stopTurnSound = gameAudio.stopTurnSound;
 	let masterHook;
 	const handled = new WeakSet(); // kick notices already shown
+	const telemetry = createTelemetry({ send: (type, data) => send(type, data) }); // the answer field's input trace
 
 	/** 오끄감 buff toasts, as in the legacy client: reset at midnight, or a new buff earned. */
 	function okgNotice(before, pkt) {
@@ -305,7 +280,7 @@ export function createConnection(server) {
 
 	// Which socket a message goes to, same rule as the legacy client: lobby-level messages to master, room
 	// actions to the room worker, and everything else (chat, room settings) to the worker while in a room.
-	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'drawGacha', 'consume', 'notifications', 'notificationAck']);
+	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon']);
 	const ROOM_ONLY = new Set(['leave', 'ready', 'start', 'practice', 'invite', 'form', 'team', 'kick', 'kickVote', 'handover', 'setAI', 'useItem', 'wp']);
 	/** 22-char url-safe id (16 random bytes), required by the server on durable requests so a retry can't apply twice. */
 	function newRequestId() {
@@ -313,7 +288,9 @@ export function createConnection(server) {
 		return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 	}
 	const DURABLE = new Set(['saveProgress', 'import', 'newUid']);
+	let enterPassword = ''; // what the last room entry sent: asking to watch a running game re-sends it (legacy 416)
 	function send(type, data = {}) {
+		if (type === 'enter' && data.id !== undefined && !data.spectate) enterPassword = data.password ?? '';
 		if (DURABLE.has(type) && !data.requestId) data = { ...data, requestId: newRequestId() };
 		// Whispers go through the master (it knows everyone), like the other lobby-wide messages.
 		const sock = MASTER_ONLY.has(type) || (type === 'talk' && data.whisper) ? ws : ROOM_ONLY.has(type) ? rws : (rws ?? ws);
@@ -360,6 +337,10 @@ export function createConnection(server) {
 	}
 
 	return {
+		/** the answer field's input trace (see telemetry.js) */
+		telemetry,
+		/** the recording of the last game (see replayRec.js) */
+		recorder,
 		state,
 		open,
 		send,

@@ -109,6 +109,13 @@
 	.kk-btn:hover:not(:disabled) { background: var(--kk-accent-soft); }
 	.kk-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--kk-line-strong); }
 	.kk-btn:disabled { opacity: 0.5; }
+	/* The items of an event page's header (the clock, the counters, 행사 정보, 교환소, the way back): one size and one shape, only the colour differs.
+	   A button is `kk-btn kk-hdr`; what only shows something is `kk-hdr kk-hdr-time|count|hot` (no hover, not pressable). */
+	.kk-hdr { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; height: 2.25rem; min-height: 0; padding: 0 0.75rem; border-radius: var(--kk-r-md); font-size: 0.875rem; font-weight: 800; line-height: 1; white-space: nowrap; }
+	.kk-hdr:not(.kk-btn) { border: 1.5px solid transparent; font-variant-numeric: tabular-nums; cursor: default; user-select: none; }
+	.kk-hdr-time { width: 10.5rem; color: #fff; background: #1f2937; box-shadow: 0 3px 0 #0b1220; }
+	.kk-hdr-count { color: #3a2300; background: #fde68a; box-shadow: 0 3px 0 #a96a05; }
+	.kk-hdr-hot { color: #fff; background: var(--kk-danger-fill); box-shadow: 0 3px 0 color-mix(in srgb, var(--kk-danger-fill) 60%, black); }
 	.kk-btn-primary { color: #fff; border-color: transparent; background: var(--kk-fill); text-shadow: 0 1px 0 rgb(0 0 0 / 0.25); box-shadow: 0 3px 0 var(--kk-fill-edge); }
 	.kk-btn-primary:hover:not(:disabled) { background: var(--kk-fill); filter: brightness(1.06); }
 	.kk-btn-primary:active:not(:disabled) { box-shadow: 0 1px 0 var(--kk-fill-edge); }
@@ -190,6 +197,57 @@
 .kk-bouncy.kk-closing::backdrop { animation: kk-fade-out 0.18s ease-in both; }
 @keyframes kk-pop-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
 @keyframes kk-pop-out { 0% { transform: none; opacity: 1; } 30% { transform: scale(1.04); opacity: 1; } 100% { transform: translateY(20px) scale(0.6); opacity: 0; } }
+/* The headline face of the big screen effects (the result, 아이템 발동!, the obtain ribbon, 해커레미): ONE Mobile POP, rounder and bouncier than NanumSquare Neo. */
+/* ONE Mobile POP is hosted in KKuTu-Static (https://cdn.kkutu.io/css/one-mobile-pop.css, linked from app.html). */
+.kk-pop-font {
+	font-family: 'ONE-Mobile-POP', 'NanumSquare Neo', sans-serif;
+	font-weight: 400;
+}
+/* Stage-title lettering (아이템 발동!, 레벨 업!, 아이템을 획득했습니다!): white, a thick outline in a dark of the accent, a hard drop under it.
+   The accent is `--c`, set on the element or a parent. Position and motion are left to the user of the class. */
+.kk-fire-text {
+	color: #fff;
+	font-family: 'ONE-Mobile-POP', 'NanumSquare Neo', sans-serif;
+	font-weight: 400;
+	letter-spacing: 0.02em;
+	-webkit-text-stroke: 7px color-mix(in srgb, var(--c, var(--kk-accent)) 62%, #000);
+	paint-order: stroke fill;
+	text-shadow: 0 4px 0 color-mix(in srgb, var(--c, var(--kk-accent)) 45%, #000);
+}
+/* The arcade backdrop of an event page (the tile roulette, the daily run, a campaign): a gradient from a dark of the event's accent `--ac` through magenta
+   to yellow, with a checkerboard laid over it. The text on it uses `.kk-fire-text` (white, outlined), so it reads on every part of the gradient. */
+.kk-arcade {
+	position: relative;
+	isolation: isolate;
+	background: linear-gradient(120deg, color-mix(in srgb, var(--ac, #7c3aed) 55%, #3b0764), #c026d3 52%, #facc15);
+}
+.kk-arcade > .kk-checker-clip { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+/* Big squares that drift for ever toward the bottom right: the pattern repeats every 84px, so moving it by one repeat loops without a jump. */
+.kk-checker {
+	position: absolute;
+	inset: 0;
+	background: conic-gradient(rgb(255 255 255 / 0.15) 25%, transparent 0 50%, rgb(255 255 255 / 0.15) 0 75%, transparent 0) 0 0 / 84px 84px;
+	animation: kk-checker-drift 7s linear infinite;
+}
+@keyframes kk-checker-drift { to { background-position: 84px 84px; } }
+@media (prefers-reduced-motion: reduce) { .kk-checker { animation: none; } }
+/* A title in the same lettering at the size of a page title: the outline is thinner than the stage titles' (7px) so it stays clear when small. */
+@keyframes kk-title-in { from { opacity: 0; transform: translateX(-56px) skewX(-24deg); } to { opacity: 1; transform: none; } }
+/* A key shown on a button ("Enter"): a small keycap with a hard lower edge, tinted by the text colour so it sits on any button. */
+.kk-key {
+	display: inline-block;
+	min-width: 1.5rem;
+	padding: 0.05rem 0.45rem 0.1rem;
+	border-radius: 0.4rem;
+	background: color-mix(in srgb, currentColor 18%, transparent);
+	box-shadow: inset 0 0 0 1.5px color-mix(in srgb, currentColor 45%, transparent), 0 2px 0 color-mix(in srgb, currentColor 40%, transparent);
+	font: inherit;
+	font-size: 0.7rem;
+	font-weight: 800;
+	line-height: 1.25;
+	letter-spacing: 0.02em;
+	text-align: center;
+}
 @keyframes kk-fade-in { from { opacity: 0; } }
 @keyframes kk-fade-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {

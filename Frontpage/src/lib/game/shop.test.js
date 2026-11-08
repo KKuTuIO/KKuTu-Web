@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shelfItems, sortItems, filterItems, isNew, optionRows, slotOf, toggleInCart, setQty, maxQty, cartPreview, cartTotal, itemName, dynItem, inventoryKind, matchesInventory, isEquippable, equipSlot, isEquipped, ownedItems, bonusKind, bonusValue, gachaItems, gachaMeta, gachaPool, drawPrice, tally, inSub, SHOP_TABS, activeAt, resolveHome, sectionItems } from './shop.js';
+import { isConsumable, shelfItems, sortItems, filterItems, isNew, optionRows, slotOf, toggleInCart, setQty, maxQty, cartPreview, cartTotal, itemName, dynItem, inventoryKind, matchesInventory, isEquippable, equipSlot, isEquipped, ownedItems, bonusKind, bonusValue, gachaItems, gachaMeta, gachaPool, drawPrice, tally, inSub, SHOP_TABS, activeAt, resolveHome, sectionItems } from './shop.js';
 
 const shop = {
 	a: { _id: 'a', cost: '300', hit: 5, group: 'Mhead', updatedAt: '2026-01-01 00:00:00' },
@@ -200,6 +200,14 @@ describe('my box', () => {
 
 describe('box filter', () => {
 	const mk = (group, id = group) => ({ _id: id, group });
+	const box = (id) => ({ _id: id, group: 'CNS', options: { gives: [{ type: 'item', from: 'wei', pool: { a: 1 } }] } });
+	it('only an item that gives something can be consumed', () => {
+		expect(isConsumable(box('boxspring'))).toBe(true);
+		expect(isConsumable(mk('CNS', 'wordToken'))).toBe(false);
+		expect(isConsumable({ _id: 'x', group: 'CNS', options: {} })).toBe(false);
+		expect(isConsumable({ _id: 'x', group: 'CNS', options: { gives: [] } })).toBe(false);
+		expect(isConsumable({ _id: 'x', group: 'Mhead', options: { gives: [{}] } })).toBe(false);
+	});
 	it('filters by kind, sub-category and worn', () => {
 		expect(matchesInventory(mk('Mhead'), false, 'all')).toBe(true);
 		expect(matchesInventory(mk('Mhead'), false, 'worn')).toBe(false);
@@ -217,7 +225,11 @@ describe('box filter', () => {
 		expect(matchesInventory(mk('BON'), false, 'func', 'bonus')).toBe(true);
 		expect(matchesInventory(mk('CNS', 'wordToken'), false, 'func', 'coin')).toBe(true);
 		expect(matchesInventory(mk('CNS', 'wordToken'), false, 'func', 'box')).toBe(false);
-		expect(matchesInventory(mk('CNS', 'boxspring'), false, 'func', 'box')).toBe(true);
+		expect(matchesInventory(box('boxspring'), false, 'func', 'box')).toBe(true);
+		// a CNS item that gives nothing is not something to open: it is among the rest
+		expect(matchesInventory(mk('CNS', 'vip_token'), false, 'func', 'box')).toBe(false);
+		expect(matchesInventory(mk('CNS', 'vip_token'), false, 'func', 'etc')).toBe(true);
+		expect(matchesInventory(mk('CNS', 'wordToken'), false, 'func', 'etc')).toBe(false);
 		expect(matchesInventory(mk('PIX'), false, 'func', 'etc')).toBe(true);
 		expect(matchesInventory(mk('BON'), false, 'func', 'etc')).toBe(false);
 	});

@@ -1,6 +1,7 @@
 <script>
     import { onMount, tick } from "svelte";
     import GameLoading from "$lib/game/lobby/GameLoading.svelte";
+    import FirstVisitCta from "$lib/home/FirstVisitCta.svelte";
     import { i18n, loadLocale, t as tr } from "$lib/game/i18n.svelte.js";
     import { getLevelImage } from "../lib/getLevelImg.js";
     import { getMoremi } from "../lib/getMoremi.js";
@@ -65,6 +66,8 @@
     let jsonDataServers = $state({ list: [], max: 9 });
     let swiperEl = $state();
     let slidePage = $state(0);
+    let autoplaying = $state(false); // 자동 전환이 설정돼 있을 때만 정지 버튼을 보인다 (움직임 줄이기 설정이면 처음부터 꺼져 있다)
+    let paused = $state(false);
 
     const WEB_API_NEWS_BASE =
         import.meta.env.VITE_WEB_API_NEWS_BASE ||
@@ -167,6 +170,7 @@
                 },
             },
         });
+        autoplaying = many && !reducedMotion;
         swiperEl.initialize();
     }
 
@@ -177,6 +181,26 @@
     function goRight() {
         swiperEl?.swiper?.slideNext();
     }
+
+    function goTo(index) {
+        swiperEl?.swiper?.slideToLoop(index);
+    }
+
+    /** 자동 전환을 멈추거나 다시 시작한다 (5초마다 넘어가는 콘텐츠에는 멈출 수단이 있어야 한다). */
+    function togglePause() {
+        const autoplay = swiperEl?.swiper?.autoplay;
+        if (!autoplay) return;
+        if (paused) autoplay.start();
+        else autoplay.stop();
+        paused = !paused;
+    }
+
+    // slides.json 의 슬라이드는 { title?, alt?, ... }. title 은 PC 제목줄과 이미지 대체 텍스트에, alt 는 대체 텍스트에 쓴다.
+    const FALLBACK_ALT = "끄투리오 안내";
+    const slideTitle = (slide) => slide.title?.trim() || "";
+    const slideAlt = (slide) => slide.alt?.trim() || slideTitle(slide) || FALLBACK_ALT;
+    // 제목이 하나라도 있어야 제목줄을 보여준다 (없으면 예전 모양 그대로).
+    const hasTitles = $derived(slideData.some((slide) => slideTitle(slide)));
 
     function getSlideLink(slide) {
         const mobile =
@@ -341,6 +365,7 @@
         channelDialog?.showModal();
     }
     const quickLinks = [
+        { href: "/guide", icon: "menu_book", label: "게임 소개" },
         {
             href: "https://cafe.naver.com/ArticleList.nhn?search.clubid=30131388&search.menuid=22&search.boardtype=L",
             icon: "playlist_add",
@@ -563,6 +588,41 @@
         </div>
     </div>
 {/if}
+{#snippet controls()}
+    <div class="flex items-center gap-x-3">
+        <div class="flex gap-x-2">
+            <button
+                type="button"
+                class="kk-btn grid h-10 min-h-0 w-10 place-items-center p-0 text-(color:--kk-text)"
+                aria-label="이전 슬라이드"
+                onclick={goLeft}
+            >
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+            </button>
+            <button
+                type="button"
+                class="kk-btn grid h-10 min-h-0 w-10 place-items-center p-0 text-(color:--kk-text)"
+                aria-label="다음 슬라이드"
+                onclick={goRight}
+            >
+                <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+            {#if autoplaying}
+                <button
+                    type="button"
+                    class="kk-btn grid h-10 min-h-0 w-10 place-items-center p-0 text-(color:--kk-text)"
+                    aria-label={paused ? "슬라이드 자동 전환 재생" : "슬라이드 자동 전환 일시정지"}
+                    onclick={togglePause}
+                >
+                    <span class="material-symbols-outlined" aria-hidden="true">{paused ? "play_arrow" : "pause"}</span>
+                </button>
+            {/if}
+        </div>
+        <div class="flex items-center rounded-xl border border-(color:--kk-line) bg-(--kk-surface) px-4 py-2 text-sm">
+            <span class="font-bold">{slidePage + 1}</span>&nbsp;/ {slideData.length}
+        </div>
+    </div>
+{/snippet}
 <div class="kk bg-(--kk-bg) text-(color:--kk-text)">
     <div class="mx-auto max-w-screen-xl px-4 pt-4 lg:px-8">
         <div class="relative overflow-hidden rounded-3xl">
@@ -581,13 +641,13 @@
                                 {#if slide.slides?.[0]?.desktop}<img
                                         src={slide.slides[0].desktop}
                                         class="hidden h-[400px] w-full select-none object-cover lg:block"
-                                        alt="끄투리오 안내"
+                                        alt={slideAlt(slide)}
                                         draggable="false"
                                     />{/if}
                                 {#if slide.slides?.[0]?.mobile}<img
                                         src={slide.slides[0].mobile}
                                         class="h-54 w-full select-none object-cover lg:hidden"
-                                        alt="끄투리오 안내"
+                                        alt={slideAlt(slide)}
                                         draggable="false"
                                     />{/if}
                             </a>
@@ -596,33 +656,32 @@
                 {/each}
             </swiper-container>
 
-            <div class="absolute bottom-0 right-0 z-10">
-                <div class="flex items-center gap-x-3 p-4 lg:p-6">
-                    <!-- slide controls -->
-                    <div class="flex gap-x-2">
-                        <!-- use material icons -->
-                        <button
-                            class="kk-btn grid h-10 min-h-0 w-10 place-items-center p-0 text-(color:--kk-text)"
-                            onclick={goLeft}
-                        >
-                            <span class="material-symbols-outlined">
-                                chevron_left
-                            </span>
-                        </button>
-                        <button
-                            class="kk-btn grid h-10 min-h-0 w-10 place-items-center p-0 text-(color:--kk-text)"
-                            onclick={goRight}
-                        >
-                            <span class="material-symbols-outlined">
-                                chevron_right
-                            </span>
-                        </button>
+            {#if hasTitles}
+                <!-- PC: 슬라이드 제목줄 (이동 버튼은 여기로 옮겨 온다) -->
+                <div class="hidden items-stretch border-t border-(color:--kk-line) bg-(--kk-surface) lg:flex">
+                    <ul class="flex min-w-0 flex-1" aria-label="슬라이드 목록">
+                        {#each slideData as slide, index (slide.id ?? index)}
+                            <li class="min-w-0 flex-1">
+                                <button
+                                    type="button"
+                                    title={slideTitle(slide) || FALLBACK_ALT}
+                                    aria-current={slidePage === index ? "true" : undefined}
+                                    onclick={() => goTo(index)}
+                                    class={`h-14 w-full truncate border-b-[3px] px-4 font-bold transition-colors ${slidePage === index ? "border-(--kk-accent) text-(color:--kk-accent-strong)" : "border-transparent text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)"}`}
+                                    >{slideTitle(slide) || FALLBACK_ALT}</button
+                                >
+                            </li>
+                        {/each}
+                    </ul>
+                    <div class="flex shrink-0 items-center border-l border-(color:--kk-line) px-4">
+                        {@render controls()}
                     </div>
-                    <div
-                        class="rounded-xl border border-(color:--kk-line) bg-(--kk-surface) px-4 py-2 text-sm flex items-center"
-                    >
-                        <span class="font-bold">{slidePage + 1}</span>&nbsp;/ {slideData.length}
-                    </div>
+                </div>
+            {/if}
+
+            <div class={`absolute bottom-0 right-0 z-10 ${hasTitles ? "lg:hidden" : ""}`}>
+                <div class="p-4 lg:p-6">
+                    {@render controls()}
                 </div>
             </div>
         </div>
@@ -1020,8 +1079,12 @@
                     >
                 </div>
             </section>
+
         </div>
     </div>
+
+    <!-- 처음 온 사람(비로그인)에게만 보인다. prerender 결과에는 들어가 검색 엔진이 읽는다. -->
+    <FirstVisitCta hidden={user !== "Guest User"} onstart={enterGame} />
 
     <!-- 클라이언트 설정 -->
     <dialog

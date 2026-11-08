@@ -42,6 +42,21 @@ class IdentityDao(
         "UPDATE account SET flags = CAST(? AS jsonb), updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         flags.toString(), accountId
     ) == 1
+    /**
+     * Adds `value` to the array of `account.flags -> key -> value` (the `{value, time}` shape every account flag has) in one statement, so it can't
+     * lose a concurrent change to another flag (the game server rewrites the whole object under `FOR UPDATE`; this takes the same row lock).
+     */
+    fun addAccountFlagValue(accountId: UUID, key: String, value: String, nowMillis: Long): Boolean = jdbc.update(
+        """
+        UPDATE account SET updated_at = CURRENT_TIMESTAMP, flags = jsonb_set(
+            COALESCE(flags, '{}'::jsonb), ARRAY[?], jsonb_build_object(
+                'value', (SELECT COALESCE(jsonb_agg(DISTINCT v ORDER BY v), '[]'::jsonb) FROM jsonb_array_elements_text(
+                    CASE WHEN jsonb_typeof(flags #> ARRAY[?, 'value']) = 'array' THEN flags #> ARRAY[?, 'value'] ELSE '[]'::jsonb END || to_jsonb(?::text)) AS v),
+                'time', ?::bigint), true)
+        WHERE id = ?
+        """.trimIndent(),
+        key, key, key, value, nowMillis, accountId
+    ) == 1
     fun findAccountByGameProfileLegacyId(legacyUserId: String): Account? = queryOne(
         "SELECT account.* FROM account WHERE account.status = 'PROVISIONED' " +
             "AND (account.legacy_user_id = ? " +

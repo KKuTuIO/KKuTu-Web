@@ -1,7 +1,8 @@
 <script>
 	import { t } from '../i18n.svelte.js';
 	import { cdnImg } from '../../cdn.js';
-	import { POLICY_DOCS, PORTAL_URL, hasAgreed, recordAgreement } from '../policy.js';
+	import { POLICY_DOCS, PORTAL_URL, recordAgreement } from '../policy.js';
+	import { policyGate } from '../policyGate.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
 	import Icon from './Icon.svelte';
 	import { fade } from 'svelte/transition';
@@ -9,11 +10,10 @@
 
 	/** First-run terms gate: shown over the game until the three documents' current versions are agreed to. */
 	let { store } = $props();
-	let agreed = $state(hasAgreed());
 	let openKey = $state(null); // one document open at a time
 	let loaded = $state({}); // key -> iframe was opened once (we only fetch a document when someone asks to read it)
 	// Only after the lobby is up: the loading screen and any refusal/setup screen come first.
-	const show = $derived(!agreed && store.net.status === 'ready' && store.net.assetsReady);
+	const show = $derived(!policyGate.agreed && store.net.status === 'ready' && store.net.assetsReady);
 
 	function toggle(key) {
 		openKey = openKey === key ? null : key;
@@ -21,7 +21,7 @@
 	}
 	function agree() {
 		recordAgreement();
-		agreed = true;
+		policyGate.agreed = true;
 		if (store.net.guest) toast(t('play.policy.guestWelcome'), { kind: 'info', duration: 10000 });
 	}
 </script>

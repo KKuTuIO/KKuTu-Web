@@ -78,3 +78,14 @@ describe('presetItems', () => {
 		expect(presetItems({ equip: { Mclothes: 's', Mhead: 'h' } })).toEqual(['h', 's']);
 	});
 });
+
+describe('outfits remember which copy they wear', () => {
+	it('keeps copies of worn items only, as whole numbers', () => {
+		const p = normalizePreset({ id: 'a', name: 'x', equip: { Mhead: 'hat' }, copies: { hat: 2, other: 1, Mhead: 3 } }, 'f');
+		expect(p.copies).toEqual({ hat: 2 });
+		expect(normalizePreset({ id: 'a', name: 'x', equip: { Mhead: 'hat' }, copies: { hat: 1.5 } }, 'f').copies).toEqual({});
+	});
+	it('has none on an outfit from before enchants', () => {
+		expect(normalizePreset({ id: 'a', name: 'x', equip: { Mhead: 'hat' } }, 'f').copies).toBeUndefined();
+	});
+});

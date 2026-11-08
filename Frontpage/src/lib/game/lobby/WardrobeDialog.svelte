@@ -4,7 +4,9 @@
 	import { confirm, prompt } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
 	import { wardrobe, addOutfit, overwriteOutfit, renameOutfit, removeOutfit, moveOutfit } from '../wardrobe.svelte.js';
-	import { MAX_PRESETS, MAX_NAME, canWear, currentEquip, planApply, presetItems } from '../wardrobe.js';
+	import { refreshEnchants } from '../enchantStore.svelte.js';
+	import { wornCopies, wearPlan, wearAll } from '../enchant.js';
+	import { countOf, MAX_PRESETS, MAX_NAME, canWear, currentEquip, planApply, presetItems } from '../wardrobe.js';
 	import Tooltip from '../ui/Tooltip.svelte';
 	import Dialog from './Dialog.svelte';
 	import Icon from './Icon.svelte';
@@ -22,20 +24,30 @@
 	const names = (p) => presetItems(p).map(nameOf);
 	const fail = (code) => toast(plainText(store.net.meta.labels[`kkutu.js.error.${code}`] ?? ''), { kind: 'error' });
 
-	function apply(p) {
+	async function apply(p) {
 		const mine = store.net.users[store.net.id];
 		// legacy: nothing may be changed in the middle of a game I am playing (error 438)
 		if (store.currentRoom?.playing && mine?.game.form !== 'S' && !mine?.game.practice) return fail(438);
 		if (!canWear(p, store.shop, store.net.box)) return void toast(t('play.wardrobe.invalid'), { kind: 'error' });
 		for (const change of planApply(currentEquip(equip), p.equip)) store.conn.send('consume', change);
+		// and which copy of each enchanted item goes on: the one the outfit remembers (else the best one), so its lines are the ones that count
+		const items = await refreshEnchants();
+		const ids = presetItems(p);
+		const counts = Object.fromEntries(ids.map((id) => [id, countOf(store.net.box, id)]));
+		await wearAll(wearPlan(items, ids, counts, p.copies));
+		await refreshEnchants();
+	}
+	/** The copies I wear now, to be remembered with an outfit. */
+	async function copiesNow() {
+		return wornCopies(await refreshEnchants(), Object.values(currentEquip(equip)));
 	}
 	async function save() {
 		if (full) return;
 		const name = await prompt({ message: t('play.wardrobe.enterName'), max: MAX_NAME });
-		if (name?.trim()) addOutfit(name, currentEquip(equip));
+		if (name?.trim()) addOutfit(name, currentEquip(equip), await copiesNow());
 	}
 	async function overwrite(p) {
-		if (await confirm({ message: t('play.wardrobe.confirmOverwrite', { name: p.name }) })) overwriteOutfit(p.id, currentEquip(equip));
+		if (await confirm({ message: t('play.wardrobe.confirmOverwrite', { name: p.name }) })) overwriteOutfit(p.id, currentEquip(equip), await copiesNow());
 	}
 	async function rename(p) {
 		const name = await prompt({ message: t('play.wardrobe.enterNewName'), value: p.name, max: MAX_NAME });

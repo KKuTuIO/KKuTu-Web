@@ -7,13 +7,25 @@ import { isAdminCommand } from './commands.js';
 import { getLevel } from './level.js';
 import { applyGamePacket } from './gameModel.js';
 import { t } from './i18n.svelte.js';
+import { newDm, dmReceive, dmLoad } from './dm.js';
 
 /** Server messages are HTML snippets (<br>, links); the UI shows plain text. */
 export const plainText = (html = '') => String(html).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '').trim();
 
+/**
+ * The text of a server error packet. A few messages carry a blank for a number the server sends in `message` (446 "최소 {0}단계의 오끄감 버프",
+ * 447 "하루에 최대 {0}회까지"): the legacy client fills it (`.replace("{0}", message)`), so it is filled here too.
+ */
+export function errorText(labels, pkt) {
+	const label = labels[`kkutu.js.error.${pkt.code}`];
+	if (label === undefined) return plainText(pkt.message ?? '');
+	return plainText(String(label).replace('{0}', pkt.message ?? ''));
+}
+
 export const initialState = () => ({
 	assetsReady: false, // shop catalogue + fonts, so the lobby doesn't pop in half-drawn
 	status: 'connecting', // connecting | setup | captcha | ready | reconnecting | closed | error
+	outage: null, // while the connection is down: {kind: 'network'|'update'|'maintenance'|'unknown', name?, reason?, until?} (see outage.js)
 	reconnect: null, // after a dropped connection: {attempt, max, nextAt (ms timestamp, null while trying), exhausted}
 	error: null,
 	captchaSiteKey: null,
@@ -25,11 +37,28 @@ export const initialState = () => ({
 	mails: [], // the mailbox: [{_id, name, content, hasRewards, claimable, claimEndAt}]
 	notifications: [], // notices the server keeps until I confirm them: [{id, message, createdAt}]
 	mailLoaded: false,
+	events: { list: [] }, // 공지·행사: the catalog the server sent ({list: EventInfo[]}); at login without the detail blocks, with them after event.progress
+	eventProgress: { missions: [], attendance: [] }, // my missions and attendance books
+	eventsLoaded: false, // event.progress has answered (the page shows a skeleton until then)
+	exchanges: {}, // the exchange shop of each event: {eventId: Exchange[]}
+	eventReward: null, // {eventId, source, rewards, at} what the last claim gave
+	invites: {}, // 친구 초대: {eventId: status} (my code, how far I am as the invited one, and my friends)
+	inviteLinked: null, // the answer to a link followed: {result, at}
+	campaigns: {}, // 캠페인: {eventId: status + `at`} (where each campaign is: the round that is on, the next, the ones over)
+	tileResult: null, // {eventId, draws:[{cell, owned}], rewards, gauge?:{points, reached}, at}: the last 타일 룰렛 draw
+	pendingInjeongHint: null, // words for the 어인정 nudge, held until the result is closed
 	recentFrom: '', // the last player who whispered to me (compact nickname), for /답
+	dm: newDm(), // 귓속말 conversations (see dm.js)
+	surveys: null, // 설문 조사: [{name, desc, openAt, closeAt, gives, surveyUrl}] once asked for
+	surveyToken: null, // {value, date}: what a survey page needs to know it is me
+	replayReady: false, // a finished game was recorded and can be saved as a .kkio (see replayRec.js)
 	boxSeq: 0, // counts the packets that carried my whole box: the last one of a gacha draw ends it
 	box: null, // what I own: {item id: {value, expire?}} (flag items, keys starting with #, are left out)
+	expired: [], // item ids that ran out while I was away (the server lists them on connect): shown once, then cleared
 	gained: [], // items the server gave (a gacha draw sends one packet per prize): [{key, q}], taken by whoever shows them
+	gifts: [], // what an admin gave me (`#give`): [{key, q}], taken by GiftHost, which shows them on the obtain screen
 	obtained: null, // {rewards, at} what the last claimed mail gave
+	tutorial: null, // {id, done, ping, at} the server's answer to a cleared tutorial lesson: what the account has cleared, and the 핑 this clear paid
 	friends: {}, // id -> nickname
 	friendsData: {}, // id -> {memo, nick, bf (best friend)}
 	friendRequests: [], // [{from, at}] people asking to become my friend, until I answer
@@ -169,6 +198,13 @@ export function notice(state, text) {
 	if (state.chat.length > 200) state.chat.splice(0, state.chat.length - 200);
 }
 
+/** The words of the 어인정 nudge waiting to be shown (cleared), or null. */
+export function takeInjeongHint(state) {
+	const words = state.pendingInjeongHint;
+	state.pendingInjeongHint = null;
+	return words?.length ? words : null;
+}
+
 /**
  * "X joined / left" lines, with the legacy flood guard: a user who comes and goes more than twice in 15 seconds is
  * muted for 60 seconds (once, with a notice about it). Operators are never announced.
@@ -197,7 +233,13 @@ export function setFriends(state, raw) {
 
 const uid_ = (pkt) => pkt.profile?.id ?? '';
 
-export function applyPacket(state, pkt) {
+/** The server's event catalog; a missing or damaged one is an empty list, never a crash. */
+export function normalizeEvents(raw) {
+	return { list: Array.isArray(raw?.list) ? raw.list.filter((e) => e && typeof e.id === 'string') : [] };
+}
+
+/** @param {number} [now] the time the packet is applied at (the live connection: now; a replay: its own clock) */
+export function applyPacket(state, pkt, now = Date.now()) {
 	switch (pkt.type) {
 		case 'captcha':
 			state.status = 'captcha';
@@ -205,6 +247,7 @@ export function applyPacket(state, pkt) {
 			break;
 		case 'welcome':
 			state.status = 'ready';
+			state.events = normalizeEvents(pkt.event);
 			state.id = pkt.id;
 			state.guest = !!pkt.guest;
 			state.admin = !!pkt.admin;
@@ -218,6 +261,7 @@ export function applyPacket(state, pkt) {
 			state.box = cleanBox(pkt.box);
 			state.myStatus = pkt.status ?? 'online';
 			state.ratingRestrictionUntil = Number(pkt.ratingRestrictionUntil) || 0;
+			dmLoad(state); // my whisper threads from before a reload of this page
 			// legacy: a low 평점 is said once, right after connecting
 			if ((state.users[state.id]?.rating ?? 2) < 2) notice(state, t('play.rating.info'));
 			break;
@@ -303,6 +347,12 @@ export function applyPacket(state, pkt) {
 			state.playTime = pkt.time ?? state.playTime;
 			state.okgCount = pkt.count ?? state.okgCount;
 			break;
+		case 'surveyList':
+			state.surveys = Object.values(pkt.surveys ?? {});
+			break;
+		case 'surveyToken':
+			state.surveyToken = { value: pkt.value, date: pkt.date };
+			break;
 		case 'prompt':
 			state.prompt = { lang: pkt.lang, type: pkt.promptType, value: pkt.value };
 			break;
@@ -329,6 +379,33 @@ export function applyPacket(state, pkt) {
 			// `nick`: who asked, for when they are not here to be looked up (offline, or on another channel)
 			if (!state.friendRequests.some((r) => r.from === pkt.from)) state.friendRequests.push({ from: pkt.from, nick: pkt.nick ?? '', at: Date.now() });
 			break;
+		case 'event.progress':
+			state.events = normalizeEvents(pkt.event);
+			state.eventProgress = { missions: Array.isArray(pkt.missions) ? pkt.missions : [], attendance: Array.isArray(pkt.attendance) ? pkt.attendance : [] };
+			state.eventsLoaded = true;
+			break;
+		case 'event.exchangeData':
+			state.exchanges = pkt.exchange && typeof pkt.exchange === 'object' ? pkt.exchange : {};
+			break;
+		case 'event.invite':
+			if (typeof pkt.eventId === 'string') state.invites = { ...state.invites, [pkt.eventId]: { eventId: pkt.eventId, code: String(pkt.code ?? ''), invitee: pkt.invitee, friends: Array.isArray(pkt.friends) ? pkt.friends : [] } };
+			break;
+		case 'event.inviteLinked':
+			state.inviteLinked = { result: String(pkt.result ?? ''), at: now };
+			break;
+		case 'event.campaign':
+			if (typeof pkt.eventId === 'string') state.campaigns = { ...state.campaigns, [pkt.eventId]: { eventId: pkt.eventId, now: Number(pkt.now) || now, at: now, current: pkt.current, next: pkt.next, past: Array.isArray(pkt.past) ? pkt.past : [] } };
+			break;
+		case 'event.tileResult': {
+			state.tileResult = { eventId: pkt.eventId, draws: Array.isArray(pkt.draws) ? pkt.draws : [], rewards: Array.isArray(pkt.rewards) ? pkt.rewards : [], gauge: pkt.gauge, at: now };
+			// the catalog keeps where I am on the gauge, so the page shows it correctly after a reload of the board too
+			const tile = state.events.list.find((e) => e.id === pkt.eventId)?.tile;
+			if (tile?.gauge && pkt.gauge) tile.gauge.points = pkt.gauge.points;
+			break;
+		}
+		case 'event.reward':
+			state.eventReward = { eventId: pkt.eventId, source: pkt.source, rewards: Array.isArray(pkt.rewards) ? pkt.rewards : [], at: now };
+			break;
 		case 'mailBox':
 			state.mails = pkt.mails ?? [];
 			if (pkt.notifications) state.notifications = pkt.notifications;
@@ -340,6 +417,7 @@ export function applyPacket(state, pkt) {
 		case 'obtain':
 			// Ping given by the server (a mail reward): my balance goes up at once.
 			if (pkt.money && state.users[state.id]) state.users[state.id].money += Number(pkt.money);
+			if (Array.isArray(pkt.gift)) state.gifts.push(...pkt.gift.map((g) => ({ key: String(g.key), q: Number(g.q) || 1 })));
 			if (pkt.gain) state.gained.push(...pkt.gain.map((g) => ({ key: g.key, q: g.q })));
 			// What the server says I now have: my equipment and my box (legacy sets both from every `obtain`).
 			if (pkt.equip && state.users[state.id]) state.users[state.id].equip = pkt.equip;
@@ -351,6 +429,12 @@ export function applyPacket(state, pkt) {
 			// What a box or a coupon gave besides items (legacy notices).
 			if (pkt.exp) notice(state, `${state.meta.labels['kkutu.js.obtainExp'] ?? ''}: ${Math.round(pkt.exp).toLocaleString()}`);
 			if (pkt.money) notice(state, `${state.meta.labels['kkutu.js.obtainMoney'] ?? ''}: ${Math.round(pkt.money).toLocaleString()}`);
+			break;
+		case 'tutorialDone':
+			state.tutorial = { id: String(pkt.id ?? ''), done: Array.isArray(pkt.done) ? pkt.done.map(String) : [], ping: Number(pkt.ping) || 0, at: now };
+			break;
+		case 'expired':
+			state.expired.push(...(pkt.list ?? []));
 			break;
 		case 'obtainMail':
 			state.obtained = { rewards: pkt.rewards ?? [], at: Date.now() };
@@ -376,6 +460,15 @@ export function applyPacket(state, pkt) {
 			state.friendsStatus = { ...(pkt.status ?? {}) };
 			break;
 		}
+		// What the "#…" admin commands send back (the server sends these only for an administrator's own command, or to everyone for a broadcast)
+		case 'yell':
+		case 'notice':
+			if (typeof pkt.value === 'string' && pkt.value) state.chat.push({ who: t(pkt.type === 'yell' ? 'play.admin.yell' : 'play.admin.notice'), msg: plainText(pkt.value), at: Date.now(), system: true, mine: false });
+			break;
+		case 'tail':
+			// Legacy: "a|rid@id: <json>", the raw answer of #ip, #tailroom, #tailuser and #roominfo
+			if (state.admin) state.chat.push({ who: t('play.admin.tail'), msg: `${pkt.a}|${pkt.rid}@${pkt.id}: ${typeof pkt.msg === 'string' ? pkt.msg : JSON.stringify(pkt.msg)}`, at: Date.now(), system: true, mine: false });
+			break;
 		case 'chat':
 			if (pkt.notice) {
 				// Like the legacy client: an explicit message, or the localized text for the notice's code.
@@ -384,17 +477,21 @@ export function applyPacket(state, pkt) {
 			}
 			else if (pkt.value && !isAdminCommand(pkt.value)) {
 				const uid = pkt.profile?.id ?? '';
-				state.chat.push({
-					who: (pkt.profile?.title ?? pkt.profile?.name ?? '?').split('#')[0],
-					msg: pkt.value,
-					shown: splitFilter(uid || pkt.profile?.title || pkt.profile?.name, pkt.value), // what the word filter makes of it
-					at: Date.now(),
-					system: false,
-					uid,
-					whisper: !!pkt.from,
-					spectator: state.users[uid]?.game?.form === 'S',
-					mine: !!state.id && uid === state.id
-				});
+				const shown = splitFilter(uid || pkt.profile?.title || pkt.profile?.name, pkt.value); // what the word filter makes of it
+				// A whisper is a line of a conversation (the 귓속말 tab), not of the room's chat.
+				if (pkt.from) dmReceive(state, pkt, shown);
+				else
+					state.chat.push({
+						who: (pkt.profile?.title ?? pkt.profile?.name ?? '?').split('#')[0],
+						msg: pkt.value,
+						shown,
+						at: Date.now(),
+						system: false,
+						uid,
+						whisper: false,
+						spectator: state.users[uid]?.game?.form === 'S',
+						mine: !!state.id && uid === state.id
+					});
 			}
 			if (pkt.from && uid_(pkt) !== state.id) state.recentFrom = String(pkt.from).replace(/\s/g, ''); // /답 answers the last one who whispered
 			if (state.chat.length > 200) state.chat.splice(0, state.chat.length - 200);
@@ -406,20 +503,25 @@ export function applyPacket(state, pkt) {
 		case 'starting':
 		case 'roundReady':
 		case 'turnStart':
+		case 'useItem':
 		case 'turnError':
 			// A refused word is shown on the board (struck out); it is not said in the chat.
-			applyGamePacket(state, pkt);
+			applyGamePacket(state, pkt, now);
 			break;
 		case 'turnHint':
 		case 'drawingContent':
 		case 'drawCanvas':
 		case 'attackBonus':
 		case 'turnEnd':
-			applyGamePacket(state, pkt);
+			applyGamePacket(state, pkt, now);
 			if (state.game?.combo?.action === 'warn') notice(state, state.meta.labels['kkutu.js.trollWarning']);
 			break;
+		case 'injeongHint':
+			// shown once the result is closed and the waiting room is back (see lobbyStore.closeResult)
+			if (Array.isArray(pkt.words) && pkt.words.length) state.pendingInjeongHint = pkt.words.map(String); // shown by showInjeongHint, once the result is closed
+			break;
 		case 'roundEnd': {
-			applyGamePacket(state, pkt);
+			applyGamePacket(state, pkt, now);
 			// Legacy: what I got is also said in the chat.
 			const mine = state.game?.result?.rows.find((r) => r.me);
 			if (mine) {

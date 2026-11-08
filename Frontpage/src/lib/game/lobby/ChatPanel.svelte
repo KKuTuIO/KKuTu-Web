@@ -9,15 +9,20 @@
 	import { prefs } from '../prefs.svelte.js';
 	import { isHidden } from '../chatFilter.js';
 	import { maskBad } from '../badwords.js';
+	import { whisperQuery } from '../dm.js';
+	import DmPanel from './DmPanel.svelte';
+	import DmMembers from './DmMembers.svelte';
 
 	/**
 	 * `inline`: a permanent panel in the lobby layout (desktop, where the old client kept its chat: under the room list).
 	 * Otherwise: a button that opens a docked bottom-right sheet (mobile, and on desktop wherever the page wants the chat
 	 * out of the way, `fab`, like in the 아카데미).
 	 */
-	let { store, inline = false, fab = false, height = null } = $props();
-	const uid = $derived(`chat-${inline ? 'inline' : 'sheet'}`); // two instances can coexist in the DOM, so ids must differ
-	const chat = $derived(store.net.chat);
+	let { store, inline = false, fab = false, height = null, idSuffix = '' } = $props();
+	const uid = $derived(`chat-${inline ? 'inline' : 'sheet'}${idSuffix}`); // two instances can coexist in the DOM, so ids must differ
+	// While a replay plays the chat has one more tab: the chat of that game (read only)
+	const rnet = $derived(store.replayView?.net);
+	const chat = $derived(tab === 'replay' && rnet ? rnet.chat : store.net.chat);
 	// What I get to see: not blocked players, 손님 채팅 거부, 관전 채팅 무시, 귓속말 거부 (see chatFilter.js).
 	const visible = $derived(chat.filter((m) => !isHidden(m, store.net)));
 	const words = (m) => (prefs.filter === 'off' ? m.msg : maskBad(m.shown ?? m.msg));
@@ -28,10 +33,18 @@
 	let list = $state();
 	let input = $state();
 	let seen = $state(0); // how many messages were on screen when the panel was last open
-	const unread = $derived(open ? 0 : chat.slice(seen).filter((m) => !m.mine).length);
-	const tabs = $derived([{ id: 'lobby', label: store.net.myRoom ? t('play.chat.roomTab') : t('play.chat.lobbyTab') }]);
+	const unread = $derived(open ? 0 : chat.slice(seen).filter((m) => !m.mine).length + store.dmUnread);
+	const tabs = $derived([{ id: 'lobby', label: store.net.myRoom ? t('play.chat.roomTab') : t('play.chat.lobbyTab') }, { id: 'dm', label: t('play.dm.tab'), count: store.dmUnread, alert: true }, ...(rnet ? [{ id: 'replay', label: t('kkutu.js.replay') }] : [])]);
 	const time = (at) => new Date(at).toLocaleTimeString(i18n.language, { hour: 'numeric', minute: '2-digit' });
 
+
+	let hadReplay = false;
+	$effect(() => {
+		const has = !!rnet;
+		if (has && !hadReplay) tab = 'replay';
+		else if (!has && tab === 'replay') tab = 'lobby';
+		hadReplay = has;
+	});
 
 	// The docked sheet slides up from the bottom edge and back down; the inline panel never animates.
 	function sheet(node) {
@@ -92,6 +105,50 @@
 		if (inline) input?.focus();
 		else show();
 	});
+	// Something asked for a conversation (the user menu's 귓속말): show the 귓속말 tab, open at that person.
+	let appliedDm = untrack(() => store.dmRequest.nonce);
+	$effect(() => {
+		const r = store.dmRequest;
+		if (r.nonce === appliedDm) return;
+		appliedDm = r.nonce;
+		const desktop = matchMedia('(min-width: 1024px)').matches;
+		if (inline ? !desktop : desktop && !fab) return;
+		tab = 'dm';
+		if (!inline) show();
+	});
+	// After "/e ": the people online, to pick from (arrow keys, Tab / Enter, or click) as Discord does after a slash command
+	let sIdx = $state(0);
+	let dismissed = $state('');
+	const wq = $derived(whisperQuery(text));
+	const suggest = $derived(wq !== null && text !== dismissed ? store.dmMembers(wq, 8) : []);
+	$effect(() => {
+		wq;
+		sIdx = 0;
+	});
+	function suggestPick(r) {
+		const cmd = /^\/\S+/.exec(text)?.[0] ?? '/e';
+		text = `${cmd} ${r.handle} `;
+		input?.focus();
+	}
+	function suggestKey(e) {
+		if (!suggest.length) return false;
+		if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+			e.preventDefault();
+			sIdx = (sIdx + (e.key === 'ArrowDown' ? 1 : -1) + suggest.length) % suggest.length;
+			return true;
+		}
+		if (e.key === 'Tab' || (e.key === 'Enter' && !e.isComposing)) {
+			e.preventDefault();
+			suggestPick(suggest[sIdx]);
+			return true;
+		}
+		if (e.key === 'Escape') {
+			e.stopPropagation();
+			dismissed = text;
+			return true;
+		}
+		return false;
+	}
 	async function show() {
 		openSheet = true;
 		stick = true;
@@ -103,7 +160,7 @@
 		e.preventDefault();
 		store.sendChat(text);
 		toBottom(); // my own line always takes me back to the bottom
-		text = store.takeWhisperPrefix(); // after a whisper the box keeps "/e name " for the next line (legacy)
+		text = '';
 	}
 </script>
 
@@ -132,6 +189,9 @@
 		{/if}
 
 		<div class="flex min-h-0 min-w-0 flex-1 flex-col">
+		{#if tab === 'dm'}
+			<DmPanel {store} {uid} />
+		{:else}
 		<div class="relative flex min-h-0 flex-1 flex-col">
 		<div bind:this={list} {onscroll} role="log" aria-live="polite" id="{uid}-log" class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3 text-sm">
 			{#each visible as m, i (i)}
@@ -161,10 +221,21 @@
 		{/if}
 		</div>
 
+		{#if tab !== 'replay'}
+		<div class="relative">
+		{#if suggest.length}
+			<div class="kk-card absolute inset-x-2 bottom-full z-10 mb-1 max-h-72 overflow-y-auto p-1.5">
+				<p class="px-2.5 pb-1 text-xs font-extrabold text-(color:--kk-muted)">{t('play.dm.members')}</p>
+				<DmMembers {store} rows={suggest} active={sIdx} onpick={suggestPick} id="{uid}-sugg" />
+			</div>
+		{/if}
 		<form onsubmit={send} class="flex items-center gap-2 border-t border-(color:--kk-line) bg-(--kk-panel) p-2.5">
-			<input bind:this={input} bind:value={text} aria-label={t('play.chat.input')} placeholder={store.inGame ? t(mobileInput ? 'kkutu.product.chat.warningMobile' : 'kkutu.product.chat.warning') : t('play.chat.placeholder')} maxlength="200" autocomplete="off" onkeydown={(e) => store.spaceSubmits(e, text, () => (text = ''))} oninput={(e) => store.myTurn && store.setTyped(text, e.isComposing)} oncompositionend={() => store.myTurn && store.setTyped(text)} class="h-11 min-w-0 flex-1 kk-input px-3" />
+			<input bind:this={input} bind:value={text} aria-label={t('play.chat.input')} placeholder={store.inGame ? t(mobileInput ? 'kkutu.product.chat.warningMobile' : 'kkutu.product.chat.warning') : t('play.chat.placeholder')} maxlength="200" autocomplete="off" role={suggest.length ? 'combobox' : undefined} aria-expanded={suggest.length ? true : undefined} aria-controls={suggest.length ? `${uid}-sugg` : undefined} aria-activedescendant={suggest.length ? `${uid}-sugg-${sIdx}` : undefined} onkeydown={(e) => suggestKey(e) || store.spaceSubmits(e, text, () => (text = ''))} oninput={(e) => store.myTurn && store.setTyped(text, e.isComposing)} oncompositionend={() => store.myTurn && store.setTyped(text)} class="h-11 min-w-0 flex-1 kk-input px-3" />
 			<button class="kk-btn kk-btn-primary grid size-11 shrink-0 place-items-center p-0" aria-label={t('play.chat.send')} disabled={!text.trim()}><Icon name="send" size={20} fill /></button>
 		</form>
+		</div>
+		{/if}
+		{/if}
 		</div>
 	</section>
 {:else}

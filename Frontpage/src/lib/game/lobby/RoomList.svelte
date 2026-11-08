@@ -32,7 +32,7 @@
 	}
 </script>
 
-<section bind:clientWidth={width} class="kk-card flex min-h-80 min-w-0 flex-1 flex-col overflow-hidden">
+<section data-tour="room-list" bind:clientWidth={width} class="kk-card flex min-h-80 min-w-0 flex-1 flex-col overflow-hidden">
 	<div class="flex flex-wrap items-center gap-2.5 border-b border-(color:--kk-line) px-3.5 py-2">
 		<form onsubmit={submit} class="kk-input flex h-12 min-w-0 flex-1 items-center gap-2 rounded-xl px-4 sm:max-w-sm">
 			<Icon name="search" />
@@ -72,7 +72,7 @@
 		<div class="grid flex-1 place-items-center"><EmptyState title={t('play.rooms.empty.title')} hint={t('play.rooms.empty.hint')} /></div>
 	{:else if s.view === 'tile'}
 		<div class="grid flex-1 grid-cols-[repeat(auto-fill,minmax(290px,1fr))] content-start gap-3 overflow-y-auto p-3.5 max-md:hidden">
-			{#each store.visibleRooms as r (r.no)}<RoomRow room={r} tile onjoin={() => onjoin(r.no)} />{/each}
+			{#each store.visibleRooms as r (r.no)}<RoomRow room={r} tile onjoin={() => onjoin(r.no)} onmenu={(e) => store.hooks.openRoomMenu?.(r.no, e)} />{/each}
 		</div>
 	{:else}
 		<div class="min-h-0 flex-1 overflow-x-auto max-md:hidden">
@@ -81,7 +81,7 @@
 					<span>{t('play.rooms.col.no')}</span><span>{t('play.rooms.col.name')}</span><span>{t('play.rooms.col.game')}</span><span>{t('play.rooms.col.rule')}</span><span>{t('play.rooms.col.roundTime')}</span><span>{t('play.rooms.col.players')}</span><span>{t('play.rooms.col.status')}</span>
 				</div>
 				<div class="min-h-0 flex-1 overflow-y-auto">
-					{#each store.visibleRooms as r (r.no)}<RoomRow room={r} onjoin={() => onjoin(r.no)} />{/each}
+					{#each store.visibleRooms as r (r.no)}<RoomRow room={r} onjoin={() => onjoin(r.no)} onmenu={(e) => store.hooks.openRoomMenu?.(r.no, e)} />{/each}
 				</div>
 			</div>
 		</div>
@@ -89,6 +89,6 @@
 
 	<!-- Phone: always cards -->
 	<div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3 md:hidden">
-		{#each store.visibleRooms as r (r.no)}<RoomRow room={r} tile onjoin={() => onjoin(r.no)} />{/each}
+		{#each store.visibleRooms as r (r.no)}<RoomRow room={r} tile onjoin={() => onjoin(r.no)} onmenu={(e) => store.hooks.openRoomMenu?.(r.no, e)} />{/each}
 	</div>
 </section>

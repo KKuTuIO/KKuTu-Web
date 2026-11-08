@@ -113,6 +113,21 @@ class UserDao(
         return getUserByIdentifier(query)?.let(::listOf) ?: emptyList()
     }
 
+    /**
+     * One page of the players whose nickname contains `query` (or whose id it is), the exact ones first, then by nickname. `%` and `_` in the
+     * query are plain characters. Ask for one more than a page to know whether there is a next one.
+     */
+    fun searchUsersPage(query: String, limit: Int, offset: Int): List<User> {
+        val like = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        val sql = """
+            SELECT * FROM users
+            WHERE _id = ? OR nickname ILIKE ? ESCAPE '\'
+            ORDER BY CASE WHEN _id = ? THEN 0 WHEN nickname = ? THEN 1 ELSE 2 END, nickname, _id
+            LIMIT ? OFFSET ?
+        """.trimIndent()
+        return jdbcTemplate.query(sql, userMapper, query, like, query, query, limit.coerceIn(1, 51), offset.coerceAtLeast(0))
+    }
+
     fun getSimilarityNicks(): List<String> {
         val sql = "SELECT \"meanableNick\" FROM users"
         return jdbcTemplate.query(sql, SingleColumnRowMapper(String::class.java)).filterNotNull()

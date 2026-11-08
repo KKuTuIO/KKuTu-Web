@@ -2,6 +2,7 @@
 	import { t, i18n } from '../i18n.svelte.js';
 	import { cdnImg } from '../../cdn.js';
 	import Icon from './Icon.svelte';
+	import { plainText } from '../protocol.js';
 	let { store } = $props();
 	const net = $derived(store.net);
 	let captchaEl = $state();
@@ -32,6 +33,10 @@
 	});
 	const seconds = $derived(rc?.nextAt ? Math.max(0, Math.ceil((rc.nextAt - now) / 1000)) : 0);
 
+	// Why we are down: the device is offline, the server is being updated, or the operators announced a maintenance (with their own words)
+	const OUTAGE_ICON = { network: 'wifi_off', update: 'system_update_alt', maintenance: 'construction' };
+	const outage = $derived(net.outage && net.outage.kind !== 'unknown' && !rc?.exhausted && ['closed', 'reconnecting'].includes(net.status) ? net.outage : null);
+
 	// Close codes the game server sends as `error` packets before dropping the socket.
 	const guestCodes = [449, 402, 479, 457, 440];
 	const nextHref = $derived(
@@ -46,6 +51,17 @@
 		{#if net.status === 'captcha'}
 			<p class="text-base font-bold">{t('play.gate.captcha')}</p>
 			<div bind:this={captchaEl}></div>
+		{:else if outage}
+			<Icon name={OUTAGE_ICON[outage.kind]} size={40} class="text-(color:--kk-muted)" />
+			<p class="text-base font-bold">{outage.kind === 'maintenance' ? outage.name || plainText(i18n.messages['kkutu.js.error.500'] ?? '') : t(`play.gate.${outage.kind}`)}</p>
+			{#if outage.kind === 'maintenance' && outage.reason}<p class="whitespace-pre-wrap text-(color:--kk-muted)">{outage.reason}</p>{/if}
+			{#if outage.kind === 'maintenance' && outage.until}<p class="text-sm text-(color:--kk-muted)">{t('play.gate.until', { time: new Date(outage.until).toLocaleString(i18n.language) })}</p>{/if}
+			{#if net.status === 'reconnecting'}
+				<p class="inline-flex items-center gap-2 text-sm text-(color:--kk-muted)"><Icon name="sync" size={18} class="animate-spin" />{t('play.gate.trying')}</p>
+			{:else if rc?.nextAt}
+				<p class="text-sm text-(color:--kk-muted)">{t('play.gate.retryIn', { sec: seconds })}</p>
+			{/if}
+			<button type="button" onclick={() => store.conn.reconnect()} class="kk-btn kk-btn-primary min-h-12 px-6 text-base">{t('play.gate.reconnectNow')}</button>
 		{:else if net.status === 'reconnecting'}
 			<Icon name="sync" size={40} class="animate-spin text-(color:--kk-muted)" />
 			<p class="text-base font-bold">{t('play.gate.reconnecting', { attempt: rc?.attempt ?? 1, max: rc?.max ?? 1 })}</p>

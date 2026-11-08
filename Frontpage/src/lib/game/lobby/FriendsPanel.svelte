@@ -53,9 +53,9 @@
         filter === "pending" ? incoming.length + outgoing.length : rows.length,
     );
     const filters = $derived([
+        { id: "all", label: t("play.friends.filter.all") },
         { id: "online", label: t("play.friends.filter.online") },
         { id: "best", label: t("play.friends.filter.best") },
-        { id: "all", label: t("play.friends.filter.all") },
         {
             id: "pending",
             label: t("play.friends.filter.pending"),
@@ -151,7 +151,7 @@
         </label>
 
         <h3 class="px-1 pb-1 text-xs font-bold text-(color:--kk-muted)">
-            {t(`play.friends.heading.${filter}`, { n: count })}
+            {t(`play.friends.heading.${filter}`, { n: filter === "all" && !q ? store.friends.length : count, limit: FRIEND_LIMIT })}
         </h3>
 
         <ul class="flex flex-col">

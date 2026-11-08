@@ -4,10 +4,15 @@ import { tick } from 'svelte';
 import { createLobbyStore } from '../lobbyStore.svelte.js';
 import { applyPacket } from '../protocol.js';
 import GameScreen from './GameScreen.svelte';
-import { playSound } from '../audio.svelte.js';
+import LevelUpHost from './LevelUpHost.svelte';
+import { levelUp } from '../levelUp.svelte.js';
+import { playResultBgm, playSound } from '../audio.svelte.js';
 
-vi.mock('../audio.svelte.js', () => ({ playSound: vi.fn(), playLobbyBgm: vi.fn(), stopBgm: vi.fn(), audio: {} }));
-afterEach(cleanup);
+vi.mock('../audio.svelte.js', () => ({ playSound: vi.fn(), playLobbyBgm: vi.fn(), playResultBgm: vi.fn(), stopBgm: vi.fn(), audio: {} }));
+afterEach(() => {
+	cleanup();
+	levelUp.reset();
+});
 
 const player = (id, extra = {}) => ({ id, profile: { title: id }, data: { score: 100, record: {} }, game: { score: 0, form: 'J', team: 0, ...extra.game }, ...extra });
 function setup({ master = 'me', form = 'J' } = {}) {
@@ -29,6 +34,13 @@ const feed = async (net, ...pkts) => {
 };
 const wait = (n) => new Promise((r) => setTimeout(r, n));
 const display = () => document.querySelector('[data-display]');
+
+/** The result flow is the full ranking, then (다음) my own result with the rewards and the gauge. */
+async function toMine(dialog) {
+	dialog.querySelector('[data-step-next]').click();
+	await vi.advanceTimersByTimeAsync(700); // the podium and the table slide out first
+	expect(dialog.querySelector('[data-step="mine"] .verdict-text')).not.toBeNull();
+}
 
 describe('GameScreen (a port of the legacy board)', () => {
 	beforeEach(() => vi.useRealTimers());
@@ -90,6 +102,50 @@ describe('GameScreen (a port of the legacy board)', () => {
 		expect(display().querySelector('.game-fail-text')).toBeNull();
 	});
 
+	it('sends an administrator\'s "#" line to the server as it is, even on my turn, and never as my answer', async () => {
+		const { store, net, sent } = setup();
+		net.admin = true;
+		render(GameScreen, { store });
+		await feed(net, { type: 'roundReady', round: 1, char: '가' }, { type: 'turnStart', turn: 0, char: '가', turnTime: 10000, roundTime: 60000, gameId: 'g', turnId: 't', inputEpoch: 1 });
+		store.sendChat('#roominfo 5');
+		store.sendChat('#notice hi');
+		expect(sent).toEqual([{ type: 'talk', value: '#roominfo 5' }, { type: 'talk', value: '#notice hi' }]);
+		expect(net.game.submitted).toBeUndefined();
+	});
+
+	it('treats "#" as an ordinary answer when I am not an administrator', async () => {
+		const { store, net, sent } = setup();
+		render(GameScreen, { store });
+		await feed(net, { type: 'roundReady', round: 1, char: '가' }, { type: 'turnStart', turn: 0, char: '가', turnTime: 10000, roundTime: 60000, gameId: 'g', turnId: 't', inputEpoch: 1 });
+		store.sendChat('#notice hi');
+		expect(sent.at(-1)).toMatchObject({ type: 'talk', relay: true, value: '#notice hi' });
+	});
+
+	it('shows the questions solved on a player\'s card in place of the speed, and the speed when there is no such count', async () => {
+		const { store, net } = setup();
+		render(GameScreen, { store });
+		await feed(net, { type: 'roundReady', round: 1, char: '가' }, { type: 'turnStart', turn: 0, char: '가', turnTime: 10000, roundTime: 60000, gameId: 'g', turnId: 't', inputEpoch: 1 });
+		net.game.kpm = { me: 52, bot: 40 };
+		net.game.solved = { me: 314, bot: 120 };
+		await tick();
+		expect(document.querySelector('[data-player="me"] [data-solved]').textContent).toContain('314');
+		expect(document.querySelector('[data-player="bot"] [data-solved]').textContent).toContain('120');
+		net.game.solved = null;
+		await tick();
+		expect(document.querySelector('[data-solved]')).toBeNull();
+		expect(document.querySelector('[data-player="me"]').textContent).toContain('52');
+	});
+
+	it('does not bring back my earlier word when somebody else is refused', async () => {
+		const { store, net } = setup();
+		render(GameScreen, { store });
+		await feed(net, { type: 'roundReady', round: 1, char: '이' }, { type: 'turnStart', turn: 0, char: '이', turnTime: 10000, roundTime: 60000, gameId: 'g', turnId: 't', inputEpoch: 1 });
+		store.sendChat('이리듐'); // my word, accepted
+		await feed(net, { type: 'turnEnd', ok: true, value: '이리듐', score: 10, bonus: 0 }, { type: 'turnStart', turn: 1, char: '듐', turnTime: 10000, roundTime: 60000, gameId: 'g', turnId: 't2', inputEpoch: 1 });
+		await feed(net, { type: 'turnError', code: 404, value: '듐프' }); // the next player is refused
+		expect(display().querySelector('.game-fail-text')).toBeNull();
+	});
+
 	it('strikes out what I typed when it is refused, and the chat box answers too', async () => {
 		const { store, net, sent } = setup();
 		render(GameScreen, { store });
@@ -145,6 +201,7 @@ describe('GameScreen (a port of the legacy board)', () => {
 		vi.useFakeTimers();
 		const { store, net } = setup();
 		render(GameScreen, { store });
+		render(LevelUpHost, { store });
 		await feed(net, { type: 'roundReady', round: 1, char: '가' }, {
 			type: 'roundEnd',
 			users: { me: { data: { score: 700, record: {} }, money: 5 } },
@@ -155,15 +212,183 @@ describe('GameScreen (a port of the legacy board)', () => {
 		expect(screen.queryByRole('dialog')).toBeNull();
 		await vi.advanceTimersByTimeAsync(2100);
 		const dialog = await screen.findByRole('dialog', { name: '게임 결과' });
-		expect(dialog.querySelector('[data-row="me"] .result-board-rank').textContent).toBe('1');
-		expect(dialog.querySelector('[data-reward="exp"]').textContent).toBe('획득한 경험치 +500(100)');
-		expect(dialog.querySelector('[data-row="me"]').textContent).toContain('80점');
+		expect(playResultBgm).toHaveBeenCalled(); // the result's own music starts with the screen
+		// two players and no teams: a duel, my score in the flaps and the outcome at the top, no table
+		expect(dialog.querySelector('.frame').dataset.layout).toBe('duel');
+		expect([...dialog.querySelectorAll('.pcol')].map((e) => e.dataset.place)).toEqual(['2', '1']); // a duel: the winner in the middle of two steps
+		await toMine(dialog);
+		expect(dialog.querySelector('.verdict-text').textContent).toBe('승리');
+		expect(dialog.querySelector('[data-reward="exp"]').textContent).toBe('+500');
+		expect(dialog.querySelector('[data-say]').textContent).toMatch(/\S/); // my moremi says something about the game
+		expect(dialog.querySelector('button.fixed')).not.toBeNull(); // and the chat button is inside the modal
 		expect(store.inGame).toBe(true);
-		await vi.advanceTimersByTimeAsync(3000); // the gauge has run its course
-		expect(dialog.querySelector('.result-me-score-text').textContent).toMatch(/^700 \/ /);
+		// 200 -> 700 experience passes level 3 on the way: the gauge stops for a level-up popup, Space goes on
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(dialog.querySelector('[data-gauge-text]').textContent).not.toMatch(/^700 \//);
+		for (let i = 0; i < 5 && screen.queryByRole('dialog', { name: '레벨 업!' }); i++) {
+			await fireEvent.keyDown(window, { key: ' ' }); // too soon after the popup came up: ignored
+			await vi.advanceTimersByTimeAsync(400);
+			await fireEvent.keyDown(window, { key: ' ' });
+			await vi.advanceTimersByTimeAsync(3000);
+		}
+		expect(screen.queryByRole('dialog', { name: '레벨 업!' })).toBeNull();
+		expect(dialog.querySelector('[data-gauge-text]').textContent).toMatch(/^700 \/ /); // the gauge has run its course
 		await fireEvent.click(screen.getByRole('button', { name: '확인' }));
 		await vi.runAllTimersAsync();
 		expect(net.game).toBeNull();
+	});
+
+	/** A game of `n` players (me first) that has ended, the board open. `teams[i]` is player i's team. */
+	async function endedGame(n, teams = []) {
+		vi.useFakeTimers();
+		const { store, net } = setup();
+		const ids = ['me', ...Array.from({ length: n - 1 }, (_, i) => `p${i + 2}`)];
+		applyPacket(net, { type: 'room', room: { id: 5, title: '결과', mode: 0, round: 1, time: 60, limit: 8, gaming: true, master: 'me', players: ids.map((id, i) => player(id, { game: { team: teams[i] ?? 0 } })), game: { seq: ids, turn: 0, title: ['가'] } } });
+		render(GameScreen, { store });
+		render(LevelUpHost, { store });
+		await feed(net, { type: 'roundReady', round: 1, char: '가' });
+		ids.forEach((id, i) => { net.users[id].game.score = [1524, 804, 736, 600, 411][i] ?? 100; });
+		net.game.played = [{ id: 'me', word: '칠면조', score: 61, bonus: 0, round: 1 }, { id: 'me', word: '가방', score: 12, bonus: 0, round: 1 }];
+		await feed(net, { type: 'roundEnd', users: {}, result: ids.map((id, i) => ({ id, rank: i, score: net.users[id].game.score, reward: { score: 6, money: 21, _score: 6, _money: 21, _blog: [] } })) });
+		await vi.advanceTimersByTimeAsync(2100);
+		const dialog = await screen.findByRole('dialog', { name: '게임 결과' });
+		return { dialog, net, store };
+	}
+
+	it('a game with teams: the team bar in rank order with my team marked, my own score as the hero, the list with team letters', async () => {
+		const { dialog } = await endedGame(5, [4, 4, 1, 3, 2]);
+		expect(dialog.querySelector('.frame').dataset.layout).toBe('teams');
+		expect([...dialog.querySelectorAll('.seg')].map((e) => e.dataset.team)).toEqual(['D', 'A', 'C', 'B']); // 2328, 736, 600, 411 by team
+		expect(dialog.querySelector('.seg[data-team="D"]').textContent).toContain('1위');
+		expect(dialog.querySelector('.mymark-text').textContent).toBe('내 팀');
+		expect([...dialog.querySelectorAll('.pcol')].map((e) => e.dataset.place)).toEqual(['2', '1', '3']); // the podium: the first three of the ranking
+		expect(dialog.querySelectorAll('[data-row]')).toHaveLength(5);
+		expect(dialog.querySelector('[data-row="me"]').className).toContain('tint-4');
+		await toMine(dialog);
+		expect(dialog.querySelector('.headline-text').textContent).toBe('개인 1위, D팀 1위');
+		expect(dialog.querySelector('.w-tray').textContent).toContain('가방');
+	});
+
+	it('three players and no teams: the list and my score, no team bar and no duel', async () => {
+		const { dialog } = await endedGame(3);
+		expect(dialog.querySelector('.frame').dataset.layout).toBe('list');
+		expect(dialog.querySelector('.teambar')).toBeNull();
+		expect(dialog.querySelectorAll('[data-row]')).toHaveLength(3);
+		await toMine(dialog);
+		expect(dialog.querySelector('.verdict-text').textContent).toBe('1위');
+	});
+
+	/** A result for me going from 200 to `after` experience, opened and with the gauge started. */
+	async function bigResult(after) {
+		vi.useFakeTimers();
+		vi.mocked(playSound).mockClear();
+		const { store, net } = setup();
+		render(GameScreen, { store });
+		render(LevelUpHost, { store });
+		await feed(net, { type: 'roundReady', round: 1, char: '가' }, {
+			type: 'roundEnd',
+			users: { me: { data: { score: after, record: {} }, money: 5 } },
+			result: [{ id: 'me', rank: 0, score: 80, reward: { score: after - 200, money: 20, _score: after - 200, _money: 20, _blog: [] } }, { id: 'bot', rank: 1, score: 5, reward: { score: 0, money: 0 } }]
+		});
+		await vi.advanceTimersByTimeAsync(2100);
+		const dialog = await screen.findByRole('dialog', { name: '게임 결과' });
+		await toMine(dialog);
+		await vi.advanceTimersByTimeAsync(3000);
+		return { dialog, store, net };
+	}
+	const press = async (key) => {
+		await vi.advanceTimersByTimeAsync(400); // a key that comes too soon after a popup is ignored
+		await fireEvent.keyDown(window, { key });
+		await vi.advanceTimersByTimeAsync(6000); // long enough for the gauge to run to the end
+	};
+
+	it('level-up: a jump of many levels gets three popups and one summary, with the lvup sound for each', async () => {
+		const { dialog } = await bigResult(60000); // from level 2 to well past level 5
+		const seen = [];
+		for (let i = 0; i < 6; i++) {
+			const pop = screen.queryByRole('dialog', { name: '레벨 업!' });
+			if (!pop) break;
+			seen.push(pop.getAttribute('data-kind'));
+			await press(' ');
+		}
+		expect(seen).toEqual(['level', 'level', 'level', 'summary']); // never more than cap + 1 presses
+		expect(vi.mocked(playSound).mock.calls.filter((c) => c[0] === 'lvup')).toHaveLength(4);
+		expect(dialog.querySelector('[data-gauge-text]').textContent).toMatch(/^60,000 \/ /);
+	});
+
+	it('level-up: Esc skips the rest to one summary and the gauge goes on; it does not close the board', async () => {
+		const { dialog } = await bigResult(60000);
+		expect(screen.getByRole('dialog', { name: '레벨 업!' })).toBeTruthy();
+		await press('Escape'); // skip: the remaining levels fold into the closing summary
+		const summary = screen.getByRole('dialog', { name: '레벨 업!' });
+		expect(summary.getAttribute('data-kind')).toBe('summary');
+		expect(dialog.open).toBe(true);
+		await press(' ');
+		expect(screen.queryByRole('dialog', { name: '레벨 업!' })).toBeNull();
+		expect(dialog.querySelector('[data-gauge-text]').textContent).toMatch(/^60,000 \/ /);
+	});
+
+	it('선두: the badge is on the card of whoever has the highest score, on both on a tie, and on none while the scores are zero', async () => {
+		const { store, net } = setup();
+		render(GameScreen, { store });
+		await feed(net, { type: 'roundReady', round: 1, char: '가' });
+		const leaders = () => [...document.querySelectorAll('[data-leader]')].map((e) => e.closest('[data-player]').getAttribute('data-player'));
+		expect(leaders()).toEqual([]); // 0 to 0
+		net.users.me.game.score = 300;
+		net.users.bot.game.score = 100;
+		await tick();
+		expect(leaders()).toEqual(['me']);
+		expect(document.querySelector('[data-leader]').textContent).toBe('선두');
+		net.users.bot.game.score = 300;
+		await tick();
+		expect(leaders().sort()).toEqual(['bot', 'me']);
+		net.users.bot.game.score = 450;
+		await tick();
+		expect(leaders()).toEqual(['bot']);
+	});
+
+	describe('the wrong keyboard', () => {
+		/** My turn in a room of `lang`; the text goes into the answer field like typing does. */
+		async function myTurn(lang) {
+			const { store, net } = setup();
+			net.meta.rules = { KSH: { rule: 'Classic', lang } };
+			render(GameScreen, { store });
+			await feed(net, { type: 'roundReady', round: 1, char: '가' }, { type: 'turnStart', turn: 0, char: '가', turnTime: 10000, roundTime: 60000, wordLength: 3 });
+			const type = async (text) => {
+				const input = document.getElementById('game-input');
+				input.value = text;
+				await fireEvent.input(input);
+			};
+			const warn = () => document.querySelector('[data-lang-warn]');
+			return { type, warn };
+		}
+
+		it('says so above the field when English letters are typed in a Korean room, and not for Korean ones', async () => {
+			const { type, warn } = await myTurn('ko');
+			await type('가위');
+			expect(warn()).toBeNull();
+			await type('dkssud'); // 안녕 with the English layout
+			expect(warn().getAttribute('data-lang-warn')).toBe('ko');
+			expect(warn().querySelector('[data-lang-warn-text]').textContent).toBe('영문 입력 상태');
+			expect(warn().closest('.game-input')).toBeTruthy(); // it sits with the answer field
+			await type('');
+			expect(warn()).toBeNull();
+		});
+
+		it('says so when Korean is typed in an English room, and not for English words', async () => {
+			const { type, warn } = await myTurn('en');
+			await type('apple');
+			expect(warn()).toBeNull();
+			await type('apple가');
+			expect(warn().getAttribute('data-lang-warn')).toBe('en');
+			expect(warn().querySelector('[data-lang-warn-text]').textContent).toBe('한글 입력 상태');
+		});
+
+		it('only warns, it never changes what was typed', async () => {
+			const { type } = await myTurn('ko');
+			await type('dkssud');
+			expect(document.getElementById('game-input').value).toBe('dkssud');
+		});
 	});
 
 	it('타자 대결: the letters typed wrongly are struck out in red on the word being typed', async () => {

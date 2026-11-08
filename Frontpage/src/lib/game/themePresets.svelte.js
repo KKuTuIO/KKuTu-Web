@@ -53,6 +53,12 @@ export function addPreset(name, lang, themes) {
 	return p;
 }
 
+/** Replace the custom presets with a list from a file (unusable ones are dropped, the limit applies). */
+export function replacePresets(list) {
+	custom.list = (Array.isArray(list) ? list : []).map((p, i) => normalizePreset(p, `imported-${i}`)).filter(Boolean).slice(0, MAX_PRESETS);
+	save();
+}
+
 export function renamePreset(id, name) {
 	const p = custom.list.find((x) => x.id === id);
 	const n = (name ?? '').trim().slice(0, MAX_NAME);

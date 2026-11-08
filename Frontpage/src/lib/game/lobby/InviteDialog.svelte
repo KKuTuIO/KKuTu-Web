@@ -9,7 +9,7 @@
 	import { toast } from '../ui/toast.svelte.js';
 	import Icon from './Icon.svelte';
 	import { shareRoomOnKakao } from '../kakao.js';
-	import { IMAGE_CDN, IMAGE_VERSION } from '../images.js';
+	import ShareButtons from './ShareButtons.svelte';
 
 	/** Invite someone from the lobby to this room, or add an AI. */
 	let { store, open = $bindable(false) } = $props();
@@ -24,36 +24,9 @@
 	// Share options: anyone (guests included) can pass the room's address on.
 	const room = $derived(store.currentRoom);
 	const link = $derived(typeof location === 'undefined' || !room ? '' : `${location.origin}${location.pathname}#${room.no}`);
-	async function copyLink() {
-		try {
-			await navigator.clipboard.writeText(link);
-			toast(t('play.invite.linkCopied'), { kind: 'success' });
-		} catch {
-			toast(t('play.error.request', { code: 'copy' }), { kind: 'error' });
-		}
-	}
-	async function shareLink() {
-		// Browsers without a share sheet (most desktop ones) get the link copied instead.
-		if (typeof navigator.share !== 'function') return copyLink();
-		const me = store.net.users[store.net.id];
-		try {
-			await navigator.share({
-				title: t('play.invite.shareTitle', { nick: me?.name ?? '' }),
-				text: t('play.invite.shareText', { room: room.no, mode: room.mode }),
-				url: link
-			});
-		} catch {
-			/* the share sheet was dismissed */
-		}
-	}
-
 	async function shareKakao() {
 		const me = store.net.users[store.net.id];
-		try {
-			await shareRoomOnKakao({ USERNAME: me?.name ?? '', SERVERID: store.server, ROOMNUMBER: room.no, GAMETYPE: room.mode });
-		} catch {
-			toast(t('play.invite.kakaoFailed'), { kind: 'error' });
-		}
+		await shareRoomOnKakao({ USERNAME: me?.name ?? '', SERVERID: store.server, ROOMNUMBER: room.no, GAMETYPE: room.mode }); // (a failure is said by the buttons)
 	}
 
 	async function ask(u) {
@@ -65,11 +38,7 @@
 	<div class="flex flex-col gap-4">
 		<div class="flex flex-col gap-2">
 			<h3 class="text-sm font-extrabold">{t('play.invite.share')}</h3>
-			<div class="flex flex-wrap gap-2">
-				<button type="button" onclick={shareKakao} class="kk-btn inline-flex min-h-11 items-center gap-2 px-4"><img src="{IMAGE_CDN}kkutu/kakao.png{IMAGE_VERSION}" alt="" class="size-6" />{t('play.invite.kakao')}</button>
-				<button type="button" onclick={shareLink} class="kk-btn inline-flex min-h-11 items-center gap-1.5 px-4"><Icon name="share" size={20} />{t('play.invite.shareVia')}</button>
-				<button type="button" onclick={copyLink} class="kk-btn inline-flex min-h-11 items-center gap-1.5 px-4"><Icon name="link" size={20} />{t('play.invite.copyLink')}</button>
-			</div>
+			<ShareButtons {link} title={t('play.invite.shareTitle', { nick: store.net.users[store.net.id]?.name ?? '' })} text={room ? t('play.invite.shareText', { room: room.no, mode: room.mode }) : ''} onkakao={shareKakao} />
 		</div>
 		<ul class="flex max-h-72 min-h-40 flex-col overflow-y-auto rounded-xl border-[1.5px] border-(color:--kk-line)">
 			{#each candidates as u (u.id)}

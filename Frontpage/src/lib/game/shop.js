@@ -55,14 +55,14 @@ export function filterItems(list, groups, query, nameOf) {
 export const isNew = (item, now = Date.now()) => item.updatedAt > now - MONTH;
 
 /**
- * The tooltip's option rows. `g…` options are fractions shown as `+x.x%p`, `h…` are `+n`, `gif` is not shown,
+ * The tooltip's option rows. `g…` options are fractions shown as `+x.x%p`, `h…` are `+n`, `gif` and `theme` (a palette) are not shown,
  * `gives`/`event` are a single label and `gacha` shows its own text in its own colour.
  * @returns {{label?:string, value?:string, text?:string, color?:string}[]}
  */
 export function optionRows(options, label) {
 	const rows = [];
 	for (const [key, raw] of Object.entries(options ?? {})) {
-		if (key === 'gif') continue;
+		if (key === 'gif' || key === 'theme' || key === 'title') continue; // a theme's palette and a title's frame are drawn as the picture, not listed
 		if (key === 'gives' || key === 'event') rows.push({ text: label(key) });
 		else if (key === 'gacha') rows.push({ text: raw.expl, color: raw.explColor || '#f3b819' });
 		else {
@@ -78,7 +78,7 @@ export function optionRows(options, label) {
 
 /**
  * The Moremi slot an item occupies in the preview: its group, a free hand for hand items (the left one when both are taken),
- * the one badge slot for badges, and the name skin / the banner (one each: `NIK`, `BAN`). Items that are not worn or shown on the
+ * the one badge slot for badges, and the name skin / the banner / the theme (one each: `NIK`, `BAN`, `THM`, `TTL`). Items that are not worn or shown on the
  * avatar's card (consumables, bonus cards) have none.
  * (Legacy writes a badge under its own group, which its renderer ignores, so its preview never showed one.)
  */
@@ -89,7 +89,7 @@ export function slotOf(item, cart = []) {
 		return !used.has('Mlhand') ? 'Mlhand' : !used.has('Mrhand') ? 'Mrhand' : 'Mlhand';
 	}
 	if (group.startsWith('BDG')) return 'BDG';
-	return group === 'NIK' || group === 'BAN' || group.startsWith('M') ? group : null;
+	return group === 'NIK' || group === 'BAN' || group === 'THM' || group === 'TTL' || group.startsWith('M') ? group : null;
 }
 
 /** How many of an item can be in the cart: worn items and time-limited ones one, the rest up to 99 (the server's limit). */
@@ -142,7 +142,7 @@ export const SHOP_TABS = [
 			{ id: 'back', groups: ['Mback', 'Mfront'] }
 		]
 	},
-	{ id: 'deco', subs: [{ id: 'name', groups: ['NIK'] }, { id: 'banner', groups: ['BAN'] }] },
+	{ id: 'deco', subs: [{ id: 'name', groups: ['NIK'] }, { id: 'banner', groups: ['BAN'] }, { id: 'theme', groups: ['THM'] }, { id: 'title', groups: ['TTL'] }] },
 	{ id: 'account', stub: true }
 ];
 
@@ -153,7 +153,7 @@ export const inSub = (item, sub) => !!sub && (sub.groups?.includes(item.group) |
 /** Which sub-category of the box an item is in: worn on the avatar, a skin/banner, or everything else (tickets, boxes, tokens). */
 export function inventoryKind(item) {
 	const g = String(item.group);
-	return g.startsWith('M') || g.startsWith('BDG') ? 'moremi' : g === 'NIK' || g === 'BAN' || g === 'BAD' || g === 'VOP' ? 'deco' : 'func';
+	return g.startsWith('M') || g.startsWith('BDG') ? 'moremi' : g === 'NIK' || g === 'BAN' || g === 'BAD' || g === 'VOP' || g === 'THM' || g === 'TTL' ? 'deco' : 'func';
 }
 
 /**
@@ -177,11 +177,17 @@ export function matchesInventory(item, equipped, filter, sub = 'all') {
 	if (filter === 'func') {
 		if (sub === 'bonus') return item.group === 'BON';
 		if (sub === 'coin') return item._id === 'wordToken';
-		if (sub === 'box') return item.group === 'CNS' && item._id !== 'wordToken';
-		return item.group !== 'BON' && item.group !== 'CNS'; // etc
+		if (sub === 'box') return isConsumable(item);
+		return item.group !== 'BON' && item._id !== 'wordToken' && !isConsumable(item); // etc: what is neither a ticket, a token nor something to open
 	}
 	return inSub(item, INVENTORY_FILTERS.find((f) => f.id === filter)?.subs?.find((x) => x.id === sub));
 }
+
+/**
+ * Can the item be used up (opened) from my box? The server only consumes an item of the group CNS that says what it gives (`options.gives`);
+ * the rest of CNS (word tokens, passes, mail items ...) are kept and cannot be used by clicking (error 556 otherwise).
+ */
+export const isConsumable = (item) => item.group === 'CNS' && Array.isArray(item.options?.gives) && item.options.gives.length > 0;
 
 /** Legacy `AVAIL_EQUIP`: the item groups that can be worn. */
 export const isEquippable = (item, equips) => equips.includes(item.group);

@@ -2,7 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { t } from '../i18n.svelte.js';
 	import { plainText, cleanBox } from '../protocol.js';
-	import { loadGoodDetails, INVENTORY_FILTERS, matchesInventory, isEquippable, equipSlot, isEquipped, itemName, ownedItems, tally } from '../shop.js';
+	import { loadGoodDetails, INVENTORY_FILTERS, matchesInventory, isConsumable, isEquippable, equipSlot, isEquipped, itemName, ownedItems, tally } from '../shop.js';
 	import { playSound } from '../audio.svelte.js';
 	import { confirm, prompt, choose } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
@@ -10,6 +10,9 @@
 	import Tooltip from '../ui/Tooltip.svelte';
 	import HackerDialog from './HackerDialog.svelte';
 	import CharFactoryDialog from './CharFactoryDialog.svelte';
+	import EnchantDialog from './EnchantDialog.svelte';
+	import { splitEnchanted, wearCopy } from '../enchant.js';
+	import { enchantStore, refreshEnchants } from '../enchantStore.svelte.js';
 	import BonusSlot from './BonusSlot.svelte';
 	import EmptyState from './EmptyState.svelte';
 	import ItemTile from './ItemTile.svelte';
@@ -31,6 +34,7 @@
 	let query = $state('');
 	let hackerOpen = $state(false);
 	let labOpen = $state(false);
+	let enchantOpen = $state(false);
 	let labTip = $state(1); // which of the lab assistant's lines the tooltip shows
 	let tipLine = $state(1); // which of 해커레미's lines the tooltip shows (drawn anew whenever the pointer comes)
 	let using = $state(false); // a box is being opened: its prizes are on their way
@@ -41,13 +45,20 @@
 	const equips = $derived(store.net.meta.moremiEquips);
 	const nameOf = (id) => itemName(details, id);
 	const entries = $derived(ownedItems(store.net.box, equip, store.shop, nameOf));
-	const worn = (e) => isEquipped(e.item, equip);
+	// my enchanted copies: each is a tile of its own (with its +level) and never part of the `×n` of the plain ones
+	const rows = $derived(splitEnchanted(entries, enchantStore.items, (item) => isEquipped(item, equip)));
+	const worn = (e) => e.equipped;
+	const loadEnchants = refreshEnchants;
+	$effect(() => {
+		store.net.boxSeq; // the box changed (a ticket spent, an item bought)
+		if (!enchantOpen) untrack(loadEnchants); // while the window is open it keeps its own copy of this
+	});
 	const labelOf = (x, fallback) => {
 		const text = t(x.labelKey ?? fallback);
 		return x.labelKey === 'kkutu.js.equipped' ? plainText(text).replace(/[()]/g, '').trim() : text;
 	};
 	const q = $derived(query.trim());
-	const searched = $derived(entries.filter((e) => !q || nameOf(e.item._id).includes(q)));
+	const searched = $derived(rows.filter((e) => !q || nameOf(e.item._id).includes(q)));
 	const count = (f, s = 'all') => searched.filter((e) => matchesInventory(e.item, worn(e), f, s)).length;
 	const kinds = $derived(INVENTORY_FILTERS.map((f) => ({ value: f.id, label: labelOf(f), count: count(f.id) })));
 	const current = $derived(INVENTORY_FILTERS.find((f) => f.id === filter));
@@ -55,12 +66,18 @@
 	const list = $derived(searched.filter((e) => matchesInventory(e.item, worn(e), filter, sub)));
 	// the 보너스권 I wear now (it is outside the outfits of the wardrobe)
 	const wornTicket = $derived(equip.BON ? (store.shop[equip.BON] ?? null) : null);
+	// and the 테마 (also outside the outfits: it recolours the client, not the avatar)
+	const wornTheme = $derived(equip.THM ? (store.shop[equip.THM] ?? null) : null);
+	const wornTitle = $derived(equip.TTL ? (store.shop[equip.TTL] ?? null) : null);
 	const failText = (code) => plainText(store.net.meta.labels[`kkutu.js.error.${code}`] ?? '');
 
 	onMount(async () => (details = await loadGoodDetails()));
 
-	async function use({ item, count }) {
-		if (item.group === 'CNS') {
+	async function use(e) {
+		const { item, count } = e;
+		// 단어 토큰: nothing to open, it is spent on 어인정 조회 in the 사전
+		if (item._id === 'wordToken') return store.hooks.openInjeong?.();
+		if (isConsumable(item)) {
 			let n = 1;
 			if (count > 1) {
 				const v = await prompt({ message: t('kkutu.js.consume', { count }), value: '1', max: 4 });
@@ -79,6 +96,13 @@
 			return;
 		}
 		if (!isEquippable(item, equips)) return;
+		const copyNo = e.instance ?? 0;
+		// another copy of an item I already wear: nothing is taken off, only which copy counts changes
+		if (isEquipped(item, equip) && !e.equipped) {
+			if (!(await confirm({ message: `${plainText(t('kkutu.js.sureEquip'))}: ${nameOf(item._id)}` }))) return;
+			await wearCopy(item._id, copyNo);
+			return void loadEnchants();
+		}
 		let hand;
 		if (item.group === 'Mhand') {
 			hand = await choose({ message: plainText(t('kkutu.js.dressWhichHand')), options: [{ value: 'left', label: t('kkutu.dialog.message.left') }, { value: 'right', label: t('kkutu.dialog.message.right') }] });
@@ -88,6 +112,7 @@
 		const already = equip[slot] === item._id;
 		if (!(await confirm({ message: `${plainText(t(already ? 'kkutu.js.sureUnequip' : 'kkutu.js.sureEquip'))}: ${nameOf(item._id)}` }))) return;
 		store.conn.send('consume', { item: item._id, slot }); // the server answers with my new equipment (`obtain`)
+		if (!already) wearCopy(item._id, copyNo).then(loadEnchants); // and which copy of it counts
 	}
 
 	async function remove(item) {
@@ -118,8 +143,10 @@
 
 <div class="flex flex-col gap-2">
 	<!-- the worn 보너스권 as a slot of its own (the wardrobe button is on the avatar preview) -->
-	<div class="flex justify-start">
+	<div class="flex justify-start gap-3">
 		<BonusSlot item={wornTicket} shop={store.shop} {details} onopen={() => ((filter = 'func'), (sub = 'bonus'))} />
+		<BonusSlot kind="skintheme" item={wornTheme} shop={store.shop} {details} onopen={() => ((filter = 'deco'), (sub = 'theme'))} />
+		<BonusSlot kind="skintitle" item={wornTitle} shop={store.shop} {details} onopen={() => ((filter = 'deco'), (sub = 'title'))} />
 	</div>
 	<ChipRow options={kinds} bind:value={filter} onchange={() => (sub = 'all')} label={t('kkutu.dialog.profile.dress')} />
 	{#if subs.length}<ChipRow options={subs} bind:value={sub} size="sm" scroll label={current && labelOf(current)} />{/if}
@@ -130,21 +157,21 @@
 		<EmptyState compact size={110} title={t('play.profile.box.empty')} />
 	{:else}
 		<div class="grid grid-cols-[repeat(auto-fill,minmax(3.6rem,1fr))] gap-2 pb-[5px]">
-			{#each list as e (e.item._id)}
-				<ItemTile item={e.item} shop={store.shop} {details} own={{ count: e.count, expire: e.expire, equipped: isEquipped(e.item, equip) }} onpick={() => use(e)} onremove={remove} />
+			{#each list as e (e.key)}
+				<ItemTile item={e.item} shop={store.shop} {details} own={{ count: e.count, expire: e.expire, equipped: e.equipped, level: e.level, lines: e.lines }} onpick={() => use(e)} onremove={e.instance ? undefined : remove} />
 			{/each}
 		</div>
 	{/if}
 </div>
 
-<!-- The bar at the foot of the list: its backdrop is solid at the bottom and clear at the top, so the list fades into it instead of being cut off; 분해 / 강화
-	 are not built yet (disabled secondary buttons). 글자 조합소 and 해커레미의 조합 keep their characters hidden behind the button until it is hovered or focused. -->
+<!-- The bar at the foot of the list: its backdrop is solid at the bottom and clear at the top, so the list fades into it instead of being cut off; 분해 is not built yet (a disabled secondary button), 강화 opens the enchant dialog. 글자 조합소 and 해커레미의 조합 keep their characters hidden behind the button until it is hovered or focused. -->
 <div class="pointer-events-none sticky bottom-0 z-10 mt-3 flex items-end justify-end gap-3 bg-gradient-to-t from-(--kk-surface) from-30% to-transparent pt-14 pb-0.5">
-	{#each [['dismantle', 'play.lab.dismantle'], ['enhance', 'play.lab.enhance']] as [id, key] (id)}
-		<span class="pointer-events-auto" title={t('play.lab.tbd')}>
-			<button type="button" disabled aria-label="{t(key)} – {t('play.lab.tbd')}" class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base">{t(key)}</button>
-		</span>
-	{/each}
+	<span class="pointer-events-auto" title={t('play.lab.tbd')}>
+		<button type="button" disabled aria-label="{t('play.lab.dismantle')} – {t('play.lab.tbd')}" class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base">{t('play.lab.dismantle')}</button>
+	</span>
+	<span class="pointer-events-auto">
+		<button type="button" onclick={() => (enchantOpen = true)} class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base">{t('play.lab.enhance')}</button>
+	</span>
 	<div class="group pointer-events-auto relative">
 		<img src={cdnImg('kkutu/membership/GMMorem.png')} alt="" draggable="false" class="cta-peek absolute -top-10 left-3 z-0 h-[64px] w-[64px] object-contain" />
 		<Tooltip text={t(`play.lab.cta.${labTip}`)} placement="top">
@@ -159,10 +186,11 @@
 	</div>
 </div>
 
+<EnchantDialog bind:open={enchantOpen} {store} {entries} {details} {nameOf} />
 <CharFactoryDialog bind:open={labOpen} {store} {entries} {details} {nameOf} />
 <HackerDialog bind:open={hackerOpen} {store} {entries} {details} {nameOf} onshop={() => ((hackerOpen = false), store.hooks.openShop?.('func', 'bonus'))} />
 
-<ObtainScreen bind:open={resultOpen} title={t('kkutu.dialog.obtain.obtained')} message={t('kkutu.js.drawObtain')} items={prizes} shop={store.shop} {details} />
+<ObtainScreen bind:open={resultOpen} title={t('play.obtain.acquired')} notice={t('kkutu.js.drawObtain')} items={prizes} ribbon ambient="shine" palette="teal" shop={store.shop} {details} />
 
 <style>
 	/* the characters stay hidden behind their button and rise out of it while the button is hovered or focused */

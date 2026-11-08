@@ -1,6 +1,7 @@
 
 <script>
     import { onMount } from 'svelte';
+    import FooterSocial from './FooterSocial.svelte';
     let deferredPrompt;
     let installButtonVisible = $state(false);
     let open = $state(false);
@@ -33,6 +34,7 @@
     }
 </script>
 <footer class="kk border-t border-(color:--kk-line) bg-(--kk-surface) text-xs text-(color:--kk-muted)">
+  <FooterSocial />
   <div class="mx-auto max-w-screen-xl px-4 py-3 lg:px-8">
     <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">

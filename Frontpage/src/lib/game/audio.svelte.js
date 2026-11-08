@@ -3,7 +3,7 @@
  * Browsers keep audio locked until the user interacts, so playback requests made earlier are remembered and start on the
  * first click or key press. Every call is a harmless no-op when Web Audio is unavailable.
  */
-import { DEFAULT_AUDIO, effectiveVolume, lobbyBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl } from './audioCatalog.js';
+import { DEFAULT_AUDIO, effectiveVolume, lobbyBgmUrl, resultBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl, tutorialBgmUrl } from './audioCatalog.js';
 
 const STORAGE_KEY = 'kkutu-play-audio';
 
@@ -23,7 +23,7 @@ let master = null;
 const gains = {};
 const buffers = new Map(); // url -> Promise<AudioBuffer|null>
 let unlocked = false;
-let wanted = null; // 'lobby' | 'shop' | 'game:<name>' | null
+let wanted = null; // 'lobby' | 'shop' | 'result' | 'tutorial' | 'game:<name>' | null
 const fading = new Set(); // tracks on their way out during a crossfade
 const FADE_MS = 1200;
 let current = null; // {src}
@@ -97,13 +97,13 @@ async function startBgm() {
 	const mine = ++token;
 	if (!wanted || !ensure()) return stopCurrent();
 	// 'lobby' is the waiting-room music, 'shop' the shop's; 'game:<name>' is a track of the sound set that plays in a game (the quiz modes loop one)
-	const url = wanted === 'lobby' ? lobbyBgmUrl(audio.lobby) : wanted === 'shop' ? shopBgmUrl() : soundUrl(wanted.slice(5), audio.set);
+	const url = wanted === 'lobby' ? lobbyBgmUrl(audio.lobby) : wanted === 'shop' ? shopBgmUrl() : wanted === 'result' ? resultBgmUrl() : wanted === 'tutorial' ? tutorialBgmUrl() : soundUrl(wanted.slice(5), audio.set);
 	// The track that is playing goes on until the new one has arrived, then they are crossfaded.
 	const buf = await buffer(url);
 	if (!buf || mine !== token || !wanted) return; // missing, or superseded while loading
 	const prev = current;
 	current = null;
-	const fadeIn = !!prev;
+	const fadeIn = !!prev || wanted === 'result' || wanted === 'tutorial'; // the result's and the tutorial's music always come in softly, over the previous track or out of silence
 	if (prev) fadeOut(prev);
 	if (buf.audioUrl) {
 		// the music of a file Web Audio can't use: a looping <audio> element (its volume follows the BGM setting, like the legacy fallback)
@@ -210,7 +210,10 @@ export function installUnlock() {
 }
 
 /** Background music for the lobby and waiting rooms. */
-export function playLobbyBgm() {
+export function playLobbyBgm({ fromResult = false, fromTutorial = false } = {}) {
+	if (wanted === 'result' && !fromResult) return; // the result screen's music goes on until it is closed
+	if (wanted === 'tutorial' && !fromTutorial) return; // and so does the tutorial's, until the tutorial ends (the page asks for the lobby's whenever its state changes)
+	if (wanted === 'result') wanted = null; // closed: the lobby music takes over from it by a crossfade
 	if (wanted === 'lobby' && current) return;
 	wanted = 'lobby';
 	if (unlocked) startBgm();
@@ -223,6 +226,29 @@ const GAME_SOUNDS = ['mission', 'success', 'fail', 'timeout', 'horr', 'lvup', 'r
 export function preloadGameSounds() {
 	if (!ensure()) return;
 	for (const name of GAME_SOUNDS) buffer(soundUrl(name, audio.set));
+}
+
+/** True while the result screen's music is the one wanted. */
+export const isResultBgm = () => wanted === 'result';
+/** True while the tutorial's music is the one wanted. */
+export const isTutorialBgm = () => wanted === 'tutorial';
+
+/**
+ * The tutorial's music, looped from the first lesson to the end of the tutorial (it crossfades with what played before). The result screen's
+ * music of the practice game takes over while that is up (`fromResult`: it is closed, and this one comes back).
+ */
+export function playTutorialBgm({ fromResult = false } = {}) {
+	if (wanted === 'result' && !fromResult) return;
+	if (wanted === 'tutorial' && current) return;
+	wanted = 'tutorial';
+	if (unlocked) startBgm();
+}
+
+/** The result screen's music, looped; it crossfades with the game's and holds until `stopBgm`. */
+export function playResultBgm() {
+	if (wanted === 'result' && current) return;
+	wanted = 'result';
+	if (unlocked) startBgm();
 }
 
 /** The shop's music; crossfades with whatever is playing. */
@@ -239,11 +265,20 @@ export function playGameBgm(name) {
 	wanted = key;
 	if (unlocked) startBgm();
 }
-export function stopBgm() {
+/** Stops the music; with `fade` the track that plays fades out instead of being cut off. */
+export function stopBgm({ fade = false } = {}) {
 	wanted = null;
 	token++;
+	if (fade && current) {
+		const prev = current;
+		current = null;
+		fadeOut(prev);
+		return;
+	}
 	stopCurrent();
 }
+/** Which track is wanted now: 'lobby' | 'shop' | 'result' | 'tutorial' | 'game:<name>' | null. */
+export const wantedBgm = () => wanted;
 
 /**
  * One-shot sound from the active effect set. `ui` sounds ride the voice/UI channel (dialogs, shop), the rest the effect channel.

@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { applyPacket, initialState, joinLeave, normalizeRoom, splitNick } from './protocol.js';
+import { applyPacket, errorText, initialState, takeInjeongHint, joinLeave, normalizeRoom, splitNick } from './protocol.js';
 import { getLevel } from './level.js';
 
 const meta = { modes: ['KKT'], options: { manner: 'Manner' }, labels: { 'game.mode.KKT.name': '끝말잇기', 'game.option.Manner.name': '매너' } };
 
 describe('protocol', () => {
+	it('keeps what an admin gave (#give) with the box that now holds it', () => {
+		const s = initialState();
+		applyPacket(s, { type: 'obtain', box: { title_mint: { value: 1 } }, gift: [{ key: 'title_mint', q: 1 }], noref: true });
+		expect(s.gifts).toEqual([{ key: 'title_mint', q: 1 }]);
+		expect(s.box.title_mint.value).toBe(1);
+	});
+
 	it('normalizes rooms with localized labels', () => {
 		const r = normalizeRoom({ id: 5, title: 't', password: true, limit: 8, mode: 0, round: 3, time: 90, players: [{}, {}], gaming: false, opts: { manner: true, other: false } }, meta);
 		expect(r).toMatchObject({ no: 5, locked: true, mode: '끝말잇기', tags: ['매너'], cur: 2, max: 8, playing: false });
@@ -201,5 +208,137 @@ describe('waiting-room behaviours', () => {
 		applyPacket(s, { type: 'roomStuck' });
 		expect(s.myRoom).toBeNull();
 		expect(s.rooms[5]).toBeUndefined();
+	});
+});
+
+describe('expired items', () => {
+	it('collects the ids the server lists as expired', () => {
+		const s = initialState();
+		applyPacket(s, { type: 'expired', list: ['hatA', 'bgB'] });
+		applyPacket(s, { type: 'expired', list: ['hatC'] });
+		expect(s.expired).toEqual(['hatA', 'bgB', 'hatC']);
+	});
+	it('holds the 어인정 nudge words until they are taken, and says nothing in the chat', () => {
+		const s = initialState();
+		s.game = { phase: 'ended' };
+		applyPacket(s, { type: 'injeongHint', words: ['가', '나', '다'] });
+		expect(s.chat).toHaveLength(0);
+		expect(takeInjeongHint(s)).toEqual(['가', '나', '다']);
+		expect(takeInjeongHint(s)).toBeNull();
+	});
+	it('writes what the administrator commands send back into the chat', () => {
+		const s = initialState();
+		s.admin = true;
+		s.meta.labels = {};
+		applyPacket(s, { type: 'yell', value: '점검 안내<br>곧 시작' });
+		applyPacket(s, { type: 'notice', value: '공지입니다' });
+		applyPacket(s, { type: 'tail', a: 'ri', rid: '5', id: 'adm', msg: { pw: '', players: [] } });
+		applyPacket(s, { type: 'tail', a: 'ip', rid: 'u1', id: 'adm', msg: '1.2.3.4' });
+		expect(s.chat.map((l) => l.msg)).toEqual(['점검 안내 곧 시작', '공지입니다', 'ri|5@adm: {"pw":"","players":[]}', 'ip|u1@adm: 1.2.3.4']);
+		expect(s.chat.every((l) => l.system)).toBe(true);
+	});
+	it('drops "tail" output for a player who is not an administrator', () => {
+		const s = initialState();
+		applyPacket(s, { type: 'tail', a: 'ip', rid: 'u1', id: 'x', msg: '1.2.3.4' });
+		expect(s.chat).toHaveLength(0);
+	});
+	it('tutorialDone keeps what the server says: the id, the cleared lessons and the 핑 it paid', () => {
+		const s = initialState();
+		expect(s.tutorial).toBe(null);
+		applyPacket(s, { type: 'tutorialDone', id: 'chain', done: ['lobby', 'chain'], ping: 100 }, 5);
+		expect(s.tutorial).toEqual({ id: 'chain', done: ['lobby', 'chain'], ping: 100, at: 5 });
+		applyPacket(s, { type: 'tutorialDone', id: 'chain', done: ['lobby', 'chain'] }, 6);
+		expect(s.tutorial.ping).toBe(0); // cleared before: nothing was paid
+	});
+	describe('공지·행사 packets', () => {
+		const list = [{ id: 'a', name: '행사' }, { id: 7 }, null];
+		it('keeps the catalog of the welcome and the one of event.progress, dropping damaged entries', () => {
+			const s = initialState();
+			applyPacket(s, { type: 'welcome', id: 'u1', users: {}, rooms: {}, event: { list } });
+			expect(s.events.list).toEqual([{ id: 'a', name: '행사' }]);
+			expect(s.eventsLoaded).toBe(false);
+			applyPacket(s, { type: 'event.progress', event: { list: [{ id: 'b' }] }, missions: [{ eventId: 'b', missionId: 'm', progress: 1, target: 2, claimed: false }], attendance: [{ eventId: 'b', todayClaimed: true, attended: 1, streak: 1 }] });
+			expect(s.events.list.map((e) => e.id)).toEqual(['b']);
+			expect(s.eventProgress.missions).toHaveLength(1);
+			expect(s.eventProgress.attendance[0].todayClaimed).toBe(true);
+			expect(s.eventsLoaded).toBe(true);
+		});
+		it('survives a welcome without events and a progress without lists', () => {
+			const s = initialState();
+			applyPacket(s, { type: 'welcome', id: 'u1', users: {}, rooms: {} });
+			expect(s.events).toEqual({ list: [] });
+			applyPacket(s, { type: 'event.progress' });
+			expect(s.eventProgress).toEqual({ missions: [], attendance: [] });
+			expect(s.events.list).toEqual([]);
+		});
+		it('stores the exchange shops and the last claim, and ignores the old packet names', () => {
+			const s = initialState();
+			applyPacket(s, { type: 'event.exchangeData', exchange: { a: [{ id: 'x' }] } });
+			expect(s.exchanges.a[0].id).toBe('x');
+			applyPacket(s, { type: 'event.reward', eventId: 'a', source: 'mission', rewards: [{ type: 'ping', q: 1 }] }, 123);
+			expect(s.eventReward).toEqual({ eventId: 'a', source: 'mission', rewards: [{ type: 'ping', q: 1 }], at: 123 });
+			applyPacket(s, { type: 'eventProgress', event: { list: [{ id: 'old' }] } });
+			applyPacket(s, { type: 'exchangeData', exchange: { old: [] } });
+			expect(s.events.list).toEqual([]);
+			expect(s.exchanges).toEqual({ a: [{ id: 'x' }] });
+		});
+	});
+	describe('캠페인 status', () => {
+		it('keeps the status of each campaign with the time it arrived', () => {
+			const s = initialState();
+			applyPacket(s, { type: 'event.campaign', eventId: 'c', now: 1000, current: { key: 'k', total: 5 }, past: [{ key: 'p' }] }, 1234);
+			expect(s.campaigns.c).toEqual({ eventId: 'c', now: 1000, at: 1234, current: { key: 'k', total: 5 }, next: undefined, past: [{ key: 'p' }] });
+			applyPacket(s, { type: 'event.campaign', eventId: 'd' }, 9);
+			expect(Object.keys(s.campaigns)).toEqual(['c', 'd']);
+			expect(s.campaigns.d.past).toEqual([]);
+		});
+		it('ignores a status without an event', () => {
+			const s = initialState();
+			applyPacket(s, { type: 'event.campaign' });
+			expect(s.campaigns).toEqual({});
+		});
+	});
+
+	describe('친구 초대', () => {
+		it('keeps where I stand in each invitation, and the answer to a link followed', () => {
+			const s = initialState();
+			applyPacket(s, { type: 'event.invite', eventId: 'f', code: 'ABCD2345', invitee: { stages: [] }, friends: [{ n: 1, stages: [] }] });
+			expect(s.invites.f).toEqual({ eventId: 'f', code: 'ABCD2345', invitee: { stages: [] }, friends: [{ n: 1, stages: [] }] });
+			applyPacket(s, { type: 'event.invite' });
+			expect(Object.keys(s.invites)).toEqual(['f']);
+			applyPacket(s, { type: 'event.inviteLinked', result: 'ok' }, 77);
+			expect(s.inviteLinked).toEqual({ result: 'ok', at: 77 });
+		});
+	});
+
+	describe('타일 룰렛 result', () => {
+		it('keeps the last result and moves the gauge of the event in the catalog', () => {
+			const s = initialState();
+			applyPacket(s, { type: 'event.progress', event: { list: [{ id: 'tile', tile: { gauge: { points: 3, steps: [] }, cells: [] } }] } });
+			applyPacket(s, { type: 'event.tileResult', eventId: 'tile', draws: [{ cell: 4, owned: false }, { cell: 9, owned: true }], rewards: [{ type: 'ping', q: 100 }], gauge: { points: 5, reached: [5] } }, 77);
+			expect(s.tileResult).toEqual({ eventId: 'tile', draws: [{ cell: 4, owned: false }, { cell: 9, owned: true }], rewards: [{ type: 'ping', q: 100 }], gauge: { points: 5, reached: [5] }, at: 77 });
+			expect(s.events.list[0].tile.gauge.points).toBe(5);
+		});
+		it('survives a result for an event it does not know, and one without a gauge or lists', () => {
+			const s = initialState();
+			expect(() => applyPacket(s, { type: 'event.tileResult', eventId: 'nope' })).not.toThrow();
+			expect(s.tileResult).toMatchObject({ draws: [], rewards: [] });
+		});
+	});
+
+	describe('errorText', () => {
+		const labels = { 'kkutu.js.error.447': '하루에 최대 {0}회까지만 구매가 가능한 상품입니다.', 'kkutu.js.error.446': '최소 {0}단계의 오끄감 버프가 필요합니다.', 'kkutu.js.error.400': '잘못된 접근입니다.' };
+		it('fills the blank with the number the server sends, as the legacy client does', () => {
+			expect(errorText(labels, { code: 447, message: '3' })).toBe('하루에 최대 3회까지만 구매가 가능한 상품입니다.');
+			expect(errorText(labels, { code: 446, message: '2' })).toBe('최소 2단계의 오끄감 버프가 필요합니다.');
+		});
+		it('never leaves the blank showing, and leaves other messages alone', () => {
+			expect(errorText(labels, { code: 447 })).toBe('하루에 최대 회까지만 구매가 가능한 상품입니다.');
+			expect(errorText(labels, { code: 400, message: 'ignored' })).toBe('잘못된 접근입니다.');
+		});
+		it('falls back to the server message for a code without a label', () => {
+			expect(errorText(labels, { code: 999, message: '<b>직접</b> 메시지' })).toBe('직접 메시지');
+			expect(errorText(labels, { code: 999 })).toBe('');
+		});
 	});
 });

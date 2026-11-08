@@ -418,3 +418,51 @@
 @keyframes sk-flip { from { transform: rotateX(0deg); } to { transform: rotateX(180deg); } }
 @media (prefers-reduced-motion: reduce) { .kkg .sk-flip { display: none; } }
 .kkg .game-user { position: relative; }
+/* 선두: an orange pill clipped onto the middle of the card's top edge, half above the card and half over it */
+.kkg .game-user-lead {
+	position: absolute;
+	top: -10px; /* centred on the 3px border: the pill is 17px tall, and the card leaves 13px above itself for it */
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 3;
+	padding: 0 11px;
+	border-radius: 999px;
+	background: linear-gradient(135deg, #ffbe3d, #ff6a00);
+	box-shadow: 0 2px 0 #b34700, inset 0 1px 0 rgb(255 255 255 / 0.45);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 17px;
+	letter-spacing: 0.03em;
+	text-shadow: 0 1px 0 rgb(120 40 0 / 0.5);
+	white-space: nowrap;
+	pointer-events: none;
+	animation: kkg-lead-in 0.28s cubic-bezier(0.34, 1.7, 0.64, 1) both;
+}
+.kkg .cw .game-user-lead { position: static; transform: none; margin: 0 4px 0 2px; flex: none; padding: 0 8px; }
+@keyframes kkg-lead-in { from { opacity: 0; transform: translateX(-50%) scale(0.6); } }
+.kkg .cw .game-user-lead { animation: none; }
+/* the wrong-keyboard warning: a red pill clipped onto the middle of the answer box's top edge (영문 입력 상태 / 한글 입력 상태) */
+.kkg .kkg-lang-warn {
+	position: absolute;
+	bottom: 100%;
+	left: 50%;
+	transform: translate(-50%, 50%); /* its middle lands on the box's top edge */
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	padding: 3px 14px 3px 10px;
+	border-radius: 999px;
+	background: var(--kk-danger-fill);
+	box-shadow: 0 2px 0 rgb(0 0 0 / 0.3);
+	color: #fff;
+	font-size: 13px;
+	font-weight: 800;
+	line-height: 1.3;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+	pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .kkg .game-user-lead { animation: none; } }

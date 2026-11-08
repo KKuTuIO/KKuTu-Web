@@ -9,7 +9,7 @@
 	import { loadGoodDetails, loadHome, loadPlacement, gachaMeta, resolveHome, shelfItems, sortItems, filterItems, toggleInCart, setQty, cartPreview, cartTotal, SHOP_TABS, inSub, itemName, gachaItems, gachaPool, drawPrice, tally } from '../shop.js';
 	import { playSound } from '../audio.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
-	import { confirm } from '../ui/confirm.svelte.js';
+	import { confirm, prompt } from '../ui/confirm.svelte.js';
 	import Tabs from '../ui/Tabs.svelte';
 	import Select from '../ui/Select.svelte';
 	import RadioGroup from '../ui/RadioGroup.svelte';
@@ -83,6 +83,11 @@
 	});
 
 	const items = $derived(shelfItems(store.shop));
+	// 교환권 사용 (a coupon's serial number; the answer comes as a message of its own: used, expired, already used ...)
+	async function useCoupon() {
+		const code = (await prompt({ message: plainText(t('kkutu.js.putCouponCode')), max: 64 }))?.trim();
+		if (code) store.useCoupon(code);
+	}
 	const tabs = $derived(SHOP_TABS.map((x) => ({ id: x.id, label: t(x.labelKey ?? `play.shop.tab.${x.id}`) })));
 	const meta2 = $derived(gachaMeta(placement));
 	const gachas = $derived(gachaItems(items, placement));
@@ -253,6 +258,7 @@
 				<div class="min-w-0 flex-1 overflow-x-auto [&_.kk-tab]:px-4 [&_.kk-tab]:whitespace-nowrap">
 					<Tabs bind:value={tab} {tabs} idPrefix="shop" label={t('play.nav.shop')} />
 				</div>
+				<button type="button" onclick={useCoupon} class="kk-btn inline-flex h-10 min-h-10 shrink-0 items-center gap-1.5 px-3 text-sm"><Icon name="confirmation_number" size={20} fill />{plainText(t('kkutu.dialog.accountOptions.useCoupon')).replace(/^\s+/, '')}</button>
 				<label class="kk-input flex h-10 w-44 items-center gap-2 px-3">
 					<Icon name="search" size={20} />
 					<input type="text" bind:value={query} placeholder={t('item.search')} aria-label={t('item.search')} class="min-w-0 flex-1 bg-transparent outline-none" />
@@ -296,7 +302,7 @@
 	</div>
 </section>
 
-<ObtainScreen bind:open={resultOpen} title={t('kkutu.dialog.obtain.obtained')} message={resultNote} items={prizes} {rare} shop={store.shop} {details} />
+<ObtainScreen bind:open={resultOpen} title={t('play.obtain.acquired')} notice={resultNote} items={prizes} {rare} ribbon ambient="shine" palette="teal" shop={store.shop} {details} />
 
 <style>
 	/* The running season colours the shop: its accent for marks and badges, a tint behind the page. Light / dark follow the theme. */

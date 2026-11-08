@@ -18,7 +18,15 @@ export function normalizePreset(p, fallbackId) {
 		const id = p.equip[slot];
 		if (typeof id === 'string' && id.length && id.length <= 128) equip[slot] = id;
 	}
-	return { id: String(p.id || fallbackId), name, equip };
+	// which copy of an enchanted item the outfit wears ({item: instance}, 0 = a plain one); absent on outfits from before enchants (and from the legacy client)
+	const preset = { id: String(p.id || fallbackId), name, equip };
+	if (p.copies && typeof p.copies === 'object' && !Array.isArray(p.copies)) {
+		const worn = new Set(Object.values(equip));
+		const copies = {};
+		for (const [id, n] of Object.entries(p.copies)) if (worn.has(id) && Number.isInteger(n) && n >= 0 && n < 1e6) copies[id] = n;
+		preset.copies = copies;
+	}
+	return preset;
 }
 
 /** What I wear now, reduced to the slots an outfit holds. */

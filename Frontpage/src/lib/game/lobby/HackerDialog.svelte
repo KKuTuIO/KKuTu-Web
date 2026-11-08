@@ -8,6 +8,8 @@
 	import { TILE, TILE_SQUARES } from '../gameTile.js';
 	import { totals, perGame, baseGame, bestFormula } from '../formula.js';
 	import { isEquipped } from '../shop.js';
+	import { refreshEnchants } from '../enchantStore.svelte.js';
+	import { wearPlan, wearAll } from '../enchant.js';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import Dialog from './Dialog.svelte';
 	import GameIcon from './GameIcon.svelte';
@@ -153,6 +155,11 @@
 		for (const p of picks) if ((p.slot === 'Mlhand' || p.slot === 'Mrhand') && p.from) store.conn.send('consume', { item: p.from, slot: p.slot });
 		for (const p of picks) store.conn.send('consume', { item: p.id, slot: p.slot });
 		open = false;
+		// of an item I own enchanted, the best copy goes on (it is the one whose lines count)
+		const ids = picks.map((p) => p.id);
+		const counts = Object.fromEntries(entries.map((e) => [e.item._id, e.count]));
+		await wearAll(wearPlan(await refreshEnchants(), ids, counts));
+		await refreshEnchants();
 	}
 </script>
 
@@ -193,7 +200,7 @@
 						{#each [{ show: wantsX, key: 'xp', icon: 'xp', up: shown.x, gain: result.upX, drop: pct(result.nowGame.exp, result.thenGame.exp), now: result.nowGame.exp, then: result.thenGame.exp }, { show: wantsM, key: 'ping', icon: 'ping', up: shown.m, gain: result.upM, drop: pct(result.nowGame.money, result.thenGame.money), now: result.nowGame.money, then: result.thenGame.money }] as c (c.key)}
 							{#if c.show}
 								<div class="flex min-w-[12rem] flex-1 basis-0 flex-col gap-1">
-									<p class="hacker-up text-2xl leading-tight font-black">{c.gain > 0 ? t(`play.hacker.up.${c.key}`, { n: c.up.toLocaleString() }) : c.drop > 0 ? t(`play.hacker.down.${c.key}`, { n: c.drop }) : t(`play.hacker.same.${c.key}`)}</p>
+									<p class="hacker-up kk-pop-font text-2xl leading-tight">{c.gain > 0 ? t(`play.hacker.up.${c.key}`, { n: c.up.toLocaleString() }) : c.drop > 0 ? t(`play.hacker.down.${c.key}`, { n: c.drop }) : t(`play.hacker.same.${c.key}`)}</p>
 									<span class="flex items-center gap-1 text-xs font-bold tabular-nums text-(color:--kk-muted)"><GameIcon name={c.icon} size={14} />{t(`play.hacker.per.${c.key}`)} {fmt(c.now)} → <b class="text-(color:--kk-text)">{fmt(c.then)}</b></span>
 								</div>
 							{/if}
@@ -269,16 +276,16 @@
 					</div>
 					<div class="absolute inset-y-0 right-0 left-60 flex items-center justify-center">
 						{#if won}
-							<p class="hacker-success relative text-5xl font-black tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.25)]">
+							<p class="hacker-success kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.25)]">
 								{t('play.hacker.success')}
 								<i class="hacker-spark absolute -top-3 -right-8 text-3xl not-italic">✦</i>
 								<i class="hacker-spark absolute top-8 -right-14 text-xl not-italic" style="animation-delay: 0.25s">✦</i>
 								<i class="hacker-spark absolute -bottom-1 -left-8 text-2xl not-italic" style="animation-delay: 0.5s">✦</i>
 							</p>
 						{:else if lost}
-							<p class="hacker-success relative text-5xl font-black tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.3)]">{t('play.hacker.fail')}</p>
+							<p class="hacker-success kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.3)]">{t('play.hacker.fail')}</p>
 						{:else}
-							<p class="hacker-text relative text-5xl font-black tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.25)]">{t('play.hacker.hacking')}<span class="hacker-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+							<p class="hacker-text kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.25)]">{t('play.hacker.hacking')}<span class="hacker-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
 						{/if}
 					</div>
 				</div>

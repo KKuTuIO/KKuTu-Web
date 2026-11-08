@@ -15,6 +15,11 @@ function ask(q) {
 }
 
 export const confirm = ({ message, ok, cancel, title } = {}) => ask({ message, ok, cancel, title });
+/**
+ * A one-button notice: `await notify({message, slots, ok, title})`. The message goes through <Rich> (<b>, <u>, <i>, <br> only), and
+ * every `{name}` in it is replaced by `slots.name` as plain text, so what a player typed can never become markup.
+ */
+export const notify = ({ message, slots, ok, title } = {}) => ask({ message, slots, ok, title, notice: true });
 export const choose = ({ message, options, cancel } = {}) => ask({ message, options, cancel });
 export const prompt = ({ message, value = '', max = 50, ok, cancel } = {}) => ask({ message, ok, cancel, input: true, value, max });
 

@@ -210,7 +210,7 @@
 	</div>
 </Dialog>
 
-<ObtainScreen bind:open={resultOpen} title={t('kkutu.dialog.obtain.obtained')} message={plainText(t('play.lab.done'))} items={prizes} shop={store.shop} {details} />
+<ObtainScreen bind:open={resultOpen} title={t('play.obtain.acquired')} notice={plainText(t('play.lab.done'))} items={prizes} ribbon ambient="shine" palette="teal" shop={store.shop} {details} />
 
 <style>
 	.lab-piece {

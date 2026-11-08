@@ -1,7 +1,14 @@
 <script>
 	import { page } from '$app/state';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy, untrack } from 'svelte';
 	import { createLobbyStore } from '$lib/game/lobbyStore.svelte.js';
+	import { qa, installQa } from '$lib/game/qa.svelte.js';
+	import { worn } from '$lib/game/theme.svelte.js';
+	import { themeOf } from '$lib/game/theme.js';
+	import GameResult from '$lib/game/lobby/GameResult.svelte';
+	import LevelUpHost from '$lib/game/lobby/LevelUpHost.svelte';
+	import GiftHost from '$lib/game/lobby/GiftHost.svelte';
+	import ObtainScreen from '$lib/game/lobby/ObtainScreen.svelte';
 	import Icon from '$lib/game/lobby/Icon.svelte';
 	import TopBar from '$lib/game/lobby/TopBar.svelte';
 	import SidePanel from '$lib/game/lobby/SidePanel.svelte';
@@ -21,22 +28,38 @@
 	import { playSound } from '$lib/game/audio.svelte.js';
 	import RankingDialog from '$lib/game/lobby/RankingDialog.svelte';
 	import DictionaryDialog from '$lib/game/lobby/DictionaryDialog.svelte';
+	import DmNotice from '$lib/game/lobby/DmNotice.svelte';
+	import ReplayScreen from '$lib/game/lobby/ReplayScreen.svelte';
+	import NewsScreen from '$lib/game/lobby/NewsScreen.svelte';
 	import CalculatorWindow from '$lib/game/lobby/CalculatorWindow.svelte';
 	import PolicyScreen from '$lib/game/lobby/PolicyScreen.svelte';
 	import SetupScreen from '$lib/game/lobby/SetupScreen.svelte';
 	import ProgressDialog from '$lib/game/lobby/ProgressDialog.svelte';
 	import ConfirmHost from '$lib/game/ui/ConfirmHost.svelte';
+	import YellBanner from '$lib/game/ui/YellBanner.svelte';
 	import { confirm } from '$lib/game/ui/confirm.svelte.js';
 	import { prefs } from '$lib/game/prefs.svelte.js';
 	import { isShut } from '$lib/game/blocks.svelte.js';
 	import SettingsDialog from '$lib/game/lobby/SettingsDialog.svelte';
+	import ExpiredDialog from '$lib/game/lobby/ExpiredDialog.svelte';
+	import ReportFeedbackDialog from '$lib/game/lobby/ReportFeedbackDialog.svelte';
 	import SecurityCodeDialog from '$lib/game/lobby/SecurityCodeDialog.svelte';
 	import CommandHelpDialog from '$lib/game/lobby/CommandHelpDialog.svelte';
+	import TutorialDialog from '$lib/game/tutorial/TutorialDialog.svelte';
+	import TutorialSession from '$lib/game/tutorial/TutorialSession.svelte';
+	import { lessonById } from '$lib/game/tutorial/lessons.js';
+	import { acceptDone } from '$lib/game/tutorial/progress.svelte.js';
+	import { clearRef, pendingRef } from '$lib/invite.js';
+	import { loadGoodDetails } from '$lib/game/shop.js';
 	import AcademyScreen from '$lib/game/academy/AcademyScreen.svelte';
 	import { cubicIn } from 'svelte/easing';
 	import { ms } from '$lib/game/motion.js';
 	import UserMenu from '$lib/game/lobby/UserMenu.svelte';
+	import RoomMenu from '$lib/game/lobby/RoomMenu.svelte';
+	import RoomInfoDialog from '$lib/game/lobby/RoomInfoDialog.svelte';
+	import ReportDialog from '$lib/game/lobby/ReportDialog.svelte';
 	import ProfileWindow from '$lib/game/lobby/ProfileWindow.svelte';
+	import RatingDialog from '$lib/game/lobby/RatingDialog.svelte';
 	import { installUnlock, playLobbyBgm, playShopBgm, stopBgm } from '$lib/game/audio.svelte.js';
 	import RoomScreen from '$lib/game/lobby/RoomScreen.svelte';
 	import GameScreen from '$lib/game/lobby/GameScreen.svelte';
@@ -57,9 +80,25 @@
 	const leftHanded = $derived(prefs.hand === 'left');
 
 	const store = createLobbyStore(Number(page.params.n));
+	onMount(() => installQa(store));
+	// The worn 테마 recolours the whole client (the play layout puts its tokens on the page); taking it off, or leaving, restores the green.
+	$effect(() => {
+		worn.theme = themeOf(store.shop?.[store.me?.equip?.THM]);
+	});
+	// Styles keyed on `:root[data-theme]` (the shop's season and bonus decks) follow the worn theme's own light/dark too.
+	$effect(() => {
+		const root = document.documentElement;
+		if (worn.theme) root.dataset.theme = worn.theme.dark ? 'dark' : 'light';
+		else delete root.dataset.theme;
+	});
+	onDestroy(() => {
+		worn.theme = null;
+		delete document.documentElement.dataset.theme;
+	});
 	let createOpen = $state(false);
 	let settingsOpen = $state(false);
 	let quickOpen = $state(false);
+	let quickMode = $state(2);
 	let passwordRoom = $state(null);
 	let rankOpen = $state(false);
 	let dictOpen = $state(false);
@@ -68,18 +107,40 @@
 	let prefsOpen = $state(false);
 	let prefsStart = $state('sound');
 	let codeOpen = $state(false);
-	let helpOpen = $state(false);
+	let helpOpen = $state(false); // the chat command list (/도움말)
+	let tutorialOpen = $state(false); // 학사모레미의 튜토리얼 (the 도움말 button)
+	let lessonId = $state(''); // the lesson being played
+	let tutorialReward = $state({ open: false, details: null }); // the 100 핑 a first-time clear pays, shown with the item-acquire screen
+	let rewardSeen = 0;
+	// The server's answer to a cleared lesson: what the account has cleared, and (the first time) the 핑 it paid.
+	$effect(() => {
+		const r = store.net.tutorial;
+		if (!r || r.at === rewardSeen) return;
+		rewardSeen = r.at;
+		acceptDone(r.done);
+		if (r.ping > 0)
+			loadGoodDetails().then((details) => {
+				tutorialReward.details = details;
+				tutorialReward.open = true;
+			});
+	});
 	let profileId = $state(null);
 	let profileStart = $state({ tab: 'profile', n: 0 }); // which tab a profile opens on (프로필 관리 for my own, from the footer card / the menu)
 	let userMenu = $state();
+	let roomMenu = $state();
+	let roomInfo = $state();
+	let report = $state();
 	// 사전: in the lobby it opens the 아카데미 as a page of its own; in a waiting room it is the small dictionary window.
 	let academyOpen = $state(false);
 	let academyTab = $state('dictionary');
 	let academyGame = $state('');
 	// Chat is a button (docked sheet) instead of the inline panel wherever a screen needs the room: the 아카데미 and the shop.
 	let shopOpen = $state(false);
+	let newsOpen = $state(false); // 공지·행사: another page of the main area; it takes turns with the others
+	let replayOpen = $state(false); // 리플레이: a page like the shop and the 아카데미; they take turns
+	let replayStart = $state({ game: '', n: 0 }); // a game an outside link (a profile's 경기 내역) wants opened
 	let shopStart = $state({ tab: '', sub: '', n: 0 }); // where an outside link (해커레미's 보너스권) wants the shop to open
-	const chatFab = $derived(shopOpen || (academyOpen && !store.net.myRoom));
+	const chatFab = $derived(shopOpen || replayOpen || (academyOpen && !store.net.myRoom));
 	// Leaving: the academy sinks and fades while the lobby is already there (it is lifted out of the layout so nothing jumps).
 	function sink(node, { duration = 260 } = {}) {
 		const { offsetTop: top, offsetLeft: left, offsetWidth: width, offsetHeight: height } = node;
@@ -94,18 +155,43 @@
 		history.replaceState(history.state, '', url);
 	}
 	let profileOpen = $state(false);
+	/** A lesson plays over the lobby: not from a room (that has its own game), and with the lobby's own page showing. */
+	function startLesson(id) {
+		if (store.currentRoom) return toast(t('play.tutorial.inRoom'), { kind: 'info' });
+		tutorialOpen = false;
+		shopOpen = replayOpen = false;
+		if (academyOpen) setAcademy(false);
+		lessonId = id;
+	}
+
 	// 상점: replaces the main area (lobby or waiting room), as the legacy shop box replaces the room box.
 	function selectMenu(id) {
+		if (id === 'news') {
+			shopOpen = replayOpen = false;
+			if (academyOpen) setAcademy(false);
+			newsOpen = !newsOpen;
+			return;
+		}
+		if (id === 'lobby' || id === 'shop' || id === 'replay' || id === 'dict') newsOpen = false;
 		if (id === 'shop') {
 			if (store.net.guest) return toast(plainText(t('kkutu.js.error.423')), { kind: 'error' });
 			shopOpen = !shopOpen;
 			if (shopOpen) {
+				replayOpen = false;
 				if (academyOpen) setAcademy(false); // the shop and the 사전 page take turns
 				playSound('shop');
 			}
 			return;
 		}
+		if (id === 'replay') {
+			shopOpen = false;
+			if (academyOpen) setAcademy(false);
+			replayOpen = !replayOpen;
+			return;
+		}
+		if (id === 'lobby') replayOpen = false;
 		if (shopOpen && id === 'lobby') shopOpen = false;
+		if (id === 'dict') replayOpen = false;
 		if (id === 'dict' && shopOpen) {
 			// 상점 -> 사전: the page replaces the shop; in a waiting room the small window opens over it
 			if (store.net.myRoom) dictOpen = true;
@@ -124,6 +210,10 @@
 			store.saveProgress();
 			return;
 		}
+		if (id === 'help') {
+			tutorialOpen = true;
+			return;
+		}
 		if (id === 'settings') {
 			prefsStart = 'sound';
 			prefsOpen = true;
@@ -136,7 +226,39 @@
 		}
 		toast(t('play.nav.notReady', { name: t(`play.nav.${id}`) }), { kind: 'info' });
 	}
+	// Entering a room (a shared link, an invitation) or opening the 사전 page leaves it behind.
+	$effect(() => {
+		if (store.net.myRoom || academyOpen) newsOpen = false;
+	});
 	const ready = $derived(store.net.status === 'ready');
+	// A friend's link (`?ref=`) kept by the site is sent once, as soon as I am a member in the game; whatever the answer, it is let go of.
+	// What the red dot of the events menu needs to know (where each campaign and invitation stands) is asked for whenever the events arrive.
+	$effect(() => {
+		const list = store.net.events.list;
+		if (!ready || store.net.guest) return;
+		untrack(() => {
+			for (const e of list) {
+				if (e.campaign) store.loadCampaign(e.id);
+				if (e.invite) store.loadInvite(e.id);
+			}
+		});
+	});
+	let linkSent = false;
+	$effect(() => {
+		if (!ready || store.net.guest || linkSent) return;
+		const code = pendingRef();
+		if (!code) return;
+		linkSent = true;
+		store.linkInvite(code);
+	});
+	let linkSeen = 0;
+	$effect(() => {
+		const answer = store.net.inviteLinked;
+		if (!answer || answer.at === linkSeen) return;
+		linkSeen = answer.at;
+		clearRef();
+		toast(t(`play.news.invite.linked.${answer.result}`), { kind: answer.result === 'ok' ? 'success' : 'info' });
+	});
 	// Embers for the 트로피 리그 button (fixed values: the pattern is decoration, not data).
 	const embers = Array.from({ length: 10 }, (_, i) => ({ x: 6 + ((i * 29) % 86), d: 0.9 + ((i * 11) % 5) * 0.2, delay: -i * 0.21, drift: (i % 2 ? 1 : -1) * (4 + (i % 3) * 3) }));
 
@@ -157,21 +279,66 @@
 			const net = store.net;
 			const refuse = (code) => toast(plainText(net.meta.labels[`kkutu.js.error.${code}`] ?? ''), { kind: 'error' });
 			if (net.guest) return refuse(421);
-			const mine = net.users[net.id];
-			if (store.currentRoom?.playing && mine?.game.form !== 'S' && !mine?.game.practice) return refuse(438);
-			store.hooks.openProfile(net.id, { tab });
+			if (store.dressLocked && tab === 'box') return refuse(438);
+			store.hooks.openProfile(net.id, { tab: store.dressLocked ? 'profile' : tab });
 		};
 		store.hooks.openShop = (tab, subTab) => {
 			if (store.net.guest) return toast(plainText(t('kkutu.js.error.423')), { kind: 'error' });
 			profileOpen = false;
+			replayOpen = false;
 			if (academyOpen) setAcademy(false);
 			if (!shopOpen) playSound('shop');
 			shopStart = { tab, sub: subTab, n: shopStart.n + 1 };
 			shopOpen = true;
 		};
+		// 단어 토큰 in my box leads to where it is spent: the 사전's 어인정 조회 (in a waiting room the 사전 is the small window)
+		store.hooks.openInjeong = () => {
+			profileOpen = false;
+			shopOpen = false;
+			replayOpen = false;
+			if (store.net.myRoom) {
+				dictOpen = true;
+				return;
+			}
+			academyTab = 'injeong';
+			setAcademy(true);
+		};
+		// The 이동 button of a mission: where its mission can be done (see `MISSION_GOTO` on the server). The page of events is left first.
+		store.hooks.goto = (dest) => {
+			if (dest.startsWith('tutorial:')) {
+				newsOpen = false;
+				return startLesson(dest.slice('tutorial:'.length));
+			}
+			if (dest === 'rooms') {
+				newsOpen = false;
+				return;
+			}
+			if (store.net.myRoom && dest !== 'shop' && dest !== 'gacha') return toast(t('play.news.gotoInRoom'), { kind: 'info' });
+			newsOpen = false;
+			if (dest === 'shop' || dest === 'gacha') return store.hooks.openShop(dest === 'gacha' ? 'pickup' : '');
+			profileOpen = false;
+			shopOpen = replayOpen = false;
+			academyTab = dest; // 'practice' | 'dictionary'
+			setAcademy(true);
+		};
+		store.hooks.openReplay = (game = '') => {
+			profileOpen = false;
+			shopOpen = false;
+			if (academyOpen) setAcademy(false);
+			replayStart = { game, n: replayStart.n + 1 };
+			replayOpen = true;
+		};
 		store.hooks.openRoomSettings = () => (settingsOpen = true);
+		store.hooks.setCreateOpen = (v) => (createOpen = v); // the 방 만들기 lesson opens and closes the real dialog
 		store.hooks.openHelp = () => (helpOpen = true);
+		store.hooks.openQuick = (mode = 2) => {
+			quickMode = mode;
+			quickOpen = true;
+		};
 		store.hooks.openUserMenu = (id, e, layout) => userMenu?.show(id, e, layout);
+		store.hooks.openRoomMenu = (no, e) => roomMenu?.show(no, e);
+		store.hooks.openRoomInfo = (no) => roomInfo?.show(no);
+		store.hooks.openReport = (target) => report?.show(target);
 		// The game is played with mouse, touch and its own keys: Tab doesn't walk through the controls (it only drew
 		// focus rings around whatever came next).
 		const noTab = (e) => e.key === 'Tab' && e.preventDefault();
@@ -205,8 +372,10 @@
 
 	// Lobby music plays in the lobby and in waiting rooms (the shop has its own, crossfaded); the game will bring its own.
 	$effect(() => {
-		if (store.net.status === 'ready' && !store.currentRoom?.playing) shopOpen ? playShopBgm() : playLobbyBgm();
-		else stopBgm();
+		if (store.net.status !== 'ready' || store.currentRoom?.playing || store.replayView) stopBgm();
+		else if (store.game?.result) {
+			// between the end of a game and its result screen: silence, then the result's own music (not the lobby's, which waits for the result to be closed)
+		} else shopOpen ? playShopBgm() : playLobbyBgm({ fromResult: true }); // (a closed result: its music crossfades into the lobby's)
 	});
 
 	// An address with ?view=academy&tab=… (a shared link) opens that tool.
@@ -218,6 +387,16 @@
 			academyGame = q.get('game') || '';
 		}
 	}
+
+	// An address with ?view=replay[&game=ID] opens the 리플레이 page (at that game), ?profile=ID that player's profile
+	let queryDone = false;
+	$effect(() => {
+		if (queryDone || store.net.status !== 'ready') return;
+		queryDone = true;
+		const q = new URLSearchParams(location.search);
+		if (q.get('view') === 'replay') store.hooks.openReplay?.(q.get('game') || '');
+		if (q.get('profile')) store.hooks.openProfile?.(q.get('profile'));
+	});
 
 	// The address mirrors the room you're in (#123), and opening an address with #123 joins that room, like the legacy client.
 	const initialRoom = typeof location !== 'undefined' ? Number(location.hash.match(/^#(\d+)$/)?.[1] ?? NaN) : NaN;
@@ -271,6 +450,13 @@
 		};
 	});
 
+	// Events: the catalog sent at login does not change by itself, so an event that begins while I play (or ends) is looked for every few minutes in the lobby.
+	$effect(() => {
+		if (store.net.status !== 'ready' || store.net.guest || store.net.myRoom) return;
+		const again = setInterval(() => store.loadEvents(), 300_000);
+		return () => clearInterval(again);
+	});
+
 	function join(no) {
 		const room = store.net.rooms[no];
 		if (room?.locked) passwordRoom = room;
@@ -278,13 +464,15 @@
 	}
 </script>
 
+<svelte:head><title>끄투리오 - 게임</title></svelte:head>
+
 <svelte:window bind:innerWidth={winW} bind:innerHeight={winH} />
 
 <div class="flex h-dvh min-h-[600px] flex-col bg-(--kk-bg) text-sm text-(color:--kk-text)">
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
-		<TopBar {store} active={shopOpen ? 'shop' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
+		<TopBar {store} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
 	<div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:flex-row lg:overflow-hidden">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
@@ -294,9 +482,13 @@
 			<ResizeHandle class="-left-4 hidden h-full w-4 {leftHanded ? 'lg:block' : ''}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 		</div>
 		<!-- overflow-hidden clips the room while it slides in; the bottom padding keeps the cards' hard shadow visible -->
-		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden pb-[3px] lg:order-2">
+		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden lg:order-2 pb-[3px]">
 			{#if shopOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ShopScreen {store} start={shopStart} /></div>
+			{:else if replayOpen}
+				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ReplayScreen {store} start={replayStart} /></div>
+			{:else if newsOpen}
+				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><NewsScreen {store} /></div>
 			{:else if store.net.myRoom && store.currentRoom}
 				<!-- the waiting room stays until the loading veil covers it; the board is set up beneath the veil -->
 				{#if !(store.inGame && store.ui.gameCovered)}<RoomScreen {store} onsettings={() => (settingsOpen = true)} />{/if}
@@ -306,7 +498,7 @@
 			{:else}
 				<div class="flex min-h-0 flex-1 flex-col gap-3">
 				<div class="flex flex-wrap items-center gap-2.5">
-					<button type="button" disabled={!ready} onclick={() => (quickOpen = true)} class="kk-btn kk-btn-hero kk-btn-lg min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.lobby.quickMatch')}</span></button>
+					<button type="button" disabled={!ready} data-tour="quick-match" onclick={() => store.hooks.openQuick(2)} class="kk-btn kk-btn-hero kk-btn-lg min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.lobby.quickMatch')}</span></button>
 					<button type="button" disabled={!ready} onclick={() => toast(t('play.lobby.trophyLeagueTbd'), { kind: 'info', icon: 'event' })} class="kk-btn kk-btn-lg kk-btn-league min-w-40 flex-1 md:w-52 md:flex-none">
 						<span class="kk-embers" aria-hidden="true">
 							{#each embers as e}<b style="--x:{e.x};--d:{e.d}s;--delay:{e.delay}s;--drift:{e.drift}px"></b>{/each}
@@ -314,14 +506,14 @@
 						<span class="kk-btn-icon"><Icon name="emoji_events" size={28} fill /></span>
 						<span class="kk-btn-label">{t('play.lobby.trophyLeague')}</span>
 					</button>
-					<button type="button" disabled={!ready} onclick={() => (createOpen = true)} class="kk-btn kk-btn-lg min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="add" size={28} /></span><span class="kk-btn-label">{t('play.lobby.createRoom')}</span></button>
+					<button type="button" disabled={!ready} data-tour="create-room" onclick={() => (createOpen = true)} class="kk-btn kk-btn-lg min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="add" size={28} /></span><span class="kk-btn-label">{t('play.lobby.createRoom')}</span></button>
 				</div>
 				<RoomList {store} onjoin={join} />
 				</div>
 			{/if}
 			<!-- Desktop: chat lives under the room list, where the old client had it. -->
 			{#if !chatFab}
-				<div class="relative z-10 hidden lg:block">
+				<div data-tour="chat" class="relative z-10 hidden lg:block">
 					<ResizeHandle class="-top-3 right-0 left-0 h-3 w-full" orientation="horizontal" grow={-1} value={chatH} min={CHAT.min} max={chatMax} def={CHAT.def} label={t('play.layout.resizeChat')} onchange={(v) => setLayout('chat', v)} />
 					<ChatPanel {store} inline height={chatH} />
 				</div>
@@ -335,14 +527,23 @@
 <div class={chatFab ? 'contents' : 'contents lg:hidden'}><ChatPanel {store} fab={chatFab} /></div>
 <CreateRoomDialog {store} bind:open={createOpen} />
 <CreateRoomDialog {store} bind:open={settingsOpen} editing={store.currentRoom} />
-<QuickMatchDialog {store} bind:open={quickOpen} />
+<QuickMatchDialog {store} start={quickMode} bind:open={quickOpen} />
+<DmNotice {store} />
 <RankingDialog {store} bind:open={rankOpen} />
 <DictionaryDialog bind:open={dictOpen} />
 <CalculatorWindow bind:open={calcOpen} />
 <SettingsDialog {store} bind:open={prefsOpen} start={prefsStart} />
 <SecurityCodeDialog {store} bind:open={codeOpen} />
+<ExpiredDialog {store} />
+<ReportFeedbackDialog {store} />
 <CommandHelpDialog bind:open={helpOpen} />
+<TutorialDialog {store} bind:open={tutorialOpen} onstart={startLesson} oncommands={() => ((tutorialOpen = false), (helpOpen = true))} />
+{#if lessonId}<TutorialSession {store} lesson={lessonById(lessonId)} onexit={() => (lessonId = '')} />{/if}
 <UserMenu bind:this={userMenu} {store} />
+<RoomMenu bind:this={roomMenu} {store} />
+<RoomInfoDialog bind:this={roomInfo} {store} onjoin={join} />
+<ReportDialog bind:this={report} {store} />
+<RatingDialog />
 <ProfileWindow {store} userId={profileId} start={profileStart} bind:open={profileOpen} onai={(u) => store.hooks.openAi?.(u)} />
 <ProgressDialog {store} bind:open={progressOpen} />
 <PasswordDialog bind:room={passwordRoom} onsubmit={(no, pw) => store.join(no, pw)} />
@@ -351,5 +552,11 @@
 <ConnectionGate {store} />
 <LoadingScreen {store} />
 <StatusMark {store} />
+{#if qa.store}<GameResult store={qa.store} />{/if}
+<LevelUpHost {store} />
+<GiftHost {store} />
+{#if tutorialReward.details}<ObtainScreen bind:open={tutorialReward.open} title={t('play.obtain.acquired')} notice={t('play.tutorial.reward.notice')} items={[{ key: 'ping', q: store.net.tutorial?.ping || 100 }]} shop={store.shop} details={tutorialReward.details} ribbon ambient="shine" palette="teal" />{/if}
+{#if qa.obtain.details}<ObtainScreen bind:open={qa.obtain.open} title={t('play.obtain.acquired')} notice={t('kkutu.js.drawObtain')} items={qa.obtainItems} shop={store.shop} details={qa.obtain.details} ribbon ambient="shine" palette="teal" />{/if}
 <ToastHost />
+<YellBanner />
 <ConfirmHost />

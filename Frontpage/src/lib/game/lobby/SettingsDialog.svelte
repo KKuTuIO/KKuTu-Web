@@ -18,10 +18,14 @@
 	import { confirm, prompt } from '../ui/confirm.svelte.js';
 	import { DEFAULT_AUDIO } from '../audioCatalog.js';
 	import { confirmLeave } from '../leaveGuard.svelte.js';
+	import { plainText } from '../protocol.js';
+	import SettingsExportDialog from './SettingsExportDialog.svelte';
+	import SettingsImportDialog from './SettingsImportDialog.svelte';
+	import SurveyDialog from './SurveyDialog.svelte';
 
 	let { store, open = $bindable(false), start = 'sound' } = $props();
 	let tab = $state('sound');
-	const tabs = $derived(['sound', 'chat', 'game', 'block', 'etc'].map((id) => ({ id, label: t(`play.settings.tab.${id}`) })));
+	const tabs = $derived(['sound', 'chat', 'game', 'block', 'account'].map((id) => ({ id, label: t(`play.settings.tab.${id}`) })));
 
 	// Changes are collected here and only applied by 저장; closing the dialog drops them.
 	const AUDIO_KEYS = ['vb', 've', 'vu', 'muted', 'set', 'lobby'];
@@ -64,7 +68,7 @@
 	let servers = $state(null);
 	let serversFailed = $state(false);
 	$effect(() => {
-		if (!open || tab !== 'etc') return;
+		if (!open || tab !== 'game') return;
 		serversFailed = false;
 		fetch('/servers')
 			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -91,6 +95,25 @@
 		if (!store.net.users[id]) return toast(t('play.block.notHere'), { kind: 'error' });
 		if (!blocks.some((b) => b.id === id && b.kind === 'shut')) store.toggleBlock('shut', id);
 	}
+	// 계정: the legacy dialog's five items (the settings file's import sits with its export)
+	let exportOpen = $state(false);
+	let importOpen = $state(false);
+	let surveyOpen = $state(false);
+	const L = (k) => plainText(t(k));
+	const needLogin = () => toast(t('play.settings.guestOnly'), { kind: 'error' });
+	const needMember = () => toast(plainText(store.net.meta.labels['kkutu.js.error.464'] ?? ''), { kind: 'error' });
+	function membership() {
+		const d = new Date().toLocaleString(i18n.language);
+		const m = store.net.membership;
+		toast(`${d} ${m ? L('kkutu.dialog.accountOptions.checkMembershipInfo.success').replace('${membership}', t(`kkutu.membership.${m}`)) : L('kkutu.dialog.accountOptions.checkMembershipInfo.fail')}`, { kind: 'info', duration: 7000 });
+	}
+	const account = $derived([
+		{ id: 'export', icon: 'file_export', label: L('kkutu.dialog.accountOptions.copySettings'), expl: L('kkutu.dialog.accountOptions.copySettings.expl'), run: () => (exportOpen = true) },
+		{ id: 'import', icon: 'upload_file', label: t('kkutu.dialog.setting.load'), expl: t('play.settings.importExpl'), run: () => (importOpen = true) },
+		{ id: 'uid', icon: 'key', label: L('kkutu.dialog.accountOptions.checkUid'), expl: L('kkutu.dialog.accountOptions.checkUid.expl'), run: () => (store.net.guest ? needMember() : store.conn.send('uid')) },
+		{ id: 'survey', icon: 'assignment', label: L('kkutu.dialog.accountOptions.checkSurvey'), expl: L('kkutu.dialog.accountOptions.checkSurvey.expl'), run: () => (store.net.guest ? needLogin() : (surveyOpen = true)) },
+		{ id: 'membership', icon: 'star', label: L('kkutu.dialog.accountOptions.checkMembershipInfo'), expl: L('kkutu.dialog.accountOptions.checkMembershipInfo.expl'), run: () => (store.net.guest ? needLogin() : membership()) }
+	]);
 	const channelName = (i) => i18n.messages[`server.${i}`] ?? `#${i}`;
 	const goTo = async (i) => (await confirmLeave()) && (location.href = `/play/${i}`);
 </script>
@@ -137,6 +160,7 @@
 				<div class="flex flex-col gap-1">
 					{@render heading('chat_bubble', t('play.settings.whisper.title'))}
 					<RadioGroup variant="cards" label={t('play.settings.whisper.title')} value={draft.whisperFrom} options={whisper} onchange={(v) => (draft.whisperFrom = v)} />
+					{@render toggle('dmAlerts', t('play.settings.dmAlerts'), t('play.settings.dmAlertsExpl'))}
 				</div>
 				<Switch checked={draft.filter === 'blind'} onchange={(v) => (draft.filter = v ? 'blind' : 'off')}><span class="flex items-center gap-1.5 text-sm font-extrabold"><Icon name="shield" size={20} />{t('play.settings.filter.title')}</span></Switch>
 				<div class="flex flex-col gap-1">
@@ -163,6 +187,24 @@
 					{@render toggle('ignoreSpectators', t('play.settings.ignoreSpectators'))}
 					{@render toggle('hideRecords', t('play.settings.hideRecords'), t('play.settings.hideRecordsExpl'))}
 				</div>
+				<div class="flex flex-col gap-2">
+					{@render heading('swap_horiz', t('play.settings.channel.title'))}
+					{#if serversFailed}
+						<p class="text-sm text-(color:--kk-muted)">{t('play.settings.channel.failed')}</p>
+					{:else if servers}
+						<ul class="grid grid-cols-2 gap-2">
+							{#each servers.list as players, i (i)}
+								{@const here = i === store.server}
+								<li>
+									<button type="button" disabled={here || players == null} onclick={() => goTo(i)} class="kk-btn flex min-h-12 w-full flex-col items-center justify-center px-2 text-sm leading-tight {here ? 'border-(color:--kk-accent)' : ''}">
+										<span class="font-extrabold">{channelName(i)}</span>
+										<span class="text-xs font-medium text-(color:--kk-muted)">{here ? t('play.settings.channel.here') : players == null ? t('play.settings.channel.closed') : t('play.settings.channel.players', { count: players, max: servers.max })}</span>
+									</button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
 			{:else if tab === 'block'}
 				<div class="flex items-center justify-between gap-2">
 					{@render heading('block', `${t('play.block.title')} (${t('play.block.count', { n: blocks.length })})`)}
@@ -186,27 +228,15 @@
 					<p class="rounded-xl bg-(--kk-surface-2) px-3 py-6 text-center text-sm text-(color:--kk-muted)">{t('play.block.empty')}</p>
 				{/if}
 			{:else}
-				<div class="flex flex-col gap-2">
-					{@render heading('swap_horiz', t('play.settings.channel.title'))}
-					{#if serversFailed}
-						<p class="text-sm text-(color:--kk-muted)">{t('play.settings.channel.failed')}</p>
-					{:else if servers}
-						<ul class="grid grid-cols-2 gap-2">
-							{#each servers.list as players, i (i)}
-								{@const here = i === store.server}
-								<li>
-									<button type="button" disabled={here || players == null} onclick={() => goTo(i)} class="kk-btn flex min-h-12 w-full flex-col items-center justify-center px-2 text-sm leading-tight {here ? 'border-(color:--kk-accent)' : ''}">
-										<span class="font-extrabold">{channelName(i)}</span>
-										<span class="text-xs font-medium text-(color:--kk-muted)">{here ? t('play.settings.channel.here') : players == null ? t('play.settings.channel.closed') : t('play.settings.channel.players', { count: players, max: servers.max })}</span>
-									</button>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
-				<div class="border-t border-(color:--kk-line) pt-3">
-					<button type="button" onclick={() => toast(t('play.settings.importTbd'), { kind: 'info' })} class="kk-btn inline-flex min-h-11 items-center gap-1.5 px-4"><Icon name="upload_file" size={20} />{t('play.settings.import')}</button>
-				</div>
+				<!-- 계정 설정, as the legacy client's dialog: what an account can do, each with what it does -->
+				<ul class="flex flex-col gap-2">
+					{#each account as row (row.id)}
+						<li class="flex items-center gap-3">
+							<button type="button" onclick={row.run} class="kk-btn inline-flex min-h-11 w-44 shrink-0 items-center gap-2 px-3 text-sm"><Icon name={row.icon} size={20} fill />{row.label}</button>
+							<span class="min-w-0 text-sm text-(color:--kk-muted)">{row.expl}</span>
+						</li>
+					{/each}
+				</ul>
 			{/if}
 		</div>
 
@@ -216,3 +246,7 @@
 		</div>
 	</div>
 </Dialog>
+
+<SettingsExportDialog bind:open={exportOpen} />
+<SettingsImportDialog {store} bind:open={importOpen} />
+<SurveyDialog {store} bind:open={surveyOpen} />

@@ -4,6 +4,7 @@ import { levelSpan } from './level.js';
 import { createConnection } from './connection.svelte.js';
 import { md5 } from './md5.js';
 import { notice, plainText } from './protocol.js';
+import { showInjeongHint } from './injeongHint.js';
 import { BAD, isAllowedText, isBad } from './badwords.js';
 import { createSpamGuard } from './spamGuard.js';
 import { isAdminCommand, runCommand } from './commands.js';
@@ -11,9 +12,11 @@ import { toast } from './ui/toast.svelte.js';
 import { confirm } from './ui/confirm.svelte.js';
 import { blocked, isShut, toggleBlock } from './blocks.svelte.js';
 import { idFromNick } from './commands.js';
+import { encodeKkio, kkioName } from './kkio.js';
+import { dmAdd, dmRead, dmRemove, dmUnread, dmList, dmMembers, peerName } from './dm.js';
 import { i18n, t } from './i18n.svelte.js';
-import { telemetry } from './telemetry.js';
 import { QUIZ, familyOf } from './gameModel.js';
+import { loadSeen, newsAlerts, newsNudge, saveSeen, unseenNews } from './news.js';
 
 const ROOM_LIMIT = [10, 12, 14, 16, 16]; // by membership tier, as in the legacy client
 const quickTitles = () => [1, 2, 3, 4, 5, 6, 7].map((n) => t(`play.quick.roomTitle.${n}`));
@@ -23,13 +26,39 @@ const quickTitles = () => [1, 2, 3, 4, 5, 6, 7].map((n) => t(`play.quick.roomTit
 const plainError = (code) => plainText(i18n.messages[`kkutu.js.error.${code}`] ?? '');
 
 export function createLobbyStore(server) {
+	/** 귓속말 거부 also limits whom I may whisper (legacy): the reason why not, or null. */
+	const whisperRefusal = (id) => {
+		const mode = prefs.whisperFrom;
+		if (mode === 'near' && !net.friendsData[id]?.bf) return t('play.whisper.blocked.near');
+		if (mode === 'friend' && !(id in net.friendsData)) return t('play.whisper.blocked.friend');
+		if (mode === 'guest' && id.includes('guest')) return t('play.whisper.blocked.guest');
+		return null;
+	};
 	const spam = createSpamGuard();
-	const chatUi = $state({ draft: { text: '', nonce: 0 } });
-	let whisperPrefix = '';
+	const chatUi = $state({ draft: { text: '', nonce: 0 }, dm: { peer: null, nonce: 0 } });
 	const conn = createConnection(server);
+	const telemetry = conn.telemetry;
+	/**
+	 * 타자 / 수학 대결: the server numbers each player's problems itself (`p{index}`, back to 0 after the last one) and moves on at a right
+	 * answer. The client learns of it from the answer's `turnEnd`, but the next text is typed before that arrives, so a right 타자 answer
+	 * counts at once (`ahead`); the confirmed count (`chain`) takes over as it comes in. The list is doubled for the display.
+	 */
+	const typed = { chain: 0, ahead: 0, failAt: 0 };
+	function problemIndex(g) {
+		if (g.chain < typed.chain) typed.ahead = 0; // a new round
+		else typed.ahead = Math.max(0, typed.ahead - (g.chain - typed.chain)); // confirmed
+		if ((g.fail?.at ?? 0) !== typed.failAt) typed.ahead = 0; // a refusal: the server did not move on
+		typed.chain = g.chain;
+		typed.failAt = g.fail?.at ?? 0;
+		const length = Math.max(1, (g.list?.length ?? 0) / 2);
+		return (g.chain + typed.ahead) % length;
+	}
+	let newsSeen = $state(loadSeen()); // the event ids whose page I have opened since they began
 	const net = conn.state;
 	const live = $state({ value: '', composing: false }); // what I am typing right now, from the board's field or the chat box
 	const ui = $state({ query: '', sort: 'recent', joinableFirst: false, waitingOnly: true, hasSeat: false, hideLocked: false, view: 'list', viewPicked: false, gameCovered: false, exitReserved: false });
+	// the replay being watched (its store, see replayPlayer.svelte.js): the chat shows its chat, the lobby music steps aside
+	let replayView = $state.raw(null);
 
 	const rooms = $derived(Object.values(net.rooms));
 	// 접속자: everyone on this server (also those inside rooms), AI seats excluded. Order is the legacy one: by arrival,
@@ -123,6 +152,19 @@ export function createLobbyStore(server) {
 			const code = net.prompt?.lang === 'gidInfo' ? net.prompt.value : undefined;
 			conn.send('saveProgress', code ? { gid: code } : {});
 		},
+		/** 교환권 사용: the answer comes as a code (715-718) and is said in a toast. */
+		useCoupon(code) {
+			conn.send('useCoupon', { value: code });
+		},
+		/** 설문 조사: ask for the list and for the token a survey page needs. */
+		loadSurveys() {
+			conn.send('listSurvey', {});
+			conn.send('getSurveyToken', {});
+		},
+		/** 이어하기 code (8 characters) of a guest session, to take its progress into this account. */
+		importProgress(code) {
+			conn.send('import', { gid: code });
+		},
 		/** A system line in the chat (used by room timers). */
 		pushNotice: (text) => notice(net, text),
 		leaveRoom() {
@@ -192,6 +234,49 @@ export function createLobbyStore(server) {
 			conn.send('friendAddRes', { from, res });
 			net.friendRequests = net.friendRequests.filter((r) => r.from !== from);
 		},
+		// ---- 공지·행사 (the event menu; a notice is an event with `bulletin`) ----
+		/** The newest catalog with my progress, and the exchange shops. */
+		loadEvents() {
+			conn.send('event.getProgress');
+			conn.send('event.getExchanges');
+		},
+		/** What waits for me in the events (a reward to take, a check-in to make, a hot time on): the red dot on the menu. Guests have no such page. */
+		get newsAlerts() {
+			return newsAlerts(net);
+		},
+		/** Going events I have not opened the page for. Guests have no such page. */
+		get newsUnseen() {
+			return net.guest ? 0 : unseenNews(net.events.list, newsSeen).length;
+		},
+		/** The new event the bubble at the menu announces (null when there is none). */
+		get newsNudge() {
+			return net.guest ? null : newsNudge(net.events.list, newsSeen);
+		},
+		/** The ids already seen (read before `markNewsSeen`, so the page can keep marking what was new when it opened). */
+		get newsSeenIds() {
+			return [...newsSeen];
+		},
+		/** The page was opened: everything going now counts as seen. */
+		markNewsSeen() {
+			const next = new Set(newsSeen);
+			for (const e of net.events.list) next.add(e.id);
+			newsSeen = next;
+			saveSeen(next);
+		},
+		claimEventMission: (eventId, missionId) => conn.send('event.claimMission', { eventId, missionId }),
+		/** 모두 받기: every mission of the event that is done, in one reward. */
+		claimEventMissions: (eventId) => conn.send('event.claimMissions', { eventId }),
+		claimEventAttendance: (eventId) => conn.send('event.claimAttendance', { eventId }),
+		exchangeEvent: (eid, id) => conn.send('event.exchange', { eid, id }),
+		/** 타일 룰렛: spend the token for `count` draws. The answer is `net.tileResult`. */
+		/** 캠페인: ask where it is now; claim the reward of a hot time that is over. The answers are `net.campaigns` and `net.eventReward`. */
+		/** 친구 초대: where I stand; follow a friend's code (once); take a stage's rewards (as the invited one, or for friend number `friend`). */
+		loadInvite: (eventId) => conn.send('event.invite', { eventId }),
+		linkInvite: (code) => conn.send('event.inviteLink', { code }),
+		claimInvite: (eventId, stage, friend) => conn.send('event.inviteClaim', { eventId, stage, ...(friend ? { friend } : {}) }),
+		loadCampaign: (eventId) => conn.send('event.campaign', { eventId }),
+		claimCampaign: (eventId, round) => conn.send('event.campaignClaim', { eventId, round }),
+		drawTile: (eventId, count = 1) => conn.send('event.tileDraw', { eventId, count }),
 		// ---- mailbox and notifications ----
 		requestMailbox: () => conn.send('mailBox'),
 		claimMail: (id) => conn.send('obtainMail', { id }),
@@ -221,10 +306,50 @@ export function createLobbyStore(server) {
 		get game() {
 			return net.game;
 		},
+		get replayView() {
+			return replayView;
+		},
+		set replayView(v) {
+			replayView = v;
+		},
 		/** The game screen shows while my room plays, and after it until the result is closed. */
 		get inGame() {
 			const r = this.currentRoom;
 			return !!r && (r.playing || !!net.game?.result);
+		},
+		/** Putting on / taking off / opening things (프로필 관리, 옷장) is refused while I play a running game (legacy 438; watching and practice are fine). */
+		get dressLocked() {
+			const mine = net.users[net.id];
+			return !!this.currentRoom?.playing && mine?.game.form !== 'S' && !mine?.game.practice;
+		},
+		/** A finished game was recorded: it can be saved as a .kkio (the result's 경기 저장, and the replay page's 방금 경기). */
+		get replayReady() {
+			return net.replayReady;
+		},
+		/** The recording of the last game, or null. */
+		get recording() {
+			return net.replayReady ? conn.recorder.recording : null;
+		},
+		/** Write the last game to a .kkio file (the browser's download). */
+		saveReplay() {
+			const rec = conn.recorder.recording;
+			if (!rec) return false;
+			let bytes;
+			try {
+				bytes = encodeKkio(rec);
+			} catch {
+				toast(t('play.replay.tooLarge'), { kind: 'error' });
+				return false;
+			}
+			const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = kkioName(rec);
+			document.body.append(a);
+			a.click();
+			a.remove();
+			setTimeout(() => URL.revokeObjectURL(url), 1000);
+			return true;
 		},
 		/** Whose turn it is is me (and I am playing, not watching). */
 		get myTurn() {
@@ -233,6 +358,37 @@ export function createLobbyStore(server) {
 			// the quiz modes are played all at once: anyone playing may answer while the round runs
 			return QUIZ.includes(familyOf(net)) ? true : net.game.current === net.id;
 		},
+		/**
+		 * Which trace the answer field's input belongs to: `{ r }` as the server names its scope (`r` left out for the turn scope), or
+		 * null while there is nothing to trace. The server rejects a trace whose scope is not its own, so these follow its rules:
+		 *   끝말잇기 / 단어 대결 / 훈민정음: the turn (no ref);   자음퀴즈 / 그림퀴즈: the round;
+		 *   타자 / 수학 대결: the problem the player is on (see `problemIndex`);   십자말풀이: the selected bar;
+		 *   솎솎 / 잇땅 / 워드스택: one scope for the round (0).
+		 */
+		traceScope() {
+			const g = net.game;
+			if (!g || g.phase !== 'turn' || !this.myTurn) return null;
+			switch (familyOf(net)) {
+				case 'Classic':
+				case 'Daneo':
+				case 'Hunmin':
+					return {};
+				case 'Jaqwi':
+				case 'Drawing':
+					return Number.isInteger(g.round) ? { r: g.round } : null;
+				case 'Typing':
+				case 'Mathquiz':
+					return { r: problemIndex(g) };
+				case 'Sock':
+				case 'Linkland':
+				case 'Wordstack':
+					return { r: 0 };
+				case 'Crossword':
+					return Array.isArray(g.sel) && g.sel.length === 4 ? { r: g.sel.map(Number) } : null;
+				default:
+					return null;
+			}
+		},
 		/** Send the word for my turn (the same message the legacy client sends, with the ids that tie it to this turn). */
 		submitWord(value, data) {
 			const g = net.game;
@@ -240,6 +396,7 @@ export function createLobbyStore(server) {
 			live.value = '';
 			live.composing = false;
 			g.submitted = value; // what I typed, so a refusal can strike it out on the board
+			if (familyOf(net) === 'Typing' && value === g.list?.[problemIndex(g)]) typed.ahead++; // right: the server moves on to the next text now
 			const bytes = new TextEncoder().encode(value);
 			conn.send('talk', {
 				relay: true,
@@ -319,6 +476,7 @@ export function createLobbyStore(server) {
 				ui.exitReserved = false;
 				conn.send('leave');
 			}
+			showInjeongHint(net);
 		},
 		telemetry,
 		get typed() {
@@ -389,29 +547,58 @@ export function createLobbyStore(server) {
 		fillChat(text) {
 			chatUi.draft = { text, nonce: chatUi.draft.nonce + 1 };
 		},
-		/** After whispering, the box is refilled with "/e name " so the conversation can go on (legacy). */
-		takeWhisperPrefix() {
-			const p = whisperPrefix;
-			whisperPrefix = '';
-			return p;
-		},
 		/** Whisper `text` to the player called `target` (a nickname without spaces, or an id). Legacy checks and wording. */
 		whisper(target, text) {
 			if (!text) return;
 			const id = idFromNick(net.users, target) ?? target;
 			if (id === net.id) return notice(net, plainError(724));
+			if (!net.users[id]) return notice(net, plainError(405)); // nobody of that name: nothing to open a conversation with
+			// Every /e (and /답) is a line of a conversation: it is sent there, any refusal is said there, and the 귓속말 tab shows it.
+			this.sendDm(id, text);
+			this.openDm(id);
+		},
+		// ---- 귓속말 conversations (the tab in the chat; threads are in net.dm) ----
+		get dm() {
+			return net.dm;
+		},
+		/** The unread count for the badges (0 while 귓속말 알림 is off: whispers are still received and kept). */
+		get dmUnread() {
+			return prefs.dmAlerts ? dmUnread(net) : 0;
+		},
+		get dmList() {
+			return dmList(net);
+		},
+		dmMembers: (query, limit) => dmMembers(net, query, limit),
+		/** Open the conversation with `id` in the chat's 귓속말 tab (the chat panel opens and shows it). */
+		openDm(id) {
+			if (!id || id === net.id || net.users[id]?.robot) return;
+			net.dm.active = id;
+			chatUi.dm = { peer: id, nonce: chatUi.dm.nonce + 1 };
+		},
+		get dmRequest() {
+			return chatUi.dm;
+		},
+		/** Which thread is on screen now (its new lines are read at once); null when none is. */
+		dmView(id) {
+			net.dm.viewing = id;
+			if (id) dmRead(net, id);
+		},
+		dmClose(id) {
+			dmRemove(net, id);
+		},
+		/** Say `text` in a conversation. Whoever is not here, or cannot be whispered to, is said in the thread itself. */
+		sendDm(id, text) {
+			const value = String(text ?? '').trim().slice(0, 200);
+			if (!value || id === net.id) return false;
 			const who = net.users[id];
-			if (!who) return notice(net, plainError(405));
-			if (isShut(id)) return notice(net, plainError(723));
-			const name = (who.name + (who.tag ? `#${who.tag}` : '')).replace(/\s/g, '');
-			whisperPrefix = `/e ${name} `;
-			const me = net.users[net.id];
-			const mode = prefs.whisperFrom; // 귓속말 거부 also limits whom I may whisper (legacy)
-			if (mode === 'near' && !net.friendsData[id]?.bf) return notice(net, t('play.whisper.blocked.near'));
-			if (mode === 'friend' && !(id in net.friendsData)) return notice(net, t('play.whisper.blocked.friend'));
-			if (mode === 'guest' && id.includes('guest')) return notice(net, t('play.whisper.blocked.guest'));
-			conn.send('talk', { whisper: name, value: text });
-			net.chat.push({ who: `→${name}`, msg: text, shown: text, at: Date.now(), system: false, uid: net.id, whisper: true, to: name, spectator: false, mine: true });
+			const name = net.dm.threads[id]?.name ?? who?.name?.replace(/\s/g, '') ?? '';
+			if (!who) return (dmAdd(net, id, { name, msg: plainError(424), system: true }), false);
+			if (isShut(id)) return (dmAdd(net, id, { name, msg: plainError(723), system: true }), false);
+			const refused = whisperRefusal(id);
+			if (refused) return (dmAdd(net, id, { name, msg: refused, system: true }), false);
+			conn.send('talk', { whisper: peerName(who), value });
+			dmAdd(net, id, { name: who.name.replace(/\s/g, ''), msg: value, mine: true });
+			return true;
 		},
 		sendChat(msg) {
 			const value = msg.trim();
@@ -419,6 +606,8 @@ export function createLobbyStore(server) {
 			// 그림퀴즈: the one who draws cannot send anything while the game runs (legacy)
 			if (net.game && net.game.painter === net.id && net.game.phase !== 'ended') return notice(net, plainText(i18n.messages['kkutu.product.chat.painterChatBlocked'] ?? ''));
 			if (value[0] === '/') return this.runCommand(value);
+			// An administrator's "#…" line is a command for the server: not my answer on my turn, and not subject to the chat spam guard.
+			if (net.admin && isAdminCommand(value)) return conn.send('talk', { value });
 			// On my turn a line typed in the chat is my answer, just like one typed in the game's own field.
 			if (this.myTurn) return this.submitWord(msg);
 			const verdict = spam(value);

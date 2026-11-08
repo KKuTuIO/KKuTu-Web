@@ -94,7 +94,7 @@ class PlayController(
     fun locale(request: HttpServletRequest): ResponseEntity<Map<String, Any>> {
         val locale = RequestContextUtils.getLocale(request)
         val messages = localePropertyLoader.getMessages(locale)
-            .filterKeys { it.startsWith("play.") || it.startsWith("game.mode.") || it.startsWith("game.option.") || it.startsWith("kkutu.js.error.") || it.startsWith("kkutu.js.wpFail.") || it.startsWith("word.theme.") || it.startsWith("word.class.") || it.startsWith("server.") || it.startsWith("kkutu.js.turn.error.") || it.startsWith("kkutu.js.bonusFrom.") || it.startsWith("kkutu.dialog.result.") || it.startsWith("kkutu.product.game.") || it.startsWith("item.") || it.startsWith("kkutu.dialog.purchase.") || it.startsWith("kkutu.product.shopCart.") || it.startsWith("kkutu.product.shopList.draw.") || it.startsWith("kkutu.dialog.obtain.") || it.startsWith("kkutu.js.opts.") || it in GAME_SCREEN_KEYS }
+            .filterKeys { it.startsWith("play.") || it.startsWith("game.mode.") || it.startsWith("game.option.") || it.startsWith("kkutu.js.error.") || it.startsWith("kkutu.js.wpFail.") || it.startsWith("word.theme.") || it.startsWith("word.class.") || it.startsWith("server.") || it.startsWith("kkutu.js.turn.error.") || it.startsWith("kkutu.js.bonusFrom.") || it.startsWith("kkutu.dialog.result.") || it.startsWith("kkutu.dialog.accountOptions.") || it.startsWith("kkutu.dialog.survey.") || it.startsWith("kkutu.membership.") || it.startsWith("kkutu.js.settingsFile.") || it.startsWith("kkutu.dialog.replay.") || it.startsWith("kkutu.dialog.report.") || it.startsWith("kkutu.dialog.roomInfo.") || it.startsWith("kkutu.js.pform.") || it == "kkutu.js.sRoomInfo" || it.startsWith("kkutu.js.replay") || it.startsWith("kkutu.product.game.") || it.startsWith("item.") || it.startsWith("game.item.") || it.startsWith("kkutu.js.itemLeft") || it.startsWith("kkutu.dialog.purchase.") || it.startsWith("kkutu.product.shopCart.") || it.startsWith("kkutu.product.shopList.draw.") || it.startsWith("kkutu.dialog.obtain.") || it.startsWith("kkutu.js.opts.") || it in GAME_SCREEN_KEYS }
         return ResponseEntity.ok()
             .header("Cache-Control", "private, max-age=60")
             .header("Vary", "Cookie")
@@ -106,6 +106,38 @@ class PlayController(
     @ResponseBody
     fun goodDetails(): ResponseEntity<Map<String, me.kkutuio.kkutuweb.shop.response.ResponseGoodDetail>> =
         ResponseEntity.ok().header("Cache-Control", "private, max-age=60").body(shopService.getGoodDetails())
+
+    /** What the game's screens need to know about the game itself (modes, rules, options, moremi parts, themes): the same for everyone. */
+    private fun gameMeta(): Map<String, Any?> {
+        // Themes a room can be limited to with 단어장 (same lists as the legacy page's pick dialog).
+        val pickExcepts = kKuTuSetting.getInjeongPickExcepts().toSet()
+        val pickThemes = mapOf(
+            "ko" to (kKuTuSetting.getKoThemes() + kKuTuSetting.getKoInjeongThemes() - pickExcepts),
+            "en" to (kKuTuSetting.getEnThemes() + kKuTuSetting.getEnInjeongThemes() - pickExcepts)
+        )
+        return mapOf(
+            "modes" to kKuTuSetting.getGameModes(),
+            "rules" to kKuTuSetting.getGameRuleNode(),
+            "optionDefs" to kKuTuSetting.getGameOptionNode(),
+            "moremiParts" to kKuTuSetting.getMoremiParts(),
+            "moremiCategories" to kKuTuSetting.getMoremiCategories(),
+            "moremiGroups" to kKuTuSetting.getMoremiGroups(),
+            "moremiEquips" to kKuTuSetting.getMoremiEquips(),
+            "pickThemes" to pickThemes,
+            "version" to kKuTuSetting.getVersion(),
+            // room.opts key (lower-cased option name) -> option name, i.e. game.option.<name>.name
+            "options" to kKuTuSetting.getGameOptionMap().values.associateBy { it.lowercase() }
+        )
+    }
+
+    /**
+     * The game's metadata without a connection (no ticket is issued): the portal's replay page draws games with it. Public, like the
+     * locale and the shop.
+     */
+    @GetMapping("/api/play/meta")
+    @ResponseBody
+    fun meta(): ResponseEntity<Map<String, Any?>> =
+        ResponseEntity.ok().header("Cache-Control", "public, max-age=300").body(gameMeta())
 
     @GetMapping("/api/play/{server:[0-9]+}/ticket")
     @ResponseBody
@@ -158,12 +190,6 @@ class PlayController(
             accountUuid = loginService.accountUuid(session),
             accountFlags = accountService.currentAccount(session)?.flags
         )
-        // Themes a room can be limited to with 단어장 (same lists as the legacy page's pick dialog).
-        val pickExcepts = kKuTuSetting.getInjeongPickExcepts().toSet()
-        val pickThemes = mapOf(
-            "ko" to (kKuTuSetting.getKoThemes() + kKuTuSetting.getKoInjeongThemes() - pickExcepts),
-            "en" to (kKuTuSetting.getEnThemes() + kKuTuSetting.getEnInjeongThemes() - pickExcepts)
-        )
         val base = (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
         logger.info("[$ip] ${profile?.title ?: "guest"} /play/$server ticket issued")
 
@@ -174,18 +200,11 @@ class PlayController(
                     "websocketUrl" to "$base/${aes.encrypt(sid)}",
                     "guest" to guest,
                     "nickname" to (profile?.title?.split("#")?.firstOrNull()),
-                    "modes" to kKuTuSetting.getGameModes(),
-                    "rules" to kKuTuSetting.getGameRuleNode(),
-                    "optionDefs" to kKuTuSetting.getGameOptionNode(),
-                    "moremiParts" to kKuTuSetting.getMoremiParts(),
-                    "moremiCategories" to kKuTuSetting.getMoremiCategories(),
-                    "moremiGroups" to kKuTuSetting.getMoremiGroups(),
-                    "moremiEquips" to kKuTuSetting.getMoremiEquips(),
-                    "pickThemes" to pickThemes,
-                    "version" to kKuTuSetting.getVersion(),
-                    // room.opts key (lower-cased option name) -> option name, i.e. game.option.<name>.name
-                    "options" to kKuTuSetting.getGameOptionMap().values.associateBy { it.lowercase() }
-                )
+                    // one-time hints this account has closed (account.flags); a guest has none, so sees them all
+                    "nudgesClosed" to (accountService.currentAccount(session)?.let(accountService::nudgesClosed) ?: emptyList()),
+                    // tutorial lessons this account has cleared
+                    "tutorialDone" to (accountService.currentAccount(session)?.let(accountService::tutorialDone) ?: emptyList())
+                ) + gameMeta()
             )
     }
 }
@@ -193,7 +212,7 @@ class PlayController(
 /** Legacy messages the game screen reuses word for word (the board is a port of the legacy client's). */
 private val GAME_SCREEN_KEYS = setOf(
     "kkutu.js.surePurchase", "kkutu.js.alreadyGot", "kkutu.js.notEnoughMoney", "kkutu.js.purchased", "kkutu.js.ping", "kkutu.js.loading",
-    "kkutu.js.resultNotFound", "kkutu.js.resultNotFound.expl", "kkutu.js.day", "kkutu.js.itemTerm", "kkutu.js.itemTermed",
+    "kkutu.js.resultNotFound", "kkutu.js.resultNotFound.expl", "kkutu.js.day", "kkutu.js.item", "kkutu.dialog.setting.load", "kkutu.js.putCouponCode", "kkutu.js.participate", "kkutu.js.surveyNewTab", "kkutu.js.hidden", "kkutu.js.itemTerm", "kkutu.js.itemTermed",
     "kkutu.js.invalidItem", "kkutu.js.invalidItem.expl", "kkutu.js.exts.shop", "kkutu.js.exts.cost", "kkutu.js.drawObtain",
     "kkutu.js.sureEquip", "kkutu.js.sureUnequip", "kkutu.js.sureConsume", "kkutu.js.consume", "kkutu.js.invalidConsume", "kkutu.js.notEnoughConsume",
     "kkutu.js.surePayback", "kkutu.js.payback", "kkutu.js.dressWhichHand", "kkutu.js.equipped", "kkutu.js.obtainExp", "kkutu.js.obtainMoney",

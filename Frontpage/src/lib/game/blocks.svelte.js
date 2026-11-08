@@ -31,6 +31,13 @@ function save(kind) {
 export const isShut = (id) => id in blocked.shut;
 export const isMuted = (id) => id in blocked.mute;
 
+/** Replace the whole list of a kind (a settings file was opened). @param {'shut'|'mute'} kind @param {Record<string,string>} list */
+export function replaceBlocks(kind, list) {
+	for (const k of Object.keys(blocked[kind])) delete blocked[kind][k];
+	Object.assign(blocked[kind], list);
+	save(kind);
+}
+
 /** Switch one kind on or off for a player. Returns whether it is on now. */
 export function toggleBlock(kind, id, nick) {
 	if (id in blocked[kind]) delete blocked[kind][id];

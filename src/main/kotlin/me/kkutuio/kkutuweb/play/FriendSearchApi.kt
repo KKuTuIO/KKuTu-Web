@@ -36,4 +36,25 @@ class FriendSearchApi(
             .map { mapOf("id" to it.id, "nickname" to it.nickname, "score" to (it.kkutu.get("score")?.asLong() ?: 0L), "equip" to it.equip) }
         return ResponseEntity.ok(found)
     }
+
+    /**
+     * Players by (part of) a nickname, one page at a time, for the replay page: the same people the friend search finds (members only), but
+     * oneself is among them and there are more pages. `{users: [...], hasNext}`.
+     */
+    @GetMapping("/api/play/users/lookup")
+    fun lookup(@RequestParam q: String, @RequestParam(defaultValue = "1") page: Int, session: HttpSession): ResponseEntity<Any> {
+        if (session.isGuest()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("error" to "LOGIN_REQUIRED"))
+        val me = loginService.gameUserId(session) ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("error" to "LOGIN_REQUIRED"))
+        val query = q.trim().take(64)
+        if (query.length < 2) return ResponseEntity.ok(mapOf("users" to emptyList<Any>(), "hasNext" to false))
+        if (!rateLimit.allowPublic("user-lookup", me, 60, 60)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(mapOf("error" to "RATE_LIMITED"))
+        }
+        val size = 10
+        val rows = userDao.searchUsersPage(query, size + 1, (page.coerceIn(1, 100) - 1) * size)
+        val users = rows.take(size)
+            .filter { !it.nickname.isNullOrBlank() }
+            .map { mapOf("id" to it.id, "nickname" to it.nickname, "score" to (it.kkutu.get("score")?.asLong() ?: 0L), "equip" to it.equip) }
+        return ResponseEntity.ok(mapOf("users" to users, "hasNext" to (rows.size > size)))
+    }
 }

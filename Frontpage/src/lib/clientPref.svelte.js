@@ -24,5 +24,8 @@ export function setClientPref(value) {
 /** URL that enters channel `n`. */
 export const channelUrl = (n) => (clientPref.value === 'legacy' ? `/game/server/${n}` : `/play/${n}`);
 
-/** URL that enters the recommended channel (the server picks it). */
-export const recommendedUrl = () => (clientPref.value === 'legacy' ? '/game/recommended' : '/game/recommended?client=new');
+/** The recommended channel (the server picks it) in the new client. */
+export const NEW_CLIENT_URL = '/game/recommended?client=new';
+
+/** URL that enters the recommended channel, in the client the player chose. */
+export const recommendedUrl = () => (clientPref.value === 'legacy' ? '/game/recommended' : NEW_CLIENT_URL);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { searchPlayers } from './friendSearch.js';
+import { searchPlayers, lookupUsers } from './friendSearch.js';
 
 const reply = (status, body) => async () => ({ status, ok: status >= 200 && status < 300, json: async () => body });
 
@@ -23,5 +23,28 @@ describe('searchPlayers', () => {
 		expect(await searchPlayers('abc', reply(429, {}))).toEqual({ ok: false, reason: 'rate' });
 		expect(await searchPlayers('abc', reply(500, {}))).toEqual({ ok: false, reason: 'error' });
 		expect(await searchPlayers('abc', async () => { throw new Error('offline'); })).toEqual({ ok: false, reason: 'error' });
+	});
+});
+
+describe('lookupUsers', () => {
+	const reply = (status, body) => async () => ({ status, ok: status >= 200 && status < 300, json: async () => body });
+	it('asks for a page and says whether there is a next one', async () => {
+		let url = '';
+		const fetchFn = async (u) => ((url = u), { status: 200, ok: true, json: async () => ({ users: [{ id: 'a', nickname: '가나#12', score: 5, equip: {} }], hasNext: true }) });
+		const r = await lookupUsers('가나', 2, fetchFn);
+		expect(url).toBe('/api/play/users/lookup?q=%EA%B0%80%EB%82%98&page=2');
+		expect(r.ok && r.hasNext).toBe(true);
+		expect(r.users[0]).toMatchObject({ id: 'a', name: '가나', tag: '12' });
+	});
+	it('does not ask for fewer than two characters', async () => {
+		const r = await lookupUsers('가', 1, async () => {
+			throw new Error('should not be called');
+		});
+		expect(r).toEqual({ ok: true, users: [], hasNext: false });
+	});
+	it('says why when it is refused', async () => {
+		expect(await lookupUsers('가나', 1, reply(401, {}))).toEqual({ ok: false, reason: 'login' });
+		expect(await lookupUsers('가나', 1, reply(429, {}))).toEqual({ ok: false, reason: 'rate' });
+		expect(await lookupUsers('가나', 1, reply(500, {}))).toEqual({ ok: false, reason: 'error' });
 	});
 });

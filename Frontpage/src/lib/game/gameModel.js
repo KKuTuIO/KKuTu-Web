@@ -64,9 +64,14 @@ export function newGame(room) {
 		gameId: undefined,
 		turnId: undefined,
 		inputEpoch: undefined,
-		words: [], // [{id, word, mean, theme, score, bonus}] newest last
+		words: [], // [{id, word, mean, theme, score, bonus}] newest last (the last 60)
+		played: [], // [{id, word, score, bonus, round, hanbang}] every accepted word of the whole game, for the result (hanbang: the letters nobody could go on from, or null)
 		last: null, // the latest turn's outcome {ok, id, value, mean, score, bonus, hint}
 		fail: null, // {code, text, at} the server refused my word
+		items: [2, 2, 2, 2, 2, 2], // 아이템전: how many times I can still use each item this round
+		itemsLeft: 5, // ... and how many uses of any item I have left this round
+		itemLock: false, // I used an item this turn: the server refuses a second one until the next turn
+		itemUse: null, // {target, item, end, at} the latest item anyone used
 		deltas: {}, // id -> {seq, text, kind} the score that just changed, to float over the player
 		result: null,
 		theme: '',
@@ -77,6 +82,7 @@ export function newGame(room) {
 		winner: null, // 자음퀴즈: who answered last
 		gaveUp: {},
 		kpm: null, // 타자 대결: {id: kpm} at the end of a round
+		solved: null, // 수학 대결: {id: the questions answered right so far} at the end of a round (shown instead of the speed)
 		board: '', // 솎솎 / 잇땅: the letters of the board
 		boardSize: 0,
 		owners: [], // 잇땅: who owns each cell
@@ -160,7 +166,7 @@ function resultRows(state, pkt) {
 			rank: Number(r.rank ?? rows.length),
 			score: r.score ?? 0,
 			team: u.game.team,
-			reward: { exp: gained, money: Math.round(r.reward.money ?? 0), ep: Math.round(r.reward.ep ?? 0), baseExp: Math.round(r.reward._score ?? gained), baseMoney: Math.round(r.reward._money ?? r.reward.money ?? 0), log: r.reward._blog ?? [] },
+			reward: { exp: gained, money: Math.round(r.reward.money ?? 0), ep: Math.round(r.reward.ep ?? 0), baseExp: Math.round(r.reward._score ?? gained), baseMoney: Math.round(r.reward._money ?? r.reward.money ?? 0), log: r.reward._blog ?? [], sources: r.reward._bsrc ?? [], levelGifts: r.reward.levelGifts ?? null },
 			before,
 			after,
 			levelBefore: getLevel(before),
@@ -335,6 +341,7 @@ function quizTurnEnd(state, g, data, now) {
 	} else {
 		// the round is over; 타자 대결 tells everyone's speed
 		g.kpm = data.speed && typeof data.speed === 'object' ? { ...data.speed } : null;
+		g.solved = data.solved && typeof data.solved === 'object' ? { ...data.solved } : null;
 		g.phase = 'between';
 	}
 }
@@ -357,6 +364,9 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 			const room = state.rooms[state.myRoom];
 			g.rounds = room?.rounds ?? g.rounds;
 			g.round = Number(pkt.round ?? g.round);
+			g.items = [2, 2, 2, 2, 2, 2]; // the server counts afresh every round
+			g.itemsLeft = 5;
+			g.itemLock = false;
 			g.char = pkt.char ?? '';
 			g.subChar = pkt.subChar ?? '';
 			g.theme = pkt.theme ?? ''; // 훈민정음 / 단어 대결 / 자음퀴즈: the round's theme
@@ -366,6 +376,7 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 			g.winner = null;
 			g.gaveUp = {};
 			g.kpm = null;
+			g.solved = null;
 			g.list = Array.isArray(pkt.list) ? pkt.list.concat(pkt.list) : [];
 			g.painter = pkt.painter && typeof pkt.painter === 'object' ? pkt.painter.id : (pkt.painter ?? null);
 			g.answerLength = Number(pkt.length) || 0;
@@ -421,9 +432,20 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 				g.means = pkt.means ?? [];
 			}
 			g.turnAt = now;
+			g.itemLock = false;
 			g.fail = null;
 			g.last = null;
 			g.phase = 'turn';
+			break;
+		}
+		case 'useItem': {
+			const g = ensure(state);
+			if (pkt.target === state.id) {
+				if (Array.isArray(pkt.remaining) && pkt.remaining.length === 6) g.items = pkt.remaining.slice(0, 6);
+				if (typeof pkt.remainingUses === 'number') g.itemsLeft = pkt.remainingUses;
+				g.itemLock = true;
+			}
+			g.itemUse = { target: pkt.target, item: pkt.item, end: !!pkt.isEnd, at: now };
 			break;
 		}
 		case 'turnError': {
@@ -435,7 +457,8 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 				text = state.meta.labels[`kkutu.js.turn.error.${pkt.code}`] ?? '';
 				if (pkt.value) text = `${text}: ${pkt.value}`;
 			}
-			g.fail = { code: pkt.code, text, at: now };
+			// `word`: the refused word as the server says it (the packet goes to the whole room, not only to who typed it)
+			g.fail = { code: pkt.code, text, word: typeof pkt.value === 'string' ? pkt.value : '', at: now };
 			break;
 		}
 		case 'turnHint': {
@@ -476,10 +499,13 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 			if (id) addScore(state, id, score, data.ok ? 'gain' : 'lost', score > 0 ? `+${score - bonus}` : String(score));
 			if (id && bonus) state.game.deltas[`${id}:bonus`] = { seq: ++deltaSeq, text: `+${bonus}`, kind: 'bonus' };
 			const hint = data.hint && typeof data.hint === 'object' ? data.hint._id : data.hint;
-			g.last = { ok: !!data.ok, id, value: data.value ?? '', mean: data.mean ?? '', theme: data.theme ?? '', wc: data.wc ?? '', score, bonus, hint: hint ?? '' };
+			// 한방: the server says which letters of the word the next player cannot continue from ([start, end) in the word)
+			const hb = Array.isArray(data.hanbang) && data.hanbang.length === 2 && data.hanbang.every(Number.isInteger) ? data.hanbang : null;
+			g.last = { ok: !!data.ok, id, value: data.value ?? '', mean: data.mean ?? '', theme: data.theme ?? '', wc: data.wc ?? '', score, bonus, hint: hint ?? '', hanbang: data.ok ? hb : null };
 			if (data.ok) {
 				g.chain += 1;
 				g.words.push({ id, word: data.value, mean: data.mean ?? '', theme: data.theme ?? '', score, bonus });
+				if (g.played.length < 5000) g.played.push({ id, word: data.value, score, bonus, round: g.round, hanbang: hb });
 				if (g.words.length > 60) g.words.shift();
 			}
 			g.fail = null;

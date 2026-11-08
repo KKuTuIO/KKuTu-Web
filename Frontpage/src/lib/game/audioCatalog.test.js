@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_AUDIO, LOBBY_BGMS, SOUND_SETS, effectiveVolume, lobbyBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl } from './audioCatalog.js';
+import { DEFAULT_AUDIO, LOBBY_BGMS, SOUND_SETS, effectiveVolume, lobbyBgmUrl, resultBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl, tutorialBgmUrl } from './audioCatalog.js';
 
 describe('audio catalog', () => {
 	it('builds legacy CDN urls', () => {
 		expect(soundUrl('dialog', 'acoustic')).toBe('https://cdn.kkutu.io/media/acoustic/dialog.mp3?v=4.1.3c');
 		expect(lobbyBgmUrl('LobbyBGM_NEW')).toBe('https://cdn.kkutu.io/media/LobbyBGM_NEW.mp3?v=4.1.3c');
 		expect(shopBgmUrl()).toBe('https://cdn.kkutu.io/media/ShopBGM.mp3?v=4.1.3c');
+		expect(resultBgmUrl()).toBe('https://cdn.kkutu.io/media/ResultBGM.mp3?v=4.1.3c');
+		expect(tutorialBgmUrl()).toBe('https://cdn.kkutu.io/media/TutorialBGM.mp3?v=4.1.3c');
 	});
 	it('sanitizes stored settings', () => {
 		expect(sanitizeAudio(null)).toEqual(DEFAULT_AUDIO);

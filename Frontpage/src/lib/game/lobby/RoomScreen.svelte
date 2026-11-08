@@ -169,6 +169,7 @@
 				<li><Tooltip text={t('play.create.round')}><span class="inline-flex items-center gap-1 {blink.round ? 'kk-blink' : ''}"><Icon name="repeat" size={18} />{room.rounds}</span></Tooltip></li>
 				<li><Tooltip text={t('play.create.time')}><span class="inline-flex items-center gap-1 {blink.time ? 'kk-blink' : ''}"><Icon name="timer" size={18} />{t('play.create.timeValue', { n: room.time })}</span></Tooltip></li>
 			</ul>
+			<Tooltip text={t('play.room.more')} placement="bottom"><button type="button" aria-haspopup="menu" aria-label={t('play.room.more')} onclick={(e) => store.hooks.openRoomMenu?.(room.no, e)} class="grid size-9 place-items-center rounded-lg text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)"><Icon name="more_horiz" size={22} /></button></Tooltip>
 		</header>
 
 		<!-- Seats (+ teams on the left, as in the legacy screen) -->

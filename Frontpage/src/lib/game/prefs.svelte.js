@@ -15,18 +15,21 @@ export const DEFAULTS = {
 	filter: 'blind', // 필터 설정: blind (♥) | off
 	vibration: true, // 떨림 효과
 	spectatorTag: true, // 관전자 구분
+	dmAlerts: true, // 귓속말 알림: a notice and the unread badge for a new whisper (it is received either way)
 	hideRoom: false, // 방 제목 숨기기
 	hideUsers: false, // 참여자 숨기기
 	ignoreSpectators: false, // 관전 채팅 무시
 	hideRecords: false, // 전적 숨기기
 	userSort: 'entry', // 접속자 정렬: entry | score | name
+	itemDock: 'answer', // 아이템전 아이템 막대 위치: answer | top | bottom | left | right
 	hand: 'right' // 주로 사용하는 손: right | left (left puts the lobby's side bar on the right)
 };
 export const CHOICES = {
 	whisperFrom: ['off', 'guest', 'friend', 'near'],
 	filter: ['blind', 'off'],
 	userSort: ['entry', 'score', 'name'],
-	hand: ['right', 'left']
+	hand: ['right', 'left'],
+	itemDock: ['answer', 'top', 'bottom', 'left', 'right']
 };
 export const USER_SORTS = CHOICES.userSort;
 

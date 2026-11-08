@@ -25,20 +25,29 @@ function save() {
 
 const newId = () => `wardrobe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+/** Replace the outfits with a list from a file (unusable ones are dropped, the limit applies). */
+export function replaceOutfits(list) {
+	wardrobe.list = (Array.isArray(list) ? list : []).map((p, i) => normalizePreset(p, `imported-${i}`)).filter(Boolean).slice(0, MAX_PRESETS);
+	save();
+}
+
 /** Saves an outfit; returns it, or null when the list is full or the name is empty. */
-export function addOutfit(name, equip) {
+export function addOutfit(name, equip, copies) {
 	if (wardrobe.list.length >= MAX_PRESETS) return null;
-	const p = normalizePreset({ id: newId(), name, equip }, newId());
+	const p = normalizePreset({ id: newId(), name, equip, copies }, newId());
 	if (!p) return null;
 	wardrobe.list.push(p);
 	save();
 	return p;
 }
 
-export function overwriteOutfit(id, equip) {
+export function overwriteOutfit(id, equip, copies) {
 	const p = wardrobe.list.find((x) => x.id === id);
 	if (!p) return false;
-	p.equip = normalizePreset({ ...p, equip }, id).equip;
+	const next = normalizePreset({ ...p, equip, copies }, id);
+	p.equip = next.equip;
+	if (next.copies) p.copies = next.copies;
+	else delete p.copies;
 	save();
 	return true;
 }

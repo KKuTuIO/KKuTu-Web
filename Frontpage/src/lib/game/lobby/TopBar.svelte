@@ -7,6 +7,9 @@
 	import GameIcon from './GameIcon.svelte';
 	import MailMenu from './MailMenu.svelte';
 	import { confirm } from '../ui/confirm.svelte.js';
+	import Nudge from './Nudge.svelte';
+	import Mascot from './Mascot.svelte';
+	import { closeNudge, nudgeOpen } from '../nudges.svelte.js';
 	let { store, active = 'lobby', onselect } = $props();
 	const me = $derived(store.me);
 	const guest = $derived(store.net.guest);
@@ -43,7 +46,29 @@
 	from xl up everything is spelled out. The phone strip scrolls, so it always shows labels.
 	Utilities (mail / help / settings) live at the right of the bar and are always icon-only.
 -->
-{#snippet item(m, { strip = false, utility = false } = {})}
+{#snippet item(m, o = {})}
+	{#if m.id === 'help'}
+		<!-- 학사모레미 points at 도움말 until the player opens it (not inside a room, where the lobby's help isn't the point) -->
+		<Nudge id="tutorial" enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom}>
+			{#snippet content()}<Mascot {store} size={44} /><span>{t('play.nudge.tutorial')}</span>{/snippet}
+			{@render navButton(m, o)}
+		</Nudge>
+	{:else if m.id === 'news'}
+		<!-- a new event the player has not seen: its picture under the menu. It waits for the tutorial's nudge, so two bubbles never compete; pressing it opens the page, which counts the event as seen. -->
+		<Nudge id="news" enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
+			{#snippet content()}
+				<span class="flex min-w-0 flex-col gap-1.5">
+					<span class="flex flex-col px-1"><b class="text-sm font-extrabold">{t('play.news.nudge')}</b><span class="truncate text-xs font-bold text-(color:--kk-muted)">{store.newsNudge?.name}</span></span>
+					<img src={store.newsNudge?.image} alt="" draggable="false" decoding="async" class="aspect-[518/190] w-72 max-w-full rounded-xl object-cover" />
+				</span>
+			{/snippet}
+			{@render navButton(m, o)}
+		</Nudge>
+	{:else}
+		{@render navButton(m, o)}
+	{/if}
+{/snippet}
+{#snippet navButton(m, { strip = false, utility = false } = {})}
 	{@const on = m.id === active}
 	<!--
 		Moving between menus animates like a chipped nav: the chosen item fills with its colour and its label slides open,
@@ -53,13 +78,18 @@
 		<button
 			type="button"
 			aria-current={on ? 'page' : undefined}
-			aria-label={t(`play.nav.${m.id}`)}
-			onclick={() => onselect?.(m.id)}
+			aria-label={m.id === 'news' && store.newsAlerts.length ? t('play.news.alertAria', { n: store.newsAlerts.length }) : t(`play.nav.${m.id}`)}
+			data-tour={utility ? m.id : undefined}
+			onclick={() => {
+				if (m.id === 'help') closeNudge('tutorial');
+				onselect?.(m.id);
+			}}
 			style:--c={m.color}
-			class="inline-flex h-10 min-w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl font-bold whitespace-nowrap transition-all duration-300 ease-out {on
+			class="relative inline-flex h-10 min-w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl font-bold whitespace-nowrap transition-all duration-300 ease-out {on
 				? 'bg-(--c) px-3.5 font-extrabold text-[#111]'
 				: `${utility ? 'px-2.5' : 'px-2.5 xl:px-3.5'} bg-transparent text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)`}"
 		>
+			{#if m.id === 'news' && store.newsAlerts.length && !on}<span class="absolute top-1.5 right-1.5 size-2 rounded-full bg-(--kk-danger)" aria-hidden="true"></span>{/if}
 			<!-- width goes 0 -> its own size through a 0fr -> 1fr grid track, so the motion follows the real width, not a guessed maximum -->
 			<span class="grid shrink-0 items-center transition-[grid-template-columns,opacity] duration-300 ease-out {strip && !on ? 'grid-cols-[0fr] opacity-0' : 'grid-cols-[1fr] opacity-100'}"><span class="flex min-w-0 items-center overflow-hidden"><Icon name={m.icon} size={22} fill={on} /></span></span>
 			<span
@@ -79,7 +109,7 @@
 		<!-- Symbol only, at every size. -->
 		<Logo class="h-8" />
 	</a>
-	<nav aria-label={t('play.nav.label')} class="hidden min-w-0 items-center gap-1 md:ml-4 md:flex">
+	<nav data-tour="nav" aria-label={t('play.nav.label')} class="hidden min-w-0 items-center gap-1 md:ml-4 md:flex">
 		{#each items as m (m.id)}{@render item(m)}{/each}
 	</nav>
 	<div class="ml-auto flex shrink-0 items-center gap-2">

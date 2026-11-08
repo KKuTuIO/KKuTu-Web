@@ -13,6 +13,8 @@ import { isHidden } from './chatFilter.js';
 import { i18n, loadLocale, t } from './i18n.svelte.js';
 import { createTelemetry } from './telemetry.js';
 import { identity } from './identity.js';
+import { createSecurity } from './security/index.js';
+import { socketSend } from './security/native.js';
 import { QUIZ } from './gameModel.js';
 import { MAX_ATTEMPTS, retryDelay, shouldReconnect } from './reconnect.js';
 import { activeMaintenance, classifyOutage, SCHEDULE_EVERY, SCHEDULE_URL } from './outage.js';
@@ -155,6 +157,8 @@ export function createConnection(server) {
 			if (pkt.type === 'welcome') {
 				// Identity is a mandatory signal (the server drops the connection after 15 s without it). Collecting it can take a
 				// moment (the audio probe), so each probe is cut off after 5 s and whatever is missing is sent as 'n/a'.
+				security.start();
+				security.sendInit();
 				identity().then((report) => send('identity', report));
 				startPing();
 				state.outage = null;
@@ -191,6 +195,12 @@ export function createConnection(server) {
 		try {
 			pkt = JSON.parse(raw);
 		} catch {
+			return;
+		}
+		if (pkt.type === 'test') {
+			// the server's challenges (heartbeat, last-word request): answered here, nothing for the game to show
+			security.answerTest(pkt);
+			if (pkt.reqType === 127) lastType = 'ack';
 			return;
 		}
 		if (pkt.type === 'pong') state.pingMs = Math.round(performance.now() - sentAt);
@@ -268,6 +278,40 @@ export function createConnection(server) {
 	let masterHook;
 	const handled = new WeakSet(); // kick notices already shown
 	const telemetry = createTelemetry({ send: (type, data) => send(type, data) }); // the answer field's input trace
+	// what the server's heartbeat asks about, and the word it asks for when a `checker` did not match (legacy: lastType / lastRelay)
+	let lastType = '';
+	let lastRelay = '';
+	const security = createSecurity({
+		send: (type, data) => send(type, data, true),
+		lastType: () => lastType,
+		lastRelay: () => lastRelay,
+		isGaming: () => !!state.rooms[state.myRoom]?.playing, // (the client's rooms say `playing`; `gaming` is the server's name)
+		isAdmin: () => !!state.admin,
+		debugContext: () => ({ roomId: Number(state.myRoom) || 0, masterState: ws?.readyState ?? -1, slaveState: rws?.readyState ?? -1 })
+	});
+	// legacy client-side flood guard: more than ten sends within a few seconds is a warning, three warnings close the connection
+	let spamCount = 0;
+	let spamWarning = 0;
+	const spamDecay = setInterval(() => {
+		if (spamCount > 0) spamCount = Math.max(0, spamCount - 3);
+		else if (spamWarning > 0) spamWarning -= 0.03;
+	}, 1000);
+	function checkSpam(sock) {
+		if (spamCount++ > 10) {
+			if (++spamWarning >= 3) {
+				sock.close();
+				return false;
+			}
+			spamCount = 5;
+		}
+		return true;
+	}
+	const pageHide = (e) => rws && security.debug('pagehide', { persisted: !!e.persisted });
+	const offline = () => rws && security.debug('offline');
+	if (typeof window !== 'undefined') {
+		window.addEventListener('pagehide', pageHide);
+		window.addEventListener('offline', offline);
+	}
 
 	/** 오끄감 buff toasts, as in the legacy client: reset at midnight, or a new buff earned. */
 	function okgNotice(before, pkt) {
@@ -280,7 +324,7 @@ export function createConnection(server) {
 
 	// Which socket a message goes to, same rule as the legacy client: lobby-level messages to master, room
 	// actions to the room worker, and everything else (chat, room settings) to the worker while in a room.
-	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon']);
+	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry']);
 	const ROOM_ONLY = new Set(['leave', 'ready', 'start', 'practice', 'invite', 'form', 'team', 'kick', 'kickVote', 'handover', 'setAI', 'useItem', 'wp']);
 	/** 22-char url-safe id (16 random bytes), required by the server on durable requests so a retry can't apply twice. */
 	function newRequestId() {
@@ -289,12 +333,18 @@ export function createConnection(server) {
 	}
 	const DURABLE = new Set(['saveProgress', 'import', 'newUid']);
 	let enterPassword = ''; // what the last room entry sent: asking to watch a running game re-sends it (legacy 416)
-	function send(type, data = {}) {
+	// observation traffic and the drawing stream do not use up the flood guard's budget
+	const UNMETERED = new Set(['securityTelemetry', 'inputTrace', 'drawingCanvas', 'ping']);
+	function send(type, data = {}, toMaster = false) {
 		if (type === 'enter' && data.id !== undefined && !data.spectate) enterPassword = data.password ?? '';
 		if (DURABLE.has(type) && !data.requestId) data = { ...data, requestId: newRequestId() };
 		// Whispers go through the master (it knows everyone), like the other lobby-wide messages.
-		const sock = MASTER_ONLY.has(type) || (type === 'talk' && data.whisper) ? ws : ROOM_ONLY.has(type) ? rws : (rws ?? ws);
-		if (sock?.readyState === WebSocket.OPEN) sock.send(JSON.stringify({ ...data, type }));
+		const sock = toMaster || MASTER_ONLY.has(type) || (type === 'talk' && data.whisper) ? ws : ROOM_ONLY.has(type) ? rws : (rws ?? ws);
+		if (sock?.readyState !== WebSocket.OPEN) return;
+		if (!UNMETERED.has(type) && !checkSpam(sock)) return;
+		lastType = type;
+		if (type === 'talk' && data.relay) lastRelay = data.value;
+		socketSend(sock, JSON.stringify({ ...data, type })); // through the browser's own send, so a hook on WebSocket.prototype.send is bypassed
 	}
 	const sendRoom = send; // kept for existing callers
 
@@ -302,9 +352,11 @@ export function createConnection(server) {
 		rws?.close(1000, 'reconnect');
 		const url = wsUrl.replace(/:(\d+)/, (_, port) => `:${Number(port) + 416 + Number(channel) - 1}`) + `&${channel}&${id}`;
 		const sock = (rws = new WebSocket(url));
-		sock.onopen = () => sock.send(JSON.stringify({ type: 'handoff', token: handoffToken ?? state.preRoom?.token }));
+		sock.onopen = () => socketSend(sock, JSON.stringify({ type: 'handoff', token: handoffToken ?? state.preRoom?.token }));
+		sock.onerror = () => security.debug('slave-error', { channel: Number(channel), targetRoomId: Number(id) });
 		sock.onmessage = (e) => handle(e.data, false);
-		sock.onclose = () => {
+		sock.onclose = (e) => {
+			security.debug('slave-close', { code: e.code, reason: e.reason || '', wasClean: !!e.wasClean, channel: Number(channel), targetRoomId: Number(id) });
 			if (rws === sock) rws = undefined;
 			state.myRoom = null;
 			if (state.game) {
@@ -339,6 +391,8 @@ export function createConnection(server) {
 	return {
 		/** the answer field's input trace (see telemetry.js) */
 		telemetry,
+		/** the page-wide and field-level anti-cheat (see security/) */
+		security,
 		/** the recording of the last game (see replayRec.js) */
 		recorder,
 		state,
@@ -351,6 +405,12 @@ export function createConnection(server) {
 		reconnect: reconnectNow,
 		close: () => {
 			leaving = true;
+			security.stop();
+			clearInterval(spamDecay);
+			if (typeof window !== 'undefined') {
+				window.removeEventListener('pagehide', pageHide);
+				window.removeEventListener('offline', offline);
+			}
 			clearTimeout(retryTimer);
 			clearInterval(pingTimer);
 			if (browser) {

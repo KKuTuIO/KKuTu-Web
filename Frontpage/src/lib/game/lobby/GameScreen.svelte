@@ -16,6 +16,7 @@
 	import { IMAGE_CDN, IMAGE_VERSION } from '../images.js';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import Tooltip from '../ui/Tooltip.svelte';
+	import { shadowField } from '../shadowField.js';
 	import Icon from './Icon.svelte';
 	import LevelIcon from './LevelIcon.svelte';
 	import NickName from './NickName.svelte';
@@ -465,7 +466,7 @@
 		if (!itemOn || !e.shiftKey || e.altKey || e.ctrlKey || e.metaKey || !/^Digit[1-6]$/.test(e.code)) return;
 		const el = e.target;
 		// typing '!' in the chat or any other text field stays typing; the answer field is the one place the keys work from
-		if (el instanceof HTMLElement && el.id !== 'game-input' && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
+		if (el instanceof HTMLElement && el !== answerHost && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
 		e.preventDefault();
 		const id = Number(e.code.slice(5)) - 1;
 		if (itemReady(g, id, store.myTurn)) useItem(id);
@@ -498,8 +499,33 @@
 			if (store.submitWord(value)) value = '';
 		}
 	}
-	// The answer fields report what is typed into them to the server (see telemetry.js); the scope moves with the game.
-	const trace = (node) => store.telemetry.observe(node, () => store.traceScope?.() ?? null);
+	// The answer fields live in closed shadow roots (shadowField.js, lobby/AnswerInput.svelte): a script that looks through the page for the
+	// input finds only decoys. They are guarded and report what is typed into them to the server (see security/ and telemetry.js).
+	// `field` / `cwInput` are the inputs inside (focus), `answerHost` the element that stands for the answer field in the page.
+	let answerHost = $state();
+	const watchAnswer = (node, where) => store.watchField(node, 'answer', where);
+	const tamper = () => store.security?.report('Bengal', { modified: 2 }); // the shadow root came back open
+	const answerField = {
+		get value() {
+			return value;
+		},
+		set value(v) {
+			value = v;
+		},
+		variant: 'answer',
+		get placeholder() {
+			return t('kkutu.product.game.inputHere');
+		},
+		get label() {
+			return t('kkutu.product.game.title');
+		},
+		oninput: (e) => store.setTyped(value, e.isComposing),
+		oncompositionend: () => store.setTyped(value),
+		onkeydown: (e) => keydown(e),
+		onready: (node, host) => ((field = node), (answerHost = host)),
+		watch: watchAnswer,
+		ontamper: tamper
+	};
 
 	// ---- 워드스택: a piece that has been held for 14 s pulses; pieces fly between the players' cards ----
 	let tickNow = $state(clock());
@@ -606,6 +632,27 @@
 		if (!cwValue || !g?.sel) return (cwValue = '');
 		if (store.submitWord(cwValue, g.sel)) cwValue = '';
 	}
+
+	const cwField = {
+		get value() {
+			return cwValue;
+		},
+		set value(v) {
+			cwValue = v;
+		},
+		variant: 'crossword',
+		get placeholder() {
+			return t('kkutu.product.game.inputHere');
+		},
+		get label() {
+			return t('kkutu.product.game.title');
+		},
+		onkeydown: (e) => cwKey(e),
+		onblur: () => store.selectBar(null),
+		onready: (node) => (cwInput = node),
+		watch: watchAnswer,
+		ontamper: tamper
+	};
 
 	// ---- 솎솎: the words found, longest first; the cells just taken fade out ----
 	const sortedMaps = $derived([...(g?.maps ?? [])].map((text, i) => ({ text, i })).sort((a, b) => b.text.length - a.text.length || a.i - b.i));
@@ -775,7 +822,7 @@
 								{#if family === 'Crossword'}
 									<div class="b-left cwcmd" style:opacity={g?.sel ? 1 : 0} data-cwcmd>
 										<div class="cw-q-head">{#if cwMean}{t(cwMean.dir == 1 ? 'kkutu.js.cwVert' : 'kkutu.js.cwHorz')}{cwMean.len}{t('kkutu.js.cwL')}{/if}</div>
-										<input use:trace bind:this={cwInput} bind:value={cwValue} onkeydown={cwKey} onblur={() => store.selectBar(null)} autocomplete="off" spellcheck="false" aria-label={t('kkutu.product.game.title')} placeholder={t('kkutu.product.game.inputHere')} id="cw-q-input" />
+										<div class="answer-host" use:shadowField={cwField}></div>
 										<div class="cw-q-body">{#if cwMean}{@render meaning(processWord(cwMean.mean, cwMean.theme, labels))}{/if}</div>
 									</div>
 								{:else}
@@ -914,7 +961,7 @@
 						{/if}
 						<div class="game-input" data-tour="game-input" style:display={canType ? 'block' : 'none'}>
 							{#if wrongLang}<p class="kkg-lang-warn" role="status" data-lang-warn={wrongLang}><Icon name="warning" size={17} fill /><span data-lang-warn-text>{t(`play.game.langWarn.${wrongLang}`)}</span></p>{/if}
-							<input id="game-input" use:trace bind:this={field} bind:value oninput={(e) => store.setTyped(value, e.isComposing)} oncompositionend={() => store.setTyped(value)} onkeydown={keydown} autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label={t('kkutu.product.game.title')} placeholder={t('kkutu.product.game.inputHere')} />
+							<div class="answer-host" use:shadowField={answerField}></div>
 						</div>
 					</div>
 					{/if}

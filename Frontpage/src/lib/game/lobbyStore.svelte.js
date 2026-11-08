@@ -38,6 +38,7 @@ export function createLobbyStore(server) {
 	const chatUi = $state({ draft: { text: '', nonce: 0 }, dm: { peer: null, nonce: 0 } });
 	const conn = createConnection(server);
 	const telemetry = conn.telemetry;
+	const security = conn.security;
 	/**
 	 * 타자 / 수학 대결: the server numbers each player's problems itself (`p{index}`, back to 0 after the last one) and moves on at a right
 	 * answer. The client learns of it from the answer's `turnEnd`, but the next text is typed before that arrives, so a right 타자 answer
@@ -359,35 +360,58 @@ export function createLobbyStore(server) {
 			return QUIZ.includes(familyOf(net)) ? true : net.game.current === net.id;
 		},
 		/**
-		 * Which trace the answer field's input belongs to: `{ r }` as the server names its scope (`r` left out for the turn scope), or
-		 * null while there is nothing to trace. The server rejects a trace whose scope is not its own, so these follow its rules:
+		 * Which trace the input of a field belongs to: `{ r }` as the server names its scope (`r` left out for the turn scope),
+		 * `{ pending: true }` or null while there is nothing to trace. The server rejects a trace whose scope is not its own, so
+		 * these follow its rules:
 		 *   끝말잇기 / 단어 대결 / 훈민정음: the turn (no ref);   자음퀴즈 / 그림퀴즈: the round;
 		 *   타자 / 수학 대결: the problem the player is on (see `problemIndex`);   십자말풀이: the selected bar;
 		 *   솎솎 / 잇땅 / 워드스택: one scope for the round (0).
+		 * `source` is 'answer' (the answer fields, which only exist on my turn) or 'chat': the chat box is an answer box too, and
+		 * in a turn-by-turn rule what is typed there while another player is on turn is traced as pending input.
 		 */
-		traceScope() {
+		traceScope(source = 'answer') {
 			const g = net.game;
-			if (!g || g.phase !== 'turn' || !this.myTurn) return null;
-			switch (familyOf(net)) {
-				case 'Classic':
-				case 'Daneo':
-				case 'Hunmin':
-					return {};
-				case 'Jaqwi':
-				case 'Drawing':
-					return Number.isInteger(g.round) ? { r: g.round } : null;
-				case 'Typing':
-				case 'Mathquiz':
-					return { r: problemIndex(g) };
-				case 'Sock':
-				case 'Linkland':
-				case 'Wordstack':
-					return { r: 0 };
-				case 'Crossword':
-					return Array.isArray(g.sel) && g.sel.length === 4 ? { r: g.sel.map(Number) } : null;
-				default:
-					return null;
+			if (!g) return null;
+			const fam = familyOf(net);
+			if (g.phase === 'turn' && this.myTurn) {
+				switch (fam) {
+					case 'Classic':
+					case 'Daneo':
+					case 'Hunmin':
+						return {};
+					case 'Jaqwi':
+					case 'Drawing':
+						return Number.isInteger(g.round) ? { r: g.round } : null;
+					case 'Typing':
+					case 'Mathquiz':
+						return { r: problemIndex(g) };
+					case 'Sock':
+					case 'Linkland':
+					case 'Wordstack':
+						return { r: 0 };
+					case 'Crossword':
+						return Array.isArray(g.sel) && g.sel.length === 4 ? { r: g.sel.map(Number) } : null;
+					default:
+						return null;
+				}
 			}
+			const playing = net.users[net.id]?.game.form === 'J';
+			if (source === 'chat' && playing && ['Classic', 'Daneo', 'Hunmin'].includes(fam) && ['turn', 'between'].includes(g.phase)) return { pending: true };
+			return null;
+		},
+		/**
+		 * Watch an input field that answers can be typed into (the answer field, the crossword field, the chat box): the anti-cheat's
+		 * input rules and tripwires first, then the input trace. A Svelte action: `use:watch`. `source` as in `traceScope`.
+		 */
+		watchField(node, source = 'answer', where = {}) {
+			const guard = security.guard(node, { decoys: source === 'answer', ...where }); // `where`: a field in a shadow root says where it stands in the page
+			const trace = telemetry.observe(node, () => this.traceScope(source));
+			return {
+				destroy() {
+					trace.destroy();
+					guard.destroy();
+				}
+			};
 		},
 		/** Send the word for my turn (the same message the legacy client sends, with the ids that tie it to this turn). */
 		submitWord(value, data) {
@@ -604,12 +628,13 @@ export function createLobbyStore(server) {
 			const value = msg.trim();
 			if (!value) return;
 			// 그림퀴즈: the one who draws cannot send anything while the game runs (legacy)
-			if (net.game && net.game.painter === net.id && net.game.phase !== 'ended') return notice(net, plainText(i18n.messages['kkutu.product.chat.painterChatBlocked'] ?? ''));
-			if (value[0] === '/') return this.runCommand(value);
+			if (net.game && net.game.painter === net.id && net.game.phase !== 'ended') return (telemetry.cleared(), notice(net, plainText(i18n.messages['kkutu.product.chat.painterChatBlocked'] ?? '')));
+			if (value[0] === '/') return (telemetry.cleared(), this.runCommand(value));
 			// An administrator's "#…" line is a command for the server: not my answer on my turn, and not subject to the chat spam guard.
-			if (net.admin && isAdminCommand(value)) return conn.send('talk', { value });
+			if (net.admin && isAdminCommand(value)) return (telemetry.cleared(), conn.send('talk', { value }));
 			// On my turn a line typed in the chat is my answer, just like one typed in the game's own field.
 			if (this.myTurn) return this.submitWord(msg);
+			telemetry.cleared(); // a chat line is not an answer: the chat box is emptied by the page, not by typing
 			const verdict = spam(value);
 			if (!verdict.allow) {
 				if (verdict.notice) notice(net, t(verdict.notice, { seconds: verdict.seconds }));

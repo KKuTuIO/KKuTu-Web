@@ -141,6 +141,7 @@ export function createReplay(rec, { meta, shop, onexit = () => {}, clock = () =>
 		hooks: { openProfile() {} },
 		telemetry: noTelemetry,
 		traceScope: () => null,
+		watchField: () => ({ destroy() {} }),
 		conn: { send() {} },
 		get game() {
 			return net.game;

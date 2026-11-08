@@ -2,15 +2,25 @@
 	import { t } from '../i18n.svelte.js';
 	import Icon from './Icon.svelte';
 	import { playSound } from '../audio.svelte.js';
-	/** Modal built on <dialog>: focus trap, Esc and backdrop come from the platform. */
+	/**
+	 * Modal built on <dialog>: focus trap, Esc and backdrop come from the platform. The dialog and everything in it exist only while it is open
+	 * (and while it animates out): a closed dialog leaves nothing in the page for a script to read or hook.
+	 */
 	let { open = $bindable(false), title, children, onclose, bouncy = true, size = 'md', ghost = false } = $props();
 	let el = $state();
 	let closing = false;
+	let keep = $state(false); // closed, but still animating out
+	const mounted = $derived(open || keep);
+	// closing while still on screen: stay mounted until the exit animation is over (finishClose / onclose unload it)
+	$effect.pre(() => {
+		if (!open && el?.open) keep = true;
+	});
 
 	function finishClose() {
 		closing = false;
 		el.classList.remove('kk-closing');
 		el.close();
+		keep = false;
 	}
 
 	$effect(() => {
@@ -36,6 +46,7 @@
 	});
 </script>
 
+{#if mounted}
 <dialog
 	bind:this={el}
 	tabindex="-1"
@@ -47,6 +58,7 @@
 	}}
 	onclose={() => {
 		open = false;
+		keep = false;
 		onclose?.();
 	}}
 	onclick={(e) => e.target === el && (open = false)}
@@ -62,3 +74,4 @@
 		<div class="min-h-0 flex-1 overflow-y-auto p-4">{@render children?.()}</div>
 	</div>
 </dialog>
+{/if}

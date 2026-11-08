@@ -2,6 +2,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 import tailwindcss from '@tailwindcss/vite';
 import { execSync } from 'node:child_process';
+import { obfuscateSecurity } from './build/obfuscateSecurity.js';
 
 /** The Git commit this build is made from (short id, `+` when the working tree has changes). CI can pass it as COMMIT_SHA / GITHUB_SHA when there is no .git. */
 function commit() {
@@ -21,7 +22,9 @@ export default defineConfig({
 	resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
 	plugins: [
 		sveltekit(),
-		tailwindcss()
+		tailwindcss(),
+		// pnpm build:hardened: the anti-cheat modules get the legacy client's heavy obfuscation (see build/obfuscateSecurity.js)
+		...(process.env.OBFUSCATE_SECURITY ? [obfuscateSecurity()] : [])
 	],
 	test: {
 		environment: 'jsdom',

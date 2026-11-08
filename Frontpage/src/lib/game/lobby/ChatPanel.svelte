@@ -156,6 +156,8 @@
 		await toBottom();
 		input?.focus();
 	}
+	// the chat box doubles as the answer box: guarded and traced like the answer field
+	const watch = (node) => store.watchField(node, 'chat');
 	function send(e) {
 		e.preventDefault();
 		store.sendChat(text);
@@ -230,7 +232,7 @@
 			</div>
 		{/if}
 		<form onsubmit={send} class="flex items-center gap-2 border-t border-(color:--kk-line) bg-(--kk-panel) p-2.5">
-			<input bind:this={input} bind:value={text} aria-label={t('play.chat.input')} placeholder={store.inGame ? t(mobileInput ? 'kkutu.product.chat.warningMobile' : 'kkutu.product.chat.warning') : t('play.chat.placeholder')} maxlength="200" autocomplete="off" role={suggest.length ? 'combobox' : undefined} aria-expanded={suggest.length ? true : undefined} aria-controls={suggest.length ? `${uid}-sugg` : undefined} aria-activedescendant={suggest.length ? `${uid}-sugg-${sIdx}` : undefined} onkeydown={(e) => suggestKey(e) || store.spaceSubmits(e, text, () => (text = ''))} oninput={(e) => store.myTurn && store.setTyped(text, e.isComposing)} oncompositionend={() => store.myTurn && store.setTyped(text)} class="h-11 min-w-0 flex-1 kk-input px-3" />
+			<input use:watch bind:this={input} bind:value={text} aria-label={t('play.chat.input')} placeholder={store.inGame ? t(mobileInput ? 'kkutu.product.chat.warningMobile' : 'kkutu.product.chat.warning') : t('play.chat.placeholder')} maxlength="200" autocomplete="off" role={suggest.length ? 'combobox' : undefined} aria-expanded={suggest.length ? true : undefined} aria-controls={suggest.length ? `${uid}-sugg` : undefined} aria-activedescendant={suggest.length ? `${uid}-sugg-${sIdx}` : undefined} onkeydown={(e) => suggestKey(e) || store.spaceSubmits(e, text, () => (text = ''))} oninput={(e) => store.myTurn && store.setTyped(text, e.isComposing)} oncompositionend={() => store.myTurn && store.setTyped(text)} class="h-11 min-w-0 flex-1 kk-input px-3" />
 			<button class="kk-btn kk-btn-primary grid size-11 shrink-0 place-items-center p-0" aria-label={t('play.chat.send')} disabled={!text.trim()}><Icon name="send" size={20} fill /></button>
 		</form>
 		</div>

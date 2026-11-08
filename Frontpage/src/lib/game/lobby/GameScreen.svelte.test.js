@@ -34,6 +34,8 @@ const feed = async (net, ...pkts) => {
 };
 const wait = (n) => new Promise((r) => setTimeout(r, n));
 const display = () => document.querySelector('[data-display]');
+/** The answer field lives in a shadow root (open in tests, closed in the browser): the page itself cannot find it by id. */
+const answerInput = () => document.querySelector('.answer-host')?.shadowRoot?.querySelector('input');
 
 /** The result flow is the full ranking, then (다음) my own result with the rewards and the gauge. */
 async function toMine(dialog) {
@@ -76,7 +78,7 @@ describe('GameScreen (a port of the legacy board)', () => {
 		render(GameScreen, { store });
 		await feed(net, { type: 'roundReady', round: 1, char: '가' }, { type: 'turnStart', turn: 0, char: '가', turnTime: 10000, roundTime: 60000, gameId: 'g1', turnId: 't1', inputEpoch: 3 });
 		expect(document.querySelector('.game-input').style.display).toBe('block');
-		const input = document.querySelector('#game-input');
+		const input = answerInput();
 		expect(input.placeholder).toBe('여기에 입력하세요.');
 		await fireEvent.input(input, { target: { value: '가위' } });
 		await fireEvent.keyDown(input, { key: 'Enter', isComposing: true }); // still composing a syllable: not yet
@@ -234,7 +236,7 @@ describe('GameScreen (a port of the legacy board)', () => {
 		expect(screen.queryByRole('dialog', { name: '레벨 업!' })).toBeNull();
 		expect(dialog.querySelector('[data-gauge-text]').textContent).toMatch(/^700 \/ /); // the gauge has run its course
 		await fireEvent.click(screen.getByRole('button', { name: '확인' }));
-		await vi.runAllTimersAsync();
+		await vi.advanceTimersByTimeAsync(5000); // (not runAllTimers: the answer fields' guards keep a few timers for as long as they are on screen)
 		expect(net.game).toBeNull();
 	});
 
@@ -355,7 +357,7 @@ describe('GameScreen (a port of the legacy board)', () => {
 			render(GameScreen, { store });
 			await feed(net, { type: 'roundReady', round: 1, char: '가' }, { type: 'turnStart', turn: 0, char: '가', turnTime: 10000, roundTime: 60000, wordLength: 3 });
 			const type = async (text) => {
-				const input = document.getElementById('game-input');
+				const input = answerInput();
 				input.value = text;
 				await fireEvent.input(input);
 			};
@@ -387,7 +389,7 @@ describe('GameScreen (a port of the legacy board)', () => {
 		it('only warns, it never changes what was typed', async () => {
 			const { type } = await myTurn('ko');
 			await type('dkssud');
-			expect(document.getElementById('game-input').value).toBe('dkssud');
+			expect(answerInput().value).toBe('dkssud');
 		});
 	});
 
@@ -431,7 +433,7 @@ describe('GameScreen (a port of the legacy board)', () => {
 		net.meta.rules = { KSH: { rule: 'Typing' } };
 		render(GameScreen, { store });
 		await feed(net, { type: 'roundReady', round: 1, list: ['가나', '다라'] }, { type: 'turnStart', turn: 0, roundTime: 60000, gameId: 'g', turnId: 't', inputEpoch: 1 });
-		const input = document.querySelector('#game-input');
+		const input = answerInput();
 		await fireEvent.input(input, { target: { value: '가나' } });
 		await fireEvent.keyDown(input, { key: ' ', code: 'Space' });
 		expect(sent.at(-1)).toMatchObject({ type: 'talk', relay: true, value: '가나' });

@@ -122,7 +122,6 @@
 /* the answer field, laid over the history strip on my turn */
 .kkg .game-input { position: relative; top: -220px; left: 244px; padding: 5px; border-radius: 10px; background-color: rgba(0, 0, 0, 0.7); }
 /* legacy: input, select, textarea { display:block; padding:5px; border:1px solid #AAAAAA; border-radius:10px } */
-.kkg #game-input { display: block; font-family: inherit; padding: 5px; border: 1px solid #AAAAAA; border-radius: 10px; width: 478px; height: 40px; font-size: 20px; outline: none; background-color: #FFFFFF; color: #111111; }
 
 /* the players */
 .kkg .game-body { margin: 0px -1px; width: 992px; height: 195px; overflow-y: scroll; scrollbar-width: none; scroll-behavior: smooth; }
@@ -236,8 +235,6 @@
 .kkg .history-mean { color: var(--kk-muted); }
 
 .kkg .game-input { border-radius: 14px; background-color: var(--kk-surface); box-shadow: inset 0 0 0 1.5px var(--kk-line-strong), 0 3px 0 var(--kk-line-strong); }
-.kkg #game-input { border-color: var(--kk-line); border-radius: 10px; background-color: var(--kk-surface-2); color: var(--kk-text); }
-.kkg #game-input:focus { border-color: var(--kk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-accent) 28%, transparent); }
 
 .kkg .game-user { border-color: var(--kk-line); border-radius: 14px; background-color: var(--kk-surface); color: var(--kk-text); box-shadow: 0 3px 0 var(--kk-line-strong); }
 .kkg .game-user-current { background-color: var(--kk-accent-soft); }
@@ -353,8 +350,6 @@
 /* ---- 십자말풀이 ---- */
 .kkg .cwcmd { box-sizing: border-box; height: auto; margin-top: 25px; transition: opacity 0.15s; }
 .kkg .cw-q-head { margin: 3px 0px; width: 100%; font-size: 13px; color: var(--kk-text); text-align: center; min-height: 16px; }
-.kkg #cw-q-input { display: block; box-sizing: border-box; width: 100%; height: 30px; padding: 5px; border: 1px solid var(--kk-line-strong); border-radius: 10px; font-family: inherit; font-size: 15px; background: var(--kk-surface); color: var(--kk-text); outline: none; }
-.kkg #cw-q-input:focus { border-color: var(--kk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-accent) 28%, transparent); }
 .kkg .cw-q-body { box-sizing: border-box; width: 100%; padding: 5px; border-radius: 10px; margin-top: 5px; color: #CCCCCC; background-color: #111111; min-height: 60px; }
 .kkg .cw-bar { position: absolute; border-radius: 10px; cursor: pointer; background-color: #C7C7C7; }
 .kkg .cw-bar:hover, .kkg .cw-bar:focus-visible { background-color: #F2F2F2; z-index: 1; outline: none; }

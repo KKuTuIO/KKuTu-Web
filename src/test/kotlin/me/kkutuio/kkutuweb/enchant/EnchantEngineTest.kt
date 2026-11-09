@@ -118,4 +118,57 @@ class EnchantEngineTest {
         assertFalse(EnchantEngine.isValid(EnchantLine("ogg_max_stack", 1, "KKT")))
         assertTrue(EnchantEngine.isValid(EnchantLine("ping_pct", 30, "KKT")))
     }
+
+    @Test
+    fun `damage chance starts at level 3 with 20 and rises 20 per level to 80`() {
+        assertEquals(listOf(0, 0, 0, 20, 40, 60, 80, 80, 80), (0..8).map { EnchantRules.damageChance(it) })
+    }
+
+    @Test
+    fun `a hit is between one step and the chance of the level, and only touches one line`() {
+        val lines = listOf(EnchantLine("ping_per_player", 8), EnchantLine("exp_per_player", 8), EnchantLine("ogg_max_stack", 3))
+        var hits = 0
+        repeat(5000) {
+            val out = EnchantEngine.damage(lines, 3, Random(it))
+            if (out !== lines) {
+                hits++
+                val changed = out.indices.filter { i -> out[i] != lines[i] }
+                assertEquals(1, changed.size)
+                assertTrue(out[changed[0]].damage in 1..EnchantRules.maxHit(3))
+            }
+        }
+        assertEquals(1000.0, hits.toDouble(), 120.0) // 20% of 5000
+    }
+
+    @Test
+    fun `below the damage level nothing is ever damaged`() {
+        val lines = listOf(EnchantLine("ping_per_player", 8))
+        repeat(2000) { assertSame(lines, EnchantEngine.damage(lines, 2, Random(it))) }
+    }
+
+    @Test
+    fun `damage adds up, stops at the whole line and a used up line is not hit again`() {
+        val gone = EnchantLine("ping_per_player", 8, damage = EnchantRules.DAMAGE_FULL)
+        assertSame(listOf(gone).let { it }.size, 1)
+        repeat(500) { val out = EnchantEngine.damage(listOf(gone), 6, Random(it)); assertEquals(listOf(gone), out) }
+        val near = EnchantLine("ping_per_player", 8, damage = EnchantRules.DAMAGE_FULL - 1)
+        repeat(500) { for (l in EnchantEngine.damage(listOf(near), 6, Random(it))) assertTrue(l.damage <= EnchantRules.DAMAGE_FULL) }
+    }
+
+    @Test
+    fun `a damaged line counts less in the summary`() {
+        val half = EnchantLine("ping_per_player", 8, damage = EnchantRules.DAMAGE_FULL / 2)
+        assertEquals(mapOf("ping_per_player" to 4), EnchantEngine.summarize(listOf(half)))
+        assertEquals(4.0, half.effective(), 0.0001)
+        assertEquals(mapOf("ping_per_player" to 40), EnchantEngine.summarize(List(10) { EnchantLine("ping_per_player", 8) }))
+    }
+
+    @Test
+    fun `repair costs 500 per started 10 points of damage`() {
+        assertEquals(0L, EnchantRules.repairCost(0))
+        assertEquals(500L, EnchantRules.repairCost(1))
+        assertEquals(500L, EnchantRules.repairCost(200))
+        assertEquals(1000L, EnchantRules.repairCost(201))
+        assertEquals(5000L, EnchantRules.repairCost(EnchantRules.DAMAGE_FULL))
+    }
 }

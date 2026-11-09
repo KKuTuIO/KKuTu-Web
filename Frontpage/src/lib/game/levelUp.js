@@ -3,8 +3,7 @@ import { getLevel } from './level.js';
 /**
  * Level-up gifts, as the result board shows them. A gift is `{ level, ping, items: [{key, q}], mail: [{key, q}] }`:
  * `items` and `ping` went straight into the inventory, `mail` (items whose time limit starts on receipt) waits in the mailbox.
- * The server is meant to send these per level in the result's reward (`reward.levelGifts`); until it does, the prototype table in
- * `levelGifts.proto.js` stands in.
+ * The server sends these per level it paid: in the result's reward (`reward.levelGifts`) and in `obtain` (`levelGifts`).
  */
 
 /** How many level-ups get a popup of their own; the rest are folded into one summary, so a big jump never takes dozens of key presses. */

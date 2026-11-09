@@ -19,12 +19,12 @@
 </script>
 
 {#if shown}
-	<p class="pointer-events-none fixed right-2 bottom-px z-10 flex items-center gap-1.5 text-[11px] leading-none font-bold tabular-nums opacity-70 select-none">
+	<p class="pointer-events-none fixed right-2 bottom-px z-10 flex max-md:top-px max-md:right-1/2 max-md:bottom-auto max-md:translate-x-1/2 items-center gap-1.5 text-[11px] leading-none font-bold tabular-nums opacity-70 select-none">
 		<span class="inline-flex items-center gap-0.5" style:color={COLOR[level]}>
 			<Icon name={ICON[level]} size={14} />
 			{#if level === 'good' || level === 'fair' || level === 'poor'}{net.pingMs}ms{/if}
 			<span class="sr-only">{t(`play.status.${level}`)}</span>
 		</span>
-		{#if version}<span class="text-(color:--kk-muted)">{t('play.status.version', { version })}</span>{/if}
+		{#if version}<span class="text-(color:--kk-muted) max-md:hidden">{t('play.status.version', { version })}</span>{/if}
 	</p>
 {/if}

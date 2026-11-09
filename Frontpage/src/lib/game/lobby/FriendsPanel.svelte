@@ -5,7 +5,7 @@
     import Icon from "./Icon.svelte";
     import EmptyState from "./EmptyState.svelte";
     import Tooltip from "../ui/Tooltip.svelte";
-    import { FRIEND_LIMIT } from "../lobbyModel.js";
+    import { FRIEND_LIMIT, channelName } from "../lobbyModel.js";
 
     /**
      * The friends tab, laid out like Discord's friend list: filters (온라인 / 전체 / 대기 중), 친구 추가, a search box,
@@ -71,7 +71,7 @@
               ? t("play.friend.inGame", { room: f.place })
               : f.server === store.server
                 ? t("play.friend.lobby")
-                : t("play.friend.channel", { channel: f.server });
+                : t("play.friend.channel", { channel: channelName(net.meta.labels, f.server) });
     // "차단한 회원은 {link}에서 확인할 수 있어요.": the link sits inside the sentence.
     const bannerParts = $derived(t("play.friends.banner").split("{link}"));
     const full = $derived(store.friends.length >= FRIEND_LIMIT);

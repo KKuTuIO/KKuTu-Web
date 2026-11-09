@@ -392,7 +392,7 @@
 .kkg .sk-word { font-size: 20px; font-weight: 900; line-height: 26px; color: #fde047; max-width: 100%; overflow-wrap: anywhere; }
 .kkg .sk-answer { color: #FFFF44; }
 .kkg .sk-page { width: 600px; height: 300px; background: #fff; border-radius: 4px; overflow: hidden; }
-.kkg .sk-picture { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.kkg .sk-picture { display: block; width: 100%; height: 100%; object-fit: contain; background: #ffffff; pointer-events: none; user-select: none; -webkit-user-drag: none; }
 .kkg .sk-stack { height: 6px; margin: 0 4px; border-radius: 0 0 6px 6px; background: repeating-linear-gradient(#fff 0 1px, #cbd5e1 1px 2px); }
 .kkg .sk-time { position: relative; height: 22px; margin-top: 6px; border-radius: 8px; background: #052e16; overflow: hidden; }
 .kkg .sk-time-bar { position: absolute; inset: 0 auto 0 0; background: #facc15; transition: width 0.1s linear; }
@@ -461,3 +461,98 @@
 	pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) { .kkg .game-user-lead { animation: none; } }
+
+/* ---- phone, portrait: the word games' own stage (see GameScreen's phoneStage_). The legacy frog inside keeps the legacy rules (content-box, floats);
+   what is new is border-box and flows, and lives only in the .kkp- classes. The stage has no padding of its own: the frog is as wide as the screen. ---- */
+.kkg.kkg-hist { position: static; float: none; width: auto; height: auto; padding: 0; }
+.kkg-phone-backdrop { place-items: stretch !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+.kkg.kkp { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 6px; width: auto; height: auto; padding: 0 0 env(safe-area-inset-bottom); overflow: hidden; font-size: 14px; }
+.kkp-words, .kkp-status, .kkp-history, .kkp-items, .kkp-players, .kkp-turn-of, .kkp-jjo, .kkp-lastchat, .kkp-chatbar, .kkp-grow { float: none; box-sizing: border-box; }
+.kkp-words { display: flex; flex: 0 1 auto; flex-wrap: wrap; gap: 4px; min-height: 0; max-height: 18%; padding: 0 8px; overflow-y: auto; scrollbar-width: none; }
+.kkp-word { padding: 2px 10px; border-radius: 999px; background: #232323; color: #eeeeee; font-size: 14px; font-weight: 700; }
+.kkp-status *, .kkp-history *, .kkp-items *, .kkp-players *, .kkp-turn-of *, .kkp-chatbar *, .kkp-lastchat * { float: none; box-sizing: border-box; }
+.kkp-status { display: flex; flex: none; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px 0; }
+.kkp-pill { display: inline-flex; flex: none; align-items: center; gap: 4px; padding: 2px 10px; border: 0; border-radius: 999px; background: #232323; color: #eeeeee; font-size: 14px; font-weight: 800; line-height: 20px; white-space: nowrap; }
+.kkp-mission { color: #66ff66; }
+.kkp-time { background: rgba(0, 0, 0, 0.35); }
+.kkp-histbtn { padding: 2px 8px; cursor: pointer; }
+.kkp-round-pill { display: inline-flex; flex: none; align-items: center; gap: 6px; padding: 3px 12px; border: 2px solid #000000; border-radius: 999px; background: #ffffff; color: #111111; font-size: 14px; white-space: nowrap; }
+.kkp-round-pill b { font-size: 18px; }
+.kkp-letter { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 4px; border-radius: 999px; background: #d9f5d9; font-size: 16px; font-style: normal; font-weight: 800; }
+/* the frog: drawn at 500 px, scaled to the width; the box around it takes the scaled size */
+.kkp-jjo { position: relative; flex: none; align-self: center; overflow: visible; }
+.kkg-jjo-inner { position: absolute; top: 0; left: 0; width: 500px; transform-origin: 0 0; }
+.kkp-turn-of { flex: none; align-self: center; min-width: 40%; height: 26px; margin: 0; padding: 0 14px; border-radius: 999px; color: #111111; font-size: 14px; line-height: 26px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kkp-turn-of:not(:empty) { background: #ffffff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
+.kkp-turn-of b { font-weight: 800; }
+.kkp-history { display: flex; flex: 0 1 auto; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.kkp-history::-webkit-scrollbar { display: none; }
+.kkp-hints { max-height: 30%; padding: 0 8px; }
+/* The word history sheet. These rules come BEFORE the general .kkp-history ones (flex, nowrap, width: auto), which would win on order alone,
+   so they carry one more class. The sheet is as wide as the phone and a meaning can be a paragraph: nothing in it may be wider than the
+   sheet. Every line wraps (and breaks inside a long word if it must) and is cut after three lines with an ellipsis; a press opens the line.
+   An empty history still gets a sheet of a decent height. */
+.kkg .kkp-history.kkp-history-sheet { display: block; flex: none; min-height: 36dvh; max-height: 60dvh; overflow-x: hidden; overflow-y: auto; }
+.kkg .kkp-history.kkp-history-sheet, .kkg .kkp-history.kkp-history-sheet * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.kkg .kkp-history.kkp-history-sheet .history-item { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; flex: none; float: none; width: 100% !important; height: auto !important; margin: 0 0 4px; padding: 8px 12px; border-radius: 10px; font-size: 15px; text-align: left; white-space: normal; overflow: hidden; animation: none; }
+.kkg .kkp-history.kkp-history-sheet .history-mean { display: inline; flex: none; float: none; padding: 0 0 0 6px; white-space: normal; overflow: visible; color: var(--kk-muted); font-size: 13px; }
+.kkg .kkp-history.kkp-history-sheet .history-mean * { color: inherit; white-space: normal; }
+.kkg .kkp-history.kkp-history-sheet .history-item.open { display: block; -webkit-line-clamp: unset; line-clamp: unset; }
+.kkg .kkp-history.kkp-history-sheet .kkp-empty { display: grid; place-items: center; min-height: 30dvh; margin: 0; }
+.kkp-empty { margin: 0; padding: 24px 0; text-align: center; color: var(--kk-muted); }
+.kkp-history .history-item { display: flex; flex: none; align-items: baseline; gap: 6px; width: auto !important; max-width: 100%; height: auto; margin: 0; padding: 6px 10px; border-radius: 10px; font-size: 15px; text-align: left; white-space: nowrap; overflow: hidden; }
+.kkp-history .history-mean { flex: 1 1 0; min-width: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; }
+.kkp-history .history-item.open { flex-wrap: wrap; white-space: normal; }
+.kkp-history .history-item.open .history-mean { flex-basis: 100%; white-space: normal; }
+.kkp-history .hint-item { flex: none; padding: 6px 10px; border-radius: 10px; background: #232323; color: #eeeeee; }
+/* the players: small cards, two across; whatever height is left goes to the empty space above the items */
+.kkp-players { display: grid; flex: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; min-height: 0; max-height: 40%; overflow-y: auto; scrollbar-width: none; padding: 6px 8px 0; }
+.kkp-players::-webkit-scrollbar { display: none; }
+.kkp-user { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; padding: 3px 8px 3px 4px; border: 2px solid #dddddd; border-radius: 12px; background: #dddddd; box-shadow: 0 1px 1px #141414; transition: all 300ms ease; }
+.kkp-user.current { border-color: #3eff3e; background: #ddffdd; animation: kkg-current-blink 2s linear infinite; }
+.kkp-ava { display: grid; flex: none; place-items: center; }
+.kkp-user .who { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; line-height: 1.15; }
+.kkp-user .nm { display: flex; align-items: center; gap: 3px; overflow: hidden; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.kkp-user .sc { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kkp-user .sc small { font-size: 10px; }
+.kkp-user .game-user-lead { top: -9px; right: 8px; left: auto; transform: none; font-size: 10px; }
+.kkp-user .deltaScore { position: absolute; top: 4px; right: 8px; left: auto; width: auto; }
+.kkp-grow { flex: 1 1 0; min-height: 0; }
+.kkp-items { flex: none; padding: 0 8px; }
+.kkp-lastchat { flex: none; display: block; margin: 0 8px; padding: 2px 10px; border: 0; border-radius: 8px; background: rgba(0, 0, 0, 0.45); color: #eeeeee; font-size: 12px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.kkp-lastchat b { color: #ffe08a; }
+/* the chat line: at the very bottom, always there; on my turn it is the answer field */
+.kkp-chatbar { display: flex; flex: none; align-items: center; gap: 6px; padding: 6px 8px; background: rgba(0, 0, 0, 0.6); }
+.kkp-chatbar input { flex: 1 1 0; min-width: 0; height: 48px; padding: 0 14px; border: 2px solid transparent; border-radius: 14px; background: #ffffff; color: #111111; font-size: 18px; outline: none; }
+.kkp-chatbar.mine input { border-color: #ffb54a; box-shadow: 0 0 0 3px rgba(255, 181, 74, 0.45); }
+.kkp-chatbtn, .kkp-send { position: relative; display: grid; flex: none; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 14px; background: rgba(255, 255, 255, 0.9); color: #111111; cursor: pointer; }
+.kkp-send { background: var(--kk-fill, #2563eb); color: #ffffff; }
+.kkp-send:disabled { opacity: 0.45; }
+.kkp-chatbtn .dot { position: absolute; top: 6px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; }
+@media (prefers-reduced-motion: reduce) { .kkp-user.current { animation: none; border-color: #3eff3e; } }
+
+/* ---- the sketchbook on a phone ---- */
+.kkp-sk-info, .kkp-sk-page, .kkp-tools, .kkp-tools * { float: none; box-sizing: border-box; }
+.kkp-sk-info { display: flex; flex: none; flex-direction: column; align-items: center; gap: 4px; padding: 0 8px; }
+.kkp-sk-theme { max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 2px 10px; border-radius: 999px; background: #14532d; color: #ffffff; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.kkp-sk-word { max-width: 100%; white-space: nowrap; padding: 2px 14px; border-radius: 12px; background: #14532d; color: #fde047; font-size: 24px; font-weight: 800; letter-spacing: 0.2em; }
+.kkp-sk-page { position: relative; flex: none; align-self: center; width: calc(100% - 16px); aspect-ratio: 4 / 3; overflow: hidden; border: 5px solid #14532d; border-radius: 12px; background: #ffffff; touch-action: none; }
+.kkp-sk-page > canvas, .kkp-sk-page > img { display: block; width: 100%; height: 100%; }
+.kkp-sk-time { align-self: center; width: calc(100% - 16px); }
+.kkp-tools { display: flex; flex: none; flex-direction: column; gap: 6px; padding: 0 8px; }
+.kkp-toolrow { display: flex; gap: 6px; }
+.kkp-tool { display: grid; flex: 1 1 0; place-items: center; min-width: 0; height: 46px; border: 2px solid transparent; border-radius: 12px; background: #ffffff; color: #111111; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); cursor: pointer; }
+.kkp-tool.on { border-color: #16a34a; background: #dcfce7; }
+.kkp-clear { color: #b91c1c; }
+.kkp-color span { width: 26px; height: 26px; border: 2px solid #111111; border-radius: 50%; }
+.kkp-sizerow { display: flex; gap: 6px; }
+.kkp-size { display: grid; flex: 1 1 0; place-items: center; height: 40px; border: 2px solid transparent; border-radius: 12px; background: #ffffff; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25); cursor: pointer; }
+.kkp-size.on { border-color: #16a34a; background: #dcfce7; }
+.kkp-size i { display: block; border-radius: 50%; background: #111111; }
+.kkp-size i.er { background: #ffffff; outline: 1.5px dashed #6b7280; }
+.kkp-bar { position: relative; flex: none; width: 100%; height: 20px; border-radius: 999px; overflow: hidden; }
+.kkp-bar > span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #ffffff; text-shadow: 0 1px 3px #141414; }
+.kkp-fill { height: 100%; transition: width 0.1s linear; }
+.kkp-round { background: #223c6c; }
+.kkp-round .kkp-fill { background: #3573e4; }
+.kkp-round .kkp-fill.extreme { background: #ff6d6d; }

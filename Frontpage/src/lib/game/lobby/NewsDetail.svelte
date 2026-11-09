@@ -6,6 +6,7 @@
 	import NewsArtSparkles from './NewsArtSparkles.svelte';
 	import NewsAttendance from './NewsAttendance.svelte';
 	import NewsCampaign from './NewsCampaign.svelte';
+	import NewsCampaignHistory from './NewsCampaignHistory.svelte';
 	import NewsExchange from './NewsExchange.svelte';
 	import NewsMissions from './NewsMissions.svelte';
 	import NewsTile from './NewsTile.svelte';
@@ -88,12 +89,13 @@
 
 	// The buttons of the header: the parts that are one press away and open in a window. An event with no main part is its text and its exchange on
 	// one page, and has no use for them.
-	const SHEET_ICON = { info: 'info', missions: 'task_alt', attendance: 'event_available', exchange: 'storefront' };
+	const SHEET_ICON = { info: 'info', history: 'history', missions: 'task_alt', attendance: 'event_available', exchange: 'storefront' };
 	const sheets = $derived(
 		!hasMain
 			? []
 			: [
 					{ id: 'info', label: t('play.news.info'), count: 0 },
+					...(has('campaign') && net.campaigns[event.id]?.past?.length ? [{ id: 'history', label: t('play.news.campaign.history'), count: 0 }] : []),
 					...(full ? mains.filter((id) => id === 'missions' || id === 'attendance').map((id) => ({ id, label: t(`play.news.${id}`), count: WAITING[id] ?? 0 })) : []),
 					...(hasExchange ? [{ id: 'exchange', label: t('play.news.exchange'), count: 0 }] : [])
 				]
@@ -265,6 +267,7 @@
 				{#if period}<p class="text-xs text-(color:--kk-muted) tabular-nums">{period}</p>{/if}
 				{#if event.description}<Markdown source={event.description} onlink={openLink} />{/if}
 			{/if}
+			{#if sheetId === 'history'}<NewsCampaignHistory past={net.campaigns[event.id]?.past ?? []} />{/if}
 			{#each sheetBlocks as block, index (block.type + index)}{@render blockView(block)}{/each}
 		</div>
 	</Dialog>

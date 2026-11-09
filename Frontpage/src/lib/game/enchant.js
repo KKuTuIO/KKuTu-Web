@@ -1,13 +1,41 @@
 /** 강화 (item enchant): the pure helpers of the dialog and the three server calls. The server (`/enchant`) judges everything. */
 
-/** A permille amount as the number the player reads: 10 → "1", 15 → "1.5", 2 → "0.2". */
+/** A permille amount as the percent the player reads, in steps of 0.05% rounded down: 10 → "1", 15 → "1.5", 2 → "0.2", 1.8 → "0.15". */
 export function permille(v) {
-	return String(Math.round(Number(v)) / 10);
+	return String(Math.floor(Number(v) * 2 + 1e-9) / 20);
 }
 
-/** The number in a line for the unit of its effect (`PERMILLE`, `FLAT`, `SECONDS`). */
+/** Damage is counted in 0.05% steps of a line's value, this many steps being all of it (mirrors the server's `damageFull`). */
+export const DAMAGE_FULL = 2000;
+
+/** The share of a line that is damaged, in percent ("15" for 15%); 0 for an untouched line. */
+export function damagePercent(line) {
+	return Math.round(((line?.damage ?? 0) / DAMAGE_FULL) * 1000) / 10;
+}
+
+/** The value of a line that counts: the value less its damage. */
+export function effectiveValue(line) {
+	const d = Math.min(Math.max(line?.damage ?? 0, 0), DAMAGE_FULL);
+	return (Number(line.value) * (DAMAGE_FULL - d)) / DAMAGE_FULL;
+}
+
+/** The number in a line for the unit of its effect (`PERMILLE`, `FLAT`, `SECONDS`); a damaged line shows what is left of it. */
 export function lineValue(line, units) {
-	return units?.[line.effect] === 'PERMILLE' ? permille(line.value) : String(line.value);
+	if (units?.[line.effect] === 'PERMILLE') return permille(effectiveValue(line));
+	return String(line.damage ? Math.floor(effectiveValue(line)) : line.value);
+}
+
+/** Percent chance that a failed try on a copy of `level` damages one of its lines (mirrors the server). */
+export function damageChanceAt(level, rules) {
+	const from = rules?.damageFromLevel ?? 3;
+	if (level < from) return 0;
+	return Math.min(rules?.damageMaxChance ?? 80, (rules?.damageStep ?? 20) * (level - from + 1));
+}
+
+/** Ping to take `damage` steps off a line: the repair price per started repair step (mirrors the server). */
+export function repairCostOf(damage, rules) {
+	const step = rules?.repairStep ?? 200;
+	return Math.ceil(Math.max(0, damage) / step) * (rules?.repairCost ?? 500);
 }
 
 /** The words of one line, from `play.enchant.effect.<id>` ({mode} is the game type's name, {value} the number). */
@@ -50,11 +78,14 @@ async function call(path, body, fetchFn) {
 
 export const fetchEnchant = (fetchFn = fetch) => call('/enchant', null, fetchFn);
 /** One try on a copy of an item (`instance` 0: a plain copy, else the number of one of my enchanted copies). */
-export const tryEnchant = (item, instance, ticket, fetchFn = fetch) => call('/enchant', { item, instance: String(instance), ticket }, fetchFn);
+export const tryEnchant = (item, instance, ticket, protect = false, fetchFn = fetch) =>
+	call('/enchant', { item, instance: String(instance), ticket, ...(protect ? { protect: 'true' } : {}) }, fetchFn);
+/** Pays Ping to take all the damage off one line of an enchanted copy. */
+export const repairLine = (item, instance, slot, fetchFn = fetch) => call('/enchant/repair', { item, instance: String(instance), slot: String(slot) }, fetchFn);
 /** Tells the server which copy of an item I now wear (0: a plain one), so that copy's lines are the ones that count. */
 export const wearCopy = (item, instance, fetchFn = fetch) => call('/enchant/wear', { item, instance: String(instance) }, fetchFn);
-/** Buys one ticket with the shop's own endpoint (the price is the shop price). */
-export const buyTicket = (id, fetchFn = fetch) => call(`/buy/${encodeURIComponent(id)}`, { count: '1' }, fetchFn);
+/** Buys `count` (1..99) tickets with the shop's own endpoint (the price is the shop price). */
+export const buyTicket = (id, count = 1, fetchFn = fetch) => call(`/buy/${encodeURIComponent(id)}`, { count: String(count) }, fetchFn);
 
 /** How many of an item my box holds (a box entry is `{value}` or a bare number). */
 export const ownedCount = (box, id) => Number(box?.[id]?.value ?? box?.[id] ?? 0);

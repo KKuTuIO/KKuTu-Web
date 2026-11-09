@@ -15,7 +15,9 @@
 	import FriendsPanel from './FriendsPanel.svelte';
 	import AddFriendDialog from './AddFriendDialog.svelte';
 	import RoomMembers from './RoomMembers.svelte';
-	let { store } = $props();
+	import FamilyPanel from './FamilyPanel.svelte';
+	import { family } from '../familyStore.svelte.js';
+	let { store, profile = false } = $props();
 	let addOpen = $state(false);
 	// While the game runs (and until its result is closed) the second tab is the game room (who plays and who watches) instead of
 	// who is online, and it is the one shown at first. The waiting room keeps the online list.
@@ -37,7 +39,6 @@
 	// Legacy shows progress to 3 decimals, truncated.
 	const progressPercent = (m) => Math.floor(((m.score - m.from) / (m.to - m.from)) * 1e5) / 1e3;
 	const pct = (m) => (m && isFinite(m.to) ? `${Math.min(100, ((m.score - m.from) / (m.to - m.from)) * 100)}%` : '100%');
-	const where = (f) => (!f.online ? t('play.friend.offline') : f.place ? t('play.friend.inGame', { room: f.place }) : f.server === store.server ? t('play.friend.lobby') : t('play.friend.channel', { channel: f.server }));
 </script>
 
 <aside data-tour="side" aria-label={t('play.side.label')} class="kk-card flex w-full shrink-0 flex-col overflow-hidden">
@@ -47,6 +48,10 @@
 			<button type="button" aria-pressed={tab === 'friends'} aria-label={t('play.side.friendsAria', { current: store.friends.length, limit: FRIEND_LIMIT })} onclick={() => (picked = 'friends')} class="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 kk-tab">
 				{t('play.side.friends')}
 				{#if pending.incoming.length}<span class="inline-grid h-[18px] min-w-[18px] place-items-center rounded-full bg-(--kk-danger) px-1 text-[11px] leading-none font-extrabold text-white" aria-label={t('play.friend.pendingIn', { n: pending.incoming.length })}>{pending.incoming.length}</span>{/if}
+			</button>
+			<button type="button" aria-pressed={tab === 'family'} aria-label={family.mine ? t('play.side.familyAria', { name: family.mine.name }) : t('play.side.family')} onclick={() => (picked = 'family')} class="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 kk-tab">
+				{t('play.side.family')}
+				{#if family.applicantCount}<span class="inline-grid h-[18px] min-w-[18px] place-items-center rounded-full bg-(--kk-danger) px-1 text-[11px] leading-none font-extrabold text-white" aria-label={t('play.family.applicantsAria', { n: family.applicantCount })}>{family.applicantCount}</span>{/if}
 			</button>
 			{#if inRoom}
 				<button type="button" aria-pressed={tab === 'room'} aria-label={t('play.side.roomAria', { count: store.roomPlayers.length })} onclick={() => (picked = 'room')} class="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 kk-tab">
@@ -65,6 +70,8 @@
 		{/if}
 		{#if tab === 'friends'}
 			<FriendsPanel {store} onadd={() => (addOpen = true)} />
+		{:else if tab === 'family'}
+			<FamilyPanel {store} />
 		{:else if tab === 'room'}
 			<RoomMembers {store} />
 		{:else}
@@ -101,7 +108,7 @@
 			<span class="mt-1 block">{t('play.okg.stack', { count: store.net.okgCount })}</span>
 		{/snippet}
 
-		<div class="hidden border-t border-(color:--kk-line) bg-(--kk-panel) p-4 lg:block">
+		<div class="{profile ? '' : 'hidden'} border-t border-(color:--kk-line) bg-(--kk-panel) p-4 lg:block">
 			<button type="button" data-tour="profile" onclick={() => store.hooks.openDress?.('profile')} aria-label="{me.name}: {t('play.profile.windowTitle')}" class="flex w-full items-center gap-3 text-left">
 				<Moremi equip={me.equip} shop={store.shop} {parts} size={64} label={me.name} frame={false} />
 				<div class="min-w-0 flex-1">

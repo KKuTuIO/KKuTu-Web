@@ -10,7 +10,7 @@
 	import Nudge from './Nudge.svelte';
 	import Mascot from './Mascot.svelte';
 	import { closeNudge, nudgeOpen } from '../nudges.svelte.js';
-	let { store, active = 'lobby', onselect } = $props();
+	let { store, active = 'lobby', onselect, phone = false } = $props();
 	const me = $derived(store.me);
 	const guest = $derived(store.net.guest);
 	// Anywhere in the client the logo asks first: it leaves the game page for the portal.
@@ -117,6 +117,7 @@
 			<Tooltip text={t('play.currency.pingHint')}><span class="inline-flex h-10 items-center gap-2 rounded-xl bg-(--kk-surface-2) pr-4 pl-2 font-extrabold tabular-nums"><GameIcon name="ping" size={26} />{fmt(me.money)}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.currency.ping')}</span></span></Tooltip>
 			<Tooltip text={t('play.stat.winHint')}><span class="hidden h-10 items-center gap-2 rounded-xl bg-(--kk-surface-2) pr-4 pl-2 font-extrabold tabular-nums lg:inline-flex"><GameIcon name="win" size={26} />{fmt(me.wins)}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.stat.win')}</span></span></Tooltip>
 		{/if}
+		{#if phone && !guest}<MailMenu {store} />{/if}
 		<div class="hidden items-center gap-1 md:flex">
 			{#each utilities as m (m.id)}{#if m.id === 'mail'}<MailMenu {store} />{:else}{@render item(m, { utility: true })}{/if}{/each}
 		</div>
@@ -127,8 +128,3 @@
 		{/if}
 	</div>
 </header>
-<nav aria-label={t('play.nav.label')} class="flex shrink-0 items-center gap-1 overflow-x-auto [&>*]:shrink-0 border-b border-(color:--kk-line) bg-(--kk-surface) px-3 py-1.5 md:hidden">
-	{#each items as m (m.id)}{@render item(m, { strip: true })}{/each}
-	<span class="mx-1.5 h-5 w-px shrink-0 bg-(--kk-line-strong)" aria-hidden="true"></span>
-	{#each utilities as m (m.id)}{#if m.id === 'mail'}<MailMenu {store} />{:else}{@render item(m, { strip: true, utility: true })}{/if}{/each}
-</nav>

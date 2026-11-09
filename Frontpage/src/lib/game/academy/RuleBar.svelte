@@ -10,6 +10,7 @@
 	/** The dictionary rules every tool of the academy shares: language, dictionary, direction and the details. */
 	let { config = $bindable(), meta = null } = $props();
 	let advanced = $state(false);
+	let open = $state(false); // phone: the rules are one line until opened
 
 	const FLAGS = ['includeLoanword', 'includeSpaced', 'includeDialect', 'includeOld', 'includeCultural', 'includeKung'];
 	const langs = $derived(['ko', 'en'].map((v) => ({ value: v, label: t(`play.academy.rule.${v}`) })));
@@ -27,7 +28,11 @@
 </script>
 
 <section aria-label={t('play.academy.rule.label')} class="kk-card flex flex-col gap-3 p-3">
-	<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
+	<button type="button" aria-expanded={open} onclick={() => (open = !open)} class="flex min-h-9 items-center gap-2 text-left text-sm font-extrabold lg:hidden">
+		<Icon name="rule" size={20} /><span class="min-w-0 flex-1 truncate">{t('play.academy.rule.label')}<span class="ml-2 font-bold text-(color:--kk-muted)">{langs.find((l) => l.value === config.lang)?.label} · {dictionaries.find((d) => d.value === config.dictionary)?.label}</span></span>
+		<Icon name={open ? 'keyboard_arrow_up' : 'keyboard_arrow_down'} size={22} />
+	</button>
+	<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto] {open ? '' : 'max-lg:hidden'}">
 		<div class="flex min-w-0 flex-col gap-1"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.academy.rule.lang')}</span><Select label={t('play.academy.rule.lang')} bind:value={config.lang} options={langs} /></div>
 		<div class="flex min-w-0 flex-col gap-1"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.academy.rule.dictionary')}</span><Select label={t('play.academy.rule.dictionary')} bind:value={config.dictionary} options={dictionaries} /></div>
 		<div class="flex min-w-0 flex-col gap-1"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.academy.rule.direction')}</span><Select label={t('play.academy.rule.direction')} bind:value={config.direction} options={directions} /></div>
@@ -37,7 +42,7 @@
 		</div>
 	</div>
 	{#if advanced}
-		<div class="flex flex-col gap-3 border-t border-(color:--kk-line) pt-3">
+		<div class="flex flex-col gap-3 border-t border-(color:--kk-line) pt-3 {open ? '' : 'max-lg:hidden'}">
 			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<label class="flex min-w-0 flex-col gap-1"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.academy.rule.minLength')}</span><input type="number" min="1" max="64" value={config.minLength} oninput={(e) => (config.minLength = num(e, 2))} class="h-11 kk-input px-3" /></label>
 				<label class="flex min-w-0 flex-col gap-1"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.academy.rule.maxLength')}</span><input type="number" min="1" max="128" value={config.maxLength} oninput={(e) => (config.maxLength = num(e, 64))} class="h-11 kk-input px-3" /></label>

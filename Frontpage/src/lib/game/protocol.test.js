@@ -12,6 +12,24 @@ describe('protocol', () => {
 		expect(s.box.title_mint.value).toBe(1);
 	});
 
+	it('remembers what each level gave, from the obtain packets that took me through them', () => {
+		const s = initialState();
+		applyPacket(s, { type: 'obtain', exp: 20, levelGifts: [{ level: 37, ping: 70, items: [], mail: [] }, { level: 38, ping: 70, items: [], mail: [] }] });
+		expect(s.levelGifts[37]).toEqual({ level: 37, ping: 70, items: [], mail: [] });
+		expect(Object.keys(s.levelGifts)).toEqual(['37', '38']);
+		applyPacket(s, { type: 'obtain', exp: 5 }); // an obtain without gifts leaves them be
+		expect(Object.keys(s.levelGifts)).toHaveLength(2);
+	});
+
+	it('keeps the level table the server sent, and ignores one that is not a table', () => {
+		const s = initialState();
+		expect(s.levelTable).toBeNull();
+		applyPacket(s, { type: 'levelRewards', table: { 2: [50, [], []] } });
+		expect(s.levelTable[2]).toEqual([50, [], []]);
+		applyPacket(s, { type: 'levelRewards', table: 'nope' });
+		expect(s.levelTable).toBeNull();
+	});
+
 	it('normalizes rooms with localized labels', () => {
 		const r = normalizeRoom({ id: 5, title: 't', password: true, limit: 8, mode: 0, round: 3, time: 90, players: [{}, {}], gaming: false, opts: { manner: true, other: false } }, meta);
 		expect(r).toMatchObject({ no: 5, locked: true, mode: '끝말잇기', tags: ['매너'], cur: 2, max: 8, playing: false });
@@ -340,5 +358,21 @@ describe('expired items', () => {
 			expect(errorText(labels, { code: 999, message: '<b>직접</b> 메시지' })).toBe('직접 메시지');
 			expect(errorText(labels, { code: 999 })).toBe('');
 		});
+	});
+});
+
+describe('패밀리 answers', () => {
+	it('what a family cost comes off my 핑 at once, quietly, and only when it succeeded', () => {
+		const s = initialState();
+		s.id = 'me';
+		s.users.me = { id: 'me', money: 5000 };
+		const before = s.chat.length;
+		applyPacket(s, { type: 'familyRes', op: 'create', ok: false, reason: 'money', paid: 1000 });
+		expect(s.users.me.money).toBe(5000);
+		applyPacket(s, { type: 'familyRes', op: 'create', ok: true, paid: 1000 });
+		expect(s.users.me.money).toBe(4000);
+		applyPacket(s, { type: 'familyRes', op: 'apply', ok: true });
+		expect(s.users.me.money).toBe(4000);
+		expect(s.chat.length).toBe(before); // no "획득" line for a spend
 	});
 });

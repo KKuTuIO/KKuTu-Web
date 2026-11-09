@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exactRoomNo, filterRooms, groupModes, prettyTime, recordRow, seatLayout } from './lobbyModel.js';
+import { channelName, exactRoomNo, filterRooms, groupModes, prettyTime, recordRow, seatLayout } from './lobbyModel.js';
 
 const room = (no, o = {}) => ({ no, title: `방${no}`, locked: false, mode: '한국어 끝말잇기', tags: [], rounds: 3, time: 90, cur: 1, max: 8, playing: false, ...o });
 
@@ -84,5 +84,15 @@ describe('pingLevel', () => {
 		expect(pingLevel(101)).toBe('fair');
 		expect(pingLevel(250)).toBe('fair');
 		expect(pingLevel(251)).toBe('poor');
+	});
+});
+
+describe('channelName', () => {
+	it('is the channel by its name, and its number only when it has none', () => {
+		const labels = { 'server.0': '감자(손님)', 'server.2': '다래' };
+		expect(channelName(labels, 2)).toBe('다래');
+		expect(channelName(labels, '0')).toBe('감자(손님)');
+		expect(channelName(labels, 9)).toBe('9');
+		expect(channelName(undefined, 1)).toBe('1');
 	});
 });

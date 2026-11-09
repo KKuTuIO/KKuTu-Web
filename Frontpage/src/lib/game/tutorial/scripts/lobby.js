@@ -12,7 +12,7 @@ export default {
 		L('create', { focus: '[data-tour=create-room]' }),
 		L('chat', { focus: '[data-tour=chat]', at: 'top' }),
 		L('side', { focus: '[data-tour=side]', at: 'bottom' }),
-		L('profile', { focus: '[data-tour=profile]', at: 'top' }),
+		L('profile', { focus: '[data-tour=profile]', at: 'top', noPhone: true }), // (on a phone the profile is under the 소셜 tab: the line of that tab speaks of it)
 		L('nav', { focus: '[data-tour=nav]', at: 'bottom' }),
 		L('help', { focus: '[data-tour=help]' }),
 		L('bye', { mood: 'happy', focus: null }),

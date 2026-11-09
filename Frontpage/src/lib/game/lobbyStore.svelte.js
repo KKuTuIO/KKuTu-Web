@@ -57,7 +57,7 @@ export function createLobbyStore(server) {
 	let newsSeen = $state(loadSeen()); // the event ids whose page I have opened since they began
 	const net = conn.state;
 	const live = $state({ value: '', composing: false }); // what I am typing right now, from the board's field or the chat box
-	const ui = $state({ query: '', sort: 'recent', joinableFirst: false, waitingOnly: true, hasSeat: false, hideLocked: false, view: 'list', viewPicked: false, gameCovered: false, exitReserved: false });
+	const ui = $state({ query: '', sort: 'recent', joinableFirst: false, waitingOnly: true, hasSeat: false, hideLocked: false, view: 'list', viewPicked: false, gameCovered: false, exitReserved: false, chatNonce: 0, phoneStage: false });
 	// the replay being watched (its store, see replayPlayer.svelte.js): the chat shows its chat, the lobby music steps aside
 	let replayView = $state.raw(null);
 
@@ -281,6 +281,7 @@ export function createLobbyStore(server) {
 		// ---- mailbox and notifications ----
 		requestMailbox: () => conn.send('mailBox'),
 		claimMail: (id) => conn.send('obtainMail', { id }),
+		requestLevelRewards: () => conn.send('levelRewards'),
 		ackNotification: (id) => conn.send('notificationAck', { id: String(id) }),
 		/** What is waiting for me: unread mail, unconfirmed notices and friend requests. */
 		/** Friend requests in either direction that are still open. */

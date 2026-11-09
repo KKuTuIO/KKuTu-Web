@@ -1,11 +1,11 @@
 <script>
 	import { t } from '../i18n.svelte.js';
+	import Dialog from './Dialog.svelte';
 	import { EXP, getLevel } from '../level.js';
 	import { ms } from '../motion.js';
 	import { playResultBgm, playSound } from '../audio.svelte.js';
 	import { crossedLevels } from '../levelUp.js';
 	import { levelUp } from '../levelUp.svelte.js';
-	import { protoGift } from '../levelGifts.proto.js';
 	import { buildResultView } from '../resultModel.js';
 	import DataTable from '../ui/DataTable.svelte';
 	import ChatPanel from './ChatPanel.svelte';
@@ -107,8 +107,8 @@
 	let shownLevel = $state(1);
 	let scoreText = $state('');
 
-	// ---- level-ups: the gauge stops at each new level while LevelUpHost shows its popup (what each level gave: the server's, else the prototype table) ----
-	const giftOf = (level) => mine?.reward.levelGifts?.find((g) => g.level === level) ?? protoGift(level);
+	// ---- level-ups: the gauge stops at each new level while LevelUpHost shows its popup (what each level gave: the server's) ----
+	const giftOf = (level) => mine?.reward.levelGifts?.find((g) => g.level === level) ?? null;
 
 	$effect(() => {
 		if (!open || !mine || !gaugeOn) return;
@@ -274,9 +274,24 @@
 	const modeName = $derived(store.currentRoom?.mode ?? '');
 	/** The medal of the 전적 list: gold for a win, a cracked one for the bottom half. */
 	const medalOutcome = $derived(view?.outcome === 'win' || view?.me?.rank === 1 ? 'win' : view?.me && view.me.rank - 1 >= Math.ceil(view.players.length / 2) ? 'loss' : 'half');
+	// a phone puts the chat button at the top of the screen, out of the way of the buttons at the bottom
+	let winW = $state(typeof innerWidth === 'undefined' ? 1280 : innerWidth);
+	const phone = $derived(winW < 768);
+	// on a phone the breakdown of a reward is a bottom sheet (a pop-out over the card would be cut off by the edge of the screen)
+	const pinnedRow = $derived(rewardRows.find((r) => r.key === pinned));
 </script>
 
-<svelte:window onkeydown={key} onpointerdown={away} />
+<svelte:window onkeydown={key} onpointerdown={away} bind:innerWidth={winW} />
+
+{#snippet breakdownBox(rw)}
+<dl class="breakdown kk-card" id="reward-{rw.key}">
+			<div><dt>{rw.baseLabel}</dt><dd>{commify(rw.base)}</dd></div>
+			{#each rw.rows as row, i (i)}
+				<div class="buffrow"><dt>{row.label}{#if row.note}<span class="sub">{row.note}</span>{/if}</dt><dd>{row.amount}{#if row.percent}<span class="sub">{row.percent}</span>{/if}</dd></div>
+			{/each}
+			<div class="sum"><dt>{t('play.result.total')}</dt><dd>+{commify(rw.value)}</dd></div>
+		</dl>
+{/snippet}
 
 {#snippet cell(p, col)}
 	{#if col.key === 'rank'}{#if p.rank <= 3}<PlacementMedal placement={p.rank} won={p.rank === 1 && view.outcome === 'win'} outcome={p.rank === 1 && view.outcome === 'win' ? 'win' : 'half'} size={30} />{:else}<span class="plain-rank">{p.rank}</span>{/if}
@@ -359,15 +374,9 @@
 									<span class="reward-num" data-reward={rw.key}><GameIcon name={rw.icon} size={34} />+{commify(rw.value)}</span>
 									<span class="reward-label">{rw.label}{#if rw.pct > 0}<b class="buff">(+{rw.pct}%)</b>{/if}<button type="button" class="info" aria-label={t('play.result.detail', { name: rw.label })} aria-expanded={isOpen(rw.key)} aria-controls="reward-{rw.key}" onclick={() => (pinned = pinned === rw.key ? null : rw.key)}><Icon name="info" size={16} /></button></span>
 								</div>
-								{#if isOpen(rw.key)}
+								{#if isOpen(rw.key) && !phone}
 									<div class="breakdown-pos center">
-										<dl class="breakdown kk-card" id="reward-{rw.key}">
-											<div><dt>{rw.baseLabel}</dt><dd>{commify(rw.base)}</dd></div>
-											{#each rw.rows as row, i (i)}
-												<div class="buffrow"><dt>{row.label}{#if row.note}<span class="sub">{row.note}</span>{/if}</dt><dd>{row.amount}{#if row.percent}<span class="sub">{row.percent}</span>{/if}</dd></div>
-											{/each}
-											<div class="sum"><dt>{t('play.result.total')}</dt><dd>+{commify(rw.value)}</dd></div>
-										</dl>
+										{@render breakdownBox(rw)}
 									</div>
 								{/if}
 							</div>
@@ -456,7 +465,10 @@
 		</div>
 	{/if}
 	<!-- the page's chat button is behind the modal: this one is the same chat, inside it -->
-	{#if view && open && store.net.chat && store.draft}<div class="chat-host"><ChatPanel {store} fab idSuffix="-result" /></div>{/if}
+	{#if view && open && store.net.chat && store.draft}<div class="chat-host"><ChatPanel {store} fab lift={phone ? 'top' : false} idSuffix="-result" /></div>{/if}
+	<Dialog bind:open={() => phone && pinned !== null && !!pinnedRow, (v) => !v && (pinned = null)} title={pinnedRow?.label ?? ''}>
+		{#if pinnedRow}<div class="sheetbox">{@render breakdownBox(pinnedRow)}</div>{/if}
+	</Dialog>
 </dialog>
 
 <style>
@@ -523,6 +535,18 @@
 		from {
 			opacity: 0;
 			transform: translateX(-100%);
+		}
+	}
+	@keyframes cut-t-in {
+		from {
+			opacity: 0;
+			transform: translateY(-100%);
+		}
+	}
+	@keyframes cut-b-in {
+		from {
+			opacity: 0;
+			transform: translateY(100%);
 		}
 	}
 	@keyframes cut-r-in {
@@ -1236,6 +1260,17 @@
 		font-size: 13px;
 		font-weight: 600;
 	}
+	.sheetbox .breakdown {
+		min-width: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		box-shadow: none;
+		font-size: 15px;
+		gap: 10px;
+		color: var(--kk-text);
+		text-shadow: none;
+	}
 	.breakdown > div {
 		display: flex;
 		justify-content: space-between;
@@ -1317,6 +1352,122 @@
 		}
 		.left {
 			padding: 20px 16px 12px;
+		}
+	}
+	/* A phone, portrait: the character(s) on top, the facts under them (the desktop's two columns, one above the other). The
+	   scene is drawn at its desktop size and shrunk with `zoom`, so the characters, the podium and the lineup keep their proportions. */
+	@media (max-width: 767px) {
+		.stage {
+			overflow: hidden;
+		}
+		.mine,
+		.frame {
+			flex-direction: column;
+			gap: 0;
+			height: 100dvh;
+			min-height: 0;
+			max-width: none;
+			padding: 0;
+		}
+		/* the cut-out slabs sit on the top and the bottom edge instead of the left and the right one (a phone is tall, not wide) */
+		.shade {
+			background: linear-gradient(0deg, #000000ff 0, #000000d9 45%, #00000073 100%);
+		}
+		.deco .cut-lw {
+			inset: 0 0 auto 0;
+			width: 100%;
+			height: 10%;
+		}
+		.deco .cut-l {
+			top: 0;
+			bottom: 0;
+			clip-path: polygon(0 0, 100% 0, 100% 30%, 0 100%);
+		}
+		.deco .cut-r {
+			top: auto;
+			bottom: 0;
+			right: auto;
+			left: 0;
+			width: 100%;
+			height: 8%;
+			clip-path: polygon(0 70%, 100% 0, 100% 100%, 0 100%);
+		}
+		.deco.intro .cut-lw {
+			animation-name: cut-t-in;
+		}
+		.deco.intro .cut-r {
+			animation-name: cut-b-in;
+		}
+		.mine-left,
+		.left {
+			flex: none;
+			height: 32dvh;
+			padding: 0;
+			overflow: hidden;
+		}
+		.left {
+			justify-content: flex-end;
+		}
+		.stage-floor {
+			zoom: 0.5;
+		}
+		.lineup {
+			zoom: 0.5;
+		}
+		.mine-right {
+			flex: 1 1 0;
+			width: 100%;
+			min-height: 0;
+			box-sizing: border-box;
+			justify-content: flex-start;
+			gap: 8px;
+			padding: 4px 12px 0;
+			overflow-y: auto;
+		}
+		.verdict-text.big {
+			font-size: 44px;
+		}
+		.gamemode {
+			font-size: 16px;
+		}
+		.cards {
+			grid-template-columns: 1fr;
+			gap: 8px;
+		}
+		.card-a,
+		.card-b,
+		.card-w {
+			padding: 10px 14px;
+		}
+		.card-table {
+			max-height: none;
+			flex: 0 1 auto;
+			min-height: 0;
+		}
+		.teambar {
+			height: 60px;
+		}
+		/* what I earned comes first, then how it went (the words) */
+		.card-b {
+			order: 1;
+		}
+		.cards {
+			order: 2;
+		}
+		/* the buttons are the bottom of the screen: flush to its edge (the scrolling part has no bottom padding to hold them up), on a solid bar */
+		.mine-actions {
+			order: 3;
+			position: sticky;
+			bottom: 0;
+			z-index: 2;
+			margin: auto -12px 0;
+			padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+			background: #0f0f14;
+			border-top: 1px solid rgb(255 255 255 / 0.14);
+		}
+		.mine-buttons .ok,
+		.mine-buttons .log {
+			min-height: 48px;
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {

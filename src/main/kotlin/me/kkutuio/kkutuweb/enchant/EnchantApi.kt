@@ -18,8 +18,13 @@ class EnchantApi(
 
     /** `instance` 0 is a plain copy of the item; a number is one of my enchanted copies. */
     @PostMapping("/enchant", produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun enchant(@RequestParam item: String, @RequestParam(defaultValue = "0") instance: Int, @RequestParam ticket: String, session: HttpSession) =
-        enchantService.enchant(session, item, instance, ticket)
+    fun enchant(@RequestParam item: String, @RequestParam(defaultValue = "0") instance: Int, @RequestParam ticket: String, @RequestParam(defaultValue = "false") protect: Boolean, session: HttpSession) =
+        enchantService.enchant(session, item, instance, ticket, protect)
+
+    /** Pay Ping to take the damage off one line of a copy. */
+    @PostMapping("/enchant/repair", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun repair(@RequestParam item: String, @RequestParam instance: Int, @RequestParam slot: Int, session: HttpSession) =
+        enchantService.repair(session, item, instance, slot)
 
     /** `slot` is the line to replace; leave it out to discard the new one. */
     @PostMapping("/enchant/resolve", produces = [MediaType.APPLICATION_JSON_VALUE])

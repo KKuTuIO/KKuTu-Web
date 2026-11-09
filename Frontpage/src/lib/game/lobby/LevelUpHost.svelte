@@ -31,6 +31,11 @@
 		open = !!cur;
 	});
 
+	// timed gifts wait in the mailbox: look again so its count is right when the popup says so
+	$effect(() => {
+		if (entry?.gift?.mail?.length) store.requestMailbox();
+	});
+
 	// experience that rose outside a game result
 	let last = null;
 	$effect(() => {
@@ -38,7 +43,7 @@
 		if (typeof score !== 'number') return;
 		if (last !== null && score > last && !store.game?.result) {
 			const levels = crossedLevels(last, score);
-			if (levels.length) levelUp.announce(levels);
+			if (levels.length) levelUp.announce(levels, (level) => store.net.levelGifts[level] ?? null);
 		}
 		last = score;
 	});

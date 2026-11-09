@@ -1,6 +1,5 @@
 <script>
 	import { onMount } from 'svelte';
-	import Dialog from './Dialog.svelte';
 	import Icon from './Icon.svelte';
 	import NewsGauge from './NewsGauge.svelte';
 	import RewardBundle from './RewardBundle.svelte';
@@ -22,7 +21,6 @@
 	const view = $derived(campaignView(status, info, clock));
 	const today = $derived(roundsToday(info, clock));
 	let pending = $state('');
-	let historyOpen = $state(false);
 
 	onMount(() => {
 		store.loadCampaign(event.id);
@@ -51,12 +49,6 @@
 </script>
 
 <section class="flex flex-col gap-4">
-	{#if status?.past?.length}
-		<div class="flex justify-end">
-			<button type="button" onclick={() => (historyOpen = true)} class="kk-btn inline-flex h-9 min-h-0 items-center gap-1.5 px-3 text-sm"><Icon name="history" size={18} />{t('play.news.campaign.history')}</button>
-		</div>
-		{@render historyDialog()}
-	{/if}
 	{#if !compact}<h3 class="text-base font-extrabold">{t('play.news.campaign')}</h3>{/if}
 
 	<!-- The hot time's clock, top centre: a black plate whose rim and label say which clock it is, the label sitting on the rim. While the hot time is on it
@@ -133,19 +125,3 @@
 		</section>
 	{/if}
 </section>
-
-{#snippet historyDialog()}
-	<Dialog bind:open={historyOpen} title={t('play.news.campaign.history')}>
-		<ul class="flex flex-col gap-1">
-			{#each status.past.slice(0, 5) as past (past.key)}
-				<li class="flex items-center gap-2 rounded-lg bg-(--kk-surface-2) px-3 py-1.5 text-xs font-bold tabular-nums">
-					<span class="min-w-0 flex-1 truncate">{span(past)}</span>
-					<span>{num(past.total)}{t('play.news.campaign.unit')}</span>
-					<span class="w-14 text-right {past.tier >= 0 ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">{past.tier >= 0 ? t('play.news.campaign.tierN', { n: past.tier + 1 }) : t('play.news.campaign.missed')}</span>
-					<span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold text-white {past.joined ? 'bg-(--kk-accent-strong)' : 'bg-(--kk-danger)'}">{past.joined ? t('play.news.campaign.eligible') : t('play.news.campaign.ineligible')}</span>
-					{#if past.joined && past.tier >= 0}<Icon name={past.claimed ? 'check_circle' : 'redeem'} size={16} fill class={past.claimed ? 'text-(color:--kk-accent-strong)' : 'text-(--ac,var(--kk-accent-strong))'} />{/if}
-				</li>
-			{/each}
-		</ul>
-	</Dialog>
-{/snippet}

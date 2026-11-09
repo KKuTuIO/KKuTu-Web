@@ -43,21 +43,21 @@
 
 {#if room}
 	<!-- (in a replay the header sits in the page as a card, without the logo, the dictionary and the reserved exit) -->
-	<header class="kk-card relative z-20 flex min-h-14 shrink-0 items-center gap-3 px-4 py-2 {store.replay ? 'rounded-2xl' : 'rounded-none border-x-0 border-t-0'}">
+	<header class="kk-card relative z-20 flex min-h-14 shrink-0 items-center gap-3 px-4 py-2 max-md:min-h-12 max-md:gap-2 max-md:px-2 max-md:[&>button:last-child]:ml-auto {store.replay ? 'rounded-2xl' : 'rounded-none border-x-0 border-t-0'}">
 		{#if !store.replay}<span class="hidden sm:inline"><Logo class="h-7" /></span>{/if}
 		{#snippet roomName()}
-			<span class="font-black tabular-nums">{store.replay ? t('kkutu.js.replay') : room.practice ? t('kkutu.js.practice') : room.no}</span>
+			<span class="shrink-0 font-black whitespace-nowrap tabular-nums max-md:hidden">{store.replay ? t('kkutu.js.replay') : room.practice ? t('kkutu.js.practice') : room.no}</span>
 			<h1 class="truncate font-extrabold">{maskBad(room.title || '')}</h1>
 		{/snippet}
 		{#if store.replay || room.practice}
-			<div class="flex min-w-0 items-center gap-2 {prefs.hideRoom ? 'blur-[5px] hover:blur-none' : ''}">{@render roomName()}</div>
+			<div class="flex min-w-0 items-center gap-2 max-md:flex-1 {prefs.hideRoom ? 'blur-[5px] hover:blur-none' : ''}">{@render roomName()}</div>
 		{:else}
 			<!-- the room's number and title open its menu (방 정보 / 방 신고), as the legacy client's title did -->
-			<button type="button" aria-haspopup="menu" onclick={(e) => store.hooks.openRoomMenu?.(room.no, e)} class="-mx-2 flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left hover:bg-(--kk-surface-2) {prefs.hideRoom ? 'blur-[5px] hover:blur-none focus-visible:blur-none' : ''}">{@render roomName()}</button>
+			<button type="button" aria-haspopup="menu" onclick={(e) => store.hooks.openRoomMenu?.(room.no, e)} class="-mx-2 flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left max-md:flex-1 hover:bg-(--kk-surface-2) {prefs.hideRoom ? 'blur-[5px] hover:blur-none focus-visible:blur-none' : ''}">{@render roomName()}</button>
 		{/if}
-		<span class="kk-chip shrink-0">{room.mode}</span>
-		<span class="hidden min-w-0 flex-wrap items-center gap-1.5 xl:flex">
-			{#each room.rules as rule (rule.key)}<span class="kk-chip">{rule.label}</span>{/each}
+		<span class="kk-chip shrink-0 whitespace-nowrap max-md:hidden">{room.mode}</span>
+		<span class="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden xl:flex-initial xl:flex-wrap max-md:hidden">
+			{#each room.rules as rule (rule.key)}<span class="kk-chip shrink-0 whitespace-nowrap">{rule.label}</span>{/each}
 		</span>
 		<!-- 제시어: a notch in the middle of the bar, hanging from its top edge and kept inside it -->
 		<div use:settle class="absolute top-0 left-1/2 hidden h-full -translate-x-1/2 items-center gap-2 rounded-b-2xl bg-(--kk-accent-soft) px-4 shadow-[inset_0_-2px_0_color-mix(in_srgb,var(--kk-accent)_45%,transparent)] lg:flex" aria-label={t('play.game.roundLetters')}>
@@ -74,7 +74,7 @@
 				{/each}
 			</div>
 		</div>
-		<ul class="ml-auto flex shrink-0 items-center gap-3 text-sm font-bold text-(color:--kk-muted)">
+		<ul class="ml-auto flex shrink-0 items-center gap-3 text-sm font-bold text-(color:--kk-muted) max-md:hidden">
 			<li class="inline-flex items-center gap-1"><Icon name="repeat" size={18} />{g?.round ? Math.min(g.round, room.rounds) : 0} / {room.rounds}</li>
 			<li class="inline-flex items-center gap-1"><Icon name="timer" size={18} />{room.time}{second}</li>
 			<li class="inline-flex items-center gap-1"><Icon name="group" size={18} />{room.cur} / {room.limit}</li>
@@ -87,7 +87,7 @@
 		{/if}
 		{/if}
 		{#if canReserve}
-			<button type="button" onclick={() => store.toggleExitReserve()} aria-pressed={store.ui.exitReserved} aria-label={reserveLabel} class="kk-btn inline-flex shrink-0 items-center gap-1.5 border-transparent text-white {store.ui.exitReserved ? 'bg-[#db2777] shadow-[0_3px_0_#9d174d]' : 'bg-[#ec4899] shadow-[0_3px_0_#be185d]'}"><Icon name="event_busy" size={20} fill={store.ui.exitReserved} /><span class="hidden xl:inline">{reserveLabel}</span></button>
+			<button type="button" onclick={() => store.toggleExitReserve()} aria-pressed={store.ui.exitReserved} aria-label={reserveLabel} class="kk-btn max-md:hidden inline-flex shrink-0 items-center gap-1.5 border-transparent text-white {store.ui.exitReserved ? 'bg-[#db2777] shadow-[0_3px_0_#9d174d]' : 'bg-[#ec4899] shadow-[0_3px_0_#be185d]'}"><Icon name="event_busy" size={20} fill={store.ui.exitReserved} /><span class="hidden xl:inline">{reserveLabel}</span></button>
 		{/if}
 		<button type="button" onclick={() => store.leaveGame()} aria-label={t('play.room.leave')} class="kk-btn kk-btn-danger inline-flex shrink-0 items-center gap-1.5"><Icon name="logout" size={20} /><span class="hidden xl:inline">{t('play.room.leave')}</span></button>
 	</header>

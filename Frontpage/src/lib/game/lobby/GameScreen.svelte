@@ -27,6 +27,9 @@
 	import DrawingCanvas from './DrawingCanvas.svelte';
 	import DrawingTools from './DrawingTools.svelte';
 	import ItemBar from './ItemBar.svelte';
+	import GameChatBar from './GameChatBar.svelte';
+	import DrawingPalette from './DrawingPalette.svelte';
+	import Dialog from './Dialog.svelte';
 	import ItemZones from './ItemZones.svelte';
 	import ItemFx from './ItemFx.svelte';
 	import '../gameStage.css';
@@ -46,6 +49,41 @@
 	const family = $derived(rule?.rule);
 	const quiz = $derived(QUIZ.includes(family)); // everyone answers at once
 	const boardMode = $derived(BOARD.includes(family)); // 솎솎 and 잇땅 are drawn on the square board layout
+	// Phone, portrait: the word games get a stage of their own (status, display, last words, players, answer field, top to bottom)
+	// instead of the legacy 1010 px board scaled down to a third. The drawing game and the board games are still the scaled one.
+	let winW = $state(typeof innerWidth === 'undefined' ? 1280 : innerWidth);
+	const phone = $derived(winW < 768);
+	const phoneStage = $derived(phone && family !== 'Drawing' && family !== 'Crossword');
+	// the sketchbook has a phone stage of its own
+	const phoneDrawing = $derived(phone && family === 'Drawing');
+	let palOpen = $state(false);
+	// the frog is drawn at 500 px and scaled to the width of the stage
+	let jjoH = $state(135);
+	// The frog's height: the floats inside it do not always count for its own box, so what its contents reach is read (as it changes).
+	function measureH(node) {
+		const run = () => {
+			const h = Math.max(node.offsetHeight, node.scrollHeight);
+			if (h && h !== jjoH) jjoH = h;
+		};
+		run();
+		const timer = setInterval(run, 200);
+		const ro = new ResizeObserver(run);
+		ro.observe(node);
+		return { destroy: () => (clearInterval(timer), ro.disconnect()) };
+	}
+	// (the board games' frog is 322 px wide, the word games' 500)
+	const jjoW = $derived(boardMode ? 322 : 500);
+	// as wide as the screen, but a board game's square frog leaves room (about 270 px) for the status line, the players and the chat line under it
+	const jk = $derived(Math.min(boardMode ? 1.3 : 1.15, Math.max(0.5, (areaW || winW) / jjoW), boardMode && areaH ? Math.max(0.5, (areaH - 270) / jjoH) : 9));
+	// the round's 제시어 is the round's title (as in the notch of the desktop header); the letter of the turn is the frog's business
+	const roundTitle = $derived(g?.round ? (room?.game?.title?.[g.round - 1] ?? '') : '');
+	let histOpen = $state(false); // the last words are a sheet of their own on a phone (the legacy client did not show them there at all)
+	// tells the page that the chat is the line under the board, so it does not float a button as well
+	$effect(() => {
+		if (!store.ui) return; // (a replay on the portal has a host without the lobby's state)
+		store.ui.phoneStage = phoneStage || phoneDrawing;
+		return () => (store.ui.phoneStage = false);
+	});
 	const supported = $derived(['Classic', 'Hunmin', 'Daneo', 'Jaqwi', 'Typing', 'Mathquiz', 'Wordstack', 'Sock', 'Linkland', 'Crossword', 'Drawing'].includes(family));
 	const reverse = $derived(['KAP', 'EAP'].includes(room?.modeKey));
 	const kkt = $derived(room?.modeKey === 'KKT');
@@ -76,8 +114,8 @@
 	const dock = $derived(prefs.itemDock);
 	const EDGE_W = 84;
 	const EDGE_H = 56;
-	const padX = $derived(itemOn && (dock === 'left' || dock === 'right') ? EDGE_W : 0);
-	const padY = $derived(itemOn && (dock === 'top' || dock === 'bottom') ? EDGE_H : 0);
+	const padX = $derived(!phoneStage && itemOn && (dock === 'left' || dock === 'right') ? EDGE_W : 0);
+	const padY = $derived(!phoneStage && itemOn && (dock === 'top' || dock === 'bottom') ? EDGE_H : 0);
 	const scale = $derived(areaW && areaH ? Math.min((areaW - padX) / STAGE_W, (areaH - padY) / STAGE_H) : 1);
 
 	// ---- the players, in turn order ----
@@ -409,6 +447,13 @@
 
 	// the card of whoever is up scrolls into view (legacy: -13 px)
 	let body = $state();
+	let strip = $state();
+	// phone: the card of whoever is up comes to the middle of the strip
+	$effect(() => {
+		const id = currentId;
+		if (!id || !strip) return;
+		tick().then(() => strip?.querySelector(`[data-player="${CSS.escape(id)}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }));
+	});
 	$effect(() => {
 		const id = currentId;
 		if (!id || !body) return;
@@ -512,7 +557,9 @@
 		set value(v) {
 			value = v;
 		},
-		variant: 'answer',
+		get variant() {
+			return phoneStage ? 'answerPhone' : 'answer';
+		},
 		get placeholder() {
 			return t('kkutu.product.game.inputHere');
 		},
@@ -740,13 +787,232 @@
 							{/each}
 						{/snippet}
 
+{#snippet displayBody()}
+	{#if display.kind === 'item'}<span style="color:#66FF66">{display.text}</span>
+	{:else if display.kind === 'warn'}<span style="color:#FF7A6E">{display.text}</span>
+	{:else if display.kind === 'fail'}<span class="game-fail-text">{display.text}</span>
+	{:else if display.kind === 'reveal'}
+		{#each display.chars as c, i (i)}<span class="jjo-ch" use:zoom={c.on} style:opacity={c.on ? 1 : 0} style:color={c.hanbang ? '#FF4D4D' : c.mission ? '#66FF66' : undefined}>{c.char}</span>{/each}
+	{:else if display.kind === 'pieces'}
+		{#each g?.pool ?? [] as piece, i (i)}<span class="wordstack-piece {pulsing(i) ? 'wordstack-piece-pulse' : ''}">{piece}{#if g.subpool?.[i]}<span class="jjo-display-word-length">{g.subpool[i]}</span>{/if}</span>{' '}{/each}
+	{:else if display.kind === 'answer'}<span style="color:#FFFF44">{display.text}</span>
+	{:else if display.kind === 'list'}
+		<div class="jjo-fit" use:fit={display.first + display.rest}>
+			<span style="color:#FFFF44">{#each [...display.first] as ch, i (i)}<span class={family === 'Typing' && wrongAt(i) ? 'jjo-wrong' : ''}>{ch}</span>{/each}</span>{#if display.rest}{' '}<span>{display.rest}</span>{/if}
+		</div>
+	{:else if display.kind === 'hint'}
+		{#if reverse}<span style="color:#AAAAAA">{display.dim}</span><span>{display.bright}</span>{:else}<span>{display.bright}</span><span style="color:#AAAAAA">{display.dim}</span>{/if}
+	{:else if display.kind === 'text'}{display.text}{#if display.length}<span class="jjo-display-word-length">({display.length})</span>{/if}{/if}
+{/snippet}
+
+{#snippet historyItems()}
+	{#if quiz}
+		{#each g?.history ?? [] as h (h.key)}
+			{#if h.raw}
+				{@const mean = processWord(h.mean, h.theme, labels)}
+				{#snippet rawTip()}<h5 style="color:#BBBBBB">{@render meaning(mean)}</h5>{/snippet}
+				<Tooltip content={rawTip} placement="bottom">
+					<div class="ellipse history-item kkg-hist-in" data-word={h.word}>
+						{h.word}{#each wordClasses(h.wc) as c (c)}<span class="history-class">{c}</span>{/each}
+						<div class="history-mean ellipse">{@render meaning(mean)}</div>
+					</div>
+				</Tooltip>
+			{:else}
+				<div class="ellipse history-item kkg-hist-in" data-word={h.word}>
+					{#if h.mark}<Icon name={h.mark === 'ok' ? 'check' : 'block'} size={16} class="align-[-3px]" />{/if}{h.word}
+					{#if h.mean}<div class="history-mean ellipse">{h.mean}</div>{/if}
+				</div>
+			{/if}
+		{/each}
+	{/if}
+	{#each history as h (h.key)}
+		{#snippet tip()}<h5 style="color:#BBBBBB">{@render meaning(h.mean)}</h5>{/snippet}
+		<Tooltip content={tip} placement="bottom">
+			<div class="ellipse history-item kkg-hist-in" data-word={h.word}>
+				{#if h.hanbang}{h.word.slice(0, h.hanbang[0])}<span style="color:#FF4D4D">{h.word.slice(h.hanbang[0], h.hanbang[1])}</span>{h.word.slice(h.hanbang[1])}{:else}{h.word}{/if}{#each h.wcs as c (c)}<span class="history-class">{c}</span>{/each}
+				<div class="history-mean ellipse">{@render meaning(h.mean)}</div>
+			</div>
+		</Tooltip>
+	{/each}
+{/snippet}
+
+{#snippet jjo()}
+<div class="jjoriping" style:transform="translateY({(BAR_OPEN - barH) / 2}px)">
+	<img class="jjoObj jjoEyeL" src="{IMAGE_CDN}jjoeyeL.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoNose" src="{IMAGE_CDN}jjonose.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoEyeR" src="{IMAGE_CDN}jjoeyeR.svg{IMAGE_VERSION}" alt="" />
+	<div class="jjoDisplayBar" bind:offsetHeight={barH}>
+		<div class="graph jjo-turn-time" role="progressbar" aria-label={t('kkutu.js.second')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, turnPct))}>
+			<div class="graph-bar {family === 'Wordstack' && poolFull ? 'round-warning' : ''}" style={family === 'Wordstack' ? `width:${poolFull ? 100 : ((g?.pool?.length ?? 0) / 8) * 100}%` : quiz ? 'width:100%;text-align:center' : barStyle(turnPct)}>{teethText}</div>
+		</div>
+		<div class="jjo-display" data-display bind:this={displayEl} aria-live="polite" style:height="{Math.max(0, mouthH * openV)}px" style:padding-top="{Math.max(0, 8 * openV)}px" style:padding-bottom="{Math.max(0, 8 * openV)}px" style:overflow={openV > 0.98 && textH <= MOUTH_MAX ? 'visible' : 'hidden'}>
+			<div class="jjo-text" bind:clientHeight={textH}>
+				{@render displayBody()}
+			</div>
+		</div>
+		<div class="graph jjo-round-time" role="progressbar" aria-label={t('kkutu.js.rounds')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, roundPct))}>
+			<div class="graph-bar {extreme ? 'round-extreme' : ''}" style={barStyle(roundPct)}>{roundText}</div>
+		</div>
+	</div>
+</div>
+{/snippet}
+
+{#snippet boardJjo()}
+<div class="jjoriping cw">
+	<img class="jjoObj jjoEyeL" src="{IMAGE_CDN}jjoeyeL.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoNose" src="{IMAGE_CDN}jjonose.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoEyeR" src="{IMAGE_CDN}jjoeyeR.svg{IMAGE_VERSION}" alt="" />
+	<div class="jjoDisplayBar">
+		<div class="graph jjo-turn-time"><div class="graph-bar" style="width:100%"></div></div>
+		<div class="jjo-display" data-display aria-live="polite" data-board>
+			{#if g && g.phase !== 'loading'}
+				{#if family === 'Crossword'}
+					{#each cwBars as bar (`${cwIdx}-${bar[0]}-${bar[1]}-${bar[2]}`)}
+						{@const x = Number(bar[0])}
+						{@const y = Number(bar[1])}
+						{@const vert = bar[2] == 1}
+						{@const len = Number(bar[3])}
+						{@const mine = bar[5] === net.id}
+						<div
+							class="cw-bar {bar[4] ? 'cw-open' : ''} {mine ? 'cw-my-open' : ''}"
+							role="button"
+							tabindex={bar[4] || mine ? -1 : 0}
+							aria-label="{t(vert ? 'kkutu.js.cwVert' : 'kkutu.js.cwHorz')} {len}{t('kkutu.js.cwL')}"
+							style="top:{y * 12.5}%;left:{x * 12.5}%;width:{(vert ? 1 : len) * 12.5}%;height:{(vert ? len : 1) * 12.5}%"
+							onclick={() => !bar[4] && !mine && cwPick(bar)}
+							onkeydown={(e) => e.key === 'Enter' && !bar[4] && !mine && cwPick(bar)}
+						>
+							{#each Array(len) as _, j (j)}<div class="cw-cell" data-cw-cell={cwCell(x, y, bar[2], j)}>{cwLetters[cwCell(x, y, bar[2], j)] ?? ''}</div>{/each}
+						</div>
+					{/each}
+				{:else if family === 'Sock'}
+					{#each [...(g.board ?? '')] as ch, i (i)}
+						<div class="sock-char" style:width={rule?.lang === 'ko' ? '12.5%' : '10%'} style:height={rule?.lang === 'ko' ? '12.5%' : '10%'}>
+							{#if ch !== '　' && ch !== ' '}{ch}{:else if pickedAt[i]}{#key pickedAt[i].key}<span class="sock-picked sock-picked-anim">{pickedAt[i].char}</span>{/key}{/if}
+						</div>
+					{/each}
+				{:else}
+					<div class="linkland-board">
+						{#each [...(g.board ?? '')] as ch, i (i)}<div class="linkland-cell {ownerClass(i)}" style:width="{100 / (g.boardSize || 11)}%" style:height="{100 / (g.boardSize || 11)}%">{ch}</div>{/each}
+					</div>
+				{/if}
+			{/if}
+		</div>
+		<div class="graph jjo-round-time" role="progressbar" aria-label={t('kkutu.js.rounds')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, roundPct))}>
+			<div class="graph-bar {extreme ? 'round-extreme' : ''}" style={barStyle(roundPct)}>{roundText}</div>
+		</div>
+	</div>
+</div>
+{/snippet}
+
+{#snippet phoneRoster()}
+<div class="kkp-players" bind:this={strip}>
+	{#each seats as p (p.id)}
+		{@const hidden = !p.robot && p.id !== net.id}
+		{@const team = p.game.team}
+		<div id="game-user-{p.id}" data-player={p.id} role="button" tabindex="0" onclick={() => store.hooks.openProfile?.(p.id)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), store.hooks.openProfile?.(p.id))} class="kkp-user {p.id === currentId ? 'current' : ''} {p.id === net.id ? 'me' : ''}">
+			{#if leaders.has(p.id)}<span class="game-user-lead" data-leader>{t('play.game.leader')}</span>{/if}
+			<span class="kkp-ava"><Moremi equip={p.equip} shop={store.shop} {parts} size={36} label={p.name} frame={false} maskable={hidden} /></span>
+			<span class="who">
+				<span class="nm"><LevelIcon level={p.robot ? 1 : p.lv} size={14} maskable={hidden} /><NickName user={p} showCheck maskable={hidden} /></span>
+				<span class="sc {team ? `team-${team}` : ''}" data-score data-value={Math.round(p.game.score ?? 0)}>
+					{#if g?.solved?.[p.id] !== undefined}{Number(g.solved[p.id]).toLocaleString()}<small>{t('play.game.solvedUnit')}</small>
+					{:else if g?.kpm?.[p.id] !== undefined}{g.kpm[p.id]}<small>{plainText(t('kkutu.js.kpm'))}</small>
+					{:else}{Math.round(shown[p.id] ?? 0).toLocaleString()}{/if}
+				</span>
+			</span>
+			{#each popups.filter((x) => x.id === p.id) as x (x.key)}<div class="deltaScore {x.kind}" data-kind={x.kind}>{x.text}</div>{/each}
+			<ChatBalloon {store} id={p.id} class="top-0 z-20 max-w-[96%]! px-2! py-1! text-xs!" />
+		</div>
+	{/each}
+</div>
+{/snippet}
+
+{#snippet phoneDrawing_()}
+<div class="kkg kkp kkp-draw" data-phone-stage>
+	<div class="kkp-status">
+		<span class="kkp-round-pill">{t('kkutu.js.rounds')} <b>{g?.round ? Math.min(g.round, room.rounds) : 0}</b> / {room.rounds}</span>
+		<span class="kkp-pill kkp-time"><Icon name="timer" size={16} />{room.time}{second}</span>
+	</div>
+	<!-- the theme and the word (the painter's own word, or the guessers' blanks; the answer when it is out) -->
+	<div class="kkp-sk-info" data-display aria-live="polite">
+		{#if g?.answer}
+			<b class="kkp-sk-word">{g.answer}</b>
+		{:else}
+			<span class="kkp-sk-theme">{jqTheme}</span>
+			<b class="kkp-sk-word">{painting ? (g?.painterWord ?? '') : blanks}</b>
+		{/if}
+	</div>
+	<!-- the sheet: 4:3, as wide as the screen -->
+	<div class="kkp-sk-page">
+		{#if g && g.phase !== 'loading'}
+			{#if painting}
+				{#key g.round}<DrawingCanvas tall {store} {clearToken} onpicture={(url) => (lastImage = url)} />{/key}
+			{:else}
+				<img class="sk-picture" alt="" draggable="false" src={g.canvasImage || 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='} />
+			{/if}
+		{/if}
+	</div>
+	<div class="kkp-bar kkp-round kkp-sk-time" role="progressbar" aria-label={t('kkutu.js.rounds')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, roundPct))}>
+		<div class="kkp-fill {extreme ? 'extreme' : ''}" style="width:{Math.max(0, Math.min(100, roundPct))}%"></div><span>{roundText}</span>
+	</div>
+	{#if painting}
+		<DrawingTools side="phone" onclear={() => clearToken++} onpalette={() => (palOpen = true)} />
+	{:else if (g?.hints ?? []).length}
+		<div class="kkp-history kkp-hints" data-hints>{#each g?.hints ?? [] as hint, i (i)}<div class="hint-item">{@render meaning(processWord(hint, '', labels))}</div>{/each}</div>
+	{/if}
+	{@render phoneRoster()}
+	<div class="kkp-grow"></div>
+	{#if !painting}<GameChatBar {store} />{/if}
+</div>
+<Dialog bind:open={palOpen} title={t('kkutu.js.drawingColor')}>
+	<DrawingPalette onpick={() => (palOpen = false)} />
+</Dialog>
+{/snippet}
+
+{#snippet phoneStage_()}
+<div class="kkg kkp" data-phone-stage>
+	<div class="kkp-status">
+		{#if !boardMode && g && g.phase !== 'loading' && family !== 'Jaqwi'}<span class="kkp-pill" data-chain aria-label={t('play.game.chain')}><Icon name="menu_book" size={17} />{family === 'Wordstack' ? (g?.pool?.length ?? 0) : (g?.chain ?? 0)}</span>{/if}
+		{#if !boardMode && family !== 'Jaqwi' && room.opts?.mission && g?.mission}<span class="kkp-pill kkp-mission" data-tour="game-mission">{g.mission}</span>{/if}
+		<span class="kkp-round-pill">{t('kkutu.js.rounds')} <b>{g?.round ? Math.min(g.round, room.rounds) : 0}</b> / {room.rounds}{#if roundTitle}<i class="kkp-letter">{roundTitle}</i>{/if}</span>
+		<span class="kkp-pill kkp-time"><Icon name="timer" size={16} />{room.time}{second}</span>
+		{#if family !== 'Jaqwi' && !boardMode}<button type="button" class="kkp-pill kkp-histbtn" onclick={() => (histOpen = true)} aria-haspopup="dialog" aria-label={t('play.game.history')}><Icon name="history" size={18} /></button>{/if}
+	</div>
+	<!-- 쪼리핑: the legacy frog, 500 px wide, drawn at the width of the screen (its two bars are the turn's and the round's clock) -->
+	<div class="kkp-jjo" style:width="{Math.floor(jjoW * jk)}px" style:height="{Math.floor(jjoH * jk)}px">
+		<div class="kkg-jjo-inner" style:width="{jjoW}px" style:transform="scale({jk})" use:measureH>{#if boardMode}{@render boardJjo()}{:else}{@render jjo()}{/if}</div>
+	</div>
+	<!-- a row of its own, always there: the board must not move when it fills and empties -->
+	<p class="kkp-turn-of" data-turn-of aria-live="polite">{#if currentId && net.users[currentId] && g?.phase === 'turn'}<b>{net.users[currentId].name}</b> {t('play.game.turnOf')}{/if}</p>
+	{#if boardMode}
+		<div class="kkp-words" data-words>
+			{#if family === 'Sock'}{#each sortedMaps as w (w.i)}<span class="kkp-word">{w.text}</span>{/each}
+			{:else}{#each g?.words ?? [] as w, k (`${k}:${w}`)}<span class="kkp-word">{w}</span>{/each}{/if}
+		</div>
+	{/if}
+	{#if family === 'Jaqwi'}
+		<div class="kkp-history kkp-hints" data-history>{#each g?.hints ?? [] as hint, i (i)}<div class="hint-item">{@render meaning(processWord(hint, '', labels))}</div>{/each}</div>
+	{/if}
+	{@render phoneRoster()}
+	<div class="kkp-grow"></div>
+	{#if itemOn}<div class="kkp-items"><ItemBar {store} layout="badge" onuse={useItem} ongrip={gripDown} onmove={(d) => setPref('itemDock', d)} dragging={itemDrag} /></div>{/if}
+	<GameChatBar {store} />
+</div>
+<!-- The sheet is beside the stage, not in it: the stage's rules (floats, content-box) are for the legacy board and would be applied to the sheet's own frame. -->
+<Dialog bind:open={histOpen} title={t('play.game.history')}>
+	<div class="kkg kkg-hist">
+		<div class="kkp-history kkp-history-sheet" role="presentation" onclick={(e) => e.target.closest?.('.history-item')?.classList.toggle('open')}>
+			{@render historyItems()}
+			{#if !history.length && !(g?.history ?? []).length}<p class="kkp-empty">{t('play.game.historyEmpty')}</p>{/if}
+		</div>
+	</div>
+</Dialog>
+{/snippet}
+
 {#if room}
 	{#if !store.replay}<GameLoading loading={loadingNow} bind:stage={veil} />{/if}
 	<section aria-label={t('kkutu.product.game.title')} in:rise|global class="flex min-h-0 flex-1 flex-col items-center" style:visibility={stageHidden ? 'hidden' : undefined} style:position={stageHidden ? 'absolute' : undefined} style:width={stageHidden ? '100%' : undefined}>
 		{#if !supported}
 			<div class="kk-card grid w-full place-items-center p-6 text-center font-bold text-(color:--kk-muted)">{t('play.game.unsupported')}</div>
 		{:else}
-			<div class="kkg-backdrop kk-card relative grid min-h-0 w-full flex-1 place-items-center overflow-hidden" bind:this={backdropEl} bind:clientWidth={areaW} bind:clientHeight={areaH} style:padding-left={dock === 'left' ? `${padX}px` : undefined} style:padding-right={dock === 'right' ? `${padX}px` : undefined} style:padding-top={dock === 'top' ? `${padY}px` : undefined} style:padding-bottom={dock === 'bottom' ? `${padY}px` : undefined}>
+			<div class="kkg-backdrop kk-card relative grid min-h-0 w-full flex-1 place-items-center overflow-hidden {phoneStage || phoneDrawing ? 'kkg-phone-backdrop' : ''}" bind:this={backdropEl} bind:clientWidth={areaW} bind:clientHeight={areaH} style:padding-left={dock === 'left' ? `${padX}px` : undefined} style:padding-right={dock === 'right' ? `${padX}px` : undefined} style:padding-top={dock === 'top' ? `${padY}px` : undefined} style:padding-bottom={dock === 'bottom' ? `${padY}px` : undefined}>
 				<svg class="absolute inset-0 size-full" aria-hidden="true">
 					<defs>
 						<pattern id="kk-game-tile" width={PATTERN} height={PATTERN} patternUnits="userSpaceOnUse">
@@ -755,13 +1021,18 @@
 					</defs>
 					<rect width="100%" height="100%" fill="url(#kk-game-tile)" />
 				</svg>
-				{#if itemOn && dock !== 'answer'}
+				{#if itemOn && dock !== 'answer' && !phoneStage}
 					<div style:container-type={dock === 'top' || dock === 'bottom' ? 'inline-size' : undefined} class="absolute z-20 flex justify-center {dock === 'top' ? 'inset-x-0 top-2' : dock === 'bottom' ? 'inset-x-0 bottom-2' : dock === 'left' ? 'inset-y-0 left-2 items-center' : 'inset-y-0 right-2 items-center'}">
 						<ItemBar {store} layout={dock === 'left' || dock === 'right' ? 'rail' : 'row'} onuse={useItem} ongrip={gripDown} onmove={(d) => setPref('itemDock', d)} dragging={itemDrag} />
 					</div>
 				{/if}
 				{#if itemFx}{#key itemFx.at}<ItemFx user={net.users[itemFx.target]} item={ITEMS[itemFx.item]} name={t(`game.item.${itemFx.item}.name`)} shop={store.shop} {parts} />{/key}{/if}
 				{#if itemDrag}<ItemZones hover={hoverDock} answer={answerRect} edgeW={EDGE_W} edgeH={EDGE_H} />{/if}
+				{#if phoneStage}
+				{@render phoneStage_()}
+				{:else if phoneDrawing}
+				{@render phoneDrawing_()}
+				{:else}
 				<div style:width="{Math.floor(STAGE_W * scale)}px" style:height="{Math.floor(STAGE_H * scale)}px">
 				<div class="kkg" style:transform="scale({scale})" style:transform-origin="0 0">
 					{#if family === 'Drawing'}
@@ -836,49 +1107,7 @@
 								{/if}
 								{#if family === 'Linkland'}<div class="game-body cw">{@render roster()}</div>{/if}
 							</div>
-							<div class="jjoriping cw">
-								<img class="jjoObj jjoEyeL" src="{IMAGE_CDN}jjoeyeL.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoNose" src="{IMAGE_CDN}jjonose.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoEyeR" src="{IMAGE_CDN}jjoeyeR.svg{IMAGE_VERSION}" alt="" />
-								<div class="jjoDisplayBar">
-									<div class="graph jjo-turn-time"><div class="graph-bar" style="width:100%"></div></div>
-									<div class="jjo-display" data-display aria-live="polite" data-board>
-										{#if g && g.phase !== 'loading'}
-											{#if family === 'Crossword'}
-												{#each cwBars as bar (`${cwIdx}-${bar[0]}-${bar[1]}-${bar[2]}`)}
-													{@const x = Number(bar[0])}
-													{@const y = Number(bar[1])}
-													{@const vert = bar[2] == 1}
-													{@const len = Number(bar[3])}
-													{@const mine = bar[5] === net.id}
-													<div
-														class="cw-bar {bar[4] ? 'cw-open' : ''} {mine ? 'cw-my-open' : ''}"
-														role="button"
-														tabindex={bar[4] || mine ? -1 : 0}
-														aria-label="{t(vert ? 'kkutu.js.cwVert' : 'kkutu.js.cwHorz')} {len}{t('kkutu.js.cwL')}"
-														style="top:{y * 12.5}%;left:{x * 12.5}%;width:{(vert ? 1 : len) * 12.5}%;height:{(vert ? len : 1) * 12.5}%"
-														onclick={() => !bar[4] && !mine && cwPick(bar)}
-														onkeydown={(e) => e.key === 'Enter' && !bar[4] && !mine && cwPick(bar)}
-													>
-														{#each Array(len) as _, j (j)}<div class="cw-cell" data-cw-cell={cwCell(x, y, bar[2], j)}>{cwLetters[cwCell(x, y, bar[2], j)] ?? ''}</div>{/each}
-													</div>
-												{/each}
-											{:else if family === 'Sock'}
-												{#each [...(g.board ?? '')] as ch, i (i)}
-													<div class="sock-char" style:width={rule?.lang === 'ko' ? '12.5%' : '10%'} style:height={rule?.lang === 'ko' ? '12.5%' : '10%'}>
-														{#if ch !== '　' && ch !== ' '}{ch}{:else if pickedAt[i]}{#key pickedAt[i].key}<span class="sock-picked sock-picked-anim">{pickedAt[i].char}</span>{/key}{/if}
-													</div>
-												{/each}
-											{:else}
-												<div class="linkland-board">
-													{#each [...(g.board ?? '')] as ch, i (i)}<div class="linkland-cell {ownerClass(i)}" style:width="{100 / (g.boardSize || 11)}%" style:height="{100 / (g.boardSize || 11)}%">{ch}</div>{/each}
-												</div>
-											{/if}
-										{/if}
-									</div>
-									<div class="graph jjo-round-time" role="progressbar" aria-label={t('kkutu.js.rounds')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, roundPct))}>
-										<div class="graph-bar {extreme ? 'round-extreme' : ''}" style={barStyle(roundPct)}>{roundText}</div>
-									</div>
-								</div>
-							</div>
+							{@render boardJjo()}
 							{#if family === 'Sock' || family === 'Crossword'}<div class="game-body cw kkg-cw-right">{@render roster()}</div>{/if}
 						</div>
 					{:else}
@@ -890,67 +1119,11 @@
 						{:else}
 							<div class="items" data-tour="game-mission" style:opacity={room.opts?.mission && g?.mission ? 1 : 0}>{g?.mission ?? ''}</div>
 						{/if}
-						<div class="jjoriping" style:transform="translateY({(BAR_OPEN - barH) / 2}px)">
-							<img class="jjoObj jjoEyeL" src="{IMAGE_CDN}jjoeyeL.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoNose" src="{IMAGE_CDN}jjonose.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoEyeR" src="{IMAGE_CDN}jjoeyeR.svg{IMAGE_VERSION}" alt="" />
-							<div class="jjoDisplayBar" bind:offsetHeight={barH}>
-								<div class="graph jjo-turn-time" role="progressbar" aria-label={t('kkutu.js.second')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, turnPct))}>
-									<div class="graph-bar {family === 'Wordstack' && poolFull ? 'round-warning' : ''}" style={family === 'Wordstack' ? `width:${poolFull ? 100 : ((g?.pool?.length ?? 0) / 8) * 100}%` : quiz ? 'width:100%;text-align:center' : barStyle(turnPct)}>{teethText}</div>
-								</div>
-								<div class="jjo-display" data-display bind:this={displayEl} aria-live="polite" style:height="{Math.max(0, mouthH * openV)}px" style:padding-top="{Math.max(0, 8 * openV)}px" style:padding-bottom="{Math.max(0, 8 * openV)}px" style:overflow={openV > 0.98 && textH <= MOUTH_MAX ? 'visible' : 'hidden'}>
-									<div class="jjo-text" bind:clientHeight={textH}>
-										{#if display.kind === 'item'}<span style="color:#66FF66">{display.text}</span>
-										{:else if display.kind === 'warn'}<span style="color:#FF7A6E">{display.text}</span>
-										{:else if display.kind === 'fail'}<span class="game-fail-text">{display.text}</span>
-										{:else if display.kind === 'reveal'}
-											{#each display.chars as c, i (i)}<span class="jjo-ch" use:zoom={c.on} style:opacity={c.on ? 1 : 0} style:color={c.hanbang ? '#FF4D4D' : c.mission ? '#66FF66' : undefined}>{c.char}</span>{/each}
-										{:else if display.kind === 'pieces'}
-											{#each g?.pool ?? [] as piece, i (i)}<span class="wordstack-piece {pulsing(i) ? 'wordstack-piece-pulse' : ''}">{piece}{#if g.subpool?.[i]}<span class="jjo-display-word-length">{g.subpool[i]}</span>{/if}</span>{' '}{/each}
-										{:else if display.kind === 'answer'}<span style="color:#FFFF44">{display.text}</span>
-										{:else if display.kind === 'list'}
-											<div class="jjo-fit" use:fit={display.first + display.rest}>
-												<span style="color:#FFFF44">{#each [...display.first] as ch, i (i)}<span class={family === 'Typing' && wrongAt(i) ? 'jjo-wrong' : ''}>{ch}</span>{/each}</span>{#if display.rest}{' '}<span>{display.rest}</span>{/if}
-											</div>
-										{:else if display.kind === 'hint'}
-											{#if reverse}<span style="color:#AAAAAA">{display.dim}</span><span>{display.bright}</span>{:else}<span>{display.bright}</span><span style="color:#AAAAAA">{display.dim}</span>{/if}
-										{:else if display.kind === 'text'}{display.text}{#if display.length}<span class="jjo-display-word-length">({display.length})</span>{/if}{/if}
-									</div>
-								</div>
-								<div class="graph jjo-round-time" role="progressbar" aria-label={t('kkutu.js.rounds')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, roundPct))}>
-									<div class="graph-bar {extreme ? 'round-extreme' : ''}" style={barStyle(roundPct)}>{roundText}</div>
-								</div>
-							</div>
-						</div>
+						{@render jjo()}
 						<div class="chain" data-chain style:display={g && g.phase !== 'loading' && family !== 'Jaqwi' ? 'block' : 'none'}>{family === 'Wordstack' ? (g?.pool?.length ?? 0) : (g?.chain ?? 0)}</div>
 						<div class="history-holder">
 							<div class="history" data-history>
-								{#if quiz}
-									{#each g?.history ?? [] as h (h.key)}
-										{#if h.raw}
-											{@const mean = processWord(h.mean, h.theme, labels)}
-											{#snippet rawTip()}<h5 style="color:#BBBBBB">{@render meaning(mean)}</h5>{/snippet}
-											<Tooltip content={rawTip} placement="bottom">
-												<div class="ellipse history-item kkg-hist-in" data-word={h.word}>
-													{h.word}{#each wordClasses(h.wc) as c (c)}<span class="history-class">{c}</span>{/each}
-													<div class="history-mean ellipse">{@render meaning(mean)}</div>
-												</div>
-											</Tooltip>
-										{:else}
-											<div class="ellipse history-item kkg-hist-in" data-word={h.word}>
-												{#if h.mark}<Icon name={h.mark === 'ok' ? 'check' : 'block'} size={16} class="align-[-3px]" />{/if}{h.word}
-												{#if h.mean}<div class="history-mean ellipse">{h.mean}</div>{/if}
-											</div>
-										{/if}
-									{/each}
-								{/if}
-								{#each history as h (h.key)}
-									{#snippet tip()}<h5 style="color:#BBBBBB">{@render meaning(h.mean)}</h5>{/snippet}
-									<Tooltip content={tip} placement="bottom">
-										<div class="ellipse history-item kkg-hist-in" data-word={h.word}>
-											{#if h.hanbang}{h.word.slice(0, h.hanbang[0])}<span style="color:#FF4D4D">{h.word.slice(h.hanbang[0], h.hanbang[1])}</span>{h.word.slice(h.hanbang[1])}{:else}{h.word}{/if}{#each h.wcs as c (c)}<span class="history-class">{c}</span>{/each}
-											<div class="history-mean ellipse">{@render meaning(h.mean)}</div>
-										</div>
-									</Tooltip>
-								{/each}
+								{@render historyItems()}
 							</div>
 						</div>
 						<div class="game-body" bind:this={body}>{@render players()}</div>
@@ -967,13 +1140,14 @@
 					{/if}
 				</div>
 				</div>
+				{/if}
 			</div>
 		{/if}
 	</section>
 	<GameResult {store} />
 {/if}
 
-<svelte:window onkeydown={itemKey} />
+<svelte:window onkeydown={itemKey} bind:innerWidth={winW} />
 
 <style>
 	:global(.kkg .kkg-item-anchor) { position: relative; top: -220px; left: 244px; width: 100%; height: 0; }

@@ -8,11 +8,11 @@
 	import { rewardLabel } from '../newsFormat.js';
 
 	/**
-	 * The question before an exchange: what I give, what I get, and what is left of each thing I give afterwards, so a spend is never a surprise.
+	 * The question before an exchange (or a plain payment, when nothing is gotten): what I give, what I get, and what is left of each thing I give afterwards, so a spend is never a surprise.
 	 * `have(cost)` is how much of a cost I own now; `onconfirm` runs the exchange.
-	 * @type {{open:boolean, exchange:any, title:string, shop?:any, details?:any, have:(cost:any)=>number, onconfirm:()=>void, dialogTitle?:string, doLabel?:string}}
+	 * @type {{open:boolean, exchange:any, title:string, shop?:any, details?:any, have:(cost:any)=>number, onconfirm:()=>void, dialogTitle?:string, doLabel?:string, extra?:import('svelte').Snippet}}
 	 */
-	let { open = $bindable(false), exchange, title, shop = {}, details = null, have, onconfirm, dialogTitle = t('play.news.exchangeDialog.title'), doLabel = t('play.news.exchangeDo') } = $props();
+	let { open = $bindable(false), exchange, title, shop = {}, details = null, have, onconfirm, dialogTitle = t('play.news.exchangeDialog.title'), doLabel = t('play.news.exchangeDo'), extra } = $props();
 	const cost = $derived(rewardsOfMap(exchange?.cost));
 	const gives = $derived(rewardsOfMap(exchange?.gives));
 	const confirm = () => {
@@ -25,16 +25,18 @@
 	{#if exchange}
 		<div class="flex flex-col gap-4">
 			<p class="text-center text-base font-extrabold">{title}</p>
-			<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+			<div class="grid items-center gap-3 {gives.length ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-1'}">
 				<section class="flex flex-col items-center gap-2" aria-label={t('play.news.exchangeDialog.give')}>
 					<h4 class="text-xs font-extrabold text-(color:--kk-muted)">{t('play.news.exchangeDialog.give')}</h4>
 					{#each cost as c, i (i)}<RewardChip reward={c} {shop} {details} size={44} />{:else}<span class="text-sm font-extrabold text-(color:--kk-accent-strong)">{t('play.news.exchangeFree')}</span>{/each}
 				</section>
+				{#if gives.length}
 				<Icon name="arrow_forward" size={28} class="text-(color:--kk-muted)" aria-hidden="true" />
 				<section class="flex flex-col items-center gap-2" aria-label={t('play.news.exchangeDialog.get')}>
 					<h4 class="text-xs font-extrabold text-(color:--kk-muted)">{t('play.news.exchangeDialog.get')}</h4>
 					{#each gives as g, i (i)}<RewardChip reward={g} {shop} {details} size={44} />{/each}
 				</section>
+				{/if}
 			</div>
 			{#if cost.length}
 				<ul class="flex flex-col gap-1 rounded-xl bg-(--kk-surface-2) px-3 py-2 text-sm" aria-label={t('play.news.exchangeDialog.after')}>
@@ -49,6 +51,7 @@
 					{/each}
 				</ul>
 			{/if}
+			{@render extra?.()}
 			<div class="flex gap-2">
 				<button type="button" onclick={() => (open = false)} class="kk-btn min-h-12 flex-1 px-4 text-base">{t('play.link.no')}</button>
 				<button type="button" onclick={confirm} class="kk-btn kk-btn-primary min-h-12 flex-1 px-4 text-base">{doLabel}</button>

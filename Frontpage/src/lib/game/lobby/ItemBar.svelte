@@ -8,12 +8,14 @@
 	 * 아이템전: the six items, always in view. Each is a small pill (icon, name, uses left, F-key); it is greyed out when the server would
 	 * refuse it. The grip at its start moves the whole bar: drag it onto one of the places (or press an arrow key on it) and it snaps there.
 	 * layout: row (top / bottom edge), grid (under the answer box, 3x2), rail (left / right edge: icons only, the names are in the tips).
-	 * @type {{store:any, layout:'row'|'grid'|'rail', onuse:(id:number)=>void, ongrip:(e:PointerEvent)=>void, onmove:(dock:string)=>void, dragging?:boolean}}
+	 * @type {{store:any, layout:'row'|'grid'|'rail'|'badge', onuse:(id:number)=>void, ongrip:(e:PointerEvent)=>void, onmove:(dock:string)=>void, dragging?:boolean}}
 	 */
 	let { store, layout = 'row', onuse, ongrip, onmove, dragging = false } = $props();
 	const g = $derived(store.game);
 	const mine = $derived(store.myTurn);
 	const rail = $derived(layout === 'rail');
+	// a phone: round buttons, the icon with the uses left as a badge, nothing else (no grip, no names, no key hints)
+	const badge = $derived(layout === 'badge');
 
 	function gripKey(e) {
 		const dock = DOCK_KEYS[e.key];
@@ -24,9 +26,11 @@
 </script>
 
 <div class="kk-items {layout} {dragging ? 'is-dragging' : ''}" role="toolbar" aria-label={t('kkutu.js.item')} data-mine={mine}>
+	{#if !badge}
 	<Tooltip text={t('play.item.move')} placement={rail ? 'right' : 'top'}>
 		<button type="button" class="grip" aria-label={t('play.item.move')} onpointerdown={ongrip} onkeydown={gripKey}><Icon name="drag_indicator" size={18} /></button>
 	</Tooltip>
+	{/if}
 	{#each ITEMS as it (it.id)}
 		{@const left = itemLeft(g, it.id)}
 		{@const ready = itemReady(g, it.id, mine)}
@@ -37,21 +41,23 @@
 		<Tooltip content={tip} placement={layout === 'row' ? 'top' : rail ? 'right' : 'bottom'}>
 			<button type="button" style:--c={it.color} class="pill {ready ? '' : 'off'} {left <= 0 ? 'none' : ''}" aria-disabled={!ready} aria-label="{t(`game.item.${it.id}.name`)} x{left}" aria-keyshortcuts="Shift+{it.id + 1}" onclick={() => ready && onuse(it.id)}>
 				<span class="orb"><Icon name={it.icon} size={rail ? 20 : 18} weight={600} /></span>
-				{#if rail}
-					<span class="n">x{left}</span>
+				{#if rail || badge}
+					<span class="n">{badge ? left : `x${left}`}</span>
 				{:else}
 					<span class="txt"><span class="nm">{t(`game.item.${it.id}.name`)}</span><b class="cnt">x{left}</b></span>
 				{/if}
-				<span class="key">{rail ? '⇧' : 'Shift+'}{it.id + 1}</span>
+				{#if !badge}<span class="key">{rail ? '⇧' : 'Shift+'}{it.id + 1}</span>{/if}
 			</button>
 		</Tooltip>
 	{/each}
+	{#if !badge}
 	<Tooltip text={t('kkutu.js.itemLeft.expl', { rem: g?.itemsLeft ?? 0 })} placement={rail ? 'right' : 'top'}>
 		<span class="sum">
 			<span class="pips" aria-hidden="true">{#each Array(PER_ROUND) as _, i (i)}<i class={i < (g?.itemsLeft ?? 0) ? 'on' : ''}></i>{/each}</span>
 			<span>{t('play.item.left', { n: g?.itemsLeft ?? 0 })}</span>
 		</span>
 	</Tooltip>
+	{/if}
 </div>
 
 <style>
@@ -102,6 +108,29 @@
 	.kk-items.rail {
 		flex-direction: column;
 		width: 60px;
+	}
+	.kk-items.badge {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+		gap: 8px;
+		width: 100%;
+	}
+	.badge .pill {
+		justify-content: center;
+		min-height: 48px;
+		padding: 6px 0;
+		border-radius: 16px;
+	}
+	.badge .orb {
+		width: 34px;
+		height: 34px;
+	}
+	.badge .n {
+		top: -6px;
+		right: 8px;
+		min-width: 20px;
+		font-size: 12px;
+		line-height: 20px;
 	}
 	.kk-items.is-dragging {
 		opacity: 0.5;

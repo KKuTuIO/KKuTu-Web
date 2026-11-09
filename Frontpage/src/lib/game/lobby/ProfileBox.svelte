@@ -156,7 +156,7 @@
 	{:else if !list.length}
 		<EmptyState compact size={110} title={t('play.profile.box.empty')} />
 	{:else}
-		<div class="grid grid-cols-[repeat(auto-fill,minmax(3.6rem,1fr))] gap-2 pb-[5px]">
+		<div class="grid grid-cols-[repeat(auto-fill,minmax(3.6rem,1fr))] gap-2 pb-[5px] max-sm:grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))]">
 			{#each list as e (e.key)}
 				<ItemTile item={e.item} shop={store.shop} {details} own={{ count: e.count, expire: e.expire, equipped: e.equipped, level: e.level, lines: e.lines }} onpick={() => use(e)} onremove={e.instance ? undefined : remove} />
 			{/each}
@@ -165,23 +165,23 @@
 </div>
 
 <!-- The bar at the foot of the list: its backdrop is solid at the bottom and clear at the top, so the list fades into it instead of being cut off; 분해 is not built yet (a disabled secondary button), 강화 opens the enchant dialog. 글자 조합소 and 해커레미의 조합 keep their characters hidden behind the button until it is hovered or focused. -->
-<div class="pointer-events-none sticky bottom-0 z-10 mt-3 flex items-end justify-end gap-3 bg-gradient-to-t from-(--kk-surface) from-30% to-transparent pt-14 pb-0.5">
-	<span class="pointer-events-auto" title={t('play.lab.tbd')}>
-		<button type="button" disabled aria-label="{t('play.lab.dismantle')} – {t('play.lab.tbd')}" class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base">{t('play.lab.dismantle')}</button>
+<div class="pointer-events-none sticky bottom-0 z-10 mt-3 grid grid-cols-2 gap-2 bg-gradient-to-t from-(--kk-surface) from-30% to-transparent pt-8 pb-1 sm:flex sm:items-end sm:justify-end sm:gap-3 sm:pt-14">
+	<span class="pointer-events-auto max-sm:block" title={t('play.lab.tbd')}>
+		<button type="button" disabled aria-label="{t('play.lab.dismantle')} – {t('play.lab.tbd')}" class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base whitespace-nowrap max-sm:w-full max-sm:justify-center">{t('play.lab.dismantle')}</button>
 	</span>
-	<span class="pointer-events-auto">
-		<button type="button" onclick={() => (enchantOpen = true)} class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base">{t('play.lab.enhance')}</button>
+	<span class="pointer-events-auto max-sm:block">
+		<button type="button" onclick={() => (enchantOpen = true)} class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base whitespace-nowrap max-sm:w-full max-sm:justify-center">{t('play.lab.enhance')}</button>
 	</span>
 	<div class="group pointer-events-auto relative">
-		<img src={cdnImg('kkutu/membership/GMMorem.png')} alt="" draggable="false" class="cta-peek absolute -top-10 left-3 z-0 h-[64px] w-[64px] object-contain" />
+		<img src={cdnImg('kkutu/membership/GMMorem.png')} alt="" draggable="false" class="cta-peek absolute -top-10 max-sm:hidden left-3 z-0 h-[64px] w-[64px] object-contain" />
 		<Tooltip text={t(`play.lab.cta.${labTip}`)} placement="top">
-			<button type="button" onpointerenter={() => (labTip = 1 + Math.floor(Math.random() * 2))} onfocus={() => (labTip = 1 + Math.floor(Math.random() * 2))} onclick={() => (labOpen = true)} class="relative z-10 inline-flex h-12 items-center rounded-xl border-0 bg-[#16a34a] px-5 text-base font-extrabold text-white shadow-[0_3px_0_#166534] active:translate-y-px active:shadow-[0_1px_0_#166534]">{t('play.lab.name')}</button>
+			<button type="button" onpointerenter={() => (labTip = 1 + Math.floor(Math.random() * 2))} onfocus={() => (labTip = 1 + Math.floor(Math.random() * 2))} onclick={() => (labOpen = true)} class="relative z-10 inline-flex h-12 items-center whitespace-nowrap max-sm:w-full max-sm:justify-center rounded-xl border-0 bg-[#16a34a] px-5 text-base font-extrabold text-white shadow-[0_3px_0_#166534] active:translate-y-px active:shadow-[0_1px_0_#166534]">{t('play.lab.name')}</button>
 		</Tooltip>
 	</div>
 	<div class="group pointer-events-auto relative">
-		<img src={cdnImg('play/hackerremi.png')} alt="" draggable="false" class="cta-peek absolute -top-11 left-2 z-0 h-[72px] w-[72px] object-contain" />
+		<img src={cdnImg('play/hackerremi.png')} alt="" draggable="false" class="cta-peek absolute -top-11 max-sm:hidden left-2 z-0 h-[72px] w-[72px] object-contain" />
 		<Tooltip text={t(`play.hacker.tip.${tipLine}`)} placement="top">
-			<button type="button" onpointerenter={() => (tipLine = 1 + Math.floor(Math.random() * 3))} onfocus={() => (tipLine = 1 + Math.floor(Math.random() * 3))} onclick={() => (hackerOpen = true)} class="relative z-10 inline-flex h-12 items-center rounded-xl border-0 bg-[#7c3aed] px-5 text-base font-extrabold text-white shadow-[0_3px_0_#5b21b6] active:translate-y-px active:shadow-[0_1px_0_#5b21b6]">{t('play.hacker.name')}</button>
+			<button type="button" onpointerenter={() => (tipLine = 1 + Math.floor(Math.random() * 3))} onfocus={() => (tipLine = 1 + Math.floor(Math.random() * 3))} onclick={() => (hackerOpen = true)} class="relative z-10 inline-flex h-12 items-center whitespace-nowrap max-sm:w-full max-sm:justify-center rounded-xl border-0 bg-[#7c3aed] px-5 text-base font-extrabold text-white shadow-[0_3px_0_#5b21b6] active:translate-y-px active:shadow-[0_1px_0_#5b21b6]">{t('play.hacker.name')}</button>
 		</Tooltip>
 	</div>
 </div>

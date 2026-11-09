@@ -261,17 +261,17 @@
 	<ShareDialog bind:open={shareOpen} title={t('play.replay.share')} link={sheet.id ? linkTo(sheet.id) : ''} shareTitle={t('play.replay.shareTitle')} copied={t('play.replay.linkCopied')} shareText={sheet.room.title || modeName(sheet.room.modeKey)} />
 	<ReplaySummary {store} {sheet} onclose={closeSheet} onshare={share} onplay={dbPlay ? () => (playing = { rec: dbPlay }) : null} />
 {:else}
-	<section aria-label={t('play.nav.replay')} in:rise|global class="flex min-h-0 flex-1 gap-3">
-		<nav aria-label={t('play.nav.replay')} class="kk-card flex w-14 shrink-0 flex-col gap-1 self-start p-1.5 sm:w-56">
+	<section aria-label={t('play.nav.replay')} in:rise|global class="flex min-h-0 flex-1 gap-3 max-sm:flex-col">
+		<nav aria-label={t('play.nav.replay')} class="kk-card flex w-full shrink-0 gap-1 self-stretch p-1.5 sm:w-56 sm:flex-col sm:self-start">
 			{#each SIDE as s (s.id)}
 				{@const on = s.id === section}
-				<button type="button" aria-current={on ? 'page' : undefined} aria-label={s.label} onclick={() => (section = s.id)} class="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-left text-sm font-bold transition-colors max-sm:justify-center {on ? 'bg-(--kk-accent-soft) text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)'}">
-					<Icon name={s.icon} size={22} fill={on} /><span class="max-sm:hidden">{s.label}</span>
+				<button type="button" aria-current={on ? 'page' : undefined} aria-label={s.label} onclick={() => (section = s.id)} class="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-left text-sm font-bold transition-colors max-sm:flex-1 max-sm:flex-col max-sm:justify-center max-sm:gap-0.5 max-sm:py-1.5 max-sm:text-xs {on ? 'bg-(--kk-accent-soft) text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)'}">
+					<Icon name={s.icon} size={22} fill={on} /><span>{s.label}</span>
 				</button>
 			{/each}
 		</nav>
 
-		<div class="kk-card min-w-0 flex-1 overflow-y-auto p-4">
+		<div class="kk-card min-h-0 min-w-0 flex-1 overflow-y-auto p-4 max-sm:p-3">
 			{#key section}
 				<div in:fly|global={{ y: 12, duration: ms(240), easing: quintOut }} class="flex flex-col gap-3">
 					{#if section === 'mine'}

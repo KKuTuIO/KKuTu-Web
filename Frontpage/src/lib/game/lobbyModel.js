@@ -16,6 +16,9 @@ export const roomMeta = (r) => t('play.rooms.meta', { rounds: r.rounds, time: r.
 export const modeGlyph = (r) => (r.mode.trim().split(/\s+/).pop() ?? '').charAt(0);
 
 /** How many friends a player may have (the server refuses more: error 452). */
+/** The name of a channel (감자, 냉이, 다래 ...) from the locale labels; its number only when there is no name for it. */
+export const channelName = (labels, id) => labels?.[`server.${id}`] ?? String(id);
+
 export const FRIEND_LIMIT = 200;
 
 /** @param {Room} r */

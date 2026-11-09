@@ -103,6 +103,13 @@ class EnchantDao(
     fun lockBox(userId: String): JsonNode? =
         jdbcTemplate.query("SELECT box FROM users WHERE _id = ? FOR UPDATE", { rs, _ -> objectMapper.readTree(rs.getString(1) ?: "{}") }, userId).firstOrNull()
 
+    /** The user's Ping; read after [lockBox] (same row, so it is locked already). */
+    fun moneyOf(userId: String): Long = jdbcTemplate.queryForObject("SELECT money FROM users WHERE _id = ?", Long::class.java, userId) ?: 0L
+
+    fun addMoney(userId: String, delta: Long) {
+        jdbcTemplate.update("UPDATE users SET money = money + ? WHERE _id = ?", delta, userId)
+    }
+
     fun saveBox(userId: String, box: JsonNode) {
         jdbcTemplate.update("UPDATE users SET box = ? WHERE _id = ?", PGobject().apply { type = "json"; value = objectMapper.writeValueAsString(box) }, userId)
     }

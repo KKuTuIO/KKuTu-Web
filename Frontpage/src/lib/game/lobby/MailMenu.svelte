@@ -3,8 +3,10 @@
 	import { history, dismiss } from '../ui/toast.svelte.js';
 	import Icon from './Icon.svelte';
 	import Tabs from '../ui/Tabs.svelte';
+	import PushScreen from './PushScreen.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
 	import { prefs } from '../prefs.svelte.js';
+	import { confirm } from '../ui/confirm.svelte.js';
 	import { maskBad } from '../badwords.js';
 	import { cubicOut } from 'svelte/easing';
 	import { ms } from '../motion.js';
@@ -17,6 +19,9 @@
 	let { store } = $props();
 	const net = $derived(store.net);
 	let open = $state(false);
+	// On a phone the mailbox is a screen of its own (PushScreen), not a pop-out under the button.
+	let winW = $state(1280);
+	const phone = $derived(winW < 768);
 	let tab = $state('alert');
 	let box = $state();
 	let pos = $state({ top: 0, right: 0 });
@@ -73,13 +78,20 @@
 		const time = d > 0 ? t('play.mail.day', { n: d }) : h > 0 ? `${t('play.mail.hour', { n: h })} ${t('play.mail.minute', { n: m })}` : t('play.mail.minute', { n: Math.max(0, m) });
 		return t('play.mail.left', { time });
 	}
+	/** Items that run out of time: their time starts the moment the letter is claimed, so ask first. */
+	const timedCount = (mail) => (mail.rewards ?? []).filter((r) => r.type === 'item' && r.expire > 0).length;
+	async function claim(mail) {
+		const timed = timedCount(mail);
+		if (timed && !(await confirm({ message: t('play.mail.timedConfirm', { count: timed }), ok: t('play.mail.claim') }))) return;
+		store.claimMail(mail._id);
+	}
 	function drop(h) {
 		dismiss(h.id);
 		seen = new Set([...seen, h.id]);
 	}
 </script>
 
-<svelte:window onclick={(e) => open && !box?.contains(e.target) && !e.target.closest?.('[data-mail-panel]') && (open = false)} onkeydown={(e) => open && e.key === 'Escape' && (open = false)} />
+<svelte:window bind:innerWidth={winW} onclick={(e) => open && !phone && !box?.contains(e.target) && !e.target.closest?.('[data-mail-panel]') && (open = false)} onkeydown={(e) => open && !phone && e.key === 'Escape' && (open = false)} />
 
 <span bind:this={box} class="relative inline-flex">
 	<Tooltip text={t('play.nav.mail')} placement="bottom">
@@ -90,8 +102,7 @@
 	</Tooltip>
 </span>
 
-{#if open}
-	<div data-mail-panel role="dialog" aria-label={t('play.nav.mail')} transition:pop class="kk-card fixed z-50 flex flex-col overflow-hidden" style="top:{pos.top}px;right:{pos.right}px;width:min({WIDTH}px,calc(100vw - 1rem));height:min({height}px,calc(100dvh - {pos.top + 8}px))">
+{#snippet panel()}
 		<div class="px-3 pt-1"><Tabs bind:value={tab} {tabs} idPrefix="mail" label={t('play.nav.mail')} /></div>
 		<div role="tabpanel" id="mail-panel-{tab}" aria-labelledby="mail-tab-{tab}" class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
 			{#if tab === 'alert'}
@@ -129,13 +140,18 @@
 							<span class="ml-auto text-[11px] font-medium text-(color:--kk-muted)">{left(m)}</span>
 						</p>
 						<p class="text-sm break-words whitespace-pre-wrap">{words(m.content)}</p>
-						<div class="flex justify-end"><button type="button" class="kk-btn kk-btn-primary min-h-10 px-5 text-sm" disabled={m.claimable === false} onclick={() => store.claimMail(m._id)}>{t(m.hasRewards ? 'play.mail.claim' : 'play.mail.confirm')}</button></div>
+						<div class="flex justify-end"><button type="button" class="kk-btn kk-btn-primary min-h-10 px-5 text-sm" disabled={m.claimable === false} onclick={() => claim(m)}>{t(m.hasRewards ? 'play.mail.claim' : 'play.mail.confirm')}</button></div>
 					</article>
 				{:else}
 					<p class="py-8 text-center text-sm text-(color:--kk-muted)">{t('play.mail.noMails')}</p>
 				{/each}
 			{/if}
 		</div>
+{/snippet}
+
+{#if open && !phone}
+	<div data-mail-panel role="dialog" aria-label={t('play.nav.mail')} transition:pop class="kk-card fixed z-50 flex flex-col overflow-hidden" style="top:{pos.top}px;right:{pos.right}px;width:min({WIDTH}px,calc(100vw - 1rem));height:min({height}px,calc(100dvh - {pos.top + 8}px))">
+		{@render panel()}
 		<!-- Bottom edge: drag down to make the panel taller (it can't get shorter than it opens). Arrow keys work too. -->
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 		<div
@@ -158,3 +174,7 @@
 		</div>
 	</div>
 {/if}
+
+<PushScreen bind:open={() => open && phone, (v) => (open = v)} title={t('play.nav.mail')}>
+	{@render panel()}
+</PushScreen>

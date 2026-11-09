@@ -1,7 +1,8 @@
 // Mirrors the legacy client's EXP table so levels match the in-game ones.
 export const MAX_LEVEL = 720;
 
-function requiredScore(lv) {
+/** Experience that takes level `lv` to level `lv + 1`. */
+export function requiredScore(lv) {
 	const m = (!(lv % 5) * 0.3 + 1) * (!(lv % 15) * 0.4 + 1) * (!(lv % 45) * 0.5 + 1);
 	const [a, b, c, d] = lv <= 240 ? [60, 120, 180, 120] : lv <= 480 ? [100, 170, 240, 120] : [140, 220, 300, 120];
 	return Math.round(m * (d + Math.floor(lv / 5) * a + Math.floor((lv * lv) / 225) * b + Math.floor((lv * lv) / 2025) * c));

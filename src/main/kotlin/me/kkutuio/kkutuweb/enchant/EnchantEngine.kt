@@ -15,6 +15,29 @@ object EnchantRules {
     const val MAX_LINES = 3
 
     fun chance(pity: Int): Int = (BASE_CHANCE + PITY_STEP * pity.coerceAtLeast(0)).coerceAtMost(100)
+
+    /** A failed try on a copy of at least this level (the next success would be +4) can damage one of its lines. */
+    const val DAMAGE_FROM_LEVEL = 3
+
+    /** Percent chance that a failed try damages, by the copy's level: 20 at level 3, +20 per level, at most [DAMAGE_MAX_CHANCE]. */
+    const val DAMAGE_STEP = 20
+    const val DAMAGE_MAX_CHANCE = 80
+    fun damageChance(level: Int): Int =
+        if (level < DAMAGE_FROM_LEVEL) 0 else (DAMAGE_STEP * (level - DAMAGE_FROM_LEVEL + 1)).coerceAtMost(DAMAGE_MAX_CHANCE)
+
+    /** Damage is counted in these steps of a line's value (0.05%): [DAMAGE_FULL] steps take the whole line away. */
+    const val DAMAGE_FULL = 2000
+
+    /** The damage one hit takes: from one step up to the chance of the hit, in percent of the value (so 20% can take 0.05% to 20%). */
+    fun maxHit(level: Int): Int = damageChance(level) * (DAMAGE_FULL / 100)
+
+    /** Ping a try spends to be sure it cannot damage (only asked when it could). */
+    const val PROTECT_COST = 300
+
+    /** Ping to repair one [REPAIR_STEP] of damage (10 percentage points, a started step counts whole). */
+    const val REPAIR_STEP = DAMAGE_FULL / 10
+    const val REPAIR_COST = 500
+    fun repairCost(damage: Int): Long = ((damage.coerceAtLeast(0) + REPAIR_STEP - 1) / REPAIR_STEP).toLong() * REPAIR_COST
 }
 
 /**
@@ -55,8 +78,13 @@ data class EnchantLine(
     val effect: String,
     val value: Int,
     val mode: String? = null,
-    val premium: Boolean = false
-)
+    val premium: Boolean = false,
+    /** Damage taken, in steps of 0.05% of the value ([EnchantRules.DAMAGE_FULL] = all of it). Added up by every hit; the value counts less. */
+    val damage: Int = 0
+) {
+    /** The value that counts: [value] less the damage, in permille (can be fractional). */
+    fun effective(): Double = value * (EnchantRules.DAMAGE_FULL - damage.coerceIn(0, EnchantRules.DAMAGE_FULL)) / EnchantRules.DAMAGE_FULL.toDouble()
+}
 
 object EnchantPool {
     /** The game types a [EffectDef.perMode] line can be rolled for: the `RULE` keys of games.default.json. */
@@ -116,17 +144,32 @@ object EnchantEngine {
         return EnchantLine(effect.id, tier.value, mode, premiumRoll && tier.premium)
     }
 
-    /** Totals per effect (and game type) over [lines] of everything worn, each clamped to its cap. Key: `effect` or `effect:MODE`. */
+    /**
+     * A failed try on a copy at [level] with [lines]: does it damage, and which line by how much? Only a line that still has value is hit.
+     * Returns the new lines (the same when nothing was hit).
+     */
+    fun damage(lines: List<EnchantLine>, level: Int, random: Random): List<EnchantLine> {
+        val chance = EnchantRules.damageChance(level)
+        if (chance == 0 || random.nextInt(100) >= chance) return lines
+        val hittable = lines.indices.filter { lines[it].damage < EnchantRules.DAMAGE_FULL }
+        if (hittable.isEmpty()) return lines
+        val at = hittable[random.nextInt(hittable.size)]
+        val hit = 1 + random.nextInt(EnchantRules.maxHit(level))
+        return lines.toMutableList().also { it[at] = lines[at].copy(damage = (lines[at].damage + hit).coerceAtMost(EnchantRules.DAMAGE_FULL)) }
+    }
+
+    /** Totals per effect (and game type) over [lines] of everything worn, each clamped to its cap. Key: `effect` or `effect:MODE`. Damaged lines count less. */
     fun summarize(lines: Iterable<EnchantLine>): Map<String, Int> {
-        val totals = LinkedHashMap<String, Int>()
+        val sums = LinkedHashMap<String, Double>()
         for (line in lines) {
             val def = EnchantPool.effect(line.effect) ?: continue
             val key = if (def.perMode && line.mode != null) "${line.effect}:${line.mode}" else line.effect
-            totals[key] = (totals[key] ?: 0) + line.value
+            sums[key] = (sums[key] ?: 0.0) + line.effective()
         }
-        for ((key, total) in totals.entries) {
-            val cap = EnchantPool.effect(key.substringBefore(':'))?.cap ?: continue
-            if (total > cap) totals[key] = cap
+        val totals = LinkedHashMap<String, Int>()
+        for ((key, sum) in sums) {
+            val cap = EnchantPool.effect(key.substringBefore(':'))?.cap
+            totals[key] = Math.round(if (cap != null) minOf(sum, cap.toDouble()) else sum).toInt()
         }
         return totals
     }

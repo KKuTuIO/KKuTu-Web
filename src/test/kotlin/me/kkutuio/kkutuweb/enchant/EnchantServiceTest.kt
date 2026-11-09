@@ -163,4 +163,48 @@ class EnchantServiceTest {
         `when`(session.getAttribute("isGuest")).thenReturn(true)
         assertEquals("guest", service.enchant(session, "hat", 0, "enchantTicketNormal").error)
     }
+
+    @Test
+    fun `protecting a risky try without the Ping stops it before anything is spent`() {
+        val copy = made(1, lines = full, level = 3)
+        setup(made = listOf(copy))
+        `when`(dao.moneyOf("u1")).thenReturn(100L)
+        assertEquals("noMoney", service.enchant(session, "hat", 1, "enchantTicketNormal", protect = true).error)
+        verify(dao, never()).addMoney(anyString(), anyLong())
+        verify(shopService, never()).consumeGood(dao.lockBox("u1")!!, "enchantTicketNormal", 1, true)
+    }
+
+    @Test
+    fun `a guaranteed ticket is never charged for protection`() {
+        val copy = made(1, lines = full, level = 3)
+        setup(made = listOf(copy))
+        val reply = service.enchant(session, "hat", 1, "enchantTicketAdvanced", protect = true)
+        assertEquals(true, reply.success)
+        assertNull(reply.protectedTry)
+        verify(dao, never()).addMoney(anyString(), anyLong())
+    }
+
+    @Test
+    fun `repair takes the Ping and clears the damage of one line`() {
+        val hurt = listOf(line("ping_per_player", 2).copy(damage = 300), line("exp_per_player", 2), line("ogg_max_stack", 1))
+        val copy = made(1, lines = hurt)
+        setup(made = listOf(copy))
+        `when`(dao.moneyOf("u1")).thenReturn(5000L, 4000L)
+        val reply = service.repair(session, "hat", 1, 0)
+        assertNull(reply.error)
+        assertEquals(0, reply.state!!.lines[0].damage)
+        assertEquals(4000L, reply.money)
+        verify(dao).addMoney("u1", -1000L) // 300 steps = 15 points = two started 10-point steps
+    }
+
+    @Test
+    fun `repair without the Ping or without damage is refused`() {
+        val hurt = listOf(line("ping_per_player", 2).copy(damage = 300), line("exp_per_player", 2))
+        setup(made = listOf(made(1, lines = hurt)))
+        `when`(dao.moneyOf("u1")).thenReturn(10L)
+        assertEquals("noMoney", service.repair(session, "hat", 1, 0).error)
+        assertEquals("notDamaged", service.repair(session, "hat", 1, 1).error)
+        assertEquals("bad", service.repair(session, "hat", 1, 9).error)
+        verify(dao, never()).addMoney(anyString(), anyLong())
+    }
 }

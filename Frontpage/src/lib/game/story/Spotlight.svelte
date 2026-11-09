@@ -1,5 +1,6 @@
 <script>
 	import Rich from '../ui/Rich.svelte';
+	import { visibleEl } from './focus.js';
 
 	/**
 	 * Dims the page except for one part of it: the element `selector` finds (followed every frame, so a part that moves or
@@ -17,8 +18,16 @@
 			return;
 		}
 		let raf = 0;
+		let scrolled = false;
 		const look = () => {
-			const r = document.querySelector(selector)?.getBoundingClientRect();
+			const el = visibleEl(selector);
+			// a part that is out of the screen (a long sheet, a page that scrolls) is brought in once, so the spotlight has something to show
+			if (el && !scrolled) {
+				scrolled = true;
+				const b = el.getBoundingClientRect();
+				if (b.top < 0 || b.bottom > innerHeight) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+			}
+			const r = el?.getBoundingClientRect();
 			const next = r && r.width > 0 && r.height > 0 ? { x: Math.round(r.left - pad), y: Math.round(r.top - pad), w: Math.round(r.width + pad * 2), h: Math.round(r.height + pad * 2) } : null;
 			if (next?.x !== rect?.x || next?.y !== rect?.y || next?.w !== rect?.w || next?.h !== rect?.h || (!next && rect)) rect = next;
 			raf = requestAnimationFrame(look);

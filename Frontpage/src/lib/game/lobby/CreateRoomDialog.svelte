@@ -157,15 +157,15 @@
 <!-- One wide page instead of tabs: the game (left) and the room it will be played in (right) are chosen together. -->
 <Dialog bind:open title={editing ? t('play.create.editTitle') : t('play.create.title')} size="lg">
 	<form onsubmit={submit} class="flex flex-col gap-4">
-		<div class="grid gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-8">
-			<section aria-labelledby="{uid}-game" class="flex flex-col gap-4">
+		<div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-8">
+			<section aria-labelledby="{uid}-game" class="flex min-w-0 flex-col gap-4">
 				<h3 id="{uid}-game" class="text-sm font-extrabold">{t('play.create.sectionGame')}</h3>
 				<div data-tour="create-mode"><GameModePicker {net} bind:mode idPrefix={uid} /></div>
 				<!-- Reserve room for the longest rule list so the dialog keeps its height when the game changes. -->
 				<div data-tour="create-options" class="min-h-[20rem]"><GameOptions {net} bind:mode bind:opts bind:injpick withThemes showMode={false} dense /></div>
 			</section>
 
-			<section aria-labelledby="{uid}-room" class="flex flex-col gap-4">
+			<section aria-labelledby="{uid}-room" class="flex min-w-0 flex-col gap-4">
 				<h3 id="{uid}-room" class="text-sm font-extrabold">{t('play.create.sectionRoom')}</h3>
 				<div data-tour="create-title" class="flex flex-col gap-1">
 					<label for="{uid}-title" class="text-xs font-bold text-(color:--kk-muted)">{t('play.create.roomTitle')}</label>

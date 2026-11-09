@@ -1,12 +1,12 @@
 <script>
 	import { onMount, untrack } from 'svelte';
 	import { t } from '../i18n.svelte.js';
-	import { CANVAS_H, CANVAS_W, DRAW_SCALE as S, circleDots, createSender, pad, pictureOf, sprayDots, strokePath } from '../drawing.svelte.js';
+	import { CANVAS_H, CANVAS_H_TALL, CANVAS_W, DRAW_SCALE as S, circleDots, createSender, pad, pictureOf, sprayDots, strokePath } from '../drawing.svelte.js';
 
 	/** The painter's canvas (298 x 253, white). Every finished stroke sends the picture to the guessers as a JPEG. */
-	let { store, clearToken = 0, onpicture } = $props();
+	let { store, clearToken = 0, onpicture, tall = false } = $props();
 	const W = CANVAS_W;
-	const H = CANVAS_H;
+	const H = untrack(() => (tall ? CANVAS_H_TALL : CANVAS_H)); // (the sheet is chosen when the painter sits down; the round starts a new one)
 	let canvas = $state();
 	let ctx;
 	let base = null; // the picture as it was when the stroke began
@@ -33,7 +33,8 @@
 
 	const at = (e) => {
 		const r = canvas.getBoundingClientRect();
-		return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H, e.pressure || 0.5];
+		// Only a pen reports pressure we trust; a mouse or a trackpad (which may report Force Touch) always draws at one width.
+		return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H, e.pointerType === 'pen' ? e.pressure || 0.5 : 0.5];
 	};
 	const ink = () => (pad.tool === 'eraser' ? '#ffffff' : pad.color);
 

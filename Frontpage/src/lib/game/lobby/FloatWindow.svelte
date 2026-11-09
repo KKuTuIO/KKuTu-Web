@@ -8,6 +8,7 @@
 	import { fade } from 'svelte/transition';
 	import { t } from '../i18n.svelte.js';
 	import Icon from './Icon.svelte';
+	import Dialog from './Dialog.svelte';
 	import { playSound } from '../audio.svelte.js';
 
 	/**
@@ -25,6 +26,9 @@
 	const KEEP = 96; // px of the window that must stay inside the screen horizontally
 	const STEP = 16;
 	let el = $state();
+	// A phone has no room to move a window around: there it is an ordinary dialog.
+	let winW = $state(1280);
+	const phone = $derived(winW < 768);
 	let x = $state(0);
 	let y = $state(0);
 	let z = $state(topZ);
@@ -100,7 +104,11 @@
 	}
 </script>
 
-<svelte:window onkeydown={escape} />
+<svelte:window onkeydown={escape} bind:innerWidth={winW} />
+
+{#if phone}
+	<Dialog bind:open {title} {onclose} ghost={false}>{@render children?.()}</Dialog>
+{:else}
 
 {#if open}
 	<!-- Escape is a convenience; the close button is the accessible way out. -->
@@ -138,4 +146,5 @@
 		</div>
 		<div class="min-h-0 flex-1 overflow-y-auto p-4">{@render children?.()}</div>
 	</div>
+{/if}
 {/if}

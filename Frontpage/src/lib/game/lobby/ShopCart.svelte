@@ -9,13 +9,13 @@
 	import ShopThumb from './ShopThumb.svelte';
 
 	/** The left panel: the wide preview (avatar, banner, name skin, chat), the cart, the price and the buy button. */
-	let { equip, parts, shop, user, details, cart, owned, money, total, buying, bare = false, onremove, onreset, onbare, onbuy } = $props();
+	let { equip, parts, shop, user, details, cart, owned, money, total, buying, bare = false, list = false, onremove, onreset, onbare, onbuy } = $props();
 	const after = $derived(money - total);
 	const fmt = (n) => (n ?? 0).toLocaleString();
 </script>
 
-<aside class="flex shrink-0 flex-col gap-3 overflow-y-auto border-b border-(color:--kk-line) p-3 max-lg:max-h-[60dvh] max-lg:overflow-y-auto lg:w-[27rem] lg:border-r lg:border-b-0">
-	<ShopPreview {equip} {parts} {shop} {user} canReset={cart.length > 0 || bare} canBare={!bare} {onreset} {onbare} />
+<aside class="flex shrink-0 flex-col gap-3 {list ? '' : 'overflow-y-auto border-b border-(color:--kk-line) p-3 max-lg:max-h-[60dvh] max-lg:overflow-y-auto lg:w-[27rem] lg:border-r lg:border-b-0'}">
+	{#if !list}<ShopPreview {equip} {parts} {shop} {user} canReset={cart.length > 0 || bare} canBare={!bare} {onreset} {onbare} />{/if}
 
 	<div class="flex min-h-0 flex-1 flex-col gap-2">
 		<h3 class="flex items-center gap-1.5 font-extrabold"><Icon name="shopping_cart" size={20} />{plainText(t('kkutu.product.shopCart.title'))}{#if cart.length}<span class="rounded-full bg-(--shop-accent,var(--kk-accent)) px-2 text-xs leading-5 text-white tabular-nums">{cart.length}</span>{/if}</h3>

@@ -1,8 +1,7 @@
 <script>
 	import { page } from '$app/state';
-	import { onMount, onDestroy, untrack } from 'svelte';
+	import { onMount, onDestroy, untrack, tick } from 'svelte';
 	import { createLobbyStore } from '$lib/game/lobbyStore.svelte.js';
-	import { qa, installQa } from '$lib/game/qa.svelte.js';
 	import { worn } from '$lib/game/theme.svelte.js';
 	import { themeOf } from '$lib/game/theme.js';
 	import GameResult from '$lib/game/lobby/GameResult.svelte';
@@ -11,6 +10,7 @@
 	import ObtainScreen from '$lib/game/lobby/ObtainScreen.svelte';
 	import Icon from '$lib/game/lobby/Icon.svelte';
 	import TopBar from '$lib/game/lobby/TopBar.svelte';
+	import MobileTabBar from '$lib/game/lobby/MobileTabBar.svelte';
 	import SidePanel from '$lib/game/lobby/SidePanel.svelte';
 	import RoomList from '$lib/game/lobby/RoomList.svelte';
 	import ChatPanel from '$lib/game/lobby/ChatPanel.svelte';
@@ -71,6 +71,45 @@
 
 	// The bars can be resized within limits; the real maximum also leaves the room list / the lobby room enough space.
 	let winW = $state(1280);
+	// Phone: the menu is a tab bar at the bottom (outside a room), and 사람 (friends, family, who is online) is a page of its own.
+	const phone = $derived(winW < 768);
+	// The soft keyboard takes the lower part of the screen; the page is as tall as what is left, so the answer field (at the bottom of the board) stays in view.
+	let vvh = $state(0);
+	onMount(() => {
+		const vv = window.visualViewport;
+		if (!vv) return;
+		const sync = () => {
+			vvh = Math.round(vv.height);
+			if (vv.offsetTop) window.scrollTo(0, 0); // iOS slides the page up under the keyboard: put it back
+		};
+		sync();
+		vv.addEventListener('resize', sync);
+		vv.addEventListener('scroll', sync);
+		return () => {
+			vv.removeEventListener('resize', sync);
+			vv.removeEventListener('scroll', sync);
+		};
+	});
+	let peopleTab = $state(false);
+	const tabBar = $derived(phone && !store.net.myRoom);
+	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen);
+	// Moving between tabs slides the page the way the tab lies: to the right of this one, it comes in from the right.
+	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'replay'];
+	let pageEl = $state();
+	const tabNow = $derived(shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : peopleShown ? 'people' : 'lobby');
+	async function selectTab(id) {
+		const before = tabNow;
+		peopleTab = false;
+		if (id === 'people') {
+			selectMenu('lobby');
+			peopleTab = true;
+		} else selectMenu(id);
+		await tick();
+		// only a tab that really changed the page moves it (a dialog, the sheet, or a refused tap does not)
+		if (tabNow === before || !pageEl || !matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
+		const dir = Math.sign(TAB_ORDER.indexOf(tabNow) - TAB_ORDER.indexOf(before)) || 1;
+		pageEl.animate([{ transform: `translateX(${dir * 36}px)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 240, easing: 'cubic-bezier(0.2, 0.9, 0.25, 1)' });
+	}
 	let winH = $state(800);
 	const sideMax = () => Math.max(SIDE.min, Math.min(SIDE.max, winW - 32 - 16 - 480));
 	const chatMax = () => Math.max(CHAT.min, Math.min(CHAT.max, winH - 56 - 32 - 12 - 280));
@@ -80,7 +119,6 @@
 	const leftHanded = $derived(prefs.hand === 'left');
 
 	const store = createLobbyStore(Number(page.params.n));
-	onMount(() => installQa(store));
 	// The worn 테마 recolours the whole client (the play layout puts its tokens on the page); taking it off, or leaving, restores the green.
 	$effect(() => {
 		worn.theme = themeOf(store.shop?.[store.me?.equip?.THM]);
@@ -468,23 +506,24 @@
 
 <svelte:window bind:innerWidth={winW} bind:innerHeight={winH} />
 
-<div class="flex h-dvh min-h-[600px] flex-col bg-(--kk-bg) text-sm text-(color:--kk-text)">
+<!-- overflow-x-clip: the tab slide moves the whole page sideways; without the clip the document grows wider for a moment and the fixed chat button is pushed off its corner -->
+<div style:height={phone && vvh ? `${vvh}px` : undefined} class="flex h-dvh min-h-[600px] max-md:min-h-0 flex-col overflow-x-clip bg-(--kk-bg) text-sm text-(color:--kk-text)">
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
-		<TopBar {store} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
+		<TopBar {store} {phone} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
-	<div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:flex-row lg:overflow-hidden">
+	<div bind:this={pageEl} class="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} lg:flex-row lg:overflow-hidden">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
-		<div style:--side-w="{sideW}px" class="relative order-2 flex max-h-72 lg:max-h-none lg:w-(--side-w) lg:shrink-0 {leftHanded ? 'lg:order-3' : 'lg:order-1'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''}">
-			<SidePanel {store} />
+		<div style:--side-w="{sideW}px" class="relative order-2 flex max-h-72 lg:max-h-none lg:w-(--side-w) lg:shrink-0 {leftHanded ? 'lg:order-3' : 'lg:order-1'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
+			<SidePanel {store} profile={peopleShown} />
 			<ResizeHandle class="-right-4 hidden h-full w-4 lg:block {leftHanded ? 'lg:hidden' : ''}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 			<ResizeHandle class="-left-4 hidden h-full w-4 {leftHanded ? 'lg:block' : ''}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 		</div>
 		<!-- overflow-hidden clips the room while it slides in; the bottom padding keeps the cards' hard shadow visible -->
-		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden lg:order-2 pb-[3px]">
+		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden lg:order-2 pb-[3px] {peopleShown ? 'max-md:hidden' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''}">
 			{#if shopOpen}
-				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ShopScreen {store} start={shopStart} /></div>
+				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ShopScreen {store} start={shopStart} onclose={() => (shopOpen = false)} /></div>
 			{:else if replayOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ReplayScreen {store} start={replayStart} /></div>
 			{:else if newsOpen}
@@ -497,8 +536,8 @@
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} game={academyGame} /></div>
 			{:else}
 				<div class="flex min-h-0 flex-1 flex-col gap-3">
-				<div class="flex flex-wrap items-center gap-2.5">
-					<button type="button" disabled={!ready} data-tour="quick-match" onclick={() => store.hooks.openQuick(2)} class="kk-btn kk-btn-hero kk-btn-lg min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.lobby.quickMatch')}</span></button>
+				<div class="grid grid-cols-2 gap-2.5 md:flex md:flex-wrap md:items-center">
+					<button type="button" disabled={!ready} data-tour="quick-match" onclick={() => store.hooks.openQuick(2)} class="kk-btn kk-btn-hero kk-btn-lg col-span-2 min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.lobby.quickMatch')}</span></button>
 					<button type="button" disabled={!ready} onclick={() => toast(t('play.lobby.trophyLeagueTbd'), { kind: 'info', icon: 'event' })} class="kk-btn kk-btn-lg kk-btn-league min-w-40 flex-1 md:w-52 md:flex-none">
 						<span class="kk-embers" aria-hidden="true">
 							{#each embers as e}<b style="--x:{e.x};--d:{e.d}s;--delay:{e.delay}s;--drift:{e.drift}px"></b>{/each}
@@ -520,11 +559,14 @@
 			{/if}
 		</main>
 	</div>
+	{#if tabBar}<MobileTabBar {store} active={tabNow} onselect={selectTab} />{/if}
 </div>
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->
 <!-- Mobile/tablet: a button opening a docked sheet; in the 아카데미 and the shop the chat is that button on desktop too, so the screen gets the room. -->
-<div class={chatFab ? 'contents' : 'contents lg:hidden'}><ChatPanel {store} fab={chatFab} /></div>
+{#if !(phone && shopOpen)}
+<div class={chatFab ? 'contents' : 'contents lg:hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage} lift={tabBar ? true : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
+{/if}
 <CreateRoomDialog {store} bind:open={createOpen} />
 <CreateRoomDialog {store} bind:open={settingsOpen} editing={store.currentRoom} />
 <QuickMatchDialog {store} start={quickMode} bind:open={quickOpen} />
@@ -552,11 +594,9 @@
 <ConnectionGate {store} />
 <LoadingScreen {store} />
 <StatusMark {store} />
-{#if qa.store}<GameResult store={qa.store} />{/if}
 <LevelUpHost {store} />
 <GiftHost {store} />
 {#if tutorialReward.details}<ObtainScreen bind:open={tutorialReward.open} title={t('play.obtain.acquired')} notice={t('play.tutorial.reward.notice')} items={[{ key: 'ping', q: store.net.tutorial?.ping || 100 }]} shop={store.shop} details={tutorialReward.details} ribbon ambient="shine" palette="teal" />{/if}
-{#if qa.obtain.details}<ObtainScreen bind:open={qa.obtain.open} title={t('play.obtain.acquired')} notice={t('kkutu.js.drawObtain')} items={qa.obtainItems} shop={store.shop} details={qa.obtain.details} ribbon ambient="shine" palette="teal" />{/if}
 <ToastHost />
 <YellBanner />
 <ConfirmHost />

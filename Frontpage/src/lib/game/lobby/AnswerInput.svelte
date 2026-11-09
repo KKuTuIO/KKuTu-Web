@@ -49,6 +49,17 @@
 		font-size: 20px;
 		background-color: var(--kk-surface-2);
 	}
+	/* a phone: as wide as the stage, tall enough to hit, and 18px so the browser does not zoom the page when it is focused */
+	input.answerPhone {
+		box-sizing: border-box;
+		width: 100%;
+		height: 52px;
+		padding: 0 14px;
+		border: 1.5px solid var(--kk-line-strong);
+		border-radius: 14px;
+		font-size: 18px;
+		background-color: var(--kk-surface);
+	}
 	input.crossword {
 		box-sizing: border-box;
 		width: 100%;

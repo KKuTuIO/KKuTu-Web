@@ -12,13 +12,15 @@
 	import { whisperQuery } from '../dm.js';
 	import DmPanel from './DmPanel.svelte';
 	import DmMembers from './DmMembers.svelte';
+	import FamilyChat from './FamilyChat.svelte';
+	import { family } from '../familyStore.svelte.js';
 
 	/**
 	 * `inline`: a permanent panel in the lobby layout (desktop, where the old client kept its chat: under the room list).
 	 * Otherwise: a button that opens a docked bottom-right sheet (mobile, and on desktop wherever the page wants the chat
 	 * out of the way, `fab`, like in the 아카데미).
 	 */
-	let { store, inline = false, fab = false, height = null, idSuffix = '' } = $props();
+	let { store, inline = false, fab = false, lift = false, hideFab = false, height = null, idSuffix = '' } = $props();
 	const uid = $derived(`chat-${inline ? 'inline' : 'sheet'}${idSuffix}`); // two instances can coexist in the DOM, so ids must differ
 	// While a replay plays the chat has one more tab: the chat of that game (read only)
 	const rnet = $derived(store.replayView?.net);
@@ -33,8 +35,8 @@
 	let list = $state();
 	let input = $state();
 	let seen = $state(0); // how many messages were on screen when the panel was last open
-	const unread = $derived(open ? 0 : chat.slice(seen).filter((m) => !m.mine).length + store.dmUnread);
-	const tabs = $derived([{ id: 'lobby', label: store.net.myRoom ? t('play.chat.roomTab') : t('play.chat.lobbyTab') }, { id: 'dm', label: t('play.dm.tab'), count: store.dmUnread, alert: true }, ...(rnet ? [{ id: 'replay', label: t('kkutu.js.replay') }] : [])]);
+	const unread = $derived(open ? 0 : chat.slice(seen).filter((m) => !m.mine).length + store.dmUnread + family.unread);
+	const tabs = $derived([{ id: 'lobby', label: store.net.myRoom ? t('play.chat.roomTab') : t('play.chat.lobbyTab') }, { id: 'dm', label: t('play.dm.tab'), count: store.dmUnread, alert: true }, ...(family.mine ? [{ id: 'family', label: t('play.family.chat.tab'), count: family.unread, alert: true }] : []), ...(rnet ? [{ id: 'replay', label: t('kkutu.js.replay') }] : [])]);
 	const time = (at) => new Date(at).toLocaleTimeString(i18n.language, { hour: 'numeric', minute: '2-digit' });
 
 
@@ -44,6 +46,10 @@
 		if (has && !hadReplay) tab = 'replay';
 		else if (!has && tab === 'replay') tab = 'lobby';
 		hadReplay = has;
+	});
+	// Left the family (or was removed) while its tab was open.
+	$effect(() => {
+		if (!family.mine && tab === 'family') tab = 'lobby';
 	});
 
 	// The docked sheet slides up from the bottom edge and back down; the inline panel never animates.
@@ -149,6 +155,14 @@
 		}
 		return false;
 	}
+	// something else on the page (a phone's chat line under the board) asks for the whole chat
+	let appliedNonce = untrack(() => store.ui?.chatNonce ?? 0);
+	$effect(() => {
+		const n = store.ui?.chatNonce ?? 0;
+		if (n === appliedNonce) return;
+		appliedNonce = n;
+		if (!inline) show();
+	});
 	async function show() {
 		openSheet = true;
 		stick = true;
@@ -193,6 +207,8 @@
 		<div class="flex min-h-0 min-w-0 flex-1 flex-col">
 		{#if tab === 'dm'}
 			<DmPanel {store} {uid} />
+		{:else if tab === 'family'}
+			<FamilyChat {store} {uid} />
 		{:else}
 		<div class="relative flex min-h-0 flex-1 flex-col">
 		<div bind:this={list} {onscroll} role="log" aria-live="polite" id="{uid}-log" class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3 text-sm">
@@ -240,9 +256,9 @@
 		{/if}
 		</div>
 	</section>
-{:else}
+{:else if !hideFab}
 	<!-- Secondary look on purpose: the chat is never the main action. -->
-	<button type="button" aria-label={unread ? `${t('play.chat.toggle')} (${t('play.chat.unread', { count: unread })})` : t('play.chat.toggle')} aria-expanded="false" onclick={show} class="kk-btn fixed bottom-4 z-20 grid size-14 place-items-center p-0 {prefs.hand === 'left' ? 'left-4' : 'right-4'}">
+	<button type="button" data-tour="chat" aria-label={unread ? `${t('play.chat.toggle')} (${t('play.chat.unread', { count: unread })})` : t('play.chat.toggle')} aria-expanded="false" onclick={show} style:bottom={typeof lift === 'string' && lift !== 'top' && lift !== 'room' ? `calc(${lift} + env(safe-area-inset-bottom))` : undefined} class="kk-btn fixed {lift === 'top' ? 'top-14 size-11' : lift === 'room' ? 'top-[5.1rem] right-5! left-auto! size-11' : typeof lift === 'string' ? 'size-14' : lift ? 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))] size-14' : 'bottom-4 size-14'} z-20 grid place-items-center p-0 {prefs.hand === 'left' ? 'left-4' : 'right-4'}">
 		<Icon name="chat" size={26} />
 		{#if unread}<span class="absolute -top-1.5 grid {prefs.hand === 'left' ? '-left-1.5' : '-right-1.5'} h-5 min-w-5 place-items-center rounded-full bg-(--kk-danger) px-1 text-[11px] font-extrabold text-white">{unread > 99 ? '99+' : unread}</span>{/if}
 	</button>

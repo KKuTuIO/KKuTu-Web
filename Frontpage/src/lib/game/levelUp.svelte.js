@@ -1,6 +1,5 @@
 import { playSound } from './audio.svelte.js';
 import { entryFor, splitLevels } from './levelUp.js';
-import { protoGift } from './levelGifts.proto.js';
 
 /**
  * The one place level-ups are announced from, whatever raised the experience: the result board's gauge, a 백과사전 낱장, a coupon.
@@ -43,9 +42,9 @@ function flushSummary(s) {
 
 /**
  * The levels a source is about to pass, in order. `reach(level)` as each is passed, `end()` once the source is done.
- * `giftOf(level)` gives what that level gave (the server's, once it sends them; the prototype table until then).
+ * `giftOf(level)` gives what that level gave (the server's, from `obtain.levelGifts` or the result's `reward.levelGifts`).
  */
-function session(levels, giftOf = protoGift) {
+function session(levels, giftOf = () => null) {
 	const { shown, folded } = splitLevels(levels);
 	const s = { levels, giftOf, displayed: new Set(), skipped: false, total: shown.length + (folded.length ? 1 : 0), count: 0 };
 	s.reach = (level) => {

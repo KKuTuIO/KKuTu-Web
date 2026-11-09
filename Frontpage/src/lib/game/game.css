@@ -195,6 +195,12 @@
 .kk-bouncy[open]::backdrop { animation: kk-fade-in 0.15s ease-out both; }
 .kk-bouncy.kk-closing { animation: kk-pop-out 0.18s ease-in both; }
 .kk-bouncy.kk-closing::backdrop { animation: kk-fade-out 0.18s ease-in both; }
+.kk-sheet[open] { animation: kk-sheet-in 0.3s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+.kk-sheet[open]::backdrop { animation: kk-fade-in 0.2s ease-out both; }
+.kk-sheet.kk-closing { animation: kk-sheet-out 0.2s ease-in both; }
+.kk-sheet.kk-closing::backdrop { animation: kk-fade-out 0.2s ease-in both; }
+@keyframes kk-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes kk-sheet-out { to { transform: translateY(100%); } }
 @keyframes kk-pop-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
 @keyframes kk-pop-out { 0% { transform: none; opacity: 1; } 30% { transform: scale(1.04); opacity: 1; } 100% { transform: translateY(20px) scale(0.6); opacity: 0; } }
 /* The headline face of the big screen effects (the result, 아이템 발동!, the obtain ribbon, 해커레미): ONE Mobile POP, rounder and bouncier than NanumSquare Neo. */
@@ -251,7 +257,7 @@
 @keyframes kk-fade-in { from { opacity: 0; } }
 @keyframes kk-fade-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-	.kk-bouncy[open], .kk-bouncy.kk-closing, .kk-bouncy[open]::backdrop, .kk-bouncy.kk-closing::backdrop { animation-duration: 0.01ms; }
+	.kk-bouncy[open], .kk-bouncy.kk-closing, .kk-bouncy[open]::backdrop, .kk-bouncy.kk-closing::backdrop, .kk-sheet[open], .kk-sheet.kk-closing, .kk-sheet[open]::backdrop, .kk-sheet.kk-closing::backdrop { animation-duration: 0.01ms; }
 }
 
 /* macOS-style close: red traffic-light dot, glyph shows on hover/focus. */
@@ -292,4 +298,9 @@
 	.kk ::-webkit-scrollbar-thumb { background: var(--kk-line-strong); border: 3px solid transparent; background-clip: content-box; border-radius: 999px; }
 	.kk ::-webkit-scrollbar-thumb:hover { background: var(--kk-muted); background-clip: content-box; }
 	.kk ::-webkit-scrollbar-corner { background: transparent; }
+}
+
+/* A touch screen has no Enter key: the keycap hints on buttons are only for a keyboard. */
+@media (hover: none) and (pointer: coarse) {
+	.kk-key { display: none; }
 }

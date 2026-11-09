@@ -9,6 +9,7 @@
 	import { isShut } from '../blocks.svelte.js';
 	import { buildModeStats, fetchHistory, fetchModeStats, fetchProfile, historyOutcome, recommendedMode, needsWorkMode, timeAgo } from '../profile.js';
 	import FloatWindow from './FloatWindow.svelte';
+	import PushScreen from './PushScreen.svelte';
 	import Moremi from './Moremi.svelte';
 	import LevelIcon from './LevelIcon.svelte';
 	import NickName from './NickName.svelte';
@@ -30,6 +31,7 @@
 	import { openRating } from './ratingDialog.svelte.js';
 	import Select from '../ui/Select.svelte';
 	import WardrobeDialog from './WardrobeDialog.svelte';
+	import LevelTableDialog from './LevelTableDialog.svelte';
 	import { loadGoodDetails, itemName } from '../shop.js';
 	import { confirm, prompt } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
@@ -43,6 +45,9 @@
 	const net = $derived(store.net);
 	const parts = $derived(net.meta.moremiParts);
 
+	// Phone: a screen of its own (hero, actions and tabs in one scroll) instead of a window
+	let winW = $state(typeof innerWidth === 'undefined' ? 1280 : innerWidth);
+	const phone = $derived(winW < 768);
 	let wardrobeOpen = $state(false);
 	let nickOpen = $state(false);
 	let details = $state(null); // item names, for the wardrobe
@@ -54,6 +59,10 @@
 	let rows = $state([]); // 경기 내역: a summary of each game (the details and the replay are on the 전적 page)
 	let hasNext = $state(false);
 	let page = $state(1);
+	let levelTableOpen = $state(false);
+	$effect(() => {
+		if (levelTableOpen && !net.levelTable) store.requestLevelRewards();
+	});
 	let loadingRows = $state(false);
 	let failed = $state(false);
 	let seq = 0; // drops the answers of a profile we've already left
@@ -177,7 +186,7 @@
 		if (v !== null) setNote(user.id, v.trim());
 	}
 	$effect(() => {
-		if (open && isMe && !details) loadGoodDetails().then((d) => (details = d));
+		if (((open && isMe) || levelTableOpen) && !details) loadGoodDetails().then((d) => (details = d));
 	});
 	/** My bio was saved: what this window and the lobby's copy of me show. */
 	function bioSaved(text) {
@@ -228,15 +237,17 @@
 	<Tooltip text={label}><button type="button" aria-label={label} {onclick} class="grid size-10 place-items-center rounded-xl bg-(--kk-surface-2) text-(color:--kk-muted) hover:bg-(--kk-accent-soft) hover:text-(color:--kk-text) {extra}"><Icon name={icon} size={20} /></button></Tooltip>
 {/snippet}
 
-<FloatWindow bind:open id="profile" title={t('play.profile.windowTitle')} width="50rem">
+<svelte:window bind:innerWidth={winW} />
+
+{#snippet body()}
 	{#if missing}
 		<EmptyState title={t('play.profile.notFound')} />
 	{:else if user}
 		<!-- One size for every tab (and every player): the window never jumps; what does not fit scrolls inside, the avatar card stays in view. -->
-		<div class="h-[min(30rem,calc(100dvh-8rem))] overflow-y-auto">
-		<div class="grid gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
+		<div class={phone ? 'p-3' : 'h-[min(30rem,calc(100dvh-8rem))] overflow-y-auto'}>
+		<div class="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
 			<!-- Who they are and what you can do with them -->
-			<aside class="flex flex-col gap-3 self-start md:sticky md:top-0">
+			<aside class="flex min-w-0 flex-col gap-3 self-start md:sticky md:top-0">
 				<div class="overflow-hidden rounded-2xl border border-(color:--kk-line) bg-(--kk-surface)">
 					<div class="relative flex h-56 flex-col items-center justify-end overflow-hidden bg-(--kk-surface-2) pb-3">
 						{#if !hidden && !user.robot}<img src={banner} alt="" draggable="false" onerror={() => (bannerFailed = user.equip?.BAN ?? '')} class="absolute inset-0 size-full object-cover" />{/if}
@@ -250,7 +261,11 @@
 					<div class="flex flex-col gap-2 p-3">
 						<TitleBadge {user} shop={store.shop} size="md" maskable={!isMe && !user.robot} class="self-start" />
 						<div class="flex items-center gap-2">
-							<LevelIcon level={user.robot ? 1 : user.lv} size={26} maskable={!isMe && !user.robot} />
+							{#if user.robot}
+								<LevelIcon level={1} size={26} />
+							{:else}
+								<Tooltip text={t('play.levelTable.open')}><button type="button" aria-label={t('play.levelTable.open')} onclick={() => (levelTableOpen = true)} class="relative grid size-8 shrink-0 place-items-center rounded-lg hover:bg-(--kk-surface-2)"><LevelIcon level={user.lv} size={26} maskable={!isMe} /><span class="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full bg-(--kk-surface-2) text-(color:--kk-muted) shadow-[0_1px_0_var(--kk-line)]"><Icon name="info" size={13} fill /></span></button></Tooltip>
+							{/if}
 							<Tooltip text={prefs.hideUsers && !isMe && !user.robot ? t('play.anonymous') : fullNick(user)}><h2 class="min-w-0 flex-1 truncate text-lg leading-tight font-black"><NickName {user} showCheck maskable={!isMe && !user.robot} /></h2></Tooltip>
 							{#if isMe && !user.guest}<Tooltip text={store.dressLocked ? lockText : t('play.nick.edit')}><button type="button" aria-label={t('play.nick.edit')} aria-disabled={store.dressLocked || undefined} onclick={() => !store.dressLocked && (nickOpen = true)} class="{store.dressLocked ? 'cursor-not-allowed opacity-45' : 'hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)'} grid size-8 shrink-0 place-items-center rounded-lg text-(color:--kk-muted)"><Icon name="edit" size={18} /></button></Tooltip>{/if}
 						</div>
@@ -417,7 +432,16 @@
 	{:else}
 		<p class="py-10 text-center text-sm text-(color:--kk-muted)">{t('play.profile.loading')}</p>
 	{/if}
+{/snippet}
+
+{#if phone}
+<PushScreen bind:open title={t('play.profile.windowTitle')}>{@render body()}</PushScreen>
+{:else}
+<FloatWindow bind:open id="profile" title={t('play.profile.windowTitle')} width="50rem">
+	{@render body()}
 </FloatWindow>
+{/if}
 
 <NicknameDialog bind:open={nickOpen} {store} />
+<LevelTableDialog bind:open={levelTableOpen} table={net.levelTable} shop={store.shop} level={user?.lv ?? 0} nameOf={(id) => itemName(details, id)} />
 <WardrobeDialog bind:open={wardrobeOpen} {store} nameOf={(id) => itemName(details, id)} />

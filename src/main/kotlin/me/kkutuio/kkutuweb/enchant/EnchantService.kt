@@ -33,8 +33,16 @@ data class EnchantReply(
     val success: Boolean? = null,
     val line: EnchantLine? = null,
     val state: CopyState? = null,
-    val box: JsonNode? = null
+    val box: JsonNode? = null,
+    /** Ping after the try or repair, when it spent any. */
+    val money: Long? = null,
+    /** A failed try that damaged a line: which one and by how much (steps of 0.05%). */
+    val hit: DamageHit? = null,
+    /** A try that could have damaged and was protected by paying [EnchantRules.PROTECT_COST]. */
+    val protectedTry: Boolean? = null
 )
+
+data class DamageHit(val slot: Int, val amount: Int)
 
 @Service
 class EnchantService(
@@ -77,6 +85,13 @@ class EnchantService(
                 "baseChance" to EnchantRules.BASE_CHANCE,
                 "pityStep" to EnchantRules.PITY_STEP,
                 "maxLines" to EnchantRules.MAX_LINES,
+                "damageFromLevel" to EnchantRules.DAMAGE_FROM_LEVEL,
+                "damageStep" to EnchantRules.DAMAGE_STEP,
+                "damageMaxChance" to EnchantRules.DAMAGE_MAX_CHANCE,
+                "damageFull" to EnchantRules.DAMAGE_FULL,
+                "protectCost" to EnchantRules.PROTECT_COST,
+                "repairStep" to EnchantRules.REPAIR_STEP,
+                "repairCost" to EnchantRules.REPAIR_COST,
                 "groups" to EnchantPool.ENCHANTABLE_GROUPS,
                 "tickets" to EnchantTickets.ALL
             ),
@@ -99,7 +114,7 @@ class EnchantService(
 
     /** One try on a copy of [itemId] ([instance] 0: a plain copy), spending one [ticketId]. A success on a plain copy makes it an enchanted one. */
     @Transactional
-    fun enchant(session: HttpSession, itemId: String, instance: Int, ticketId: String): EnchantReply {
+    fun enchant(session: HttpSession, itemId: String, instance: Int, ticketId: String, protect: Boolean = false): EnchantReply {
         val userId = userIdOf(session) ?: return EnchantReply(error = "guest")
         val ticket = EnchantTickets.byId(ticketId) ?: return EnchantReply(error = "bad")
         if (instance < 0) return EnchantReply(error = "bad")
@@ -119,6 +134,13 @@ class EnchantService(
         }
         if (target.pending != null) return EnchantReply(error = "pending")
 
+        // a try that can fail on a copy of a level where failing damages: [protect] pays Ping so it cannot
+        val atRisk = !ticket.guaranteed && EnchantRules.damageChance(target.level) > 0 && target.lines.any { it.damage < EnchantRules.DAMAGE_FULL }
+        val protectNow = protect && atRisk
+        if (protectNow) {
+            if (enchantDao.moneyOf(userId) < EnchantRules.PROTECT_COST) return EnchantReply(error = "noMoney")
+            enchantDao.addMoney(userId, -EnchantRules.PROTECT_COST.toLong())
+        }
         shopService.consumeGood(box, ticketId, 1, true)
         enchantDao.saveBox(userId, box)
 
@@ -128,14 +150,21 @@ class EnchantService(
 
         val nextPity = if (success) 0 else pity + 1
         enchantDao.savePity(userId, itemId, nextPity)
+        val damaged = if (!success && atRisk && !protectNow) EnchantEngine.damage(target.lines, target.level, random) else target.lines
+        val hit = if (damaged !== target.lines) damaged.indices.first { damaged[it] != target.lines[it] }.let { DamageHit(it, damaged[it].damage - target.lines[it].damage) } else null
         val next: EnchantInstance = when {
+            hit != null -> target.copy(lines = damaged).also { enchantDao.saveInstance(userId, it) }
             line == null -> target
             target.instance == 0 -> enchantDao.createInstance(userId, itemId, 1, listOf(line))
             target.lines.size < EnchantRules.MAX_LINES -> target.copy(level = target.level + 1, lines = target.lines + line).also { enchantDao.saveInstance(userId, it) }
             else -> target.copy(level = target.level + 1, pending = line).also { enchantDao.saveInstance(userId, it) }
         }
-        enchantDao.log(userId, itemId, ticketId, pity, chance, success, shopDao.getGood(ticketId)?.cost?.toLong() ?: 0L, line)
-        return EnchantReply(item = itemId, success = success, line = line, state = stateOf(next, nextPity), box = box)
+        enchantDao.log(
+            userId, itemId, ticketId, pity, chance, success,
+            (shopDao.getGood(ticketId)?.cost?.toLong() ?: 0L) + if (protectNow) EnchantRules.PROTECT_COST.toLong() else 0L, line
+        )
+        val money = if (protectNow) enchantDao.moneyOf(userId) else null
+        return EnchantReply(item = itemId, success = success, line = line, state = stateOf(next, nextPity), box = box, money = money, hit = hit, protectedTry = if (protectNow) true else null)
     }
 
     /** Settles a success that found the copy full: [slot] takes its place in the lines, null throws it away. */
@@ -150,6 +179,23 @@ class EnchantService(
         val next = inst.copy(lines = lines, pending = null)
         enchantDao.saveInstance(userId, next)
         return EnchantReply(item = itemId, state = stateOf(next, pity))
+    }
+
+    /** Pays [EnchantRules.repairCost] Ping to take all the damage off line [slot] of a copy. */
+    @Transactional
+    fun repair(session: HttpSession, itemId: String, instance: Int, slot: Int): EnchantReply {
+        val userId = userIdOf(session) ?: return EnchantReply(error = "guest")
+        enchantDao.lockBox(userId) ?: return EnchantReply(error = "bad")
+        val pity = enchantDao.lockPity(userId, itemId)
+        val inst = (if (instance > 0) enchantDao.lockInstance(userId, itemId, instance) else null) ?: return EnchantReply(error = "bad")
+        val line = inst.lines.getOrNull(slot) ?: return EnchantReply(error = "bad")
+        if (line.damage <= 0) return EnchantReply(error = "notDamaged")
+        val cost = EnchantRules.repairCost(line.damage)
+        if (enchantDao.moneyOf(userId) < cost) return EnchantReply(error = "noMoney")
+        enchantDao.addMoney(userId, -cost)
+        val next = inst.copy(lines = inst.lines.toMutableList().also { it[slot] = line.copy(damage = 0) })
+        enchantDao.saveInstance(userId, next)
+        return EnchantReply(item = itemId, state = stateOf(next, pity), money = enchantDao.moneyOf(userId))
     }
 
     /** The copy of [itemId] worn from now on ([instance] 0: a plain copy); its lines are the ones that count. */

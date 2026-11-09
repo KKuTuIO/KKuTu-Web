@@ -1,6 +1,8 @@
 <script>
 	import { onMount, tick, untrack } from 'svelte';
 	import { createRunner } from '../story/runner.svelte.js';
+	import { forDevice } from '../story/device.js';
+	import { i18n } from '../i18n.svelte.js';
 	import StoryOverlay from '../story/StoryOverlay.svelte';
 	import FakeGame from './FakeGame.svelte';
 	import { completeLesson, progress } from './progress.svelte.js';
@@ -15,7 +17,7 @@
 	let overlay = $state();
 	let stage = $state(/** @type {null|{name:string, api:any, finish:()=>void}} */ (null));
 
-	const runner = createRunner(untrack(() => lesson.script), {
+	const runner = createRunner(untrack(() => forDevice(lesson.script, typeof innerWidth !== 'undefined' && innerWidth < 768, (k) => i18n.messages[k] !== undefined)), {
 		stage: (name, node, api) =>
 			new Promise((resolve) => {
 				stage = { name, api, finish: () => ((stage = null), resolve()) };

@@ -1,11 +1,14 @@
 <script>
 	import { t } from '../i18n.svelte.js';
 	import { cleanBox } from '../protocol.js';
-	import { ODDS_URL, copiesOf, applyCopyState, fetchEnchant, tryEnchant, resolveEnchant, buyTicket, ownedCount, lineText, chanceAfter, fakeLine } from '../enchant.js';
+	import { ODDS_URL, copiesOf, applyCopyState, fetchEnchant, tryEnchant, resolveEnchant, repairLine, buyTicket, ownedCount, lineText, chanceAfter, fakeLine, damageChanceAt, damagePercent, repairCostOf } from '../enchant.js';
 	import { reducedMotion } from '../motion.js';
 	import { toast } from '../ui/toast.svelte.js';
 	import { playSound } from '../audio.svelte.js';
 	import Tooltip from '../ui/Tooltip.svelte';
+	import Checkbox from '../ui/Checkbox.svelte';
+	import Select from '../ui/Select.svelte';
+	import ShopQty from './ShopQty.svelte';
 	import Dialog from './Dialog.svelte';
 	import GameIcon from './GameIcon.svelte';
 	import ShopThumb from './ShopThumb.svelte';
@@ -24,6 +27,8 @@
 
 	const CHARGE_MS = 1700; // the ticket is "being used"
 	const RESULT_MS = 1300; // the verdict stays on the stage
+	const FAST_MS = 450; // the same two, while the tries run on their own (자동)
+	const AUTO_TARGETS = [2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({ value: n, label: `+${n}` }));
 
 	let data = $state(null); // { rules, effects, items: { [item]: { pity, chance, copies: [{ instance, level, lines, pending, worn }] } } }
 	let failed = $state(null); // why the data could not be loaded: the server's error key, or 'network'
@@ -34,6 +39,12 @@
 	let reel = $state(null); // the made-up line that spins during the charge
 	let verdict = $state(null); // { success, line } while the verdict is on the stage
 	let buyOpen = $state(false);
+	let repairSlot = $state(null); // the line whose repair waits for a yes
+	let repairOpen = $state(false);
+	let buyQty = $state(1); // how many tickets the purchase popup buys
+	let protect = $state(false); // pay to make a try that could damage safe
+	let auto = $state(false); // tries run on their own until the target, the end of the tickets, or a damage
+	let autoTarget = $state(5);
 	let run = 0;
 
 	const rules = $derived(data?.rules);
@@ -54,6 +65,9 @@
 	// the chance of the ticket in hand: a ticket that always succeeds says 100, 일반 follows the item's failures in a row
 	const chance = $derived(!ticket ? 0 : ticket.guaranteed ? 100 : (state?.chance ?? rules?.baseChance ?? 30));
 	const slots = $derived(Array.from({ length: rules?.maxLines ?? 3 }, (_, i) => state?.lines?.[i]));
+	// a try that can fail on a copy of a level where failing damages one of its lines (the chance of it), 0 when it cannot
+	const risk = $derived(!ticket || ticket.guaranteed || !state?.lines?.some((l) => !l.damage || l.damage < (rules?.damageFull ?? 2000)) ? 0 : damageChanceAt(state?.level ?? 0, rules));
+	const repairPrice = (line) => repairCostOf(line.damage ?? 0, rules);
 	const wait = (ms) => new Promise((r) => setTimeout(r, reducedMotion() ? 0 : Math.max(0, ms)));
 
 	$effect(() => {
@@ -69,6 +83,9 @@
 		});
 	});
 	$effect(() => {
+		if (!open) auto = false;
+	});
+	$effect(() => {
 		if (picked && !copies.some((c) => c.key === picked)) picked = null;
 	});
 	// while a try is in flight a made-up line spins on the stage
@@ -81,8 +98,10 @@
 
 	// the box (and ping) as the server now has them; the game server is told to read them again
 	function takeBox(box, ping) {
-		store.net.box = cleanBox(box);
-		store.net.boxSeq++;
+		if (box) {
+			store.net.box = cleanBox(box);
+			store.net.boxSeq++;
+		}
 		if (ping != null) {
 			const mine = store.net.users[store.net.id];
 			if (mine) mine.money = ping;
@@ -90,36 +109,79 @@
 		store.conn.send('refresh');
 	}
 
-	async function use() {
-		if (busy || !cur || !ticket) return;
-		if (owned(ticket.id) < 1) return void toast(errorText('noTicket'), { kind: 'error' });
+	/** One try with the ticket in hand. Returns the server's answer, or null when nothing was tried. [fast]: the shorter animation of the automatic tries. */
+	async function use(fast = false) {
+		if (busy || !cur || !ticket) return null;
+		if (owned(ticket.id) < 1) {
+			toast(errorText('noTicket'), { kind: 'error' });
+			return null;
+		}
 		busy = true;
 		const target = cur;
 		const mine = ++run;
+		const guard = protect && risk > 0;
 		const t0 = performance.now();
 		phase = 'charge';
 		verdict = null;
 		playSound('dialog', { ui: true });
-		const res = await tryEnchant(target.item._id, target.instance, ticket.id);
-		await wait(CHARGE_MS - (performance.now() - t0));
-		if (mine !== run) return void (busy = false);
+		const res = await tryEnchant(target.item._id, target.instance, ticket.id, guard);
+		await wait((fast ? FAST_MS : CHARGE_MS) - (performance.now() - t0));
+		if (mine !== run) {
+			busy = false;
+			return null;
+		}
 		if (res.error) {
 			phase = 'idle';
 			busy = false;
-			return void toast(errorText(res.error), { kind: 'error' });
+			toast(errorText(res.error), { kind: 'error' });
+			return res;
 		}
 		data = { ...data, items: applyCopyState(data.items, res.item, res.state) };
 		if (res.state.instance > 0) picked = `${res.item}#${res.state.instance}`; // a plain copy that succeeded is an enchanted one now
-		takeBox(res.box);
-		verdict = { success: res.success, line: res.line };
+		takeBox(res.box, res.money);
+		const hit = res.hit ? { line: res.state.lines[res.hit.slot], pct: res.hit.amount / 20 } : null;
+		verdict = { success: res.success, line: res.line, hit };
 		phase = res.success ? 'success' : 'fail';
 		playSound(res.success ? 'success' : 'fail');
-		await wait(RESULT_MS);
+		await wait(fast ? FAST_MS : RESULT_MS);
 		if (mine === run) {
 			phase = 'idle';
 			verdict = null;
 		}
 		busy = false;
+		return res;
+	}
+
+	/** Tries on their own: stops at the target level, when the tickets are out, when a success needs an answer, on a damage, or when told to. */
+	async function autoUse() {
+		if (auto) return void (auto = false);
+		auto = true;
+		while (auto && open) {
+			const c = cur;
+			if (!c || c.pending || !ticket || owned(ticket.id) < 1 || c.level >= autoTarget) break;
+			const res = await use(true);
+			if (!res || res.error || res.hit || res.state?.pending) break;
+		}
+		auto = false;
+	}
+
+	// the question before paying for a repair: the exchange popup with nothing on the receiving side
+	const repairLineNow = $derived(repairSlot != null ? (state?.lines?.[repairSlot] ?? null) : null);
+	const repairExchange = $derived(repairLineNow ? { cost: { ping: repairPrice(repairLineNow) }, gives: {} } : null);
+	function askRepair(slot) {
+		if (busy) return;
+		repairSlot = slot;
+		repairOpen = true;
+	}
+	async function repair(slot) {
+		if (busy || !cur || slot == null) return;
+		busy = true;
+		const res = await repairLine(cur.item._id, cur.instance, slot);
+		busy = false;
+		if (res.error) return void toast(errorText(res.error), { kind: 'error' });
+		data = { ...data, items: applyCopyState(data.items, res.item, res.state) };
+		takeBox(null, res.money);
+		playSound('success', { ui: true });
 	}
 
 	async function settle(slot) {
@@ -134,7 +196,7 @@
 	async function buy() {
 		if (busy || !ticket) return;
 		busy = true;
-		const res = await buyTicket(ticket.id);
+		const res = await buyTicket(ticket.id, buyQty);
 		busy = false;
 		if (res.error) return void toast(res.error === 400 || res.error === 'network' ? t('play.enchant.error.buy') : errorText(res.error), { kind: 'error' });
 		takeBox(res.box, res.money);
@@ -142,7 +204,12 @@
 	}
 
 	// the question before buying: the same popup as the exchange of the 행사 pages
-	const buyExchange = $derived(ticket && price(ticket.id) != null ? { cost: { ping: Number(price(ticket.id)) }, gives: { [ticket.id]: 1 } } : null);
+	const buyExchange = $derived(ticket && price(ticket.id) != null ? { cost: { ping: Number(price(ticket.id)) * buyQty }, gives: { [ticket.id]: buyQty } } : null);
+	// as many as the Ping allows (at most 99, at least the one the button already needs)
+	const maxQty = $derived(!ticket || !price(ticket.id) ? 99 : Math.max(1, Math.min(99, Math.floor(money / Number(price(ticket.id))))));
+	$effect(() => {
+		if (buyOpen) buyQty = 1;
+	});
 	const have = (c) => (c.kind === 'ping' ? money : owned(c.id));
 	const chanceInfo = $derived(
 		!ticket
@@ -224,7 +291,7 @@
 								<p class="mt-2 text-center text-xs font-bold text-(color:--kk-muted)">{t('play.enchant.charging')}</p>
 							{:else if verdict}
 								<p class="verdict mt-2 rounded-xl px-3 py-3 text-center text-sm font-extrabold {verdict.success ? 'bg-green-500/15 text-green-600' : 'bg-red-500/10 text-red-500'}" role="status">
-									{#if verdict.success}{#if verdict.line.premium}<span class="text-amber-500">★ </span>{/if}{text(verdict.line)}{:else}{t('play.enchant.fail')}{/if}
+									{#if verdict.success}{#if verdict.line.premium}<span class="text-amber-500">★ </span>{/if}{text(verdict.line)}{:else if verdict.hit}{t('play.enchant.hit', { line: text(verdict.hit.line), pct: verdict.hit.pct })}{:else}{t('play.enchant.fail')}{/if}
 								</p>
 							{:else}
 								<ul class="flex flex-col gap-1.5" aria-label={t('play.enchant.lines')}>
@@ -232,7 +299,10 @@
 										<li class="flex min-h-9 items-center gap-2 rounded-xl bg-(--kk-surface) px-3 py-1.5 text-sm {line ? 'font-bold' : 'text-(color:--kk-muted)'}">
 											{#if line}
 												{#if line.premium}<span class="text-amber-500" title={t('play.enchant.premiumLine')} aria-label={t('play.enchant.premiumLine')}>★</span>{/if}
-												<span class="min-w-0 flex-1">{text(line)}</span>
+												<span class="min-w-0 flex-1">{text(line)}{#if line.damage}<b class="ml-1 text-xs text-red-500 tabular-nums">−{damagePercent(line)}%</b>{/if}</span>
+												{#if line.damage && !state.pending}
+													<button type="button" class="kk-btn inline-flex min-h-7 items-center gap-1 px-2 text-xs" disabled={busy || money < repairPrice(line)} onclick={() => askRepair(i)} title={t('play.enchant.repairInfo')} aria-label="{t('play.enchant.repair')} {fmt(repairPrice(line))}"><span>{t('play.enchant.repair')}</span><GameIcon name="ping" size={14} />{fmt(repairPrice(line))}</button>
+												{/if}
 												{#if state.pending}<button type="button" class="kk-btn min-h-7 px-2.5 text-xs" disabled={busy} onclick={() => settle(i)}>{t('play.enchant.replace')}</button>{/if}
 											{:else}
 												{t('play.enchant.empty')}
@@ -262,6 +332,12 @@
 							<div class="mt-1 h-2 overflow-hidden rounded-full bg-(--kk-surface)" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={chance} aria-label={t('play.enchant.chance')}>
 								<div class="h-full rounded-full bg-(--kk-accent-strong) transition-[width] duration-500" style="width:{chance}%"></div>
 							</div>
+							{#if risk > 0}
+								<div class="mt-1.5 flex items-center justify-between gap-2 text-xs font-bold">
+									<span class="inline-flex min-w-0 items-center gap-1 text-red-500"><span class="truncate">{t('play.enchant.risk', { chance: risk })}</span>{@render info(t('play.enchant.riskInfo', { chance: risk, cost: fmt(rules.protectCost) }))}</span>
+									<Checkbox bind:checked={protect} disabled={busy} dense><span class="inline-flex items-center gap-1">{t('play.enchant.protect')}<GameIcon name="ping" size={14} /><span class="tabular-nums">{fmt(rules.protectCost)}</span></span></Checkbox>
+								</div>
+							{/if}
 						</section>
 
 						<!-- the tickets, one column each: pick one; the (i) at its top right says what it does -->
@@ -285,10 +361,16 @@
 								{#if price(ticket.id) != null}<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1.5 text-base font-extrabold tabular-nums {money < price(ticket.id) ? 'text-red-200' : ''}" title={money < price(ticket.id) ? t('play.lab.short') : undefined}><GameIcon name="ping" size={22} />{fmt(price(ticket.id))}</span>{/if}
 							</button>
 						{:else}
-							<button type="button" class="kk-btn kk-btn-primary nudge flex min-h-12 w-full items-center justify-center gap-2.5 px-6 text-base font-extrabold" disabled={busy || !ticket} onclick={use}>
-								<span>{t('play.enchant.use')}</span>
-								{#if ticket}<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1 text-base font-extrabold tabular-nums"><ShopThumb id={ticket.id} shop={store.shop} class="size-6" />×{owned(ticket.id)}</span>{/if}
-							</button>
+							<div class="flex gap-2">
+								<button type="button" class="kk-btn kk-btn-primary nudge flex min-h-12 min-w-0 flex-1 items-center justify-center gap-2.5 px-4 text-base font-extrabold" disabled={busy || auto || !ticket} onclick={() => use()}>
+									<span>{t('play.enchant.use')}</span>
+									<!-- what one try spends: a ticket, and the Ping of the protection when it is on (what is left of them is shown above) -->
+									{#if ticket}<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1 text-base font-extrabold tabular-nums"><ShopThumb id={ticket.id} shop={store.shop} class="size-6" />×1{#if protect && risk > 0}<GameIcon name="ping" size={20} />{fmt(rules.protectCost)}{/if}</span>{/if}
+								</button>
+								<!-- 자동: keeps trying up to the target level; a damage, a full copy or the end of the tickets stops it -->
+								<div class="w-24 shrink-0"><Select options={AUTO_TARGETS} bind:value={autoTarget} label={t('play.enchant.autoTarget')} /></div>
+								<button type="button" class="kk-btn min-h-12 shrink-0 px-3 text-sm font-extrabold" disabled={(busy && !auto) || !ticket || (!auto && (state.level >= autoTarget || owned(ticket.id) < 1))} onclick={autoUse} aria-pressed={auto} title={t('play.enchant.autoInfo')}>{auto ? t('play.enchant.autoStop') : t('play.enchant.auto')}</button>
+							</div>
 						{/if}
 					{/if}
 				{/if}
@@ -297,8 +379,17 @@
 	{/if}
 </Dialog>
 
+<NewsExchangeDialog bind:open={repairOpen} exchange={repairExchange} title={repairLineNow ? text(repairLineNow) : ''} shop={store.shop} {details} {have} onconfirm={() => repair(repairSlot)} dialogTitle={t('play.enchant.repairDialog')} doLabel={t('play.enchant.repair')} />
+
 {#if ticket}
-	<NewsExchangeDialog bind:open={buyOpen} exchange={buyExchange} title={t(`play.enchant.ticket.${ticket.tier}`)} shop={store.shop} {details} {have} onconfirm={buy} dialogTitle={t('play.enchant.buyDialog')} doLabel={t('play.enchant.buy')} />
+	<NewsExchangeDialog bind:open={buyOpen} exchange={buyExchange} title={t(`play.enchant.ticket.${ticket.tier}`)} shop={store.shop} {details} {have} onconfirm={buy} dialogTitle={t('play.enchant.buyDialog')} doLabel={t('play.enchant.buy')}>
+		{#snippet extra()}
+			<div class="flex items-center justify-between gap-3 rounded-xl bg-(--kk-surface-2) px-3 py-2">
+				<span class="text-sm font-bold">{t('play.enchant.qty')}</span>
+				<ShopQty value={buyQty} max={maxQty} name={t(`play.enchant.ticket.${ticket.tier}`)} onchange={(v) => (buyQty = Math.min(maxQty, Math.max(1, v)))} />
+			</div>
+		{/snippet}
+	</NewsExchangeDialog>
 {/if}
 
 <style>

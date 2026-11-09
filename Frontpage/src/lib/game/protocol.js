@@ -34,6 +34,8 @@ export const initialState = () => ({
 	playTime: 0,
 	okgCount: 0, // 오끄감 buff stack
 	server: 0, // the channel I'm on
+	levelGifts: {}, // level -> what reaching it gave ({level, ping, items, mail}), from the `obtain` packets that took me through levels
+	levelTable: null, // every level's gift, as the server sent it: {level: [ping, [[item, q]], [[ticket, q]]]} (asked for when the level table opens)
 	mails: [], // the mailbox: [{_id, name, content, hasRewards, claimable, claimEndAt}]
 	notifications: [], // notices the server keeps until I confirm them: [{id, message, createdAt}]
 	mailLoaded: false,
@@ -406,6 +408,9 @@ export function applyPacket(state, pkt, now = Date.now()) {
 		case 'event.reward':
 			state.eventReward = { eventId: pkt.eventId, source: pkt.source, rewards: Array.isArray(pkt.rewards) ? pkt.rewards : [], at: now };
 			break;
+		case 'levelRewards':
+			state.levelTable = pkt.table && typeof pkt.table === 'object' ? pkt.table : null;
+			break;
 		case 'mailBox':
 			state.mails = pkt.mails ?? [];
 			if (pkt.notifications) state.notifications = pkt.notifications;
@@ -414,7 +419,12 @@ export function applyPacket(state, pkt, now = Date.now()) {
 		case 'notifications':
 			state.notifications = pkt.notifications ?? [];
 			break;
+		case 'familyRes':
+			// 패밀리: what the server took for it (founding one) is off my balance at once, without a "획득" notice.
+			if (pkt.ok && pkt.paid && state.users[state.id]) state.users[state.id].money -= Number(pkt.paid);
+			break;
 		case 'obtain':
+			for (const g of Array.isArray(pkt.levelGifts) ? pkt.levelGifts : []) state.levelGifts[g.level] = g;
 			// Ping given by the server (a mail reward): my balance goes up at once.
 			if (pkt.money && state.users[state.id]) state.users[state.id].money += Number(pkt.money);
 			if (Array.isArray(pkt.gift)) state.gifts.push(...pkt.gift.map((g) => ({ key: String(g.key), q: Number(g.q) || 1 })));

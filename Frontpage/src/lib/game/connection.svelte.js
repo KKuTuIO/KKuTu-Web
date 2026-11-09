@@ -3,6 +3,7 @@ import { setProgress } from './tutorial/progress.svelte.js';
 import { showInjeongHint } from './injeongHint.js';
 import { applyPacket, errorText, initialState, plainText } from './protocol.js';
 import { loadShop } from './images.js';
+import { itemName, loadGoodDetails } from './shop.js';
 import { OKG_MINUTES } from './lobbyModel.js';
 import { toast } from './ui/toast.svelte.js';
 import { confirm, notify } from './ui/confirm.svelte.js';
@@ -20,6 +21,7 @@ import { MAX_ATTEMPTS, retryDelay, shouldReconnect } from './reconnect.js';
 import { activeMaintenance, classifyOutage, SCHEDULE_EVERY, SCHEDULE_URL } from './outage.js';
 import { createRecorder } from './replayRec.js';
 import { createGameAudio } from './gameAudio.js';
+import { family } from './familyStore.svelte.js';
 
 /** Server messages are HTML snippets (<br>, links); toasts show plain text. */
 export { plainText };
@@ -43,6 +45,7 @@ export function createConnection(server) {
 	let rws;
 	let ws;
 	let pingTimer;
+	let familyTimer; // 패밀리: who is online changes without a packet, so it is asked for again now and then
 	let sentAt = 0;
 	// Reconnecting: after an unexplained drop we try again by ourselves (see reconnect.js).
 	let leaving = false; // the page is going away: nothing to reconnect to
@@ -161,6 +164,10 @@ export function createConnection(server) {
 				security.sendInit();
 				identity().then((report) => send('identity', report));
 				startPing();
+				family.attach(send);
+				family.fetch();
+				clearInterval(familyTimer);
+				familyTimer = setInterval(() => family.fetch(), 60_000);
 				state.outage = null;
 				if (attempt > 0 || state.reconnect) {
 					attempt = 0;
@@ -172,6 +179,8 @@ export function createConnection(server) {
 		sock.onclose = (e) => {
 			if (sock !== ws) return; // an older socket closing after a newer one took over
 			clearInterval(pingTimer);
+			clearInterval(familyTimer);
+			family.detach();
 			rws?.close(); // the room socket belongs to this session too
 			rws = undefined;
 			if (leaving || state.status === 'error') return;
@@ -209,6 +218,7 @@ export function createConnection(server) {
 		const lastLine = state.chat.at(-1);
 		const hadGame = !!state.game;
 		applyPacket(state, pkt);
+		if (fromMaster && typeof pkt.type === 'string' && pkt.type.startsWith('family')) family.receive(pkt);
 		// Broadcasts from "#notice", "#yell" and "#alert": a toast, the scrolling banner, and a dialog (to be confirmed)
 		if (pkt.type === 'notice' && typeof pkt.value === 'string' && pkt.value) toast(plainText(pkt.value), { kind: 'info', icon: 'alert' });
 		else if (pkt.type === 'yell' && typeof pkt.value === 'string') yell(plainText(pkt.value));
@@ -255,10 +265,14 @@ export function createConnection(server) {
 		}
 		if (pkt.type === 'obtainMail') {
 			send('mailBox'); // the claimed letter is gone: legacy asks for the box again
-			for (const r of pkt.rewards ?? []) {
-				if (r.type === 'ping') toast(t('play.mail.obtainedPing', { n: Number(r.q || 0).toLocaleString() }), { kind: 'success' });
-				else if (r.name) toast(t('play.mail.obtainedItem', { name: i18n.messages[`item.name.${r.name}`] ?? r.name }), { kind: 'success' });
-			}
+			const rewards = pkt.rewards ?? [];
+			// item names are the shop's (`/api/play/goods`), not a locale text
+			loadGoodDetails().then((details) => {
+				for (const r of rewards) {
+					if (r.type === 'ping') toast(t('play.mail.obtainedPing', { n: Number(r.q || 0).toLocaleString() }), { kind: 'success' });
+					else if (r.name) toast(t('play.mail.obtainedItem', { name: itemName(details, r.name) }), { kind: 'success' });
+				}
+			});
 		}
 		if (before) okgNotice(before, pkt);
 		if (pkt.type === 'error' && Number(pkt.code) === 416 && state.status === 'ready') {
@@ -324,7 +338,7 @@ export function createConnection(server) {
 
 	// Which socket a message goes to, same rule as the legacy client: lobby-level messages to master, room
 	// actions to the room worker, and everything else (chat, room settings) to the worker while in a room.
-	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry']);
+	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'levelRewards', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry', 'family']);
 	const ROOM_ONLY = new Set(['leave', 'ready', 'start', 'practice', 'invite', 'form', 'team', 'kick', 'kickVote', 'handover', 'setAI', 'useItem', 'wp']);
 	/** 22-char url-safe id (16 random bytes), required by the server on durable requests so a retry can't apply twice. */
 	function newRequestId() {
@@ -413,6 +427,8 @@ export function createConnection(server) {
 			}
 			clearTimeout(retryTimer);
 			clearInterval(pingTimer);
+			clearInterval(familyTimer);
+			family.detach();
 			if (browser) {
 				window.removeEventListener('online', wake);
 				document.removeEventListener('visibilitychange', onVisible);

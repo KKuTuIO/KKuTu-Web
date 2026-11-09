@@ -4,11 +4,11 @@
 	"private": true,
 	"scripts": {
 		"dev": "vite dev --host",
-		"build": "vite build",
+		"build": "vite build && node tools/checkCssSalt.mjs",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"test": "vitest run",
-		"build:hardened": "OBFUSCATE_SECURITY=1 vite build"
+		"build:hardened": "OBFUSCATE_SECURITY=1 vite build && node tools/checkCssSalt.mjs"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "3.0.10",

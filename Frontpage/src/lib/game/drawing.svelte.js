@@ -8,6 +8,8 @@ import { getStroke } from 'perfect-freehand';
 /** The picture's size, as sent: the server takes any JPEG up to 4096 px a side and 256 KB. It is shown 600 px wide on the page. */
 export const CANVAS_W = 960;
 export const CANVAS_H = 480;
+/** A phone paints on a taller sheet (4:3): a 2:1 strip is too little to draw on at that width. Everyone shows a picture at its own shape (contain). */
+export const CANVAS_H_TALL = 720;
 /** Picture pixels per page pixel, so a brush of N page pixels is N * DRAW_SCALE here. */
 export const DRAW_SCALE = 1.6;
 /** The most a picture may weigh as a data URL (the server's cap is 256 KB of JPEG; the legacy client kept to 160000 characters). */
@@ -33,9 +35,12 @@ export const TOOLS = ['pencil', 'spray', 'circle', 'eraser'];
 
 export const pad = $state({ tool: 'pencil', color: '#000000', width: 8 });
 
+/** True when a pen really reported pressure (it varies along the stroke). The canvas hands every other pointer a flat 0.5. */
+export const hasPressure = (points) => points.some((p) => p[2] !== undefined && p[2] !== 0.5);
+
 /** The outline of a stroke through `points` ([x, y, pressure]), as a Path2D polygon to fill. */
 export function strokePath(points, width) {
-	const outline = getStroke(points, { size: Math.max(1, width), thinning: 0.5, smoothing: 0.55, streamline: 0.5, simulatePressure: points.every((p) => p[2] === undefined || p[2] === 0.5) });
+	const outline = getStroke(points, { size: Math.max(1, width), thinning: hasPressure(points) ? 0.5 : 0, smoothing: 0.55, streamline: 0.5, simulatePressure: false }); // the width follows real pressure only; it is never faked from speed
 	const path = new Path2D();
 	if (outline.length < 2) return path;
 	path.moveTo(outline[0][0], outline[0][1]);
@@ -52,9 +57,10 @@ export function strokePath(points, width) {
 export function pictureOf(canvas) {
 	if (canvas.width !== CANVAS_W) {
 		const small = document.createElement('canvas');
+		const height = Math.round((canvas.height * CANVAS_W) / canvas.width); // the shape of the sheet is kept
 		small.width = CANVAS_W;
-		small.height = CANVAS_H;
-		small.getContext('2d').drawImage(canvas, 0, 0, CANVAS_W, CANVAS_H);
+		small.height = height;
+		small.getContext('2d').drawImage(canvas, 0, 0, CANVAS_W, height);
 		canvas = small;
 	}
 	for (const quality of [0.4, 0.1]) {

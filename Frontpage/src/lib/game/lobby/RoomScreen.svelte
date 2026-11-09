@@ -22,6 +22,8 @@
 	const players = $derived(store.roomPlayers);
 	const me = $derived(store.myGame);
 	const net = $derived(store.net);
+	let winW = $state(typeof innerWidth === 'undefined' ? 1280 : innerWidth);
+	const phone = $derived(winW < 768);
 	// The seat grid sizes itself to the room: cards fill the area, whatever the limit is.
 	let areaW = $state(0);
 	let areaH = $state(0);
@@ -136,6 +138,8 @@
 	}
 </script>
 
+<svelte:window bind:innerWidth={winW} />
+
 {#if room}
 	<!-- Rises from behind the chat when you join. (No exit animation: the lobby is shown at once, so nothing overlaps.) -->
 	<section
@@ -173,13 +177,14 @@
 		</header>
 
 		<!-- Seats (+ teams on the left, as in the legacy screen) -->
-		<div class="kk-card flex min-h-0 flex-1 overflow-hidden">
-			<div class="flex w-20 shrink-0 flex-col gap-2 border-r border-(color:--kk-line) bg-(--kk-panel) p-2">
-				<RadioGroup variant="chips" vertical label={t('play.room.teams')} value={me?.team ?? 0} options={teamOptions} disabled={ready || spectating || room.playing} onchange={(v) => store.setTeam(v)} />
+		<div class="kk-card flex min-h-0 flex-1 overflow-hidden max-md:flex-col">
+			<!-- teams: a column at the left; on a phone a row on top, so the seats keep the width -->
+			<div class="flex w-20 shrink-0 flex-col gap-2 border-r border-(color:--kk-line) bg-(--kk-panel) p-2 max-md:w-full max-md:border-r-0 max-md:border-b max-md:p-1.5">
+				<RadioGroup variant="chips" vertical={!phone} label={t('play.room.teams')} value={me?.team ?? 0} options={teamOptions} disabled={ready || spectating || room.playing} onchange={(v) => store.setTeam(v)} />
 			</div>
 
-			<div class="min-h-0 flex-1 overflow-hidden p-3" bind:clientWidth={areaW} bind:clientHeight={areaH}>
-					<ul class="grid h-full gap-3" style="grid-template-columns:repeat({layout.cols},minmax(0,1fr));grid-template-rows:repeat({layout.rows},minmax(0,1fr))">
+			<div class="min-h-0 flex-1 overflow-hidden p-3 max-md:p-2" bind:clientWidth={areaW} bind:clientHeight={areaH}>
+					<ul class="grid h-full gap-3 max-md:gap-2" style="grid-template-columns:repeat({layout.cols},minmax(0,1fr));grid-template-rows:repeat({layout.rows},minmax(0,1fr))">
 						{#each players as p (p.id)}
 							<PlayerSlot player={p} {store} isMaster={p.id === room.master} isMe={p.id === net.id} size={moremiSize} {compact} onopen={openProfile} />
 						{/each}
@@ -193,23 +198,25 @@
 			</div>
 		</div>
 
-		<!-- Actions -->
-		<div class="flex flex-wrap items-center gap-2">
-			<Tooltip text={spectating ? t('play.room.unspectate') : t('play.room.spectate')} placement="top">
-				<button type="button" aria-pressed={spectating} disabled={room.playing || ready} onclick={() => store.setSpectate(!spectating)} class="kk-btn inline-flex items-center gap-1.5 {spectating ? 'bg-(--kk-accent-soft)' : ''}"><Icon name="visibility" size={20} fill={spectating} />{t('play.room.spectate')}</button>
-			</Tooltip>
-			<button type="button" disabled={room.playing || spectating} onclick={practice} class="kk-btn inline-flex items-center gap-1.5"><Icon name="edit" size={20} />{t('play.room.practice')}</button>
-			<button type="button" onclick={invite} class="kk-btn inline-flex items-center gap-1.5"><Icon name="person_add" size={20} />{t('play.room.invite')}</button>
-			{#if store.isMaster}
-				<button type="button" disabled={room.playing} onclick={onsettings} class="kk-btn inline-flex items-center gap-1.5"><Icon name="tune" size={20} />{t('play.room.settings')}</button>
-			{/if}
-
-			<div class="ml-auto flex flex-wrap items-center gap-2">
-				<button type="button" onclick={() => store.leaveRoom()} class="kk-btn kk-btn-danger inline-flex min-h-14 items-center gap-1.5 px-5"><Icon name="logout" size={22} />{t('play.room.leave')}</button>
+		<!-- Actions: the room's own buttons in one row, the way out and the main button below (on a phone the chat button sits at the right of that row) -->
+		<div class="flex flex-wrap items-center gap-2 max-md:flex-col max-md:items-stretch">
+			<div class="flex flex-wrap items-center gap-2 max-md:grid max-md:grid-cols-4 max-md:[&_.kk-btn]:min-h-11 max-md:[&_.kk-btn]:justify-center max-md:[&_.kk-btn]:gap-1 max-md:[&_.kk-btn]:px-1 max-md:[&_.kk-btn]:text-xs">
+				<Tooltip text={spectating ? t('play.room.unspectate') : t('play.room.spectate')} placement="top">
+					<button type="button" aria-pressed={spectating} disabled={room.playing || ready} onclick={() => store.setSpectate(!spectating)} class="kk-btn inline-flex items-center gap-1.5 {spectating ? 'bg-(--kk-accent-soft)' : ''}"><Icon name="visibility" size={20} fill={spectating} />{t('play.room.spectate')}</button>
+				</Tooltip>
+				<button type="button" disabled={room.playing || spectating} onclick={practice} class="kk-btn inline-flex items-center gap-1.5"><Icon name="edit" size={20} />{t('play.room.practice')}</button>
+				<button type="button" onclick={invite} class="kk-btn inline-flex items-center gap-1.5"><Icon name="person_add" size={20} />{t('play.room.invite')}</button>
 				{#if store.isMaster}
-					<button type="button" disabled={room.playing} onclick={() => store.start()} class="kk-btn kk-btn-hero kk-btn-lg w-44"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.room.start')}</span></button>
+					<button type="button" disabled={room.playing} onclick={onsettings} class="kk-btn inline-flex items-center gap-1.5"><Icon name="tune" size={20} />{t('play.room.settings')}</button>
+				{/if}
+			</div>
+
+			<div class="ml-auto flex flex-wrap items-center gap-2 max-md:ml-0 max-md:w-full max-md:flex-nowrap">
+				<button type="button" onclick={() => store.leaveRoom()} class="kk-btn kk-btn-danger inline-flex min-h-14 items-center gap-1.5 px-5 max-md:px-3"><Icon name="logout" size={22} />{t('play.room.leave')}</button>
+				{#if store.isMaster}
+					<button type="button" disabled={room.playing} onclick={() => store.start()} class="kk-btn kk-btn-hero kk-btn-lg w-44 max-md:w-auto max-md:min-w-0 max-md:flex-1"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.room.start')}</span></button>
 				{:else}
-					<button type="button" disabled={room.playing || spectating} onclick={() => store.toggleReady()} class="kk-btn kk-btn-lg w-44 {ready ? 'kk-btn-amber' : 'kk-btn-hero'}"><span class="kk-btn-icon"><Icon name={ready ? 'close' : 'check'} size={28} /></span><span class="kk-btn-label">{ready ? t('play.room.unready') : t('play.room.ready')}</span></button>
+					<button type="button" disabled={room.playing || spectating} onclick={() => store.toggleReady()} class="kk-btn kk-btn-lg w-44 max-md:w-auto max-md:min-w-0 max-md:flex-1 {ready ? 'kk-btn-amber' : 'kk-btn-hero'}"><span class="kk-btn-icon"><Icon name={ready ? 'close' : 'check'} size={28} /></span><span class="kk-btn-label">{ready ? t('play.room.unready') : t('play.room.ready')}</span></button>
 				{/if}
 			</div>
 		</div>

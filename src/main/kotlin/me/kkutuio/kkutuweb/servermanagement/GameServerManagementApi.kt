@@ -23,6 +23,7 @@ data class ServerManagementOverview(
 class GameServerManagementApi(
     private val service: GameServerManagementService,
     private val webRestartService: WebServerRestartService,
+    private val webJarDeployService: WebJarDeployService,
     private val authorizer: AdminModerationAuthorizer
 ) {
     @GetMapping
@@ -39,6 +40,26 @@ class GameServerManagementApi(
     fun status(@PathVariable channelId: Int, session: HttpSession): Pm2ProcessStatus {
         authorizer.require(session, AdminSetting.Privilege.GAME_SERVER_RESTART)
         return service.processStatus(channelId)
+    }
+
+    @GetMapping("/web/releases")
+    fun webReleases(session: HttpSession): WebReleaseList {
+        authorizer.require(session, AdminSetting.Privilege.GAME_SOURCE_MANAGE)
+        return webJarDeployService.listReleases()
+    }
+
+    @PostMapping("/web/deploy")
+    fun deployWeb(@RequestBody request: WebDeployRequest, session: HttpSession): WebDeploySnapshot {
+        // 교체 후 재시작까지 일어나므로 소스 관리와 재시작 권한을 모두 요구한다.
+        authorizer.require(session, AdminSetting.Privilege.GAME_SERVER_RESTART)
+        val actor = authorizer.require(session, AdminSetting.Privilege.GAME_SOURCE_MANAGE)
+        return webJarDeployService.deploy(request.tag.trim(), actor)
+    }
+
+    @GetMapping("/web/deploy/{operationId}")
+    fun webDeployOperation(@PathVariable operationId: UUID, session: HttpSession): WebDeploySnapshot {
+        authorizer.require(session, AdminSetting.Privilege.GAME_SOURCE_MANAGE)
+        return webJarDeployService.operation(operationId)
     }
 
     @PostMapping("/web/restart")

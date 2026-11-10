@@ -22,6 +22,9 @@ importers:
       '@glidejs/glide':
         specifier: 3.7.1
         version: 3.7.1
+      '@kkutuio/ui':
+        specifier: 0.1.0
+        version: 0.1.0(svelte@5.56.10)(tailwindcss@4.3.3)
       '@tailwindcss/vite':
         specifier: 4.3.3
         version: 4.3.3(vite@8.2.2(jiti@2.7.0)(yaml@2.7.0))
@@ -236,6 +239,13 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
+
+  '@kkutuio/ui@0.1.0':
+    resolution: {integrity: sha512-j3lYM+bj4ePmwXvS6ArOdkjGiLb0n4GhXWgULfmJk8rPG/SDGd7UefunRFnm9YqHAv6FvxgnfaYiSc+z3lVy2w==}
+    engines: {node: '>=22.13.0'}
+    peerDependencies:
+      svelte: ^5.56.0
+      tailwindcss: ^4.3.0
 
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
@@ -1917,6 +1927,11 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.0
       '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@kkutuio/ui@0.1.0(svelte@5.56.10)(tailwindcss@4.3.3)':
+    dependencies:
+      svelte: 5.56.10
+      tailwindcss: 4.3.3
 
   '@kurkle/color@0.3.4': {}
 

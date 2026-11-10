@@ -3,36 +3,13 @@
 
 /* NanumSquare Neo is hosted in KKuTu-Static (https://cdn.kkutu.io/css/nanum-square-neo.css, linked from app.html). */
 
-/* Game client theme. Accent green is the homepage's (#55aa55); `-strong` is the same hue
-   darkened until white text on it passes 4.5:1. Dark values follow prefers-color-scheme,
-   like the homepage's dark: variants. */
+/* The shared tokens (colours, radius scale), the `.kk` surface and the common classes (.kk-btn and its primary / danger / hero variants,
+   .kk-card, .kk-input, .kk-chip) come from @kkutuio/ui, imported in app.css. What is here is the game's own: these tokens and the classes below. */
 .kk {
-	--kk-bg: #f1f6f1;
-	--kk-surface: #ffffff;
-	--kk-surface-2: #f5f8f5;
-	--kk-line: #dce5dc;
-	--kk-line-strong: #b9c8b9;
-	--kk-text: #18211a;
-	--kk-muted: #556456;
-	/* Theme: green-500 for decoration, green-700 where white text sits on it (4.5:1), green-100 for soft fills. */
-	--kk-accent: #22c55e;
-	--kk-accent-strong: #15803d;
-	--kk-accent-soft: #dcfce7;
-	/* Solid fills (primary buttons, selected chips, checked boxes) use green-500 itself; the stronger green
-	   above is only for text on light surfaces. */
-	--kk-fill: #22c55e;
-	--kk-fill-edge: #15803d;
-	--kk-panel: #f4f4f5; /* very light neutral for secondary panels */
-	--kk-warn: #b45309;
-	--kk-warn-soft: #fdf0dc;
-	--kk-danger: #c62828;
-	--kk-danger-fill: #c62828; /* solid button fill: white text stays readable in both themes */
 	--kk-ping-good: #16a34a; /* connection indicator */
 	--kk-ping-fair: #eab308;
 	--kk-ping-poor: #dc2626;
 	--kk-whisper: #5b5bd6;
-	--kk-danger-soft: #fde8e8;
-	--kk-blue: #2563eb;
 	/* Room slot status colours (hues from the legacy room screen, darkened for white text) */
 	--kk-st-master: #cf4323;
 	--kk-st-ready: #2b74c9;
@@ -44,71 +21,21 @@
 	--kk-team-2: #ffbf30;
 	--kk-team-3: #88c525;
 	--kk-team-4: #4a90d6;
-	--kk-shadow: 0 2px 0 var(--kk-line-strong);
-	/* Radius scale: small (list options, tooltips, tags) / control (buttons, inputs, chips) / surface (cards, dialogs).
-	   Only circles (avatars, dots, bars, thumbs) are fully round. Tailwind's rounded-* are pinned to it below. */
-	--kk-r-sm: 0.5rem;
-	--kk-r-md: 0.75rem;
-	--kk-r-lg: 1rem;
-	--radius-md: var(--kk-r-sm);
-	--radius-lg: var(--kk-r-sm);
-	--radius-xl: var(--kk-r-md);
-	--radius-2xl: var(--kk-r-lg);
-	--radius-3xl: var(--kk-r-lg);
-	/* Call-to-action: green-500 to teal-500, left to right, with a hard darker edge. */
-	--kk-cta-from: #22c55e;
-	--kk-cta-to: #14b8a6;
-	--kk-cta-edge: #0f7a5c;
-	font-family: 'NanumSquare Neo', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-	color: var(--kk-text);
-	background: var(--kk-bg);
 }
 @media (prefers-color-scheme: dark) {
 	.kk {
-		--kk-bg: #0f1510;
-		--kk-surface: #172019;
-		--kk-surface-2: #1d2820;
-		--kk-line: #2a382c;
-		--kk-line-strong: #3d4f3f;
-		--kk-text: #e8f0e8;
-		--kk-muted: #9fb2a0;
-		--kk-accent: #4ade80;
-		--kk-accent-strong: #16a34a;
-		--kk-accent-soft: #14301f;
-		--kk-fill: #16a34a;
-		--kk-fill-edge: #0e6b30;
-		--kk-panel: #1b211d;
-		--kk-warn: #fbbf24;
-		--kk-warn-soft: #3a2f12;
-		--kk-danger: #ff8a80;
-		--kk-danger-fill: #b92d2d;
 		--kk-ping-good: #4ade80;
 		--kk-ping-fair: #facc15;
 		--kk-ping-poor: #f87171;
 		--kk-whisper: #9d9dff;
-		--kk-danger-soft: #3b1d1d;
-		--kk-blue: #7db3ff;
-		--kk-shadow: 0 2px 0 rgb(0 0 0 / 0.5);
-		--kk-cta-from: #16a34a;
-		--kk-cta-to: #0d9488;
-		--kk-cta-edge: #0a5e4c;
 	}
 }
-.kk dialog { color: var(--kk-text); background: var(--kk-surface); }
-.kk ::selection { background: var(--kk-accent-soft); }
 
 /* Components (in a layer so Tailwind utilities on the same element win) */
 @layer components {
 	/* A dialog that steps aside for a full-screen effect: the card and its content vanish, the backdrop stays. */
 	.kk-card.kk-ghost { background: transparent !important; border-color: transparent; box-shadow: none; }
 	.kk-card.kk-ghost > * { visibility: hidden; }
-	.kk-card { background: var(--kk-surface); border: 1.5px solid var(--kk-line); border-radius: var(--kk-r-lg); box-shadow: var(--kk-shadow); }
-	.kk-input { background: var(--kk-surface-2); border: 1.5px solid var(--kk-line); border-radius: var(--kk-r-md); color: inherit; }
-	.kk-input:focus-within, .kk-input:focus { outline: none; border-color: var(--kk-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-accent) 28%, transparent); }
-	.kk-btn { min-height: 2.75rem; padding: 0 1.1rem; border-radius: var(--kk-r-md); font-weight: 800; border: 1.5px solid var(--kk-line-strong); background: var(--kk-surface); box-shadow: 0 3px 0 var(--kk-line-strong); transition: transform 0.08s, box-shadow 0.08s, background 0.1s, filter 0.1s; }
-	.kk-btn:hover:not(:disabled) { background: var(--kk-accent-soft); }
-	.kk-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--kk-line-strong); }
-	.kk-btn:disabled { opacity: 0.5; }
 	/* The items of an event page's header (the clock, the counters, 행사 정보, 교환소, the way back): one size and one shape, only the colour differs.
 	   A button is `kk-btn kk-hdr`; what only shows something is `kk-hdr kk-hdr-time|count|hot` (no hover, not pressable). */
 	.kk-hdr { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; height: 2.25rem; min-height: 0; padding: 0 0.75rem; border-radius: var(--kk-r-md); font-size: 0.875rem; font-weight: 800; line-height: 1; white-space: nowrap; }
@@ -116,10 +43,6 @@
 	.kk-hdr-time { width: 10.5rem; color: #fff; background: #1f2937; box-shadow: 0 3px 0 #0b1220; }
 	.kk-hdr-count { color: #3a2300; background: #fde68a; box-shadow: 0 3px 0 #a96a05; }
 	.kk-hdr-hot { color: #fff; background: var(--kk-danger-fill); box-shadow: 0 3px 0 color-mix(in srgb, var(--kk-danger-fill) 60%, black); }
-	.kk-btn-primary { color: #fff; border-color: transparent; background: var(--kk-fill); text-shadow: 0 1px 0 rgb(0 0 0 / 0.25); box-shadow: 0 3px 0 var(--kk-fill-edge); }
-	.kk-btn-primary:hover:not(:disabled) { background: var(--kk-fill); filter: brightness(1.06); }
-	.kk-btn-primary:active:not(:disabled) { box-shadow: 0 1px 0 var(--kk-fill-edge); }
-	.kk-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.05rem 0.55rem; border-radius: var(--kk-r-sm); background: var(--kk-accent-soft); color: var(--kk-accent-strong); font-size: 0.75rem; font-weight: 700; }
 	.kk-bar { height: 0.6rem; border-radius: 999px; background: var(--kk-line); overflow: hidden; }
 	.kk-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--kk-accent); }
 	.kk-tab { min-height: 2.75rem; flex: 1; font-weight: 700; color: var(--kk-muted); border-bottom: 3px solid transparent; }
@@ -131,13 +54,13 @@
 	/* Pressed-in state for toggles such as 준비 (amber, like the legacy ready button) */
 	.kk-btn-amber { color: #3a2300; border-color: transparent; background: #f5a623; box-shadow: 0 4px 0 #a96a05; }
 	.kk-btn-amber:hover:not(:disabled) { background: #f7b445; }
-	.kk-btn-danger { color: #fff; border-color: transparent; background: var(--kk-danger-fill); box-shadow: 0 3px 0 color-mix(in srgb, var(--kk-danger-fill) 60%, black); }
-	/* the plain .kk-btn hover paints a pale green: that made the white label unreadable */
-	.kk-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--kk-danger-fill) 88%, white); }
 	.kk-btn-lg { display: inline-flex; align-items: stretch; min-height: 3.5rem; padding: 0; overflow: hidden; font-size: 1.125rem; border-radius: var(--kk-r-md); box-shadow: 0 4px 0 var(--kk-line-strong); }
 	.kk-btn-lg > .kk-btn-icon { display: grid; place-items: center; width: 3.5rem; flex: none; }
 	.kk-btn-lg > .kk-btn-label { display: grid; flex: 1; place-items: center; padding: 0 1.25rem 0 0.25rem; white-space: nowrap; }
 	.kk-btn-lg:active:not(:disabled) { box-shadow: 0 2px 0 var(--kk-line-strong); }
+	/* A big call-to-action keeps the hero's edge: the shared .kk-btn-hero is declared before .kk-btn-lg, which would otherwise repaint it. */
+	.kk-btn-lg.kk-btn-hero { box-shadow: 0 4px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3); }
+	.kk-btn-lg.kk-btn-hero:active:not(:disabled) { box-shadow: 0 2px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3); }
 
 	/* 트로피 리그: a dark arena button with gold trim. Hovering warms the background and lets embers drift up. */
 	.kk-btn-league {
@@ -172,16 +95,6 @@
 	.kk-btn-league:hover:not(:disabled) .kk-embers, .kk-btn-league:focus-visible:not(:disabled) .kk-embers { opacity: 1; }
 	.kk-btn-league:hover:not(:disabled) .kk-embers > b, .kk-btn-league:focus-visible:not(:disabled) .kk-embers > b { animation-play-state: running; }
 
-	/* The call-to-action: horizontal green-to-teal gradient, no border, play icon straight on the gradient. */
-	.kk-btn-hero {
-		color: #fff;
-		border: 0;
-		text-shadow: 0 1px 1px rgb(0 0 0 / 0.3);
-		background: linear-gradient(90deg, var(--kk-cta-from), var(--kk-cta-to));
-		box-shadow: 0 4px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3);
-	}
-	.kk-btn-hero:hover:not(:disabled) { background: linear-gradient(90deg, var(--kk-cta-from), var(--kk-cta-to)); filter: brightness(1.06); }
-	.kk-btn-hero:active:not(:disabled) { box-shadow: 0 2px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3); transform: translateY(2px); }
 
 }
 

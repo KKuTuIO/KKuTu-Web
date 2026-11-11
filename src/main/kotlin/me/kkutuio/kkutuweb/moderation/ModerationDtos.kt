@@ -20,6 +20,8 @@ data class ModerationUserDetail(
     val accountUuid: String,
     val profiles: List<ModerationProfileSummary>,
     val flags: JsonNode,
+    val box: JsonNode,
+    val equip: JsonNode,
     val counters: Map<String, Int>,
     val history: List<ModerationCaseSummary>,
     val reports: List<ModerationReportSummary>,
@@ -345,6 +347,14 @@ data class ModerationFlagEntryRequest(
 data class ModerationFlagsUpdateRequest(
     val requestId: UUID,
     val flags: List<ModerationFlagEntryRequest>,
+    val reason: String = ""
+)
+
+/** [box]/[equip]가 null이면 해당 항목은 바꾸지 않는다. */
+data class ModerationInventoryUpdateRequest(
+    val requestId: UUID,
+    val box: JsonNode? = null,
+    val equip: JsonNode? = null,
     val reason: String = ""
 )
 

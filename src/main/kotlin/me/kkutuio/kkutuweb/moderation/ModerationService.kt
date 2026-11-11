@@ -126,6 +126,8 @@ class ModerationService(
             accountUuid = accountUuid,
             profiles = profilesForAccountUuid(accountUuid),
             flags = user.flags,
+            box = user.box,
+            equip = user.equip,
             counters = currentCounters(moderationSubject),
             history = history(moderationSubject, 50),
             reports = reportPage.reports,
@@ -1328,6 +1330,41 @@ class ModerationService(
             mapOf("reason" to request.reason.trim(), "flagCount" to flags.size(), "keys" to keys)
         )
         disconnectAfterCommit(setOf(userId))
+    }
+
+    /**
+     * 보관함(box)과 장착 정보(equip) JSON을 통째로 교체한다. 게임 서버가 접속 중 값을 덮어쓸 수 있으므로 반영 후 접속을 끊는다.
+     * box: 아이템 ID → {value, expire?} 객체(구형 정수 허용), equip: 슬롯 → 아이템 ID 문자열.
+     */
+    @Transactional
+    fun updateInventory(userId: String, request: ModerationInventoryUpdateRequest, actorId: String) {
+        val user = requireUser(userId)
+        if (commandAlreadyProcessed(request.requestId)) return
+        require(request.box != null || request.equip != null) { "수정할 보관함 또는 장착 정보를 보내 주세요." }
+        request.box?.let(InventoryJsonValidator::validateBox)
+        request.equip?.let(InventoryJsonValidator::validateEquip)
+        val before = mapOf("boxCount" to user.box.size(), "equipCount" to user.equip.size())
+        request.box?.let {
+            jdbcTemplate.update("UPDATE users SET box = CAST(? AS jsonb)::json WHERE _id = ?", objectMapper.writeValueAsString(it), user.id)
+        }
+        request.equip?.let {
+            jdbcTemplate.update("UPDATE users SET equip = CAST(? AS jsonb)::json WHERE _id = ?", objectMapper.writeValueAsString(it), user.id)
+        }
+        recordCommand(
+            request.requestId,
+            "UPDATE_USER_INVENTORY",
+            user.id,
+            actorId,
+            mapOf(
+                "reason" to request.reason.trim(),
+                "before" to before,
+                "boxChanged" to (request.box != null),
+                "equipChanged" to (request.equip != null),
+                "boxKeys" to (request.box?.propertyNames()?.toList()?.take(200) ?: emptyList<String>()),
+                "equip" to (request.equip ?: objectMapper.createObjectNode())
+            )
+        )
+        disconnectAfterCommit(setOf(user.id))
     }
 
     private fun commandAlreadyProcessed(requestId: UUID): Boolean = jdbcTemplate.queryForObject(

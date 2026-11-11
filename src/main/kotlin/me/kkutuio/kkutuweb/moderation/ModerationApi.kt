@@ -270,6 +270,17 @@ class AdminModerationApi(
         service.updateFlags(userId, body, actor)
     }
 
+    @PostMapping("/users/{userId}/inventory")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun updateInventory(
+        @PathVariable userId: String,
+        @RequestBody body: ModerationInventoryUpdateRequest,
+        session: HttpSession
+    ) {
+        val actor = authorizer.require(session, AdminSetting.Privilege.SANCTION_POLICY_OVERRIDE)
+        service.updateInventory(userId, body, actor)
+    }
+
     @PostMapping("/reports/{reportId}/resolve")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun resolveReport(

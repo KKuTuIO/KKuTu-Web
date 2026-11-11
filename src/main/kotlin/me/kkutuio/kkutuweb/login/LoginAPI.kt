@@ -18,7 +18,9 @@
 
 package me.kkutuio.kkutuweb.login
 
+import me.kkutuio.kkutuweb.oauth.AuthVendor
 import me.kkutuio.kkutuweb.setting.OAuthSetting
+import me.kkutuio.kkutuweb.setting.OAuthVendorSetting
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -38,6 +40,13 @@ class LoginAPI(
             .map { it.key.name.lowercase() }
     }
 
+    /**
+     * Enabled login providers in display order. `allow_register` is false for providers that only
+     * let existing members sign in, so the login screen can tuck those away.
+     */
+    @GetMapping("/providers")
+    fun providers(): List<Map<String, Any>> = loginProviderList(oAuthSetting.getSetting())
+
     @GetMapping("/reason")
     fun getLoginReason(session: HttpSession): String {
         val reason = session.getAttribute("loginReason")?.toString() ?: ""
@@ -53,3 +62,8 @@ class LoginAPI(
         return mapOf("provider" to provider)
     }
 }
+
+internal fun loginProviderList(settings: Map<AuthVendor, OAuthVendorSetting>): List<Map<String, Any>> =
+    settings.entries
+        .sortedBy { it.value.order }
+        .map { mapOf("id" to it.key.name.lowercase(), "allow_register" to it.value.allowRegister) }

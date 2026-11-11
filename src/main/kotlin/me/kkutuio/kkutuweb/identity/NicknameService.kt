@@ -146,6 +146,6 @@ class NicknameService(
 
     private companion object {
         const val MAX_NICKNAME_LENGTH = 15
-        const val MAX_EXORDIAL_LENGTH = 100
+        const val MAX_EXORDIAL_LENGTH = 500 // the users.exordial column must hold this much (see .dev/sql/08-exordial-length.sql)
     }
 }

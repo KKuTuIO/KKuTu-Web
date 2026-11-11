@@ -72,7 +72,7 @@ class MainController(
     @GetMapping
     fun index(@RequestParam(required = false) server: Short?, session: HttpSession): String {
         if (server == null && loginService.needsSetup(session)) {
-            return "redirect:/setup"
+            return "redirect:/play/0"
         }
         return if (server != null) {
             "redirect:/game/server/$server"
@@ -102,7 +102,7 @@ class MainController(
         }
 
         if (sessionProfile != null && setupService.needSetup(sessionProfile)) {
-            return "redirect:/setup"
+            return "redirect:/play/$server"
         }
 
         val runnerVersion = kKuTuSetting.getRunnerVersion()

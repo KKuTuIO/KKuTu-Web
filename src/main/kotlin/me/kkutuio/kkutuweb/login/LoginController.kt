@@ -106,7 +106,7 @@ class LoginController(
             return "redirect:/login/mfa"
         }
         if (loginSuccess && loginService.needsSetup(request.session)) {
-            return "redirect:/setup"
+            return "redirect:/play/0"
         }
         if (loginSuccess) {
             val session = request.session

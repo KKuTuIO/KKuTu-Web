@@ -23,6 +23,8 @@ server:
       store-dir: <Your Session Dir>
 
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: kkutu-web
   thymeleaf:

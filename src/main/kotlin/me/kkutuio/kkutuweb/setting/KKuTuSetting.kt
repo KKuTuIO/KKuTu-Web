@@ -300,6 +300,10 @@ class KKuTuSetting(
 
     fun getGameOptions() = games["OPTIONS"].toJson()
 
+    fun getGameRuleNode(): JsonNode = games["RULE"]
+
+    fun getGameOptionNode(): JsonNode = games["OPTIONS"]
+
     fun getGameOptionMap(): Map<String, String> {
         val resultMap = LinkedHashMap<String, String>()
         for (key in games["OPTIONS"].propertyNames()) {

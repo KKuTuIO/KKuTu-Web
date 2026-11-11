@@ -4,10 +4,11 @@
 	"private": true,
 	"scripts": {
 		"dev": "vite dev --host",
-		"build": "vite build",
+		"build": "vite build && node tools/checkCssSalt.mjs",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
-		"test": "vitest run"
+		"test": "vitest run",
+		"build:hardened": "OBFUSCATE_SECURITY=1 vite build && node tools/checkCssSalt.mjs"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "3.0.10",
@@ -15,6 +16,7 @@
 		"@sveltejs/vite-plugin-svelte": "7.3.0",
 		"@testing-library/jest-dom": "7.0.1",
 		"@testing-library/svelte": "5.4.2",
+		"javascript-obfuscator": "^5.10.0",
 		"jsdom": "30.0.1",
 		"svelte": "5.56.10",
 		"svelte-check": "4.7.6",
@@ -25,13 +27,17 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@kkutuio/ui": "0.1.0",
+		"@fingerprintjs/fingerprintjs": "5.3.0",
 		"@fortawesome/free-brands-svg-icons": "7.3.1",
 		"@fortawesome/free-solid-svg-icons": "7.3.1",
 		"@glidejs/glide": "3.7.1",
 		"@tailwindcss/vite": "4.3.3",
 		"chart.js": "4.5.1",
+		"perfect-freehand": "1.2.3",
 		"qrcode": "1.5.4",
 		"svelte-chartjs": "4.0.1",
-		"svelte-fa": "4.0.4"
+		"svelte-fa": "4.0.4",
+		"swiper": "14.4.0"
 	}
 }

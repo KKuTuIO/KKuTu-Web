@@ -96,6 +96,7 @@ class UserService(
             "data" to objectMapper.readTree(user.kkutu.toJson()),
             "equip" to objectMapper.readTree(user.equip.toJson()),
             "exordial" to (user.exordial ?: ""),
+            "statusMessage" to user.flags.path("statusMsg").path("value").asText(""),
             "profile" to mapOf(
                 "authtype" to "offline",
                 "id" to user.id,

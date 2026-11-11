@@ -37,7 +37,14 @@
       "group": "T"
     },
     "str": { "name": "Strict" },
-    "k32": { "name": "Sami" },
+    "k32": {
+      "name": "Sami",
+      "group": "S"
+    },
+    "k4": {
+      "name": "Four",
+      "group": "S"
+    },
     "no2": { "name": "No2" },
     "nol": { "name": "NoLimit" },
     "asy": { "name": "AntiSynonym" },
@@ -88,7 +95,7 @@
     "KKT": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "k32", "beg", "rms", "tct", "rnk", "pwr", "itm", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "k32", "k4", "beg", "rms", "tct", "rnk", "pwr", "itm", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -241,11 +248,12 @@
     "KFT": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "beg", "nog", "rms", "tct", "rnk", "itm", "etq"],
+      "opts": [],
       "time": 1,
-      "ai": true,
+      "ai": false,
       "big": false,
-      "ewq": true
+      "ewq": false,
+      "retired": true
     },
     "KMT": {
       "lang": "ko",

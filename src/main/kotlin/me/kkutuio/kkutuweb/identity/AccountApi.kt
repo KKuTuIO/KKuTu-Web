@@ -68,6 +68,9 @@ class AccountApi(
             ?: throw IdpException("temporarily_unavailable", "CSRF 토큰을 만들 수 없습니다.", 503)
         return mapOf("token" to token.token, "header" to token.headerName, "parameter" to token.parameterName)
     }
+    /** One-time hints the account has closed (see AccountService.closeNudge). CSRF-protected like the rest of /api/account. */
+    @PostMapping("/nudges/{id}/close") fun closeNudge(@PathVariable id: String, session: HttpSession): Map<String, Any?> =
+        mapOf("closed" to accounts.closeNudge(accounts.requireCurrentAccount(session), id))
     @GetMapping("/summary") fun summary(session: HttpSession): Map<String, Any?> {
         val account = accounts.requireCurrentAccount(session)
         return accounts.summary(account) + ("account_restricted" to isAccountRestricted(account))
@@ -423,7 +426,7 @@ class AccountRecoveryApi(
         if (!loginService.completePendingSecondFactor(request.session, body.totpCode, body.securityCode, body.emailCode)) throw IdpException("mfa_session_expired", "2단계 인증 세션이 만료되었습니다. 다시 로그인해 주세요.", 401)
         val continuation = request.session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
         request.session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName)
-        val redirect = if (loginService.needsSetup(request.session)) "/setup"
+        val redirect = if (loginService.needsSetup(request.session)) "/play/0"
         else continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") } ?: "/"
         return ResponseEntity.ok(mapOf("redirect" to redirect))
     }

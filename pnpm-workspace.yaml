@@ -1,2 +1,4 @@
 packages:
   - "Frontpage"
+minimumReleaseAgeExclude:
+  - '@kkutuio/ui@0.1.0'

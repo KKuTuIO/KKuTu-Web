@@ -1,5 +1,6 @@
 <script>
     import { run } from 'svelte/legacy';
+    import { cdnImg } from '$lib/cdn.js';
 
     import {onMount} from 'svelte';
     import QRCode from 'qrcode';
@@ -60,11 +61,11 @@
     let currentIdentifier = $derived(selectedProfileData?.id || selectedProfile || summary?.uuid || '');
     let accountIdentifier = $derived(summary?.uuid || '');
     const oauthProviders = [
-        {id: 'naver', name: '네이버', icon: '/img/auth/naver.png'},
-        {id: 'google', name: 'Google', icon: '/img/auth/google.png'},
-        {id: 'kakao', name: '카카오', icon: '/img/auth/kakao.png'},
-        {id: 'facebook', name: 'Facebook', icon: '/img/auth/facebook.png'},
-        {id: 'discord', name: 'Discord', icon: '/img/auth/discord.png'},
+        {id: 'naver', name: '네이버', icon: cdnImg('auth/naver.png')},
+        {id: 'google', name: 'Google', icon: cdnImg('auth/google.png')},
+        {id: 'kakao', name: '카카오', icon: cdnImg('auth/kakao.png')},
+        {id: 'facebook', name: 'Facebook', icon: cdnImg('auth/facebook.png')},
+        {id: 'discord', name: 'Discord', icon: cdnImg('auth/discord.png')},
         {id: 'daldalso', name: '달달소', icon: '/logo/daldalso.png'}
     ];
 

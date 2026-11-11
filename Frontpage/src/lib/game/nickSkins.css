@@ -1,0 +1,88 @@
+/* Name skins (the NIK items): a class `x-<item id>` on a nickname. Copied as is from the legacy client's in_game_kkutu_shop.css. */
+.x-red_name {
+	color: #FF3333;
+}
+
+.x-orange_name {
+	color: #FFA533;
+}
+
+.x-green_name {
+	color: #43C227;
+}
+
+.x-blue_name {
+	color: #2F77D9;
+}
+
+.x-indigo_name {
+	color: #1C18B9;
+}
+
+.x-purple_name {
+	color: #A939CC;
+}
+
+.x-pink_name {
+	color: #F15F9A;
+}
+
+.x-mint_name {
+	color: #6ee7b7;
+}
+
+.x-rainbow_name {
+	animation-name: rainbow;
+	animation-duration: 16s;
+	animation-iteration-count: infinite;
+	animation-timing-function: cubic-bezier;
+	-webkit-animation-timing-function: cubic-bezier;
+}
+
+.x-8th_name {
+	animation-name: eighth;
+	animation-duration: 5s;
+	animation-iteration-count: infinite;
+	animation-timing-function: cubic-bezier;
+	-webkit-animation-timing-function: cubic-bezier;
+}
+
+.chat-head.x-blossom_name {
+	color: #FFB6C1;
+}
+
+@keyframes rainbow{
+	from {
+		color: red;
+	}
+	16% {
+		color: darkorange;
+	}
+	33% {
+		color: orange;
+	}
+	50% {
+		color: green;
+	}
+	66% {
+		color: blue;
+	}
+	83% {
+		color: blueviolet;
+	}
+	to {
+		color: red;
+	}
+}
+
+@keyframes eighth{
+	from {
+		color: #f43f5e;
+	}
+	50% {
+		color: #3b82f6;
+	}
+	to {
+		color: #f43f5e;
+	}
+}

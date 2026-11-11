@@ -46,9 +46,10 @@ class ShopApi(
     @PostMapping("/buy/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun buyGood(
         @PathVariable id: String,
+        @org.springframework.web.bind.annotation.RequestParam(required = false, defaultValue = "1") count: Int,
         session: HttpSession
     ): String {
-        return shopService.buyGood(id, session)
+        return shopService.buyGood(id, session, count)
     }
 
     @PostMapping("/payback/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])

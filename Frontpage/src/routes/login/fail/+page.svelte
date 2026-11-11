@@ -14,11 +14,13 @@
 
 <svelte:head><title>끄투리오 - {title}</title></svelte:head>
 
-<main class="flex min-h-screen items-center justify-center bg-gray-100 px-5 pt-20 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-    <section class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-7 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <span class="material-symbols-outlined text-5xl text-[#55aa55]">error</span>
-        <h1 class="mt-4 text-2xl font-bold">로그인에 실패했습니다</h1>
-        <p class="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-300">{reason}</p>
-        <a class="mt-6 inline-flex rounded-xl bg-[#55aa55] px-5 py-3 font-bold text-white transition hover:bg-[#438c43]" href="/login">로그인으로 돌아가기</a>
+<div class="flex justify-center px-4 py-10 sm:py-16">
+    <section class="kk-card w-full max-w-md p-8 text-center">
+        <span class="mx-auto grid h-16 w-16 place-items-center rounded-full bg-(--kk-danger-soft) text-(color:--kk-danger)">
+            <span class="material-symbols-outlined" style="font-size:36px" aria-hidden="true">error</span>
+        </span>
+        <h1 class="mt-5 text-2xl font-extrabold">로그인에 실패했습니다</h1>
+        <p class="mt-3 text-sm leading-6 text-(color:--kk-muted)" role="alert">{reason}</p>
+        <a class="kk-btn kk-btn-primary mt-6 inline-flex items-center justify-center px-6" href="/login">로그인으로 돌아가기</a>
     </section>
-</main>
+</div>

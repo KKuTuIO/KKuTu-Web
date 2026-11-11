@@ -1,0 +1,219 @@
+/* Same order Tailwind declares; stating it first keeps our component classes below its utilities. */
+@layer theme, base, components, utilities;
+
+/* NanumSquare Neo is hosted in KKuTu-Static (https://cdn.kkutu.io/css/nanum-square-neo.css, linked from app.html). */
+
+/* The shared tokens (colours, radius scale), the `.kk` surface and the common classes (.kk-btn and its primary / danger / hero variants,
+   .kk-card, .kk-input, .kk-chip) come from @kkutuio/ui, imported in app.css. What is here is the game's own: these tokens and the classes below. */
+.kk {
+	--kk-ping-good: #16a34a; /* connection indicator */
+	--kk-ping-fair: #eab308;
+	--kk-ping-poor: #dc2626;
+	--kk-whisper: #5b5bd6;
+	/* Room slot status colours (hues from the legacy room screen, darkened for white text) */
+	--kk-st-master: #cf4323;
+	--kk-st-ready: #2b74c9;
+	--kk-st-spectate: #6d46ef;
+	--kk-st-practice: #e1ba2d;
+	--kk-st-wait: #6b7280;
+	--kk-team-0: #d0d0d0;
+	--kk-team-1: #ff5555;
+	--kk-team-2: #ffbf30;
+	--kk-team-3: #88c525;
+	--kk-team-4: #4a90d6;
+}
+@media (prefers-color-scheme: dark) {
+	.kk {
+		--kk-ping-good: #4ade80;
+		--kk-ping-fair: #facc15;
+		--kk-ping-poor: #f87171;
+		--kk-whisper: #9d9dff;
+	}
+}
+
+/* Components (in a layer so Tailwind utilities on the same element win) */
+@layer components {
+	/* A dialog that steps aside for a full-screen effect: the card and its content vanish, the backdrop stays. */
+	.kk-card.kk-ghost { background: transparent !important; border-color: transparent; box-shadow: none; }
+	.kk-card.kk-ghost > * { visibility: hidden; }
+	/* The items of an event page's header (the clock, the counters, 행사 정보, 교환소, the way back): one size and one shape, only the colour differs.
+	   A button is `kk-btn kk-hdr`; what only shows something is `kk-hdr kk-hdr-time|count|hot` (no hover, not pressable). */
+	.kk-hdr { display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; height: 2.25rem; min-height: 0; padding: 0 0.75rem; border-radius: var(--kk-r-md); font-size: 0.875rem; font-weight: 800; line-height: 1; white-space: nowrap; }
+	.kk-hdr:not(.kk-btn) { border: 1.5px solid transparent; font-variant-numeric: tabular-nums; cursor: default; user-select: none; }
+	.kk-hdr-time { width: 10.5rem; color: #fff; background: #1f2937; box-shadow: 0 3px 0 #0b1220; }
+	.kk-hdr-count { color: #3a2300; background: #fde68a; box-shadow: 0 3px 0 #a96a05; }
+	.kk-hdr-hot { color: #fff; background: var(--kk-danger-fill); box-shadow: 0 3px 0 color-mix(in srgb, var(--kk-danger-fill) 60%, black); }
+	.kk-bar { height: 0.6rem; border-radius: 999px; background: var(--kk-line); overflow: hidden; }
+	.kk-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--kk-accent); }
+	.kk-tab { min-height: 2.75rem; flex: 1; font-weight: 700; color: var(--kk-muted); border-bottom: 3px solid transparent; }
+	.kk-tab[aria-pressed='true'], .kk-tab[aria-selected='true'] { color: var(--kk-text); border-bottom-color: var(--kk-accent); }
+	/* Vertical tabs: the indicator sits on the right edge (the left side of the panel is rounded). */
+	.kk-tab-v { flex: none; border-bottom: 0; border-right: 3px solid transparent; padding: 0 0.75rem; }
+	.kk-tab-v[aria-selected='true'] { border-bottom-color: transparent; border-right-color: var(--kk-accent); background: var(--kk-surface); }
+	/* The two big lobby buttons share one structure (icon block + centred label) so they size identically. */
+	/* Pressed-in state for toggles such as 준비 (amber, like the legacy ready button) */
+	.kk-btn-amber { color: #3a2300; border-color: transparent; background: #f5a623; box-shadow: 0 4px 0 #a96a05; }
+	.kk-btn-amber:hover:not(:disabled) { background: #f7b445; }
+	.kk-btn-lg { display: inline-flex; align-items: stretch; min-height: 3.5rem; padding: 0; overflow: hidden; font-size: 1.125rem; border-radius: var(--kk-r-md); box-shadow: 0 4px 0 var(--kk-line-strong); }
+	.kk-btn-lg > .kk-btn-icon { display: grid; place-items: center; width: 3.5rem; flex: none; }
+	.kk-btn-lg > .kk-btn-label { display: grid; flex: 1; place-items: center; padding: 0 1.25rem 0 0.25rem; white-space: nowrap; }
+	.kk-btn-lg:active:not(:disabled) { box-shadow: 0 2px 0 var(--kk-line-strong); }
+	/* A big call-to-action keeps the hero's edge: the shared .kk-btn-hero is declared before .kk-btn-lg, which would otherwise repaint it. */
+	.kk-btn-lg.kk-btn-hero { box-shadow: 0 4px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3); }
+	.kk-btn-lg.kk-btn-hero:active:not(:disabled) { box-shadow: 0 2px 0 var(--kk-cta-edge), inset 0 1px 0 rgb(255 255 255 / 0.3); }
+
+	/* 트로피 리그: a dark arena button with gold trim. Hovering warms the background and lets embers drift up. */
+	.kk-btn-league {
+		position: relative;
+		color: #ffd66b;
+		border: 0;
+		text-shadow: 0 1px 2px rgb(0 0 0 / 0.6);
+		background: #1d1812;
+		box-shadow: 0 4px 0 #5a3d0c, inset 0 0 0 1px rgb(255 205 90 / 0.35);
+		transition: background-color 0.18s, color 0.18s, transform 0.08s, box-shadow 0.08s;
+	}
+	.kk-btn-league > .kk-btn-icon, .kk-btn-league > .kk-btn-label { position: relative; z-index: 1; }
+	.kk-btn-league:hover:not(:disabled), .kk-btn-league:focus-visible:not(:disabled) { background: #6b4b12; color: #fff4cc; }
+	.kk-btn-league:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #5a3d0c, inset 0 0 0 1px rgb(255 205 90 / 0.35); }
+
+	/* Embers: small sparks that rise and fade, only animated (and visible) while the button is pointed at. */
+	.kk-embers { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; }
+	.kk-embers > b {
+		position: absolute;
+		bottom: 4px;
+		left: calc(var(--x) * 1%);
+		width: 3px;
+		height: 3px;
+		border-radius: 50%;
+		background: #ffc24d;
+		box-shadow: 0 0 4px 1px rgb(255 160 40 / 0.9);
+		opacity: 0;
+		animation: kk-ember var(--d) ease-out infinite;
+		animation-delay: var(--delay);
+		animation-play-state: paused;
+	}
+	.kk-btn-league:hover:not(:disabled) .kk-embers, .kk-btn-league:focus-visible:not(:disabled) .kk-embers { opacity: 1; }
+	.kk-btn-league:hover:not(:disabled) .kk-embers > b, .kk-btn-league:focus-visible:not(:disabled) .kk-embers > b { animation-play-state: running; }
+
+
+}
+
+/* Floating tool windows (FloatWindow): translucent until pointed at, focused or dragged. */
+.kk-float { transition: opacity 0.15s ease; }
+.kk-float[data-ghost='true'] { opacity: 0.5; }
+.kk-float[data-ghost='true']:hover, .kk-float[data-ghost='true']:focus-within, .kk-float[data-dragging='true'] { opacity: 1; }
+
+/* Dialog motion: overshooting spring in, quick anticipation-and-shrink out. */
+.kk-bouncy[open] { animation: kk-pop-in 0.26s cubic-bezier(0.34, 1.7, 0.64, 1) both; }
+.kk-bouncy[open]::backdrop { animation: kk-fade-in 0.15s ease-out both; }
+.kk-bouncy.kk-closing { animation: kk-pop-out 0.18s ease-in both; }
+.kk-bouncy.kk-closing::backdrop { animation: kk-fade-out 0.18s ease-in both; }
+.kk-sheet[open] { animation: kk-sheet-in 0.3s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+.kk-sheet[open]::backdrop { animation: kk-fade-in 0.2s ease-out both; }
+.kk-sheet.kk-closing { animation: kk-sheet-out 0.2s ease-in both; }
+.kk-sheet.kk-closing::backdrop { animation: kk-fade-out 0.2s ease-in both; }
+@keyframes kk-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes kk-sheet-out { to { transform: translateY(100%); } }
+@keyframes kk-pop-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes kk-pop-out { 0% { transform: none; opacity: 1; } 30% { transform: scale(1.04); opacity: 1; } 100% { transform: translateY(20px) scale(0.6); opacity: 0; } }
+/* The headline face of the big screen effects (the result, 아이템 발동!, the obtain ribbon, 해커레미): ONE Mobile POP, rounder and bouncier than NanumSquare Neo. */
+/* ONE Mobile POP is hosted in KKuTu-Static (https://cdn.kkutu.io/css/one-mobile-pop.css, linked from app.html). */
+.kk-pop-font {
+	font-family: 'ONE-Mobile-POP', 'NanumSquare Neo', sans-serif;
+	font-weight: 400;
+}
+/* Stage-title lettering (아이템 발동!, 레벨 업!, 아이템을 획득했습니다!): white, a thick outline in a dark of the accent, a hard drop under it.
+   The accent is `--c`, set on the element or a parent. Position and motion are left to the user of the class. */
+.kk-fire-text {
+	color: #fff;
+	font-family: 'ONE-Mobile-POP', 'NanumSquare Neo', sans-serif;
+	font-weight: 400;
+	letter-spacing: 0.02em;
+	-webkit-text-stroke: 7px color-mix(in srgb, var(--c, var(--kk-accent)) 62%, #000);
+	paint-order: stroke fill;
+	text-shadow: 0 4px 0 color-mix(in srgb, var(--c, var(--kk-accent)) 45%, #000);
+}
+/* The arcade backdrop of an event page (the tile roulette, the daily run, a campaign): a gradient from a dark of the event's accent `--ac` through magenta
+   to yellow, with a checkerboard laid over it. The text on it uses `.kk-fire-text` (white, outlined), so it reads on every part of the gradient. */
+.kk-arcade {
+	position: relative;
+	isolation: isolate;
+	background: linear-gradient(120deg, color-mix(in srgb, var(--ac, #7c3aed) 55%, #3b0764), #c026d3 52%, #facc15);
+}
+.kk-arcade > .kk-checker-clip { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+/* Big squares that drift for ever toward the bottom right: the pattern repeats every 84px, so moving it by one repeat loops without a jump. */
+.kk-checker {
+	position: absolute;
+	inset: 0;
+	background: conic-gradient(rgb(255 255 255 / 0.15) 25%, transparent 0 50%, rgb(255 255 255 / 0.15) 0 75%, transparent 0) 0 0 / 84px 84px;
+	animation: kk-checker-drift 7s linear infinite;
+}
+@keyframes kk-checker-drift { to { background-position: 84px 84px; } }
+@media (prefers-reduced-motion: reduce) { .kk-checker { animation: none; } }
+/* A title in the same lettering at the size of a page title: the outline is thinner than the stage titles' (7px) so it stays clear when small. */
+@keyframes kk-title-in { from { opacity: 0; transform: translateX(-56px) skewX(-24deg); } to { opacity: 1; transform: none; } }
+/* A key shown on a button ("Enter"): a small keycap with a hard lower edge, tinted by the text colour so it sits on any button. */
+.kk-key {
+	display: inline-block;
+	min-width: 1.5rem;
+	padding: 0.05rem 0.45rem 0.1rem;
+	border-radius: 0.4rem;
+	background: color-mix(in srgb, currentColor 18%, transparent);
+	box-shadow: inset 0 0 0 1.5px color-mix(in srgb, currentColor 45%, transparent), 0 2px 0 color-mix(in srgb, currentColor 40%, transparent);
+	font: inherit;
+	font-size: 0.7rem;
+	font-weight: 800;
+	line-height: 1.25;
+	letter-spacing: 0.02em;
+	text-align: center;
+}
+@keyframes kk-fade-in { from { opacity: 0; } }
+@keyframes kk-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+	.kk-bouncy[open], .kk-bouncy.kk-closing, .kk-bouncy[open]::backdrop, .kk-bouncy.kk-closing::backdrop, .kk-sheet[open], .kk-sheet.kk-closing, .kk-sheet[open]::backdrop, .kk-sheet.kk-closing::backdrop { animation-duration: 0.01ms; }
+}
+
+/* macOS-style close: red traffic-light dot, glyph shows on hover/focus. */
+.kk-close { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; }
+.kk-close > span { display: grid; place-items: center; width: 0.95rem; height: 0.95rem; border-radius: 999px; background: #ff5f57; border: 1px solid #e0443e; color: #4c0b07; font-size: 0.7rem; font-weight: 900; line-height: 1; }
+.kk-close > span > svg { opacity: 0; transition: opacity 0.1s; }
+.kk-close:hover > span > svg, .kk-close:focus-visible > span > svg { opacity: 1; }
+.kk-close:focus-visible > span { outline: 2px solid var(--kk-accent); outline-offset: 2px; }
+
+@keyframes kk-ember {
+	0% { transform: translate(0, 0) scale(1); opacity: 0; }
+	15% { opacity: 1; }
+	100% { transform: translate(var(--drift, 6px), -46px) scale(0.3); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.kk-embers { display: none; }
+}
+
+/* A room setting that just changed blinks three times (legacy ModifiedBlink). */
+.kk-nudge { animation: kk-nudge 1.6s ease-in-out 3; }
+@keyframes kk-nudge { 0%, 60%, 100% { transform: scale(1); } 20% { transform: scale(1.35); } 40% { transform: scale(0.95); } }
+@media (prefers-reduced-motion: reduce) { .kk-nudge { animation: none; } }
+.kk-blink { animation: kk-blink 1s ease 3; }
+@keyframes kk-blink { 50% { opacity: 0.2; } }
+@media (prefers-reduced-motion: reduce) { .kk-blink { animation: none; background: var(--kk-accent-soft); } }
+
+@keyframes kk-check-pop { 0% { transform: scale(0.3); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.kk-check-pop { animation: kk-check-pop 0.2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .kk-check-pop { animation: none; } }
+
+/* Scrollbars: slim, rounded thumb that darkens on hover. Firefox gets the standard properties;
+   Chromium/Safari get the pseudo-elements (and must not get the standard ones, which would override them). */
+.kk * { scrollbar-width: thin; scrollbar-color: var(--kk-line-strong) transparent; }
+@supports selector(::-webkit-scrollbar) {
+	.kk * { scrollbar-width: auto; scrollbar-color: auto; }
+	.kk ::-webkit-scrollbar { width: 12px; height: 12px; }
+	.kk ::-webkit-scrollbar-track { background: transparent; }
+	.kk ::-webkit-scrollbar-thumb { background: var(--kk-line-strong); border: 3px solid transparent; background-clip: content-box; border-radius: 999px; }
+	.kk ::-webkit-scrollbar-thumb:hover { background: var(--kk-muted); background-clip: content-box; }
+	.kk ::-webkit-scrollbar-corner { background: transparent; }
+}
+
+/* A touch screen has no Enter key: the keycap hints on buttons are only for a keyboard. */
+@media (hover: none) and (pointer: coarse) {
+	.kk-key { display: none; }
+}

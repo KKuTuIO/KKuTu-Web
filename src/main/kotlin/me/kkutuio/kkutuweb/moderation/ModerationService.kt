@@ -1226,7 +1226,8 @@ class ModerationService(
                             target.reportReason,
                             maskedReportTarget(target.targetNickname, target.targetId)
                         )
-                    }
+                    },
+                    "REPORT_RESOLVED"
                 )
                 if (!appended) return@forEach
                 recordCommand(
@@ -1249,7 +1250,7 @@ class ModerationService(
             }
     }
 
-    private fun appendUserNotification(userId: String, notificationId: UUID, message: String): Boolean {
+    private fun appendUserNotification(userId: String, notificationId: UUID, message: String, kind: String? = null): Boolean {
         if (commandAlreadyProcessed(notificationId)) return false
         val rawFlags = jdbcTemplate.queryForObject(
             "SELECT flags::TEXT FROM users WHERE _id = ? FOR UPDATE",
@@ -1273,6 +1274,7 @@ class ModerationService(
         queue.add(objectMapper.createObjectNode().apply {
             put("id", notificationId.toString())
             put("message", message)
+            if (kind != null) put("kind", kind)
             put("createdAt", Instant.now().epochSecond)
         })
         flags.set("notifications", objectMapper.createObjectNode().apply {

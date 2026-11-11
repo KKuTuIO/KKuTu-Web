@@ -20,13 +20,15 @@
 	 * Otherwise: a button that opens a docked bottom-right sheet (mobile, and on desktop wherever the page wants the chat
 	 * out of the way, `fab`, like in the 아카데미).
 	 */
+	/** The panel draws this many of the latest lines; older ones are in the 대화 기록 (/f). */
+	const PANEL_LINES = 200;
 	let { store, inline = false, fab = false, lift = false, hideFab = false, height = null, idSuffix = '' } = $props();
 	const uid = $derived(`chat-${inline ? 'inline' : 'sheet'}${idSuffix}`); // two instances can coexist in the DOM, so ids must differ
 	// While a replay plays the chat has one more tab: the chat of that game (read only)
 	const rnet = $derived(store.replayView?.net);
 	const chat = $derived(tab === 'replay' && rnet ? rnet.chat : store.net.chat);
 	// What I get to see: not blocked players, 손님 채팅 거부, 관전 채팅 무시, 귓속말 거부 (see chatFilter.js).
-	const visible = $derived(chat.filter((m) => !isHidden(m, store.net)));
+	const visible = $derived(chat.filter((m) => !isHidden(m, store.net)).slice(-PANEL_LINES));
 	const words = (m) => (prefs.filter === 'off' ? m.msg : maskBad(m.shown ?? m.msg));
 	let openSheet = $state(false);
 	const open = $derived(inline || openSheet);

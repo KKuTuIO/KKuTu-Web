@@ -7,7 +7,6 @@
 	import Icon from '../lobby/Icon.svelte';
 	import EmptyState from '../lobby/EmptyState.svelte';
 	import WordCard from './WordCard.svelte';
-	import WordPopup from './WordPopup.svelte';
 
 	let { config, meta = null } = $props();
 	let text = $state('');
@@ -20,13 +19,7 @@
 	let loading = $state(false);
 	let error = $state('');
 	let result = $state({ items: [], hasNext: false, page: 0, size: 30 });
-	let popWord = $state('');
-	let popOpen = $state(false);
 	let more = $state(false); // phone: the finer conditions (match kind, first / last / mission letter, sort) are folded away until asked for
-	const openWord = (w) => {
-		popWord = w;
-		popOpen = true;
-	};
 
 	const matches = $derived(['CONTAINS', 'EXACT', 'STARTS_WITH', 'ENDS_WITH'].map((v) => ({ value: v, label: t(`play.academy.dict.match.${v}`) })));
 	const sorts = $derived(['HIT_DESC', 'LENGTH_DESC', 'LENGTH_ASC', 'WORD_ASC', 'WORD_DESC'].map((v) => ({ value: v, label: t(`play.academy.dict.sort.${v}`) })));
@@ -97,10 +90,9 @@
 			<EmptyState compact size={130} title={t('play.academy.dict.none')} />
 			<p class="text-center text-sm text-(color:--kk-muted)">{t('play.academy.dict.noneHint')}</p>
 		{:else}
-			<div class="grid min-w-0 gap-3 xl:grid-cols-2">{#each result.items as word (word.word)}<WordCard {word} onopen={openWord} themeNames={meta?.themes ?? {}} />{/each}</div>
+			<div class="grid min-w-0 gap-3 xl:grid-cols-2">{#each result.items as word (word.word)}<WordCard {word} themeNames={meta?.themes ?? {}} />{/each}</div>
 			<div class="flex justify-center">{@render pager()}</div>
 		{/if}
 	</section>
 </div>
 
-<WordPopup word={popWord} bind:open={popOpen} />

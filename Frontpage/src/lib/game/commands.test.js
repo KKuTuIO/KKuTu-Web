@@ -24,7 +24,7 @@ function setup(over = {}) {
 		recentFrom: '곰#1234',
 		titleAllowed: (s) => !s.includes('욕'),
 		fetchId: (n) => calls.push(['fetchId', n]),
-		hooks: { openSettings: () => calls.push(['settings']), openProfile: (id) => calls.push(['profile', id]), openRoomSettings: () => calls.push(['roomSettings']), openHelp: () => calls.push(['help']) },
+		hooks: { openSettings: () => calls.push(['settings']), openProfile: (id) => calls.push(['profile', id]), openRoomSettings: () => calls.push(['roomSettings']), openHelp: () => calls.push(['help']), openChatLog: () => calls.push(['chatLog']) },
 		...over
 	};
 	return { c, calls, run: (text) => runCommand(text, c) };
@@ -170,5 +170,18 @@ describe('"#" lines in the chat', () => {
 		applyPacket(s, { type: 'chat', profile: { id: 'x', title: 'a' }, value: '#delroom 12' });
 		applyPacket(s, { type: 'chat', profile: { id: 'x', title: 'a' }, value: '안녕 #1' });
 		expect(s.chat.map((m) => m.msg)).toEqual(['안녕 #1']);
+	});
+
+	it('opens the chat log on /f and /ㄹ', () => {
+		for (const text of ['/f', '/ㄹ', '/F']) {
+			const { run, calls } = setup();
+			run(text);
+			expect(calls).toEqual([['chatLog']]);
+		}
+	});
+	it('says the log is not ready where a page has no log to open', () => {
+		const { run, calls } = setup({ hooks: {} });
+		run('/f');
+		expect(calls[0][0]).toBe('toast');
 	});
 });

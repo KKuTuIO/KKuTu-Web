@@ -2,20 +2,26 @@
 	import { t } from '../i18n.svelte.js';
 	import Icon from '../lobby/Icon.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
+	import { wikiSummary } from '../wiki.js';
+	import { openWordDetail } from '../wordDetail.svelte.js';
+	import { GRADE, gradeOf } from './grades.js';
 
 	/** One dictionary word: how strong it is as a move, and what it is about. */
-	let { word, themeNames = {}, compact = false, onopen } = $props();
+	let { word, themeNames = {}, compact = false } = $props();
 
-	// How strong the word is as a move, shown as a coloured icon (the name is in its tooltip).
-	const GRADE = {
-		FINISH: { icon: 'flag', tone: 'bg-(--kk-danger-soft) text-(color:--kk-danger)' },
-		DECISIVE: { icon: 'bolt', tone: 'bg-[#ffe9d6] text-[#d4600a] dark:bg-[#4a2a10] dark:text-[#ffa45c]' },
-		VERY_HIGH: { icon: 'local_fire_department', tone: 'bg-(--kk-warn-soft) text-(color:--kk-warn)' },
-		HIGH: { icon: 'trending_up', tone: 'bg-(--kk-accent-soft) text-(color:--kk-accent-strong)' },
-		MEDIUM: { icon: 'balance', tone: 'bg-[color-mix(in_srgb,var(--kk-blue)_14%,var(--kk-surface))] text-(color:--kk-blue)' },
-		LOW: { icon: 'verified_user', tone: 'bg-(--kk-surface-2) text-(color:--kk-muted)' }
-	};
-	const grade = $derived(word.attackGrade in GRADE ? word.attackGrade : 'LOW');
+	const grade = $derived(gradeOf(word));
+
+	// What the wiki has on this word (null/undefined until known or when it can't be reached): a picture for the card's background.
+	/** @type {import('../wiki.js').WikiSummary|null|undefined} */
+	let wiki = $state();
+	$effect(() => {
+		const w = word.word;
+		wiki = undefined;
+		let live = true;
+		wikiSummary(w).then((s) => live && (wiki = s));
+		return () => (live = false);
+	});
+	const wikiThumb = $derived(wiki?.exists ? wiki.thumb : null);
 
 	function speak() {
 		if (!globalThis.speechSynthesis) return;
@@ -26,13 +32,14 @@
 	}
 </script>
 
-<!-- The whole card opens the definition: the word is a button whose click area is stretched over the card; the controls inside sit above it. -->
-<article class="kk-card relative flex min-w-0 flex-col gap-2 text-left transition-transform hover:-translate-y-0.5 {compact ? 'p-3' : 'p-4'}">
+<!-- The card itself does nothing when pressed: everything about the word is behind its 자세히 보기 button. -->
+<article class="kk-card relative isolate flex min-w-0 flex-col gap-2 text-left {compact ? 'p-3' : 'p-4'}">
+	{#if wikiThumb}<div aria-hidden="true" class="pointer-events-none absolute inset-y-0 right-0 -z-10 w-3/5 rounded-r-[inherit] bg-cover bg-center opacity-35 [mask-image:linear-gradient(to_left,black,transparent)]" style:background-image="url({wikiThumb})"></div>{/if}
 	<div class="flex min-w-0 items-start justify-between gap-2">
 		<div class="flex min-w-0 items-center gap-2.5">
 			<Tooltip text={t(`play.academy.word.grade.${grade}`)}><span role="img" aria-label={t(`play.academy.word.grade.${grade}`)} class="grid size-9 shrink-0 place-items-center rounded-full {GRADE[grade].tone}"><Icon name={GRADE[grade].icon} size={20} fill /></span></Tooltip>
 			<div class="min-w-0">
-				<h3 class="min-w-0 {compact ? 'text-lg' : 'text-xl'} leading-tight font-black"><button type="button" onclick={() => onopen?.(word.word)} class="text-left break-all after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-(--kk-accent)">{word.word}</button></h3>
+				<h3 class="min-w-0 {compact ? 'text-lg' : 'text-xl'} leading-tight font-black"><span class="break-all">{word.word}</span></h3>
 				<p class="text-sm text-(color:--kk-muted)">{t('play.academy.word.meta', { length: word.length, from: word.startChar, to: word.nextChar })}</p>
 			</div>
 		</div>
@@ -47,6 +54,6 @@
 		{:else}
 			<span class="text-xs text-(color:--kk-muted)">{t('play.academy.word.plain')}</span>
 		{/each}
-		<a href="https://kkutu.wiki/w/{encodeURIComponent(word.word)}" target="_blank" rel="noreferrer" class="relative z-10 ml-auto inline-flex shrink-0 items-center gap-0.5 text-xs font-extrabold text-(color:--kk-accent-strong) hover:underline">{t('play.academy.word.wiki')}<Icon name="open_in_new" size={14} /></a>
+		<button type="button" onclick={() => openWordDetail(word, themeNames)} class="relative z-10 ml-auto inline-flex shrink-0 items-center gap-0.5 text-xs font-extrabold text-(color:--kk-accent-strong) hover:underline">{t('play.academy.word.detail')}<Icon name="chevron_right" size={16} /></button>
 	</div>
 </article>

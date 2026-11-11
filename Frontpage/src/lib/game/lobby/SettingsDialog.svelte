@@ -22,6 +22,7 @@
 	import SettingsExportDialog from './SettingsExportDialog.svelte';
 	import SettingsImportDialog from './SettingsImportDialog.svelte';
 	import SurveyDialog from './SurveyDialog.svelte';
+	import WikiBindDialog from './WikiBindDialog.svelte';
 
 	let { store, open = $bindable(false), start = 'sound' } = $props();
 	let tab = $state('sound');
@@ -99,6 +100,7 @@
 	let exportOpen = $state(false);
 	let importOpen = $state(false);
 	let surveyOpen = $state(false);
+	let wikiBindOpen = $state(false);
 	const L = (k) => plainText(t(k));
 	const needLogin = () => toast(t('play.settings.guestOnly'), { kind: 'error' });
 	const needMember = () => toast(plainText(store.net.meta.labels['kkutu.js.error.464'] ?? ''), { kind: 'error' });
@@ -112,6 +114,7 @@
 		{ id: 'import', icon: 'upload_file', label: t('kkutu.dialog.setting.load'), expl: t('play.settings.importExpl'), run: () => (importOpen = true) },
 		{ id: 'uid', icon: 'key', label: L('kkutu.dialog.accountOptions.checkUid'), expl: L('kkutu.dialog.accountOptions.checkUid.expl'), run: () => (store.net.guest ? needMember() : store.conn.send('uid')) },
 		{ id: 'survey', icon: 'assignment', label: L('kkutu.dialog.accountOptions.checkSurvey'), expl: L('kkutu.dialog.accountOptions.checkSurvey.expl'), run: () => (store.net.guest ? needLogin() : (surveyOpen = true)) },
+		{ id: 'wiki', icon: 'menu_book', label: t('play.wiki.bind.row'), expl: t('play.wiki.bind.rowExpl'), run: () => (store.net.guest ? needLogin() : (wikiBindOpen = true)) },
 		{ id: 'membership', icon: 'star', label: L('kkutu.dialog.accountOptions.checkMembershipInfo'), expl: L('kkutu.dialog.accountOptions.checkMembershipInfo.expl'), run: () => (store.net.guest ? needLogin() : membership()) }
 	]);
 	const channelName = (i) => i18n.messages[`server.${i}`] ?? `#${i}`;
@@ -250,3 +253,4 @@
 <SettingsExportDialog bind:open={exportOpen} />
 <SettingsImportDialog {store} bind:open={importOpen} />
 <SurveyDialog {store} bind:open={surveyOpen} />
+<WikiBindDialog bind:open={wikiBindOpen} />

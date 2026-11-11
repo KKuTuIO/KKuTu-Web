@@ -79,7 +79,7 @@ export function runCommand(text, c) {
 			c.clearChat();
 			break;
 		case 'log':
-			tbd('log');
+			c.hooks?.openChatLog ? c.hooks.openChatLog() : tbd('log');
 			break;
 		case 'whisper':
 			c.whisper(args[0], args.slice(1).join(' '));

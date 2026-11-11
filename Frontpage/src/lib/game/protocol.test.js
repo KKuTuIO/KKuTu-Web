@@ -30,6 +30,18 @@ describe('protocol', () => {
 		expect(s.levelTable).toBeNull();
 	});
 
+	it('says nothing about people coming and going when I am not in a room', () => {
+		const s = initialState();
+		s.meta = meta;
+		applyPacket(s, { type: 'welcome', id: 'me', users: { me: { id: 'me', profile: { title: 'me#1' }, data: { score: 0 } }, b: { id: 'b', profile: { title: 'bob#2' }, data: { score: 0 } } }, rooms: {} });
+		applyPacket(s, { type: 'disconnRoom', id: 'b' });
+		applyPacket(s, { type: 'connRoom', user: { id: 'b', profile: { title: 'bob#2' }, data: { score: 0 } } });
+		expect(s.chat).toHaveLength(0);
+		s.myRoom = 7;
+		applyPacket(s, { type: 'disconnRoom', id: 'b' });
+		expect(s.chat).toHaveLength(1);
+	});
+
 	it('normalizes rooms with localized labels', () => {
 		const r = normalizeRoom({ id: 5, title: 't', password: true, limit: 8, mode: 0, round: 3, time: 90, players: [{}, {}], gaming: false, opts: { manner: true, other: false } }, meta);
 		expect(r).toMatchObject({ no: 5, locked: true, mode: '끝말잇기', tags: ['매너'], cur: 2, max: 8, playing: false });

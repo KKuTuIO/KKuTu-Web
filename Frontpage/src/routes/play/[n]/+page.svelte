@@ -28,6 +28,8 @@
 	import { playSound } from '$lib/game/audio.svelte.js';
 	import RankingDialog from '$lib/game/lobby/RankingDialog.svelte';
 	import DictionaryDialog from '$lib/game/lobby/DictionaryDialog.svelte';
+	import WikiWindow from '$lib/game/lobby/WikiWindow.svelte';
+	import WordDetail from '$lib/game/lobby/WordDetail.svelte';
 	import DmNotice from '$lib/game/lobby/DmNotice.svelte';
 	import ReplayScreen from '$lib/game/lobby/ReplayScreen.svelte';
 	import NewsScreen from '$lib/game/lobby/NewsScreen.svelte';
@@ -58,6 +60,7 @@
 	import RoomMenu from '$lib/game/lobby/RoomMenu.svelte';
 	import RoomInfoDialog from '$lib/game/lobby/RoomInfoDialog.svelte';
 	import ReportDialog from '$lib/game/lobby/ReportDialog.svelte';
+	import ChatLogDialog from '$lib/game/lobby/ChatLogDialog.svelte';
 	import ProfileWindow from '$lib/game/lobby/ProfileWindow.svelte';
 	import RatingDialog from '$lib/game/lobby/RatingDialog.svelte';
 	import { installUnlock, playLobbyBgm, playShopBgm, stopBgm } from '$lib/game/audio.svelte.js';
@@ -168,6 +171,7 @@
 	let roomMenu = $state();
 	let roomInfo = $state();
 	let report = $state();
+	let chatLogOpen = $state(false);
 	// 사전: in the lobby it opens the 아카데미 as a page of its own; in a waiting room it is the small dictionary window.
 	let academyOpen = $state(false);
 	let academyTab = $state('dictionary');
@@ -377,6 +381,7 @@
 		store.hooks.openRoomMenu = (no, e) => roomMenu?.show(no, e);
 		store.hooks.openRoomInfo = (no) => roomInfo?.show(no);
 		store.hooks.openReport = (target) => report?.show(target);
+		store.hooks.openChatLog = () => (chatLogOpen = true);
 		// The game is played with mouse, touch and its own keys: Tab doesn't walk through the controls (it only drew
 		// focus rings around whatever came next).
 		const noTab = (e) => e.key === 'Tab' && e.preventDefault();
@@ -573,6 +578,8 @@
 <DmNotice {store} />
 <RankingDialog {store} bind:open={rankOpen} />
 <DictionaryDialog bind:open={dictOpen} />
+<WordDetail />
+<WikiWindow />
 <CalculatorWindow bind:open={calcOpen} />
 <SettingsDialog {store} bind:open={prefsOpen} start={prefsStart} />
 <SecurityCodeDialog {store} bind:open={codeOpen} />
@@ -585,6 +592,7 @@
 <RoomMenu bind:this={roomMenu} {store} />
 <RoomInfoDialog bind:this={roomInfo} {store} onjoin={join} />
 <ReportDialog bind:this={report} {store} />
+<ChatLogDialog bind:open={chatLogOpen} {store} />
 <RatingDialog />
 <ProfileWindow {store} userId={profileId} start={profileStart} bind:open={profileOpen} onai={(u) => store.hooks.openAi?.(u)} />
 <ProgressDialog {store} bind:open={progressOpen} />

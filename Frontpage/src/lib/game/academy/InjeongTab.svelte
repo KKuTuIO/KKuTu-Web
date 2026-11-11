@@ -7,7 +7,6 @@
 	import Icon from '../lobby/Icon.svelte';
 	import Dialog from '../lobby/Dialog.svelte';
 	import WordCard from './WordCard.svelte';
-	import WordPopup from './WordPopup.svelte';
 	import GameIcon from '../lobby/GameIcon.svelte';
 	import { NON_TOPIC_THEMES } from './themes.js';
 
@@ -22,12 +21,6 @@
 	let error = $state('');
 	let response = $state(null);
 	let confirmOpen = $state(false);
-	let popWord = $state('');
-	let popOpen = $state(false);
-	const openWord = (w) => {
-		popWord = w;
-		popOpen = true;
-	};
 
 	const tokenCost = $derived(criterion === 'WORD' ? 0 : mission.trim() ? 2 : 1);
 	const position = $derived(t(criterion === 'END' ? 'play.academy.injeong.endChar' : 'play.academy.injeong.startChar'));
@@ -106,7 +99,7 @@
 				<div class="flex flex-wrap gap-1.5">{#if response.remainingDailyQueries != null}<span class="kk-chip">{t('play.academy.injeong.remaining', { n: response.remainingDailyQueries })}</span>{/if}</div>
 			</div>
 			{#if response.items.length}
-				<div class="grid min-w-0 gap-3 md:grid-cols-2">{#each response.items as word (word.word)}<WordCard {word} onopen={openWord} themeNames={meta?.themes ?? {}} compact />{/each}</div>
+				<div class="grid min-w-0 gap-3 md:grid-cols-2">{#each response.items as word (word.word)}<WordCard {word} themeNames={meta?.themes ?? {}} compact />{/each}</div>
 			{:else}
 				<p class="rounded-xl bg-(--kk-surface-2) px-4 py-6 text-center text-sm text-(color:--kk-muted)">{t('play.academy.injeong.none')}</p>
 			{/if}
@@ -124,4 +117,3 @@
 	</div>
 </Dialog>
 
-<WordPopup word={popWord} bind:open={popOpen} />

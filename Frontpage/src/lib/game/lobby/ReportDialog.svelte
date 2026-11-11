@@ -13,8 +13,8 @@
 	 * A report to the operators (the legacy 신고): the reason is picked in two steps like the legacy list's groups, a section on the left and
 	 * that section's reasons on the right; then what happened in the reporter's words, then a warning about false reports before it is sent.
 	 * The same target cannot be reported again for five minutes, and after one report the button waits 30 seconds. Opened by
-	 * `store.hooks.openReport({type: 'user', id} | {type: 'room', no})`; a report of someone in the running game I am in (or of that room)
-	 * carries the game's id, so the operators can look at the game.
+	 * `store.hooks.openReport({type: 'user', id} | {type: 'room', no} | {type: 'chat', id, name, chat})`; a report of someone in the running game I am in (or of that room)
+	 * carries the game's id, so the operators can look at the game. A chat report carries the lines picked in the 대화 기록 (`chat`), shown quoted above the reasons.
 	 */
 	let { store } = $props();
 	let open = $state(false);
@@ -56,6 +56,8 @@
 			const room = net.rooms[t0.no];
 			if (!room) return toast(L('kkutu.js.error.466'), { kind: 'error' });
 			target = { type: 'room', id: String(room.no), title: `${L('kkutu.dialog.roomInfo.reportBtn')}: ${maskBad(room.title)}(${room.no})`, ...(net.myRoom === room.no ? gameOf(null) : {}) };
+		} else if (t0.type === 'chat') {
+			target = { type: 'chat', id: t0.id, chat: t0.chat, title: `${t('play.chatLog.report')}: ${net.users[t0.id]?.name ?? t0.name ?? t0.id}`, ...gameOf(t0.id) };
 		} else {
 			const user = net.users[t0.id];
 			target = { type: 'user', id: t0.id, title: `${L('kkutu.dialog.report.title')}: ${user?.name ?? t0.name ?? t0.id}`, ...gameOf(t0.id) };
@@ -76,8 +78,9 @@
 		const banned = detail.match(NO_REPORT);
 		if (banned) return error(L('kkutu.dialog.report.bannedWords').replace('${matched}', banned[0]));
 		if (!(await confirm({ message: L('kkutu.dialog.report.falseReportWarning') }))) return;
-		store.conn.send(target.type === 'room' ? 'reportRoom' : 'report', {
+		store.conn.send(target.type === 'room' ? 'reportRoom' : target.type === 'chat' ? 'reportChat' : 'report', {
 			id: target.id,
+			...(target.type === 'chat' ? { chat: target.chat } : {}),
 			reason: split(picked).name,
 			categoryCode: picked,
 			detail: detail.trim(),
@@ -97,6 +100,7 @@
 
 <Dialog bind:open title={target?.title ?? ''} size="lg">
 	<div class="flex flex-col gap-4">
+		{#if target?.chat}<blockquote data-report-chat class="max-h-28 overflow-y-auto rounded-xl bg-(--kk-surface-2) px-3 py-2 text-sm break-words whitespace-pre-wrap">{target.chat}</blockquote>{/if}
 		<p class="text-sm font-bold text-(color:--kk-muted)">{L('kkutu.dialog.report.category')}</p>
 		<div class="grid min-h-[21rem] gap-4 sm:grid-cols-[14rem_1fr]">
 			<div role="tablist" aria-orientation="vertical" aria-label={L('kkutu.dialog.report.category')} class="flex flex-col gap-1.5">

@@ -187,6 +187,9 @@ export function normalizePresets(list) {
 const mapOf = (obj, fn) => Object.fromEntries(Object.entries(obj ?? {}).map(([k, v]) => [k, fn(v)]));
 
 /** A system line in the chat. */
+/** How many chat lines the client keeps (the 대화 기록 reads them back; the chat panel shows the latest of them). */
+export const CHAT_BUFFER = 1000;
+
 /** My box as the client keeps it: flag items (`#...`) are not shown, a plain number is `{value}`. */
 export function cleanBox(box) {
 	const out = {};
@@ -197,7 +200,7 @@ export function cleanBox(box) {
 export function notice(state, text) {
 	if (!text) return;
 	state.chat.push({ who: t('play.chat.system'), msg: text, at: Date.now(), system: true, mine: false });
-	if (state.chat.length > 200) state.chat.splice(0, state.chat.length - 200);
+	if (state.chat.length > CHAT_BUFFER) state.chat.splice(0, state.chat.length - CHAT_BUFFER);
 }
 
 /** The words of the 어인정 nudge waiting to be shown (cleared), or null. */
@@ -312,11 +315,11 @@ export function applyPacket(state, pkt, now = Date.now()) {
 		}
 		case 'connRoom': {
 			if (pkt.user?.id) state.users[pkt.user.id] = normalizeUser(pkt.user);
-			joinLeave(state, pkt.user?.id, 'joined');
+			if (state.myRoom) joinLeave(state, pkt.user?.id, 'joined'); // only my own room's comings and goings are my business
 			break;
 		}
 		case 'disconnRoom':
-			joinLeave(state, pkt.id, 'left');
+			if (state.myRoom) joinLeave(state, pkt.id, 'left');
 			break;
 		case 'roomStuck':
 			// The server says my room is broken: drop back to the lobby.
@@ -504,7 +507,7 @@ export function applyPacket(state, pkt, now = Date.now()) {
 					});
 			}
 			if (pkt.from && uid_(pkt) !== state.id) state.recentFrom = String(pkt.from).replace(/\s/g, ''); // /답 answers the last one who whispered
-			if (state.chat.length > 200) state.chat.splice(0, state.chat.length - 200);
+			if (state.chat.length > CHAT_BUFFER) state.chat.splice(0, state.chat.length - CHAT_BUFFER);
 			break;
 		case 'error':
 			state.error = { code: pkt.code, message: pkt.message ?? '' };

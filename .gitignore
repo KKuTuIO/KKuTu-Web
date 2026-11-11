@@ -44,3 +44,6 @@ oauth.json
 in_game_kkutu.js
 /node_modules/
 /logs/
+
+## New client preview build ##
+**/src/main/resources/play/

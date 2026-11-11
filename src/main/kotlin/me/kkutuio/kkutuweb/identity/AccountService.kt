@@ -103,6 +103,28 @@ class AccountService(
 
     fun accountFlags(account: Account): JsonNode = account.flags
 
+    /** The one-time hints (nudges) this account has closed: `account.flags.nudgesClosed.value`, an array of ids. */
+    fun nudgesClosed(account: Account): List<String> {
+        val value = account.flags.path(NUDGES_FLAG).path("value")
+        return if (value.isArray) value.mapNotNull { it.asString(null) }.filter { it in NUDGE_IDS }.distinct() else emptyList()
+    }
+
+    /**
+     * The tutorial lessons this account has cleared: `account.flags.tutorialDone.value`, an array of lesson ids. Only the game server writes it:
+     * clearing a lesson pays 100 핑 (game server `TutorialReward.ts`), so there is no web endpoint that could mark one cleared without it.
+     */
+    fun tutorialDone(account: Account): List<String> {
+        val value = account.flags.path(TUTORIAL_FLAG).path("value")
+        return if (value.isArray) value.mapNotNull { it.asString(null) }.filter { it in LESSON_IDS }.distinct() else emptyList()
+    }
+
+    /** Remembers that the account closed nudge `id`; returns the closed ids. Unknown ids are refused so the array stays small. */
+    fun closeNudge(account: Account, id: String): List<String> {
+        if (id !in NUDGE_IDS) throw IdpException("invalid_request", "알 수 없는 안내입니다.", 400)
+        if (!dao.addAccountFlagValue(account.id, NUDGES_FLAG, id, System.currentTimeMillis())) throw IdpException("account_unavailable", "저장하지 못했습니다.", 503)
+        return nudgesClosed(dao.findAccount(account.id) ?: account)
+    }
+
     fun currentAccount(session: HttpSession): Account? = session.getAccountId()?.let(dao::findAccount)
         ?.takeIf { it.sessionNotBefore.epochSecond <= session.authenticatedAt() }
 
@@ -288,8 +310,16 @@ class AccountService(
         if (!settings.passwordEnabled) throw IdpException("password_disabled", "비밀번호 로그인은 비활성화되어 있습니다.", 404)
     }
 
-    private companion object {
-        val logger = LoggerFactory.getLogger(AccountService::class.java)
+    companion object {
+        private val logger = LoggerFactory.getLogger(AccountService::class.java)
+        /** `account.flags` key holding the closed nudge ids. */
+        const val NUDGES_FLAG = "nudgesClosed"
+        /** Every nudge the client has (lib/game/nudges.svelte.js `NUDGES`); add an id here together with the client's. */
+        val NUDGE_IDS = setOf("tutorial")
+        /** `account.flags` key holding the cleared tutorial lesson ids. */
+        const val TUTORIAL_FLAG = "tutorialDone"
+        /** Every tutorial lesson (client lessons.js, game server TutorialReward.ts); add an id to all three. */
+        val LESSON_IDS = setOf("lobby", "chain", "room")
     }
 }
 

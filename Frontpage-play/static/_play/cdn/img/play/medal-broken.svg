@@ -1,0 +1,50 @@
+<svg width="430" height="490" viewBox="0 0 430 490" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g mask="url(#crackMask)">
+<use xlink:href="#stroke0_1_10" fill="#D9D9D9"/>
+<mask id="stroke1_1_10" maskUnits="userSpaceOnUse" x="0" y="0" width="430" height="490" fill="black">
+<rect fill="white" width="430" height="490"/>
+<use xlink:href="#stroke0_1_10"/>
+</mask>
+<path d="M343 15C327.19 45.1488 312.497 68.8212 294.786 91.5498C365.536 122.363 415 192.905 415 275C415 385.457 325.457 475 215 475C104.543 475 15 385.457 15 275C15 192.92 64.4449 122.389 135.174 91.5664C118.373 69.9941 103.268 46.1765 87 15H343Z" stroke-width="30" stroke-linejoin="round" stroke="black" mask="url(#stroke1_1_10)"/>
+<path d="M87 15H343C308.938 79.956 280.069 114.857 215 175C155.474 119.271 124.294 86.4723 87 15Z" fill="url(#paint0_linear_1_10)"/>
+<g filter="url(#filter0_i_1_10)">
+<circle cx="215" cy="275" r="200" fill="url(#paint1_linear_1_10)"/>
+</g>
+<circle cx="215" cy="275" r="185" stroke="url(#paint2_radial_1_10)" stroke-width="30"/>
+</g>
+<defs>
+<mask id="crackMask" maskUnits="userSpaceOnUse" x="0" y="0" width="430" height="490">
+<rect width="430" height="490" fill="white"/>
+<path d="M404.6,401.8 L395.7,393.7 L385.2,388.1 L372.2,386.1 L367.1,372.4 L357.2,365.8 L347.0,359.7 L337.6,352.3 L338.3,351.3 L347.7,358.6 L358.8,363.2 L369.8,368.1 L376.2,380.2 L390.2,380.2 L401.9,383.8 L412.1,389.9Z" fill="black"/>
+<path d="M421.7,371.4 L417.4,361.9 L408.0,364.1 L400.3,362.4 L392.3,361.2 L390.4,346.5 L382.1,346.5 L373.7,346.3 L374.2,345.2 L382.5,345.4 L391.1,344.9 L393.5,358.6 L402.0,358.6 L410.2,359.2 L420.0,355.8 L424.9,364.1Z" fill="black"/>
+<path d="M103.5,474.0 L115.8,469.8 L108.8,455.2 L115.9,448.4 L131.0,445.8 L122.3,430.3 L127.7,422.6 L138.4,417.8 L139.5,418.3 L128.8,423.2 L124.2,431.4 L134.3,447.3 L120.4,450.9 L114.6,458.5 L123.3,473.5 L112.4,478.7Z" fill="black"/>
+<path d="M15.0,165.3 L27.1,169.4 L37.4,176.9 L44.4,190.6 L54.3,199.0 L68.8,198.3 L76.7,210.6 L90.5,210.9 L90.0,212.0 L76.1,211.8 L67.3,201.0 L52.2,203.6 L41.3,197.1 L33.1,185.2 L21.7,179.7 L8.7,177.7Z" fill="black"/>
+<path d="M27.9,144.6 L30.3,154.3 L36.8,158.0 L40.7,165.8 L51.0,163.6 L56.6,168.5 L66.5,167.3 L69.4,176.1 L68.8,177.1 L65.8,168.3 L55.8,169.8 L49.6,165.7 L38.8,168.8 L34.3,161.9 L27.2,159.3 L24.0,150.4Z" fill="black"/>
+<path d="M326.9,76.3 L321.7,84.8 L318.2,94.4 L310.4,101.5 L307.4,111.3 L299.0,118.1 L291.4,125.4 L289.7,135.8 L288.6,135.2 L290.4,124.8 L296.9,116.9 L303.9,109.4 L305.5,98.9 L311.7,90.8 L313.6,80.5 L317.2,71.1Z" fill="black"/>
+<path d="M441.3,246.7 L435.1,257.0 L428.0,257.1 L420.5,254.3 L413.1,252.2 L405.1,245.8 L397.8,245.4 L391.4,250.8 L391.2,249.6 L397.6,244.2 L404.8,244.3 L412.8,249.7 L420.2,250.7 L427.5,252.4 L434.6,251.2 L440.3,239.8Z" fill="black"/>
+</mask>
+<filter id="filter0_i_1_10" x="15" y="75" width="435" height="435" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dx="35" dy="35"/>
+<feGaussianBlur stdDeviation="25"/>
+<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+<feBlend mode="normal" in2="shape" result="effect1_innerShadow_1_10"/>
+</filter>
+<linearGradient id="paint0_linear_1_10" x1="215" y1="15" x2="215" y2="175" gradientUnits="userSpaceOnUse">
+<stop stop-color="#4E4E4E"/>
+<stop offset="1" stop-color="#525252"/>
+</linearGradient>
+<linearGradient id="paint1_linear_1_10" x1="215" y1="75" x2="215" y2="475" gradientUnits="userSpaceOnUse">
+<stop stop-color="#5E5E5E"/>
+<stop offset="1" stop-color="#838383"/>
+</linearGradient>
+<radialGradient id="paint2_radial_1_10" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(215 275) rotate(90) scale(200)">
+<stop stop-color="#111111"/>
+<stop offset="1" stop-color="#838383"/>
+</radialGradient>
+<path id="stroke0_1_10" d="M343 15C327.19 45.1488 312.497 68.8212 294.786 91.5498C365.536 122.363 415 192.905 415 275C415 385.457 325.457 475 215 475C104.543 475 15 385.457 15 275C15 192.92 64.4449 122.389 135.174 91.5664C118.373 69.9941 103.268 46.1765 87 15H343Z"/>
+</defs>
+</svg>

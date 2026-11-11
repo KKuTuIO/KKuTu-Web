@@ -1,0 +1,25 @@
+/* NanumSquare Neo (SIL Open Font License 1.1, NAVER), self-hosted. Same files the game client loaded from hangeul.pstatic.net. */
+@font-face {
+  font-family: 'NanumSquare Neo';
+  font-weight: 400;
+  font-display: swap;
+  src: url(../font/NanumSquareNeo/NanumSquareNeoTTF-bRg.woff) format('woff'), url(../font/NanumSquareNeo/NanumSquareNeoTTF-bRg.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'NanumSquare Neo';
+  font-weight: 700;
+  font-display: swap;
+  src: url(../font/NanumSquareNeo/NanumSquareNeoTTF-cBd.woff) format('woff'), url(../font/NanumSquareNeo/NanumSquareNeoTTF-cBd.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'NanumSquare Neo';
+  font-weight: 800;
+  font-display: swap;
+  src: url(../font/NanumSquareNeo/NanumSquareNeoTTF-dEb.woff) format('woff'), url(../font/NanumSquareNeo/NanumSquareNeoTTF-dEb.ttf) format('truetype');
+}
+@font-face {
+  font-family: 'NanumSquare Neo';
+  font-weight: 900;
+  font-display: swap;
+  src: url(../font/NanumSquareNeo/NanumSquareNeoTTF-eHv.woff) format('woff'), url(../font/NanumSquareNeo/NanumSquareNeoTTF-eHv.ttf) format('truetype');
+}

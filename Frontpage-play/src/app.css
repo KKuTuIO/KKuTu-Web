@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+/* Shared design tokens, the `.kk` surface and its common classes, and the `dark:` variant: it follows the device (prefers-color-scheme) unless the
+   root says otherwise. The game client sets `data-theme` while a 테마 is worn, so a light theme on a dark device (or the other way round) gets its own light/dark styling. */
+@import '@kkutuio/ui/theme.css';

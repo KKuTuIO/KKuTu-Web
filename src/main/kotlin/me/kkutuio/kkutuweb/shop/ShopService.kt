@@ -46,25 +46,32 @@ class ShopService(
 ) {
     private val logger = LoggerFactory.getLogger(ShopService::class.java)
 
+    private companion object {
+        const val MAX_BUY_COUNT = 99
+    }
+
     fun getGoods(): ShopResponse {
         return ShopResponse(shopDao.getGoods().map {
             ResponseGood.fromGood(it)
         })
     }
 
-    fun buyGood(id: String, session: HttpSession): String {
+    /** Buys `count` (1..99) of an item; an item with a term (a time-limited one) is bought one at a time. */
+    fun buyGood(id: String, session: HttpSession, count: Int = 1): String {
         if (session.isGuest()) return "{\"error\":423}"
+        if (count < 1 || count > MAX_BUY_COUNT) return "{\"error\":400}"
 
         val good = shopDao.getGood(id) ?: return "{\"error\":400}"
         if (good.cost < 0) return "{\"error\":400}"
+        if (count > 1 && (good.term ?: 0) > 0) return "{\"error\":400}"
 
         val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
         val user = userDao.getUser(userId) ?: return "{\"error\":400}"
 
-        val afterBuyMoney = user.money - good.cost
+        val afterBuyMoney = user.money - good.cost.toLong() * count
         if (afterBuyMoney < 0) return "{\"error\":400}"
 
-        obtainGood(user.box, id, 1, good.term)
+        obtainGood(user.box, id, count, good.term)
 
         val userBoxJsonObj = PGobject()
         userBoxJsonObj.type = "json"
@@ -76,10 +83,10 @@ class ShopService(
                 "box" to userBoxJsonObj
             )
         )
-        shopDao.increaseHit(id)
+        shopDao.increaseHit(id, count)
 
         val userName = if (user.nickname == null) userId else "${user.nickname} ($userId)"
-        logger.info("$userName 님이 $id 상품을 구매했습니다.")
+        logger.info("$userName 님이 $id 상품을 ${count}개 구매했습니다.")
 
         return "{\"result\": 200, \"money\": $afterBuyMoney, \"box\": ${user.box.toJson()}}"
     }

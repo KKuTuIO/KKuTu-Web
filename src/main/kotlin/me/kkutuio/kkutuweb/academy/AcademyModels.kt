@@ -221,13 +221,16 @@ data class AcademyInjeongSearchRequest(
     val startChar: String? = null,
     val endChar: String? = null,
     val theme: String? = null,
-    val mission: String? = null
+    val mission: String? = null,
+    /** An exact word to check (is it an 어인정 word?). Looking a word up costs no word token. */
+    val word: String? = null
 )
 
 data class AcademyInjeongSearchResponse(
     val items: List<AcademyWordView>,
     val consumedTokens: Int,
-    val remainingDailyQueries: Int
+    /** Null for the lookups that don't use up a daily query (an exact word). */
+    val remainingDailyQueries: Int?
 )
 
 data class AcademyPublishRequest(val reason: String = "관리자 공개")

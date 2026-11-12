@@ -67,6 +67,14 @@ class AcademyApi(
         request: HttpServletRequest,
         session: HttpSession
     ): AcademyInjeongSearchResponse {
+        // One exact word is open to everyone, guests and signed-out visitors included (like the mini dictionary): free of tokens
+        // and of the daily allowance, only paced so the list can't be harvested one word at a time.
+        if (!body.word.isNullOrBlank()) {
+            val identity = loginService.accountUuid(session)?.takeUnless { session.isGuest() } ?: request.getIp()
+            if (!rateLimitService.allowPublic("injeong-word", identity, 30, 60)) throw AcademyRequestException(429, "RATE_LIMITED", "요청이 너무 빠릅니다.")
+            return academyService.injeongSearch(body, session, null)
+        }
+        // Listing by letters or theme spends tokens and the daily allowance, so it needs a signed-in account.
         if (session.isGuest()) throw AcademyRequestException(401, "LOGIN_REQUIRED", "로그인 후 이용할 수 있습니다.")
         val accountUuid = loginService.accountUuid(session)
             ?: throw AcademyRequestException(401, "LOGIN_REQUIRED", "통합계정 로그인이 필요합니다.")

@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "pnpm --dir Frontpage dev",
     "check": "pnpm --dir Frontpage check && pnpm --dir Frontpage-play check",
-    "test": "pnpm --dir Frontpage test && pnpm --dir Frontpage-play test",
+    "test": "pnpm --dir Frontpage test",
     "build": "pnpm --dir Frontpage build && pnpm --dir Frontpage-play build",
     "verify": "pnpm check && pnpm test && pnpm build",
-    "dev:play": "pnpm --dir Frontpage-play dev"
+    "dev:play": "pnpm --dir Frontpage-play dev",
+    "test:play": "pnpm --dir Frontpage-play test"
   },
   "license": "AGPL-3.0-only",
   "author": {

@@ -1,0 +1,1500 @@
+[
+{
+"ord": 0,
+"migration": "V1__identity_provider.sql",
+"kind": "column",
+"object": "users.lastModifiedNickAt",
+"want": true
+},
+{
+"ord": 1,
+"migration": "V1__identity_provider.sql",
+"kind": "constraint",
+"object": "account_id_uuid_unique",
+"want": true
+},
+{
+"ord": 2,
+"migration": "V1__identity_provider.sql",
+"kind": "constraint",
+"object": "account_origin_identity_fk",
+"want": true
+},
+{
+"ord": 3,
+"migration": "V1__identity_provider.sql",
+"kind": "constraint",
+"object": "account_primary_identity_fk",
+"want": true
+},
+{
+"ord": 4,
+"migration": "V1__identity_provider.sql",
+"kind": "constraint",
+"object": "account_selected_profile_fk",
+"want": true
+},
+{
+"ord": 5,
+"migration": "V1__identity_provider.sql",
+"kind": "index",
+"object": "account_identity_one_primary",
+"want": true
+},
+{
+"ord": 6,
+"migration": "V1__identity_provider.sql",
+"kind": "index",
+"object": "discord_link_request_subject_idx",
+"want": true
+},
+{
+"ord": 7,
+"migration": "V1__identity_provider.sql",
+"kind": "index",
+"object": "idp_refresh_token_family_idx",
+"want": true
+},
+{
+"ord": 8,
+"migration": "V1__identity_provider.sql",
+"kind": "index",
+"object": "idp_signing_key_one_active",
+"want": true
+},
+{
+"ord": 9,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account",
+"want": true
+},
+{
+"ord": 10,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_audit_log",
+"want": true
+},
+{
+"ord": 11,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_email_backup_code_quota",
+"want": true
+},
+{
+"ord": 12,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_email_verification_quota",
+"want": true
+},
+{
+"ord": 13,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_identity",
+"want": true
+},
+{
+"ord": 14,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_one_time_token",
+"want": true
+},
+{
+"ord": 15,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_passkey",
+"want": true
+},
+{
+"ord": 16,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_recovery_code",
+"want": true
+},
+{
+"ord": 17,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_support_pin",
+"want": true
+},
+{
+"ord": 18,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "account_totp",
+"want": true
+},
+{
+"ord": 19,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "discord_attendance",
+"want": true
+},
+{
+"ord": 20,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "discord_link_request",
+"want": true
+},
+{
+"ord": 21,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "discord_reward_event",
+"want": true
+},
+{
+"ord": 22,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "game_profile",
+"want": true
+},
+{
+"ord": 23,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "idp_access_token",
+"want": true
+},
+{
+"ord": 24,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "idp_authorization_code",
+"want": true
+},
+{
+"ord": 25,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "idp_client",
+"want": true
+},
+{
+"ord": 26,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "idp_consent",
+"want": true
+},
+{
+"ord": 27,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "idp_refresh_token",
+"want": true
+},
+{
+"ord": 28,
+"migration": "V1__identity_provider.sql",
+"kind": "table",
+"object": "idp_signing_key",
+"want": true
+},
+{
+"ord": 29,
+"migration": "20260716_kkac2_action_results.sql",
+"kind": "index",
+"object": "kkac2_action_results_expiry_idx",
+"want": true
+},
+{
+"ord": 30,
+"migration": "20260716_kkac2_action_results.sql",
+"kind": "index",
+"object": "kkac2_progress_transfers_expiry_idx",
+"want": true
+},
+{
+"ord": 31,
+"migration": "20260716_kkac2_action_results.sql",
+"kind": "table",
+"object": "kkac2_action_results",
+"want": true
+},
+{
+"ord": 32,
+"migration": "20260716_kkac2_action_results.sql",
+"kind": "table",
+"object": "kkac2_progress_transfers",
+"want": true
+},
+{
+"ord": 33,
+"migration": "20260726_game_replay_analysis.sql",
+"kind": "index",
+"object": "game_replay_analysis_analyzed_at_idx",
+"want": true
+},
+{
+"ord": 34,
+"migration": "20260726_game_replay_analysis.sql",
+"kind": "index",
+"object": "game_replay_analysis_pending_idx",
+"want": true
+},
+{
+"ord": 35,
+"migration": "20260726_game_replay_analysis.sql",
+"kind": "table",
+"object": "game_replay_analysis",
+"want": true
+},
+{
+"ord": 36,
+"migration": "20260726_game_replay_key_trace.sql",
+"kind": "column",
+"object": "game_replay.key_trace_codec",
+"want": true
+},
+{
+"ord": 37,
+"migration": "20260726_game_replay_key_trace.sql",
+"kind": "column",
+"object": "game_replay.key_trace_payload",
+"want": true
+},
+{
+"ord": 38,
+"migration": "20260726_game_replay_key_trace.sql",
+"kind": "column",
+"object": "game_replay.key_trace_payload_size",
+"want": true
+},
+{
+"ord": 39,
+"migration": "20260726_game_replay_key_trace.sql",
+"kind": "column",
+"object": "game_replay.key_trace_raw_size",
+"want": true
+},
+{
+"ord": 40,
+"migration": "20260726_game_replay_key_trace.sql",
+"kind": "column",
+"object": "game_replay.key_trace_version",
+"want": true
+},
+{
+"ord": 41,
+"migration": "20260726_game_replay_key_trace.sql",
+"kind": "index",
+"object": "game_replay_key_trace_retention_idx",
+"want": true
+},
+{
+"ord": 42,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "report_log.category_code",
+"want": true
+},
+{
+"ord": 43,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "report_log.detail",
+"want": true
+},
+{
+"ord": 44,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "report_log.resolution_note",
+"want": true
+},
+{
+"ord": 45,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "report_log.resolved_at",
+"want": true
+},
+{
+"ord": 46,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "report_log.resolved_by",
+"want": true
+},
+{
+"ord": 47,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "report_log.status",
+"want": true
+},
+{
+"ord": 48,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "report_log.target_type",
+"want": true
+},
+{
+"ord": 49,
+"migration": "20260726_moderation_system.sql",
+"kind": "column",
+"object": "users.isLimitModifyNick",
+"want": true
+},
+{
+"ord": 50,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_case_events_case_idx",
+"want": true
+},
+{
+"ord": 51,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_case_subjects_user_idx",
+"want": true
+},
+{
+"ord": 52,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_case_violations_category_idx",
+"want": true
+},
+{
+"ord": 53,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_cases_issued_idx",
+"want": true
+},
+{
+"ord": 54,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_cases_legacy_key_uq",
+"want": true
+},
+{
+"ord": 55,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_cases_primary_category_idx",
+"want": true
+},
+{
+"ord": 56,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_cases_subject_issued_idx",
+"want": true
+},
+{
+"ord": 57,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_effects_case_idx",
+"want": true
+},
+{
+"ord": 58,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_effects_subject_active_idx",
+"want": true
+},
+{
+"ord": 59,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "moderation_outbox_pending_idx",
+"want": true
+},
+{
+"ord": 60,
+"migration": "20260726_moderation_system.sql",
+"kind": "index",
+"object": "report_log_target_status_time_idx",
+"want": true
+},
+{
+"ord": 61,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_case_events",
+"want": true
+},
+{
+"ord": 62,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_case_reports",
+"want": true
+},
+{
+"ord": 63,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_case_subjects",
+"want": true
+},
+{
+"ord": 64,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_case_violations",
+"want": true
+},
+{
+"ord": 65,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_cases",
+"want": true
+},
+{
+"ord": 66,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_command_requests",
+"want": true
+},
+{
+"ord": 67,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_counter_baselines",
+"want": true
+},
+{
+"ord": 68,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_effects",
+"want": true
+},
+{
+"ord": 69,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_outbox",
+"want": true
+},
+{
+"ord": 70,
+"migration": "20260726_moderation_system.sql",
+"kind": "table",
+"object": "moderation_policy_versions",
+"want": true
+},
+{
+"ord": 71,
+"migration": "20260804_ip_moderation.sql",
+"kind": "column",
+"object": "moderation_cases.subject_ip_hash",
+"want": true
+},
+{
+"ord": 72,
+"migration": "20260804_ip_moderation.sql",
+"kind": "index",
+"object": "connection_log_guest_user_time_idx",
+"want": true
+},
+{
+"ord": 73,
+"migration": "20260804_ip_moderation.sql",
+"kind": "index",
+"object": "connection_log_user_ip_time_idx",
+"want": true
+},
+{
+"ord": 74,
+"migration": "20260804_ip_moderation.sql",
+"kind": "index",
+"object": "moderation_cases_ip_hash_issued_idx",
+"want": true
+},
+{
+"ord": 75,
+"migration": "20260804_report_investigation.sql",
+"kind": "column",
+"object": "report_log.game_context_source",
+"want": true
+},
+{
+"ord": 76,
+"migration": "20260804_report_investigation.sql",
+"kind": "column",
+"object": "report_log.game_id",
+"want": true
+},
+{
+"ord": 77,
+"migration": "20260804_report_investigation.sql",
+"kind": "column",
+"object": "report_log.reported_chat",
+"want": true
+},
+{
+"ord": 78,
+"migration": "20260804_report_investigation.sql",
+"kind": "column",
+"object": "report_log.room_id",
+"want": true
+},
+{
+"ord": 79,
+"migration": "20260804_report_investigation.sql",
+"kind": "index",
+"object": "idx_report_log_game_id",
+"want": true
+},
+{
+"ord": 80,
+"migration": "20260806_connection_geo_on_demand.sql",
+"kind": "column",
+"object": "connection_log.geo_as_name",
+"want": false
+},
+{
+"ord": 81,
+"migration": "20260806_connection_geo_on_demand.sql",
+"kind": "column",
+"object": "connection_log.geo_asn",
+"want": false
+},
+{
+"ord": 82,
+"migration": "20260806_connection_geo_on_demand.sql",
+"kind": "column",
+"object": "connection_log.geo_country",
+"want": false
+},
+{
+"ord": 83,
+"migration": "20260806_connection_geo_on_demand.sql",
+"kind": "column",
+"object": "connection_log.geo_isp",
+"want": false
+},
+{
+"ord": 84,
+"migration": "20260806_report_guest_ip.sql",
+"kind": "column",
+"object": "report_log.target_ip",
+"want": true
+},
+{
+"ord": 85,
+"migration": "20260806_report_guest_ip.sql",
+"kind": "index",
+"object": "report_log_target_ip_time_idx",
+"want": true
+},
+{
+"ord": 86,
+"migration": "20260806_report_status_normalization.sql",
+"kind": "column",
+"object": "moderation_cases.overrides_case_id",
+"want": true
+},
+{
+"ord": 87,
+"migration": "20260806_report_status_normalization.sql",
+"kind": "constraint",
+"object": "report_log_status_check",
+"want": true
+},
+{
+"ord": 88,
+"migration": "20260806_report_status_normalization.sql",
+"kind": "index",
+"object": "moderation_case_reports_report_idx",
+"want": true
+},
+{
+"ord": 89,
+"migration": "20260806_report_status_normalization.sql",
+"kind": "index",
+"object": "moderation_cases_overrides_idx",
+"want": true
+},
+{
+"ord": 90,
+"migration": "20260815_moderation_inquiry_id.sql",
+"kind": "column",
+"object": "moderation_cases.inquiry_id",
+"want": true
+},
+{
+"ord": 91,
+"migration": "20260815_moderation_inquiry_id.sql",
+"kind": "column",
+"object": "report_log.room_owner_id",
+"want": true
+},
+{
+"ord": 92,
+"migration": "20260815_moderation_inquiry_id.sql",
+"kind": "column",
+"object": "report_log.room_title",
+"want": true
+},
+{
+"ord": 93,
+"migration": "20260815_moderation_inquiry_id.sql",
+"kind": "index",
+"object": "moderation_cases_inquiry_id_uq",
+"want": true
+},
+{
+"ord": 94,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "column",
+"object": "moderation_cases.subject_ip_address",
+"want": true
+},
+{
+"ord": 95,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "column",
+"object": "moderation_effects.legacy_block_id",
+"want": false
+},
+{
+"ord": 96,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "column",
+"object": "moderation_effects.legacy_block_type",
+"want": false
+},
+{
+"ord": 97,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "constraint",
+"object": "moderation_cases_subject_identity_ck",
+"want": true
+},
+{
+"ord": 98,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "index",
+"object": "moderation_cases_subject_ip_address_issued_idx",
+"want": true
+},
+{
+"ord": 99,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "index",
+"object": "moderation_effects_runtime_user_idx",
+"want": true
+},
+{
+"ord": 100,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "table",
+"object": "block_chat",
+"want": false
+},
+{
+"ord": 101,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "table",
+"object": "block_ip",
+"want": false
+},
+{
+"ord": 102,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "table",
+"object": "block_log",
+"want": false
+},
+{
+"ord": 103,
+"migration": "20260815_unify_moderation_blocks.sql",
+"kind": "table",
+"object": "block_user",
+"want": false
+},
+{
+"ord": 104,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_audit_log_admin_id_idx",
+"want": true
+},
+{
+"ord": 105,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_audit_log_time_id_idx",
+"want": true
+},
+{
+"ord": 106,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_audit_log_type_id_idx",
+"want": true
+},
+{
+"ord": 107,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_audit_log_word_id_idx",
+"want": true
+},
+{
+"ord": 108,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_hit_word_idx",
+"want": true
+},
+{
+"ord": 109,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_lower_word_pattern_idx",
+"want": true
+},
+{
+"ord": 110,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_theme_array_idx",
+"want": true
+},
+{
+"ord": 111,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_en_type_array_idx",
+"want": true
+},
+{
+"ord": 112,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_audit_log_admin_id_idx",
+"want": true
+},
+{
+"ord": 113,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_audit_log_time_id_idx",
+"want": true
+},
+{
+"ord": 114,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_audit_log_type_id_idx",
+"want": true
+},
+{
+"ord": 115,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_audit_log_word_id_idx",
+"want": true
+},
+{
+"ord": 116,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_hit_word_idx",
+"want": true
+},
+{
+"ord": 117,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_lower_word_pattern_idx",
+"want": true
+},
+{
+"ord": 118,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_theme_array_idx",
+"want": true
+},
+{
+"ord": 119,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "kkutu_ko_type_array_idx",
+"want": true
+},
+{
+"ord": 120,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "report_log_file_name_report_idx",
+"want": true
+},
+{
+"ord": 121,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "report_log_reporter_id_report_idx",
+"want": true
+},
+{
+"ord": 122,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "report_log_status_report_idx",
+"want": true
+},
+{
+"ord": 123,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "report_log_target_ip_host_report_idx",
+"want": true
+},
+{
+"ord": 124,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "report_log_time_report_idx",
+"want": true
+},
+{
+"ord": 125,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "suspicion_log_doubt_case_idx",
+"want": true
+},
+{
+"ord": 126,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "suspicion_log_reference_case_idx",
+"want": true
+},
+{
+"ord": 127,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "suspicion_log_time_case_idx",
+"want": true
+},
+{
+"ord": 128,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "suspicion_log_user_id_case_idx",
+"want": true
+},
+{
+"ord": 129,
+"migration": "20260816_admin_list_query_indexes.sql",
+"kind": "index",
+"object": "suspicion_log_user_ip_case_idx",
+"want": true
+},
+{
+"ord": 130,
+"migration": "20260816_connection_log_maintenance.sql",
+"kind": "index",
+"object": "connection_log_fingerprint2_time_idx",
+"want": true
+},
+{
+"ord": 131,
+"migration": "20260816_connection_log_maintenance.sql",
+"kind": "index",
+"object": "connection_log_time_id_idx",
+"want": true
+},
+{
+"ord": 132,
+"migration": "20260816_crossword_packs.sql",
+"kind": "column",
+"object": "kkutu_cw_en.pack_id",
+"want": true
+},
+{
+"ord": 133,
+"migration": "20260816_crossword_packs.sql",
+"kind": "column",
+"object": "kkutu_cw_ko.pack_id",
+"want": true
+},
+{
+"ord": 134,
+"migration": "20260816_crossword_packs.sql",
+"kind": "index",
+"object": "crossword_pack_selection_idx",
+"want": true
+},
+{
+"ord": 135,
+"migration": "20260816_crossword_packs.sql",
+"kind": "index",
+"object": "kkutu_cw_en_pack_id_idx",
+"want": true
+},
+{
+"ord": 136,
+"migration": "20260816_crossword_packs.sql",
+"kind": "index",
+"object": "kkutu_cw_ko_pack_id_idx",
+"want": true
+},
+{
+"ord": 137,
+"migration": "20260816_crossword_packs.sql",
+"kind": "table",
+"object": "crossword_pack",
+"want": true
+},
+{
+"ord": 138,
+"migration": "20260816_crossword_packs.sql",
+"kind": "table",
+"object": "kkutu_cw_en",
+"want": true
+},
+{
+"ord": 139,
+"migration": "20260816_mailbox_v2.sql",
+"kind": "index",
+"object": "mailbox_audit_log_created_at_idx",
+"want": true
+},
+{
+"ord": 140,
+"migration": "20260816_mailbox_v2.sql",
+"kind": "index",
+"object": "mailbox_audit_log_mail_id_idx",
+"want": true
+},
+{
+"ord": 141,
+"migration": "20260816_mailbox_v2.sql",
+"kind": "index",
+"object": "mailbox_distribution_window_idx",
+"want": true
+},
+{
+"ord": 142,
+"migration": "20260816_mailbox_v2.sql",
+"kind": "index",
+"object": "user_mailbox_updated_at_idx",
+"want": true
+},
+{
+"ord": 143,
+"migration": "20260816_mailbox_v2.sql",
+"kind": "table",
+"object": "mailbox",
+"want": true
+},
+{
+"ord": 144,
+"migration": "20260816_mailbox_v2.sql",
+"kind": "table",
+"object": "mailbox_audit_log",
+"want": true
+},
+{
+"ord": 145,
+"migration": "20260816_mailbox_v2.sql",
+"kind": "table",
+"object": "user_mailbox",
+"want": true
+},
+{
+"ord": 146,
+"migration": "20260816_related_account_access.sql",
+"kind": "index",
+"object": "connection_log_pcid_cookie_time_idx",
+"want": true
+},
+{
+"ord": 147,
+"migration": "20260816_related_account_access.sql",
+"kind": "index",
+"object": "connection_log_pcid_localstorage_time_idx",
+"want": true
+},
+{
+"ord": 148,
+"migration": "20260816_related_account_access.sql",
+"kind": "index",
+"object": "connection_log_user_time_idx",
+"want": true
+},
+{
+"ord": 149,
+"migration": "20260816_shop_admin.sql",
+"kind": "index",
+"object": "shop_audit_log_admin_id_idx",
+"want": true
+},
+{
+"ord": 150,
+"migration": "20260816_shop_admin.sql",
+"kind": "index",
+"object": "shop_audit_log_created_at_idx",
+"want": true
+},
+{
+"ord": 151,
+"migration": "20260816_shop_admin.sql",
+"kind": "index",
+"object": "shop_audit_log_item_id_idx",
+"want": true
+},
+{
+"ord": 152,
+"migration": "20260816_shop_admin.sql",
+"kind": "table",
+"object": "shop_audit_log",
+"want": true
+},
+{
+"ord": 153,
+"migration": "20260816_theme_presets.sql",
+"kind": "index",
+"object": "theme_preset_active_window_idx",
+"want": true
+},
+{
+"ord": 154,
+"migration": "20260816_theme_presets.sql",
+"kind": "table",
+"object": "theme_preset",
+"want": true
+},
+{
+"ord": 155,
+"migration": "20260820_account_deletion.sql",
+"kind": "column",
+"object": "account.deletion_requested_at",
+"want": true
+},
+{
+"ord": 156,
+"migration": "20260820_account_deletion.sql",
+"kind": "column",
+"object": "account.deletion_scheduled_at",
+"want": true
+},
+{
+"ord": 157,
+"migration": "20260820_account_deletion.sql",
+"kind": "column",
+"object": "account.flags",
+"want": true
+},
+{
+"ord": 158,
+"migration": "20260820_account_deletion.sql",
+"kind": "column",
+"object": "game_profile.deletion_requested_at",
+"want": true
+},
+{
+"ord": 159,
+"migration": "20260820_account_deletion.sql",
+"kind": "column",
+"object": "game_profile.deletion_scheduled_at",
+"want": true
+},
+{
+"ord": 160,
+"migration": "20260820_account_deletion.sql",
+"kind": "column",
+"object": "report_log.target_account_uuid",
+"want": true
+},
+{
+"ord": 161,
+"migration": "20260820_account_deletion.sql",
+"kind": "column",
+"object": "users_deleted.archived_at",
+"want": true
+},
+{
+"ord": 162,
+"migration": "20260820_account_deletion.sql",
+"kind": "index",
+"object": "game_profile_account_id_idx",
+"want": true
+},
+{
+"ord": 163,
+"migration": "20260820_account_deletion.sql",
+"kind": "index",
+"object": "report_log_target_account_time_idx",
+"want": true
+},
+{
+"ord": 164,
+"migration": "20260820_account_deletion.sql",
+"kind": "index",
+"object": "users_deleted_archived_at_idx",
+"want": true
+},
+{
+"ord": 165,
+"migration": "20260820_account_deletion.sql",
+"kind": "index",
+"object": "users_deleted_id_idx",
+"want": true
+},
+{
+"ord": 166,
+"migration": "20260820_account_deletion.sql",
+"kind": "table",
+"object": "users_deleted",
+"want": true
+},
+{
+"ord": 167,
+"migration": "20260820_game_profile_nickname_tag.sql",
+"kind": "column",
+"object": "game_profile.nickname_tag",
+"want": true
+},
+{
+"ord": 168,
+"migration": "20260820_game_profile_nickname_tag.sql",
+"kind": "constraint",
+"object": "game_profile_nickname_tag_length_check",
+"want": true
+},
+{
+"ord": 169,
+"migration": "20260820_game_profile_nickname_tag.sql",
+"kind": "function",
+"object": "kkutu_nickname_tag",
+"want": true
+},
+{
+"ord": 170,
+"migration": "20260820_preprovision_legacy_accounts.sql",
+"kind": "constraint",
+"object": "account_status_check",
+"want": true
+},
+{
+"ord": 171,
+"migration": "20260820_preprovision_legacy_accounts.sql",
+"kind": "table",
+"object": "game_profile_id_migration",
+"want": true
+},
+{
+"ord": 172,
+"migration": "20260820_reusable_revoked_identities.sql",
+"kind": "index",
+"object": "account_identity_active_provider_subject_unique",
+"want": true
+},
+{
+"ord": 173,
+"migration": "20260824_admin_access.sql",
+"kind": "index",
+"object": "admin_access_audit_account_created_idx",
+"want": true
+},
+{
+"ord": 174,
+"migration": "20260824_admin_access.sql",
+"kind": "index",
+"object": "admin_access_game_admin_active_idx",
+"want": true
+},
+{
+"ord": 175,
+"migration": "20260824_admin_access.sql",
+"kind": "table",
+"object": "admin_access",
+"want": true
+},
+{
+"ord": 176,
+"migration": "20260824_admin_access.sql",
+"kind": "table",
+"object": "admin_access_audit",
+"want": true
+},
+{
+"ord": 177,
+"migration": "20260825_game_profile_order.sql",
+"kind": "column",
+"object": "game_profile.profile_order",
+"want": true
+},
+{
+"ord": 178,
+"migration": "20260825_game_profile_order.sql",
+"kind": "index",
+"object": "game_profile_account_profile_order_idx",
+"want": true
+},
+{
+"ord": 179,
+"migration": "20261017_event_management.sql",
+"kind": "index",
+"object": "game_event_attendance_user_idx",
+"want": true
+},
+{
+"ord": 180,
+"migration": "20261017_event_management.sql",
+"kind": "index",
+"object": "game_event_audit_created_idx",
+"want": true
+},
+{
+"ord": 181,
+"migration": "20261017_event_management.sql",
+"kind": "index",
+"object": "game_event_audit_event_idx",
+"want": true
+},
+{
+"ord": 182,
+"migration": "20261017_event_management.sql",
+"kind": "index",
+"object": "game_event_mission_user_idx",
+"want": true
+},
+{
+"ord": 183,
+"migration": "20261017_event_management.sql",
+"kind": "index",
+"object": "game_events_active_window_idx",
+"want": true
+},
+{
+"ord": 184,
+"migration": "20261017_event_management.sql",
+"kind": "table",
+"object": "game_event_attendance",
+"want": true
+},
+{
+"ord": 185,
+"migration": "20261017_event_management.sql",
+"kind": "table",
+"object": "game_event_audit_log",
+"want": true
+},
+{
+"ord": 186,
+"migration": "20261017_event_management.sql",
+"kind": "table",
+"object": "game_event_exchange_purchase",
+"want": true
+},
+{
+"ord": 187,
+"migration": "20261017_event_management.sql",
+"kind": "table",
+"object": "game_event_exchange_stock",
+"want": true
+},
+{
+"ord": 188,
+"migration": "20261017_event_management.sql",
+"kind": "table",
+"object": "game_event_mission_progress",
+"want": true
+},
+{
+"ord": 189,
+"migration": "20261017_event_management.sql",
+"kind": "table",
+"object": "game_events",
+"want": true
+},
+{
+"ord": 190,
+"migration": "20261107_tile_roulette.sql",
+"kind": "index",
+"object": "game_event_tile_draw_event_idx",
+"want": true
+},
+{
+"ord": 191,
+"migration": "20261107_tile_roulette.sql",
+"kind": "index",
+"object": "game_event_tile_draw_user_idx",
+"want": true
+},
+{
+"ord": 192,
+"migration": "20261107_tile_roulette.sql",
+"kind": "table",
+"object": "game_event_tile_draw",
+"want": true
+},
+{
+"ord": 193,
+"migration": "20261108_event_enrollment.sql",
+"kind": "table",
+"object": "game_event_enrollment",
+"want": true
+},
+{
+"ord": 194,
+"migration": "20261108_event_invite.sql",
+"kind": "index",
+"object": "game_invite_link_inviter_idx",
+"want": true
+},
+{
+"ord": 195,
+"migration": "20261108_event_invite.sql",
+"kind": "table",
+"object": "game_invite_code",
+"want": true
+},
+{
+"ord": 196,
+"migration": "20261108_event_invite.sql",
+"kind": "table",
+"object": "game_invite_link",
+"want": true
+},
+{
+"ord": 197,
+"migration": "20261108_event_invite.sql",
+"kind": "table",
+"object": "game_invite_stage",
+"want": true
+},
+{
+"ord": 198,
+"migration": "20261109_family.sql",
+"kind": "index",
+"object": "family_group_application_account_idx",
+"want": true
+},
+{
+"ord": 199,
+"migration": "20261109_family.sql",
+"kind": "index",
+"object": "family_group_member_family_idx",
+"want": true
+},
+{
+"ord": 200,
+"migration": "20261109_family.sql",
+"kind": "index",
+"object": "family_group_name_uidx",
+"want": true
+},
+{
+"ord": 201,
+"migration": "20261109_family.sql",
+"kind": "table",
+"object": "family_group",
+"want": true
+},
+{
+"ord": 202,
+"migration": "20261109_family.sql",
+"kind": "table",
+"object": "family_group_application",
+"want": true
+},
+{
+"ord": 203,
+"migration": "20261109_family.sql",
+"kind": "table",
+"object": "family_group_member",
+"want": true
+},
+{
+"ord": 204,
+"migration": "20261111_wiki_binding.sql",
+"kind": "index",
+"object": "idx_wiki_contribution_account",
+"want": true
+},
+{
+"ord": 205,
+"migration": "20261111_wiki_binding.sql",
+"kind": "table",
+"object": "wiki_bind_challenge",
+"want": true
+},
+{
+"ord": 206,
+"migration": "20261111_wiki_binding.sql",
+"kind": "table",
+"object": "wiki_binding",
+"want": true
+},
+{
+"ord": 207,
+"migration": "20261111_wiki_binding.sql",
+"kind": "table",
+"object": "wiki_contribution",
+"want": true
+},
+{
+"ord": 208,
+"migration": "(not in any migration file)",
+"kind": "table",
+"object": "item_enchant",
+"want": true
+},
+{
+"ord": 209,
+"migration": "(not in any migration file)",
+"kind": "table",
+"object": "item_enchant_log",
+"want": true
+},
+{
+"ord": 210,
+"migration": "(not in any migration file)",
+"kind": "table",
+"object": "item_enchant_instance",
+"want": true
+},
+{
+"ord": 211,
+"migration": "(not in any migration file)",
+"kind": "column",
+"object": "account.moderation_subject_uuid",
+"want": true
+},
+{
+"ord": 212,
+"migration": "(not in any migration file)",
+"kind": "table",
+"object": "privacy_retention.moderation_identity_hold",
+"want": true
+},
+{
+"ord": 213,
+"migration": "(not in any migration file)",
+"kind": "column_len500",
+"object": "users.exordial",
+"want": true
+}
+]

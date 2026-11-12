@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyPacket, errorText, initialState, takeInjeongHint, joinLeave, normalizeRoom, splitNick } from './protocol.js';
+import { applyPacket, normalizeEvents, errorText, initialState, takeInjeongHint, joinLeave, normalizeRoom, splitNick } from './protocol.js';
 import { getLevel } from './level.js';
 
 const meta = { modes: ['KKT'], options: { manner: 'Manner' }, labels: { 'game.mode.KKT.name': '끝말잇기', 'game.option.Manner.name': '매너' } };
@@ -386,5 +386,18 @@ describe('패밀리 answers', () => {
 		applyPacket(s, { type: 'familyRes', op: 'apply', ok: true });
 		expect(s.users.me.money).toBe(4000);
 		expect(s.chat.length).toBe(before); // no "획득" line for a spend
+	});
+});
+
+describe('events from a legacy catalog', () => {
+	it('leaves out a notice written as raw HTML, keeps Markdown and plain descriptions', () => {
+		const list = [
+			{ id: 'notice', bulletin: true, description: '<h3>주요 공지사항</h3><ul><li><a href=https://x target=_blank>링크</a></ul>' },
+			{ id: 'md', description: '## 제목\n\n- 항목 **강조**\n\n비교: 1 < 2 > 0' },
+			{ id: 'plain', description: '' },
+			{ id: 'none' },
+			{ id: 'break', description: 'a<br>b' }
+		];
+		expect(normalizeEvents({ list }).list.map((e) => e.id)).toEqual(['md', 'plain', 'none']);
 	});
 });

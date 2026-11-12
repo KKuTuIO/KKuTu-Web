@@ -238,9 +238,15 @@ export function setFriends(state, raw) {
 
 const uid_ = (pkt) => pkt.profile?.id ?? '';
 
+/**
+ * A notice written as raw HTML (the legacy client's format: `<h3>`, `<ul>`, `<a>` ...). This client writes descriptions in Markdown and would print
+ * the tags as text, so such an entry is left to the legacy client.
+ */
+export const isRawHtmlNotice = (e) => typeof e?.description === 'string' && /<\/?[a-z][a-z0-9]*(\s[^>]*)?>/i.test(e.description);
+
 /** The server's event catalog; a missing or damaged one is an empty list, never a crash. */
 export function normalizeEvents(raw) {
-	return { list: Array.isArray(raw?.list) ? raw.list.filter((e) => e && typeof e.id === 'string') : [] };
+	return { list: Array.isArray(raw?.list) ? raw.list.filter((e) => e && typeof e.id === 'string' && !isRawHtmlNotice(e)) : [] };
 }
 
 /** @param {number} [now] the time the packet is applied at (the live connection: now; a replay: its own clock) */

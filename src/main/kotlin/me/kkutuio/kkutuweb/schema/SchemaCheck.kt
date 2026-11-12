@@ -28,7 +28,13 @@ data class SchemaSnapshot(
 
 data class MigrationState(val migration: String, val objects: Int, val asExpected: Int, val state: String)
 data class SchemaProblem(val migration: String, val kind: String, val `object`: String, val problem: String)
-data class SchemaCheckResult(val checkedAt: String, val summary: List<MigrationState>, val problems: List<SchemaProblem>)
+data class SchemaCheckResult(
+    val checkedAt: String,
+    val summary: List<MigrationState>,
+    val problems: List<SchemaProblem>,
+    /** What the start-up step that creates missing feature tables did on this boot. */
+    val autoMigration: AutoMigrationStatus = AutoMigrationStatus.NOT_RUN
+)
 
 /** `varchar` columns the new clients rely on being at least this wide (see the `column_len500` kind). */
 private const val WIDE_COLUMN = 500
@@ -45,7 +51,9 @@ internal fun isPresent(e: ExpectedObject, db: SchemaSnapshot): Boolean = when (e
 }
 
 /** Pure: which migrations are in the database. A migration is APPLIED when every object is as it leaves it, MISSING when none is, PARTIAL otherwise. */
-internal fun evaluate(expected: List<ExpectedObject>, db: SchemaSnapshot, now: Instant = Instant.now()): SchemaCheckResult {
+internal fun evaluate(
+    expected: List<ExpectedObject>, db: SchemaSnapshot, now: Instant = Instant.now(), auto: AutoMigrationStatus = AutoMigrationStatus.NOT_RUN
+): SchemaCheckResult {
     val checked = expected.sortedBy { it.ord }.map { it to (isPresent(it, db) == it.want) }
     val summary = checked.groupBy { it.first.migration }.map { (migration, items) ->
         val ok = items.count { it.second }
@@ -54,7 +62,7 @@ internal fun evaluate(expected: List<ExpectedObject>, db: SchemaSnapshot, now: I
     val problems = checked.filterNot { it.second }.map { (e, _) ->
         SchemaProblem(e.migration, e.kind, e.`object`, if (e.want) "should exist, is missing" else "should be gone, still exists")
     }
-    return SchemaCheckResult(now.toString(), summary, problems)
+    return SchemaCheckResult(now.toString(), summary, problems, auto)
 }
 
 /**
@@ -66,7 +74,8 @@ internal fun evaluate(expected: List<ExpectedObject>, db: SchemaSnapshot, now: I
 class SchemaCheckApi(
     private val jdbc: JdbcTemplate,
     private val objectMapper: ObjectMapper,
-    private val authorizer: AdminModerationAuthorizer
+    private val authorizer: AdminModerationAuthorizer,
+    private val migrator: AdditiveSchemaMigrator
 ) {
     private val expected: List<ExpectedObject> by lazy {
         ClassPathResource("schema-expectations.json").inputStream.use { stream ->
@@ -80,7 +89,7 @@ class SchemaCheckApi(
     fun check(session: HttpSession): SchemaCheckResult {
         authorizer.require(session, AdminSetting.Privilege.API_ACCESS)
         return try {
-            evaluate(expected, snapshot())
+            evaluate(expected, snapshot(), auto = migrator.status())
         } catch (error: DataAccessException) {
             throw ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "스키마를 읽을 수 없습니다.")
         }

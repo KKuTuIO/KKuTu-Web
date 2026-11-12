@@ -1457,21 +1457,21 @@
 },
 {
 "ord": 208,
-"migration": "(not in any migration file)",
+"migration": "20261112_item_enchant.sql",
 "kind": "table",
 "object": "item_enchant",
 "want": true
 },
 {
 "ord": 209,
-"migration": "(not in any migration file)",
+"migration": "20261112_item_enchant.sql",
 "kind": "table",
 "object": "item_enchant_log",
 "want": true
 },
 {
 "ord": 210,
-"migration": "(not in any migration file)",
+"migration": "20261112_item_enchant.sql",
 "kind": "table",
 "object": "item_enchant_instance",
 "want": true
@@ -1495,6 +1495,13 @@
 "migration": "(not in any migration file)",
 "kind": "column_len500",
 "object": "users.exordial",
+"want": true
+},
+{
+"ord": 214,
+"migration": "20261112_item_enchant.sql",
+"kind": "index",
+"object": "item_enchant_log_user",
 "want": true
 }
 ]

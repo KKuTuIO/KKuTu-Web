@@ -99,6 +99,8 @@ class MainController(
         if (!isGuest) {
             val account = accountService.currentAccount(session)
             if (account != null && accountService.isServiceAccessBlocked(account)) return "redirect:/account/delete"
+            // this is the legacy client's page: remember that the account has used it (the new client greets such players differently)
+            if (account != null) accountService.markClientUsed(account, "legacy")
         }
 
         if (sessionProfile != null && setupService.needSetup(sessionProfile)) {

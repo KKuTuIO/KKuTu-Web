@@ -118,6 +118,25 @@ class AccountService(
         return if (value.isArray) value.mapNotNull { it.asString(null) }.filter { it in LESSON_IDS }.distinct() else emptyList()
     }
 
+    /**
+     * The game clients this account has opened: `account.flags.clientsUsed.value`, an array of `legacy` / `new`. The web service writes it when it
+     * serves a client's page (see [markClientUsed]); the new client's onboarding reads it to greet someone who has only played on the legacy one.
+     */
+    fun clientsUsed(account: Account): List<String> = parseClientsUsed(account.flags)
+
+    /**
+     * Remembers that the account opened client `id`. A best-effort record: it writes only the first time, and a failure (an unknown id, a database
+     * error) is logged and swallowed so that opening the game never depends on it.
+     */
+    fun markClientUsed(account: Account, id: String) {
+        if (id !in CLIENT_IDS || id in clientsUsed(account)) return
+        try {
+            dao.addAccountFlagValue(account.id, CLIENTS_FLAG, id, System.currentTimeMillis())
+        } catch (e: Exception) {
+            logger.warn("클라이언트 사용 이력을 기록하지 못했습니다. account=${account.id} client=$id", e)
+        }
+    }
+
     /** Remembers that the account closed nudge `id`; returns the closed ids. Unknown ids are refused so the array stays small. */
     fun closeNudge(account: Account, id: String): List<String> {
         if (id !in NUDGE_IDS) throw IdpException("invalid_request", "알 수 없는 안내입니다.", 400)
@@ -316,6 +335,16 @@ class AccountService(
         const val NUDGES_FLAG = "nudgesClosed"
         /** Every nudge the client has (lib/game/nudges.svelte.js `NUDGES`); add an id here together with the client's. */
         val NUDGE_IDS = setOf("tutorial")
+        /** `account.flags` key holding the game clients the account has opened. */
+        const val CLIENTS_FLAG = "clientsUsed"
+        /** The game clients: the legacy page (`/game/server/{n}`) and the Svelte client (`/play/{n}`). */
+        val CLIENT_IDS = setOf("legacy", "new")
+
+        internal fun parseClientsUsed(flags: JsonNode): List<String> {
+            val value = flags.path(CLIENTS_FLAG).path("value")
+            return if (value.isArray) value.mapNotNull { it.asString(null) }.filter { it in CLIENT_IDS }.distinct() else emptyList()
+        }
+
         /** `account.flags` key holding the cleared tutorial lesson ids. */
         const val TUTORIAL_FLAG = "tutorialDone"
         /** Every tutorial lesson (client lessons.js, game server TutorialReward.ts); add an id to all three. */

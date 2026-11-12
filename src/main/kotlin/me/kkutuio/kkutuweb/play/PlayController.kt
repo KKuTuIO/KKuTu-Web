@@ -211,6 +211,9 @@ class PlayController(
 
         val gameServer = kKuTuSetting.getGameServers().getOrNull(server) ?: return refuse(404, "NO_SUCH_SERVER")
 
+        val account = accountService.currentAccount(session)
+        account?.let { accountService.markClientUsed(it, "new") }
+
         val sid = ByteArray(32).also(secureRandom::nextBytes)
             .let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
         ticketStore.issue(
@@ -230,6 +233,8 @@ class PlayController(
                     "nickname" to (profile?.title?.split("#")?.firstOrNull()),
                     // one-time hints this account has closed (account.flags); a guest has none, so sees them all
                     "nudgesClosed" to (accountService.currentAccount(session)?.let(accountService::nudgesClosed) ?: emptyList()),
+                    // the game clients this account has opened before (`legacy` / `new`); a guest has none
+                    "clientsUsed" to (account?.let(accountService::clientsUsed) ?: emptyList()),
                     // tutorial lessons this account has cleared
                     "tutorialDone" to (accountService.currentAccount(session)?.let(accountService::tutorialDone) ?: emptyList())
                 ) + gameMeta()

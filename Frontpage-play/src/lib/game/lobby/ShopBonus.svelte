@@ -9,7 +9,7 @@
 
 	/**
 	 * 보너스권: a deco on top with the large tickets of the chosen kind (통합 / 경험치 / 핑; prerendered, curved and in perspective; recipe in the workspace's local design-recipes/shop-bonus-deco), and below it a row for each ticket
-	 * with its price and how many to buy; the cart on the left adds it up. The ticket art is KKuTu-Static img/shop/bonus/<id>.svg.
+	 * with its price and how many to buy; the cart on the left adds it up. The ticket art is the CDN's img/shop/bonus/<id>.svg.
 	 */
 	let { items, shop, details, cart, kind = $bindable('both'), onqty } = $props();
 	const qtyOf = (id) => cart.find((c) => c.id === id)?.qty ?? 0;

@@ -3,7 +3,7 @@
 
 	/**
 	 * How a game went, as a mark: a gold, silver or bronze medal with the placement on its face for 1st to 3rd (a win counts as 1st),
-	 * the cracked medal (with its placement too) for a game lost in the bottom half, and a plain number for the middle of the pack. Art: KKuTu-Static img/play/medal-*.svg.
+	 * the cracked medal (with its placement too) for a game lost in the bottom half, and a plain number for the middle of the pack. Art: the CDN's img/play/medal-*.svg.
 	 * @type {{placement:number, won?:boolean, outcome?:'win'|'half'|'loss', size?:number}}
 	 */
 	let { placement, won = false, outcome = 'half', size = 40 } = $props();

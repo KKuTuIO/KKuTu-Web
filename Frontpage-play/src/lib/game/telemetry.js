@@ -1,6 +1,5 @@
 /**
- * Input trace for the game screen (the server's "AC-Lite" `inputTrace` v1 protocol, KKuTu-Game-Private
- * `server/sub/aclite/InputTrace.ts`, spec `ANTICHEAT_MODE_SPEC.md` section 3).
+ * Input trace for the game screen (the game server's `inputTrace` v1 protocol).
  *
  * While the player types into the answer field, every observable change of the field (beforeinput / input /
  * composition*) is streamed to the room worker as it happens, in small batches. The server keeps its own copy of the

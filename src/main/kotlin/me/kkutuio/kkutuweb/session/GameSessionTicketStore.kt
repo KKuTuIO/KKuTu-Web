@@ -41,9 +41,11 @@ class GameSessionTicketStore(
         serverId: String,
         ttlMillis: Long = 5 * 60 * 1000L,
         accountUuid: String? = null,
-        accountFlags: JsonNode? = null
+        accountFlags: JsonNode? = null,
+        client: String = ""
     ) {
         require(ttlMillis in 1..(10 * 60 * 1000L)) { "invalid game ticket TTL" }
+        require(client in CLIENT_KINDS) { "invalid game client kind" }
         val key = KEY_PREFIX + sha256(ticket)
         val profileJson = objectMapper.writeValueAsString(profile)
         val accountUuidValue = accountUuid.orEmpty()
@@ -56,7 +58,8 @@ class GameSessionTicketStore(
                 profileJson,
                 accountUuidValue,
                 accountFlagsJson,
-                ttlMillis.toString()
+                ttlMillis.toString(),
+                client
             )
             check(result == 1L) { "game session ticket collision" }
             issued.incrementAndGet()
@@ -77,13 +80,15 @@ class GameSessionTicketStore(
 
     companion object {
         private const val KEY_PREFIX = "ac-lite:ticket:"
+        /** Which client page the ticket was issued for: `legacy` (`/game/server/{n}`), `new` (`/play/{n}`), or empty (unknown). A routing hint, not a credential. */
+        private val CLIENT_KINDS = setOf("", "legacy", "new")
         private val logger = LoggerFactory.getLogger(GameSessionTicketStore::class.java)
         private val ISSUE_SCRIPT = DefaultRedisScript(
             """
             if redis.call("EXISTS", KEYS[1]) == 1 then
                 return 0
             end
-            redis.call("HSET", KEYS[1], "server_id", ARGV[1], "profile", ARGV[2], "account_uuid", ARGV[3], "account_flags", ARGV[4])
+            redis.call("HSET", KEYS[1], "server_id", ARGV[1], "profile", ARGV[2], "account_uuid", ARGV[3], "account_flags", ARGV[4], "client", ARGV[6])
             redis.call("PEXPIRE", KEYS[1], ARGV[5])
             return 1
             """.trimIndent(),

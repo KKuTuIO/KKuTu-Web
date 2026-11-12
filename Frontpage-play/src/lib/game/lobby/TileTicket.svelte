@@ -1,6 +1,6 @@
 <script>
 	import { cdnImg } from '../../cdn.js';
-	/** The tile roulette's ticket, art in KKuTu-Static like the bonus cards (`img/kkutu/shop/tileToken.png`, source `img/shop/bonus/tileToken.svg`). Square, the card sits in its middle. */
+	/** The tile roulette's ticket, art on the CDN like the bonus cards (`img/kkutu/shop/tileToken.png`, source `img/shop/bonus/tileToken.svg`). Square, the card sits in its middle. */
 	let { size = 28 } = $props();
 </script>
 

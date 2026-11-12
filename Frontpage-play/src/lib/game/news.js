@@ -5,9 +5,9 @@ import { cdnImg } from '../cdn.js';
  */
 
 /** The picture in the new-event bubble for an event that has none of its own (about 518x190, like the real ones). */
-/** The picture of a card that has none of its own (16:9, the slogan on the arcade colours; KKuTu-Static). */
+/** The picture of a card that has none of its own (16:9, the slogan on the arcade colours; on the CDN). */
 export const DEFAULT_BANNER = cdnImg('event/default-card.png');
-export const NUDGE_PLACEHOLDER = cdnImg('event/default-nudge.png'); // 518×190 at 2x: the slogan on the arcade colours (KKuTu-Static)
+export const NUDGE_PLACEHOLDER = cdnImg('event/default-nudge.png'); // 518×190 at 2x: the slogan on the arcade colours (on the CDN)
 
 export const PHASES = ['ongoing', 'upcoming', 'ended'];
 const RANK = { ongoing: 0, upcoming: 1, ended: 2 };

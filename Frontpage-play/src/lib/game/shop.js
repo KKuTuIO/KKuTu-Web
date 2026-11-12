@@ -258,7 +258,7 @@ export const BONUS_KINDS = ['both', 'exp', 'mny'];
 // ---- gacha (픽업) ----
 
 let placementRequest;
-/** `shop.json` of KKuTu-Static (`https://static.kkutu.io/shop/shop.json`, the legacy shop's `shopPlacement`): what the shop lists and how it calls it. */
+/** `shop.json` of the static host (`https://static.kkutu.io/shop/shop.json`, the legacy shop's `shopPlacement`): what the shop lists and how it calls it. */
 export function loadPlacement(url) {
 	placementRequest ??= fetch(url)
 		.then((r) => (r.ok ? r.json() : {}))
@@ -309,7 +309,7 @@ export function tally(gains) {
 	return [...out].map(([key, q]) => ({ key, q }));
 }
 
-// ---- the home page (data lives in KKuTu-Static: img/shop/home/home.json) ----
+// ---- the home page (data lives on the static host: img/shop/home/home.json) ----
 
 /** An entry is on show between its optional `from` and `to` (ISO dates). */
 export function activeAt(entry, now = Date.now()) {

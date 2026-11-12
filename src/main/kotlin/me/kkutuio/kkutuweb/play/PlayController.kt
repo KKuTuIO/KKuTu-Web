@@ -219,7 +219,8 @@ class PlayController(
         ticketStore.issue(
             sid, profile, server.toString(),
             accountUuid = loginService.accountUuid(session),
-            accountFlags = accountService.currentAccount(session)?.flags
+            accountFlags = accountService.currentAccount(session)?.flags,
+            client = "new"
         )
         val base = (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port
         logger.info("[$ip] ${profile?.title ?: "guest"} /play/$server ticket issued")

@@ -7,7 +7,7 @@
 
 	/**
 	 * The 메인 page: the banner carousel, the tiles under it (one per banner: a tile moves the carousel to its banner, a banner
-	 * goes to its link) and the sections, all from the home page's data (KKuTu-Static img/shop/home/home.json). A season,
+	 * goes to its link) and the sections, all from the home page's data (the CDN's img/shop/home/home.json). A season,
 	 * an event or a new product line is a change of that file, not of the client.
 	 */
 	let { home, base, items, shop, details, gachas = {}, picked, onpick, onaction } = $props();

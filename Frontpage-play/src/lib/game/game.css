@@ -1,7 +1,7 @@
 /* Same order Tailwind declares; stating it first keeps our component classes below its utilities. */
 @layer theme, base, components, utilities;
 
-/* NanumSquare Neo is hosted in KKuTu-Static (https://cdn.kkutu.io/css/nanum-square-neo.css, linked from app.html). */
+/* NanumSquare Neo is hosted on the static host (https://cdn.kkutu.io/css/nanum-square-neo.css, linked from app.html). */
 
 /* The shared tokens (colours, radius scale), the `.kk` surface and the common classes (.kk-btn and its primary / danger / hero variants,
    .kk-card, .kk-input, .kk-chip) come from @kkutuio/ui, imported in app.css. What is here is the game's own: these tokens and the classes below. */
@@ -117,7 +117,7 @@
 @keyframes kk-pop-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
 @keyframes kk-pop-out { 0% { transform: none; opacity: 1; } 30% { transform: scale(1.04); opacity: 1; } 100% { transform: translateY(20px) scale(0.6); opacity: 0; } }
 /* The headline face of the big screen effects (the result, 아이템 발동!, the obtain ribbon, 해커레미): ONE Mobile POP, rounder and bouncier than NanumSquare Neo. */
-/* ONE Mobile POP is hosted in KKuTu-Static (https://cdn.kkutu.io/css/one-mobile-pop.css, linked from app.html). */
+/* ONE Mobile POP is hosted on the static host (https://cdn.kkutu.io/css/one-mobile-pop.css, linked from app.html). */
 .kk-pop-font {
 	font-family: 'ONE-Mobile-POP', 'NanumSquare Neo', sans-serif;
 	font-weight: 400;

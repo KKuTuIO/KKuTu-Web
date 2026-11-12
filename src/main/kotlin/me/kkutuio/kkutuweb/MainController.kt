@@ -155,7 +155,8 @@ class MainController(
                 sessionProfile,
                 server.toString(),
                 accountUuid = loginService.accountUuid(session),
-                accountFlags = accountService.currentAccount(session)?.flags
+                accountFlags = accountService.currentAccount(session)?.flags,
+                client = "legacy"
             )
             val webSocketUrl =
                 (if (gameServer.isSecure) "wss" else "ws") + "://" + gameServer.publicHost + ":" + gameServer.port

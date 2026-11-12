@@ -1,5 +1,5 @@
 /**
- * 패밀리 state and actions, over the game server's `family` packet (see KKuTu-Game-Private/server/sub/utils/Family.ts).
+ * 패밀리 state and actions, over the game server's `family` packet (see the game server's Family module).
  *
  * The server decides everything. An action sends `{type:'family', op, ...}` and resolves with the server's `familyRes` ({ok, reason}); the new
  * state arrives as a `family` snapshot that replaces what is here. Chat lines are added at once for the one who sends them.

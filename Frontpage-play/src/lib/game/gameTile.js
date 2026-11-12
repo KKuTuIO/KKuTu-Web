@@ -1,5 +1,5 @@
 /**
- * The squares of the game board's tile (KKuTu-Static/img/kkutu/game_tile.svg), as polygons of one 200x200 period of the
+ * The squares of the game board's tile (the CDN's img/kkutu/game_tile.svg), as polygons of one 200x200 period of the
  * infinite lattice: the light squares of a tilted checker. Repeating them at every multiple of 200 reproduces the board
  * background, so a loading screen can fill the squares in one at a time.
  */

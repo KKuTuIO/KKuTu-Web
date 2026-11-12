@@ -47,10 +47,6 @@ class PlayControllerGateTest {
         assertEquals("redirect:/play/0", c.entry(session))
         assertEquals(404, c.asset(MockHttpServletRequest("GET", "/_play/../application.yml"), session).statusCode.value())
         assertEquals(404, c.asset(MockHttpServletRequest("GET", "/_play/missing.js"), session).statusCode.value())
-        // what the build does not carry of the CDN comes from the real one, and only from there
-        val redirect = c.asset(MockHttpServletRequest("GET", "/_play/cdn/media/ShopBGM.mp3"), session)
-        assertEquals(302, redirect.statusCode.value())
-        assertEquals("https://cdn.kkutu.io/media/ShopBGM.mp3", redirect.headers.location.toString())
         assertEquals(404, c.asset(MockHttpServletRequest("GET", "/_play/cdn/../x"), session).statusCode.value())
     }
 }

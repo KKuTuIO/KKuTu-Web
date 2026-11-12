@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="600" viewBox="0 0 2400 600">
-<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a16207"/><stop offset="1" stop-color="#422006"/></linearGradient></defs>
-<rect width="2400" height="600" fill="url(#g)"/>
-<rect x="250" y="100" width="1900" height="400" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="24 16" opacity=".85"/>
-<g fill="#fff" font-family="sans-serif" text-anchor="middle">
-<text x="1200" y="290" font-size="85" font-weight="800">PLACEHOLDER HERO 4</text>
-<text x="1200" y="366" font-size="50" opacity=".9">2400 x 600  |  safe area 1900 x 400 (dashed)</text></g></svg>

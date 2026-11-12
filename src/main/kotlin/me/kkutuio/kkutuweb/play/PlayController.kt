@@ -44,7 +44,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.servlet.support.RequestContextUtils
-import java.net.URI
 import java.security.SecureRandom
 import java.util.Base64
 
@@ -97,20 +96,14 @@ class PlayController(
             .body(page.contentAsByteArray)
     }
 
-    /** The client's own build output (`/_play/...`, hashed file names), served from the jar behind the same gate. */
+    /** The client's own build output (`/_play/...`, hashed file names), served from the jar behind the same gate. Fonts and art come from cdn.kkutu.io. */
     @GetMapping("/_play/**")
     fun asset(request: HttpServletRequest, session: HttpSession): ResponseEntity<Any> {
         if (!isPreviewAllowed(session)) return notFound()
         val path = request.requestURI.removePrefix("/_play/")
         if (path.isEmpty() || path.contains("..") || path.contains('\\') || path.startsWith("/")) return notFound()
         val file = ClassPathResource("play/_play/$path")
-        if (!file.exists() || !file.isReadable) {
-            // `cdn/...` is the portal's CDN as the client addresses it: what this build carries is served above, the rest comes from the real one.
-            if (path.startsWith("cdn/") && path.length > 4) {
-                return ResponseEntity.status(302).location(URI.create("https://cdn.kkutu.io/" + path.removePrefix("cdn/"))).build()
-            }
-            return notFound()
-        }
+        if (!file.exists() || !file.isReadable) return notFound()
         return ResponseEntity.ok()
             .contentType(MediaTypeFactory.getMediaType(file).orElse(MediaType.APPLICATION_OCTET_STREAM))
             .header("Cache-Control", if (path.startsWith("immutable/")) "private, max-age=31536000, immutable" else "no-cache")

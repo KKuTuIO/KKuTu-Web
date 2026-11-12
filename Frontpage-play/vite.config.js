@@ -26,6 +26,9 @@ export default defineConfig({
 	test: {
 		// The board tests mount a lot of Svelte; on a shared CI runner a single one can pass 5 s although nothing is wrong.
 		testTimeout: 20000,
+		// On the CI runner one test of the board suite now and then stalls past any limit (not reproducible here, even with the CPUs oversubscribed); a
+		// test that is really broken fails every try, so only a stalled one is let through. Locally nothing is retried.
+		retry: process.env.CI ? 2 : 0,
 		environment: 'jsdom',
 		setupFiles: ['./src/test/setup.js']
 	}

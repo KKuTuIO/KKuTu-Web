@@ -24,6 +24,8 @@ export default defineConfig({
 		tailwindcss(),
 	],
 	test: {
+		// The board tests mount a lot of Svelte; on a shared CI runner a single one can pass 5 s although nothing is wrong.
+		testTimeout: 20000,
 		environment: 'jsdom',
 		setupFiles: ['./src/test/setup.js']
 	}

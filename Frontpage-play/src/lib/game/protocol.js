@@ -507,6 +507,7 @@ export function applyPacket(state, pkt, now = Date.now()) {
 						at: Date.now(),
 						system: false,
 						uid,
+						nik: state.users[uid]?.equip?.NIK ?? '', // the staff badge before the name
 						whisper: false,
 						spectator: state.users[uid]?.game?.form === 'S',
 						mine: !!state.id && uid === state.id

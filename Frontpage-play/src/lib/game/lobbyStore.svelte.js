@@ -17,6 +17,7 @@ import { dmAdd, dmRead, dmRemove, dmUnread, dmList, dmMembers, peerName } from '
 import { i18n, t } from './i18n.svelte.js';
 import { QUIZ, familyOf } from './gameModel.js';
 import { loadSeen, newsAlerts, newsNudge, saveSeen, unseenNews } from './news.js';
+import { isRoomOption, loadRoomFilter, saveRoomFilter } from './roomFilterPref.js';
 
 const ROOM_LIMIT = [10, 12, 14, 16, 16]; // by membership tier, as in the legacy client
 const quickTitles = () => [1, 2, 3, 4, 5, 6, 7].map((n) => t(`play.quick.roomTitle.${n}`));
@@ -57,7 +58,7 @@ export function createLobbyStore(server) {
 	let newsSeen = $state(loadSeen()); // the event ids whose page I have opened since they began
 	const net = conn.state;
 	const live = $state({ value: '', composing: false }); // what I am typing right now, from the board's field or the chat box
-	const ui = $state({ query: '', sort: 'recent', joinableFirst: false, waitingOnly: true, hasSeat: false, hideLocked: false, view: 'list', viewPicked: false, gameCovered: false, exitReserved: false, chatNonce: 0, phoneStage: false });
+	const ui = $state({ query: '', ...loadRoomFilter(), gameCovered: false, exitReserved: false, chatNonce: 0, phoneStage: false });
 	// the replay being watched (its store, see replayPlayer.svelte.js): the chat shows its chat, the lobby music steps aside
 	let replayView = $state.raw(null);
 
@@ -106,6 +107,12 @@ export function createLobbyStore(server) {
 		},
 		get roomLimitMax() {
 			return ROOM_LIMIT[net.membership] ?? ROOM_LIMIT[0];
+		},
+		/** Change a room list option (sort, a filter, the view) and keep it in this browser. */
+		setRoomOption(name, value) {
+			if (!isRoomOption(name)) return;
+			ui[name] = value;
+			saveRoomFilter(ui);
 		},
 		get activeFilters() {
 			return Number(ui.waitingOnly) + Number(ui.hasSeat) + Number(ui.hideLocked);

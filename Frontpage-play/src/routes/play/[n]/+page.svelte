@@ -41,6 +41,7 @@
 	import YellBanner from '$lib/game/ui/YellBanner.svelte';
 	import { confirm } from '$lib/game/ui/confirm.svelte.js';
 	import { prefs } from '$lib/game/prefs.svelte.js';
+	import { foldableWide } from '$lib/game/foldable.svelte.js';
 	import { isShut } from '$lib/game/blocks.svelte.js';
 	import SettingsDialog from '$lib/game/lobby/SettingsDialog.svelte';
 	import ExpiredDialog from '$lib/game/lobby/ExpiredDialog.svelte';
@@ -95,6 +96,9 @@
 	});
 	let peopleTab = $state(false);
 	const tabBar = $derived(phone && !store.net.myRoom);
+	// Only on a folding phone (foldable.svelte.js) and only where the screen is wider than tall: the tab bar stands at the side as a rail,
+	// as Apple's guidance for folding phones has navigation controls do, and the page gets the whole height. Other phones keep the bottom bar.
+	const rail = $derived(tabBar && foldableWide(winW, winH));
 	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen);
 	// Moving between tabs slides the page the way the tab lies: to the right of this one, it comes in from the right.
 	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'replay'];
@@ -182,7 +186,8 @@
 	let replayOpen = $state(false); // 리플레이: a page like the shop and the 아카데미; they take turns
 	let replayStart = $state({ game: '', n: 0 }); // a game an outside link (a profile's 경기 내역) wants opened
 	let shopStart = $state({ tab: '', sub: '', n: 0 }); // where an outside link (해커레미's 보너스권) wants the shop to open
-	const chatFab = $derived(shopOpen || replayOpen || (academyOpen && !store.net.myRoom));
+	// 채팅창 띄우기 (설정 > 게임) makes it so on every screen.
+	const chatFab = $derived(prefs.chatFloating || shopOpen || replayOpen || (academyOpen && !store.net.myRoom));
 	// Leaving: the academy sinks and fades while the lobby is already there (it is lifted out of the layout so nothing jumps).
 	function sink(node, { duration = 260 } = {}) {
 		const { offsetTop: top, offsetLeft: left, offsetWidth: width, offsetHeight: height } = node;
@@ -518,7 +523,8 @@
 	{:else}
 		<TopBar {store} {phone} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
-	<div bind:this={pageEl} class="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} lg:flex-row lg:overflow-hidden">
+	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (leftHanded ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
+	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} lg:flex-row lg:overflow-hidden">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
 		<div style:--side-w="{sideW}px" class="relative order-2 flex max-h-72 lg:max-h-none lg:w-(--side-w) lg:shrink-0 {leftHanded ? 'lg:order-3' : 'lg:order-1'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
 			<SidePanel {store} profile={peopleShown} />
@@ -564,13 +570,14 @@
 			{/if}
 		</main>
 	</div>
-	{#if tabBar}<MobileTabBar {store} active={tabNow} onselect={selectTab} />{/if}
+	{#if tabBar}<MobileTabBar {store} active={tabNow} onselect={selectTab} side={rail} edge={leftHanded ? 'right' : 'left'} />{/if}
+	</div>
 </div>
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->
 <!-- Mobile/tablet: a button opening a docked sheet; in the 아카데미 and the shop the chat is that button on desktop too, so the screen gets the room. -->
 {#if !(phone && shopOpen)}
-<div class={chatFab ? 'contents' : 'contents lg:hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage} lift={tabBar ? true : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
+<div class={chatFab ? 'contents' : 'contents lg:hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage} lift={tabBar ? !rail : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
 {/if}
 <CreateRoomDialog {store} bind:open={createOpen} />
 <CreateRoomDialog {store} bind:open={settingsOpen} editing={store.currentRoom} />

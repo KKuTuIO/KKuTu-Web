@@ -12,7 +12,7 @@
 	 * A guest has no announcements, so 도움말 takes that tab (with 학사모레미's nudge) and 이어하기 moves into the sheet.
 	 * The mailbox lives in the header. Desktop keeps TopBar's menu.
 	 */
-	let { store, active = 'lobby', onselect } = $props();
+	let { store, active = 'lobby', onselect, side = false, edge = 'left' } = $props();
 	const guest = $derived(store.net.guest);
 	let more = $state(false);
 	const tabs = $derived([
@@ -49,7 +49,8 @@
 	</button>
 {/snippet}
 
-<nav data-tour="nav" aria-label={t('play.nav.label')} class="grid shrink-0 grid-cols-5 border-t border-(color:--kk-line) bg-(--kk-surface) pb-[env(safe-area-inset-bottom)]">
+<!-- `side`: on a screen that is wider than tall the bar stands at the edge as a rail, its tabs one under the other (it scrolls if they do not fit) -->
+<nav data-tour="nav" aria-label={t('play.nav.label')} class="shrink-0 bg-(--kk-surface) {side ? `flex w-20 flex-col overflow-y-auto ${edge === 'right' ? 'border-l pr-[env(safe-area-inset-right)]' : 'border-r pl-[env(safe-area-inset-left)]'} border-(color:--kk-line)` : 'grid grid-cols-5 border-t border-(color:--kk-line) pb-[env(safe-area-inset-bottom)]'}">
 	{#each tabs as m (m.id)}
 		{#if m.id === 'help'}
 			<!-- 학사모레미 points at 도움말 until it is opened -->

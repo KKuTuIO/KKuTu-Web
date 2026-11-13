@@ -13,6 +13,7 @@
 	import DmPanel from './DmPanel.svelte';
 	import DmMembers from './DmMembers.svelte';
 	import FamilyChat from './FamilyChat.svelte';
+	import StaffTag from './StaffTag.svelte';
 	import { family } from '../familyStore.svelte.js';
 
 	/**
@@ -32,6 +33,7 @@
 	const words = (m) => (prefs.filter === 'off' ? m.msg : maskBad(m.shown ?? m.msg));
 	let openSheet = $state(false);
 	const open = $derived(inline || openSheet);
+	const classic = $derived(prefs.chatStyle === 'classic');
 	let text = $state('');
 	let tab = $state('lobby');
 	let list = $state();
@@ -213,9 +215,18 @@
 			<FamilyChat {store} {uid} />
 		{:else}
 		<div class="relative flex min-h-0 flex-1 flex-col">
-		<div bind:this={list} {onscroll} role="log" aria-live="polite" id="{uid}-log" class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3 text-sm">
+		<div bind:this={list} {onscroll} role="log" aria-live="polite" id="{uid}-log" class="flex min-h-0 flex-1 flex-col {classic ? 'gap-0.5' : 'gap-2.5'} overflow-y-auto p-3 text-sm">
 			{#each visible as m, i (i)}
-				{#if m.system}
+				{#if classic && !m.system}
+					<!-- 클래식: the legacy client's line, name first, the words, and the time at the right edge -->
+					<p class="flex items-baseline gap-2 leading-snug">
+						<span class="min-w-0 flex-1 break-words whitespace-pre-wrap">
+							<b class="font-extrabold"><StaffTag nik={m.nik} />{#if m.mine && m.whisper}<span class="text-(color:--kk-whisper)">{t('play.chat.whisperLabel')} {m.who}</span>{:else}<button type="button" onclick={() => m.uid && store.hooks.openProfile?.(m.uid)} class="font-extrabold hover:underline">{m.who}</button>{#if prefs.spectatorTag && m.spectator}<span class="kk-chip ml-1">{t('play.room.status.spectate')}</span>{/if}{#if m.whisper}<span class="ml-1 text-(color:--kk-whisper)">{t('play.chat.whisperLabel')}</span>{/if}{/if}</b>
+							{words(m)}
+						</span>
+						<span class="shrink-0 text-[11px] text-(color:--kk-muted) tabular-nums">{time(m.at)}</span>
+					</p>
+				{:else if m.system}
 					<p class="flex items-center gap-3 text-xs text-(color:--kk-muted)"><span class="h-px flex-1 bg-(--kk-line)"></span><span>{m.msg}</span><span class="h-px flex-1 bg-(--kk-line)"></span></p>
 				{:else if m.mine}
 					<div class="flex items-end justify-end gap-1.5">
@@ -224,7 +235,7 @@
 					</div>
 				{:else}
 					<div class="flex flex-col items-start gap-0.5">
-						<span class="flex items-center gap-1 px-1 text-xs font-extrabold"><button type="button" onclick={() => m.uid && store.hooks.openProfile?.(m.uid)} class="hover:underline">{m.who}</button>{#if prefs.spectatorTag && m.spectator}<span class="kk-chip">{t('play.room.status.spectate')}</span>{/if}</span>
+						<span class="flex items-center gap-1 px-1 text-xs font-extrabold"><StaffTag nik={m.nik} /><button type="button" onclick={() => m.uid && store.hooks.openProfile?.(m.uid)} class="hover:underline">{m.who}</button>{#if prefs.spectatorTag && m.spectator}<span class="kk-chip">{t('play.room.status.spectate')}</span>{/if}</span>
 						<div class="flex items-end gap-1.5">
 							<p class="max-w-[16rem] rounded-xl rounded-tl-sm bg-(--kk-surface-2) px-3 py-2 break-words whitespace-pre-wrap">{#if m.whisper}<b class="mr-1 text-(color:--kk-whisper)">{t('play.chat.whisperLabel')}</b>{/if}{words(m)}</p>
 							<span class="pb-0.5 text-[11px] text-(color:--kk-muted)">{time(m.at)}</span>

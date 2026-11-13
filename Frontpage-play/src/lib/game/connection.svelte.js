@@ -8,7 +8,7 @@ import { OKG_MINUTES } from './lobbyModel.js';
 import { toast } from './ui/toast.svelte.js';
 import { confirm, notify } from './ui/confirm.svelte.js';
 import { yell } from './ui/yell.svelte.js';
-import { playSound, playGameBgm, stopBgm, playLobbyBgm, isResultBgm, preloadGameSounds } from './audio.svelte.js';
+import { playSound, playGameBgm, stopBgm, playLobbyBgm, isResultBgm, preloadGameSounds, preloadUiSounds, preloadBgms } from './audio.svelte.js';
 import { prefs } from './prefs.svelte.js';
 import { isHidden } from './chatFilter.js';
 import { i18n, loadLocale, t } from './i18n.svelte.js';
@@ -148,7 +148,11 @@ export function createConnection(server) {
 		wsUrl = ticket.websocketUrl;
 		const shopReady = reconnecting && Object.keys(shop).length ? Promise.resolve() : loadShop().then((s) => (shop = s));
 		// Never hold the loading screen hostage to a slow font/CDN.
-		Promise.race([Promise.all([shopReady, document.fonts?.ready]), new Promise((r) => setTimeout(r, 8000))]).then(() => (state.assetsReady = true));
+		// The interface's sounds are part of what it waits for (the first dialog or chat line must not hitch); the music loads behind it.
+		Promise.race([Promise.all([shopReady, document.fonts?.ready, preloadUiSounds()]), new Promise((r) => setTimeout(r, 8000))]).then(() => {
+			state.assetsReady = true;
+			preloadBgms();
+		});
 		state.guest = ticket.guest;
 		setNudgeState({ signedIn: !ticket.guest, closed: ticket.nudgesClosed });
 		setProgress({ signedIn: !ticket.guest, done: ticket.tutorialDone });
@@ -239,7 +243,7 @@ export function createConnection(server) {
 		if (pkt.type === 'chat' && line && line !== lastLine && !line.system && !isHidden(line, state, { ignoreSpectatorRule: true })) playSound('k', { ui: true });
 		if (pkt.type === 'roomStuck') rws?.close(); // legacy: close the room connection
 		gameAudio.onPacket(pkt);
-		if (pkt.type === 'room' && state.myRoom) preloadGameSounds(); // being in a room means a game may start: have its sounds ready
+		if (pkt.type === 'room' && state.myRoom) preloadGameSounds({ quiz: QUIZ.includes(state.meta.rules[state.rooms[state.myRoom]?.modeKey]?.rule) }); // being in a room means a game may start: have its sounds ready
 		// Legacy: failing a second turn in a row makes me leave (and says why).
 		if (pkt.type === 'turnEnd' && state.game?.combo?.action === 'leave') {
 			send('leave', { source: 'fail-combo' });

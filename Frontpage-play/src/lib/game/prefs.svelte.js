@@ -22,14 +22,17 @@ export const DEFAULTS = {
 	hideRecords: false, // 전적 숨기기
 	userSort: 'entry', // 접속자 정렬: entry | score | name
 	itemDock: 'answer', // 아이템전 아이템 막대 위치: answer | top | bottom | left | right
-	hand: 'right' // 주로 사용하는 손: right | left (left puts the lobby's side bar on the right)
+	hand: 'right', // 주로 사용하는 손: right | left (left puts the lobby's side bar on the right)
+	chatFloating: false, // 채팅창 띄우기: the chat is a floating sheet (opened by a button) on every screen instead of a panel fixed under the room list
+	chatStyle: 'messenger' // 대화 표시 방식: messenger (bubbles) | classic (the legacy client's one line: name, text, time)
 };
 export const CHOICES = {
 	whisperFrom: ['off', 'guest', 'friend', 'near'],
 	filter: ['blind', 'off'],
 	userSort: ['entry', 'score', 'name'],
 	hand: ['right', 'left'],
-	itemDock: ['answer', 'top', 'bottom', 'left', 'right']
+	itemDock: ['answer', 'top', 'bottom', 'left', 'right'],
+	chatStyle: ['messenger', 'classic']
 };
 export const USER_SORTS = CHOICES.userSort;
 

@@ -83,6 +83,11 @@
 	}
 	function next() {
 		if (leaving) return;
+		// Someone who only watched has no result of their own: the 시상식 is the end, there is no 'mine' step to show (it would be empty).
+		if (!view?.me) {
+			open = false;
+			return;
+		}
 		leaving = true;
 		setTimeout(() => {
 			step = 'mine';
@@ -458,7 +463,7 @@
 				</div>
 				<div class="mine-actions">
 					<div class="mine-buttons">
-						<button type="button" class="kk-btn kk-btn-primary ok" data-step-next onclick={next}>{t('play.result.next')}<kbd class="kk-key" aria-hidden="true">Enter</kbd></button>
+						<button type="button" class="kk-btn kk-btn-primary ok" data-step-next onclick={next}>{t(view.me ? 'play.result.next' : 'kkutu.dialog.result.ok')}<kbd class="kk-key" aria-hidden="true">Enter</kbd></button>
 					</div>
 				</div>
 			</div>

@@ -54,7 +54,12 @@
 		open = false;
 		onjoin?.(room.no);
 	};
-	const masterInfo = () => store.hooks.openProfile?.(room.master);
+	// A profile opens in a window of its own: this dialog gives way to it (it used to stay open and hide the profile behind it).
+	const showProfile = (id) => {
+		open = false;
+		store.hooks.openProfile?.(id);
+	};
+	const masterInfo = () => showProfile(room.master);
 </script>
 
 <Dialog bind:open title={room ? `${room.no}${L('kkutu.js.sRoomInfo')}` : ''}>
@@ -78,7 +83,7 @@
 					{#each members as m (m.u.id)}
 						{@const u = m.u}
 						<li class="flex items-center gap-1 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) pr-1 shadow-[0_2px_0_var(--kk-line)]">
-							<button type="button" disabled={u.robot} onclick={() => store.hooks.openProfile?.(u.id)} class="flex min-h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-1 text-left enabled:hover:bg-(--kk-surface-2)">
+							<button type="button" disabled={u.robot} onclick={() => showProfile(u.id)} class="flex min-h-12 min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 py-1 text-left enabled:hover:bg-(--kk-surface-2)">
 								<Moremi equip={u.equip} shop={store.shop} {parts} size={36} label={u.name} frame={false} maskable={!u.robot && u.id !== net.id} />
 								<LevelIcon level={u.lv} size={20} maskable={!u.robot && u.id !== net.id} />
 								<span class="min-w-0 flex-1 truncate font-bold">{name(u)}</span>

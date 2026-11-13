@@ -2,11 +2,15 @@
 	import { t } from '../i18n.svelte.js';
 	import Dialog from './Dialog.svelte';
 	import Icon from './Icon.svelte';
-	import Tooltip from '../ui/Tooltip.svelte';
 	import { toast } from '../ui/toast.svelte.js';
 	import { confirm } from '../ui/confirm.svelte.js';
 
-	/** The account's security code, shown when the server sends it (the /보안코드 command). */
+	/**
+	 * The account's security code, shown when the server sends it (the /보안코드 command).
+	 * Laid out to resize rather than to fit one device (what Apple's guidance for folding phones asks too): no fixed widths, the code wraps onto
+	 * as many lines as it needs, and the actions are a grid that is two across even on a 340 px cover screen, so the same dialog works
+	 * on a cover display, an unfolded one and a desktop.
+	 */
 	let { store, open = $bindable(false) } = $props();
 	const prompt = $derived(['uidInfo', 'newUidInfo'].includes(store.net.prompt?.lang) ? store.net.prompt : null);
 	// The code is a secret: it opens hidden, and closing the dialog hides it again.
@@ -35,17 +39,14 @@
 </script>
 
 <Dialog bind:open title={t('play.cmd.code.title')}>
-	<div class="flex flex-col gap-4">
+	<div class="mx-auto flex w-full max-w-md min-w-0 flex-col gap-4">
 		<p class="text-sm leading-relaxed">{prompt ? t(`play.cmd.${prompt.lang}`) : ''}</p>
-		<div class="flex items-stretch gap-2">
-			<output class="kk-input flex h-12 min-w-0 flex-1 items-center px-3 font-mono text-lg font-extrabold select-all {shown ? 'tracking-widest' : 'tracking-normal'}">{shown ? (prompt?.value ?? '') : '•'.repeat(prompt?.value?.length ?? 0)}</output>
-			<Tooltip text={t(shown ? 'play.cmd.code.hide' : 'play.cmd.code.show')}>
-				<button type="button" onclick={() => (shown = !shown)} aria-label={t(shown ? 'play.cmd.code.hide' : 'play.cmd.code.show')} aria-pressed={shown} class="kk-btn inline-flex aspect-square h-12 items-center justify-center"><Icon name={shown ? 'visibility_off' : 'visibility'} size={22} /></button>
-			</Tooltip>
-			<button type="button" onclick={copy} class="kk-btn inline-flex items-center gap-1.5 px-4"><Icon name="content_copy" size={20} />{t('play.cmd.code.copy')}</button>
-		</div>
-		<div class="flex">
-			<button type="button" onclick={rotate} class="kk-btn inline-flex items-center gap-1.5 px-4"><Icon name="autorenew" size={20} />{t('play.cmd.code.rotate')}</button>
+		<!-- break-all: a code has no spaces, and a single line would be cut off on a narrow screen -->
+		<output class="kk-input block min-h-12 w-full min-w-0 px-3 py-2.5 font-mono text-base leading-relaxed font-extrabold break-all select-all sm:text-lg {shown ? 'tracking-wider' : 'tracking-normal'}">{shown ? (prompt?.value ?? '') : '•'.repeat(prompt?.value?.length ?? 0)}</output>
+		<div class="grid grid-cols-2 gap-2">
+			<button type="button" onclick={() => (shown = !shown)} aria-label={t(shown ? 'play.cmd.code.hide' : 'play.cmd.code.show')} aria-pressed={shown} class="kk-btn inline-flex min-h-12 items-center justify-center gap-1.5 px-2 text-sm whitespace-nowrap"><Icon name={shown ? 'visibility_off' : 'visibility'} size={20} />{t(shown ? 'play.cmd.code.hideShort' : 'play.cmd.code.showShort')}</button>
+			<button type="button" onclick={copy} class="kk-btn inline-flex min-h-12 items-center justify-center gap-1.5 px-2 text-sm whitespace-nowrap"><Icon name="content_copy" size={20} />{t('play.cmd.code.copy')}</button>
+			<button type="button" onclick={rotate} class="kk-btn col-span-2 inline-flex min-h-12 items-center justify-center gap-1.5 px-2 text-sm whitespace-nowrap"><Icon name="autorenew" size={20} />{t('play.cmd.code.rotate')}</button>
 		</div>
 		<button type="button" onclick={() => (open = false)} class="kk-btn kk-btn-primary min-h-12 text-base">{t('play.cmd.code.ok')}</button>
 	</div>

@@ -61,6 +61,7 @@
 	]);
 	const lobbyOptions = $derived(LOBBY_BGMS.map((k) => ({ value: k, label: t(`play.audio.lobby.${k}`) })));
 	const setOptions = $derived(SOUND_SETS.map((k) => ({ value: k, label: t(`play.audio.set.${k}`) })));
+	const chatStyleOptions = $derived(['messenger', 'classic'].map((k) => ({ value: k, label: t(`play.settings.chatStyle.${k}`) })));
 	const handOptions = $derived(['right', 'left'].map((k) => ({ value: k, label: t(`play.settings.hand.${k}`) })));
 	const ICONS = { off: 'groups', guest: 'verified_user', friend: 'group', near: 'favorite' };
 	const whisper = $derived(['off', 'guest', 'friend', 'near'].map((k) => ({ value: k, icon: ICONS[k], label: t(`play.settings.whisper.${k}`) })));
@@ -165,6 +166,10 @@
 					<RadioGroup variant="cards" label={t('play.settings.whisper.title')} value={draft.whisperFrom} options={whisper} onchange={(v) => (draft.whisperFrom = v)} />
 					{@render toggle('dmAlerts', t('play.settings.dmAlerts'), t('play.settings.dmAlertsExpl'))}
 				</div>
+				<div class="flex flex-col gap-1">
+					{@render heading('forum', t('play.settings.chatStyle.title'))}
+					<Tooltip text={t('play.settings.chatStyleExpl')} placement="top"><span class="block"><Select label={t('play.settings.chatStyle.title')} value={draft.chatStyle} options={chatStyleOptions} onchange={(v) => (draft.chatStyle = v)} /></span></Tooltip>
+				</div>
 				<Switch checked={draft.filter === 'blind'} onchange={(v) => (draft.filter = v ? 'blind' : 'off')}><span class="flex items-center gap-1.5 text-sm font-extrabold"><Icon name="shield" size={20} />{t('play.settings.filter.title')}</span></Switch>
 				<div class="flex flex-col gap-1">
 					{@render heading('block', t('play.settings.tab.request'))}
@@ -178,6 +183,7 @@
 					{@render toggle('autoReady', t('play.settings.autoReady'))}
 					{@render toggle('vibration', t('play.settings.vibration'))}
 					{@render toggle('spectatorTag', t('play.settings.spectatorTag'))}
+					{@render toggle('chatFloating', t('play.settings.chatFloating'), t('play.settings.chatFloatingExpl'))}
 					<div class="mt-1 flex flex-col gap-1">
 						<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.settings.hand.title')}</span>
 						<Select label={t('play.settings.hand.title')} value={draft.hand} options={handOptions} onchange={(v) => (draft.hand = v)} />

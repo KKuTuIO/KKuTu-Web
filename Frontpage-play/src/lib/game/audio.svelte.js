@@ -219,13 +219,44 @@ export function playLobbyBgm({ fromResult = false, fromTutorial = false } = {}) 
 	if (unlocked) startBgm();
 }
 /**
+ * Fetching and decoding happens once per page load (the files themselves sit in the browser's HTTP cache for two weeks), so the first
+ * time a sound plays it would have to be fetched and decoded first, a hitch of up to half a second for the music. The functions here
+ * do that ahead of time, a few files at a time so they do not crowd out the page's own requests. They never reject: a file that is
+ * missing is just played when it is asked for (and fails then).
+ */
+function loadAll(urls, limit = 4) {
+	const queue = [...new Set(urls)];
+	const worker = async () => {
+		while (queue.length) await buffer(queue.shift());
+	};
+	return Promise.all(Array.from({ length: Math.min(limit, queue.length) }, worker)).then(() => {});
+}
+
+/** The small sounds of the interface: a dialog opening, the shop, the chat's tick, a level up. The loading screen waits for these. */
+const UI_SOUNDS = ['dialog', 'shop', 'k', 'lvup'];
+export function preloadUiSounds() {
+	if (!ensure()) return Promise.resolve();
+	return loadAll(UI_SOUNDS.map((n) => soundUrl(n, audio.set)));
+}
+
+/** The music that starts on a screen change: the result's and the shop's, and a quiz mode's two tracks when the room plays one. */
+export function preloadBgms({ quiz = false } = {}) {
+	if (!ensure()) return Promise.resolve();
+	return loadAll([resultBgmUrl(), shopBgmUrl(), ...(quiz ? ['JaqwiBGM', 'JaqwiFastBGM'].map((n) => soundUrl(n, audio.set)) : [])], 2);
+}
+
+/**
  * Fetches and decodes the effects a game uses before they are needed (the legacy client loads its whole sound list at login).
  * Without it, the first time a sound plays it is only played once its file has arrived, which can be after the word it belongs to.
+ * Called when I am in a room, so a game that starts finds everything in memory. Resolves when the effects and the music are ready.
  */
 const GAME_SOUNDS = ['mission', 'success', 'fail', 'timeout', 'horr', 'lvup', 'round_start', 'game_start', 'Al', 'kung', ...Array.from({ length: 11 }, (_, i) => `As${i}`), ...Array.from({ length: 11 }, (_, i) => `K${i}`), ...Array.from({ length: 11 }, (_, i) => `T${i}`)];
-export function preloadGameSounds() {
-	if (!ensure()) return;
-	for (const name of GAME_SOUNDS) buffer(soundUrl(name, audio.set));
+const gamePreloads = new Map(); // `${set}:${quiz}` -> Promise: one pass per sound set, not one per room packet
+export function preloadGameSounds({ quiz = false } = {}) {
+	if (!ensure()) return Promise.resolve();
+	const key = `${audio.set}:${quiz}`;
+	if (!gamePreloads.has(key)) gamePreloads.set(key, loadAll(GAME_SOUNDS.map((name) => soundUrl(name, audio.set))).then(() => preloadBgms({ quiz })));
+	return gamePreloads.get(key);
 }
 
 /** True while the result screen's music is the one wanted. */
@@ -317,6 +348,7 @@ export function setMuted(muted) {
 export function setSoundSet(set) {
 	audio.set = set;
 	save();
+	preloadUiSounds(); // the new set's sounds are fetched now, not at the first click
 }
 export function setLobbyBgm(name) {
 	audio.lobby = name;

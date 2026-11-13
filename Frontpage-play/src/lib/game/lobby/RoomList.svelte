@@ -46,21 +46,21 @@
 			{#if menu}
 				<div role="group" aria-label={t('play.rooms.sortFilterLabel')} class="absolute top-12 right-0 z-10 w-64 kk-card p-3">
 					<p class="pb-1 text-xs font-bold text-(color:--kk-muted)">{t('play.rooms.sort')}</p>
-					<RadioGroup label={t('play.rooms.sort')} bind:value={s.sort} options={[{ value: 'recent', label: t('play.rooms.sort.recent') }, { value: 'crowded', label: t('play.rooms.sort.crowded') }]} />
-					<div class="pt-1"><Checkbox bind:checked={s.joinableFirst}>{t('play.rooms.sort.joinable')}</Checkbox></div>
+					<RadioGroup label={t('play.rooms.sort')} value={s.sort} onchange={(v) => store.setRoomOption('sort', v)} options={[{ value: 'recent', label: t('play.rooms.sort.recent') }, { value: 'crowded', label: t('play.rooms.sort.crowded') }]} />
+					<div class="pt-1"><Checkbox checked={s.joinableFirst} onchange={(v) => store.setRoomOption('joinableFirst', v)}>{t('play.rooms.sort.joinable')}</Checkbox></div>
 					<hr class="my-1.5 border-(color:--kk-line)" />
 					<p class="pb-1 text-xs font-bold text-(color:--kk-muted)">{t('play.rooms.filter')}</p>
-					<Checkbox bind:checked={s.waitingOnly}>{t('play.rooms.filter.waiting')}</Checkbox>
-					<Checkbox bind:checked={s.hasSeat}>{t('play.rooms.filter.seat')}</Checkbox>
-					<Checkbox bind:checked={s.hideLocked}>{t('play.rooms.filter.hideLocked')}</Checkbox>
+					<Checkbox checked={s.waitingOnly} onchange={(v) => store.setRoomOption('waitingOnly', v)}>{t('play.rooms.filter.waiting')}</Checkbox>
+					<Checkbox checked={s.hasSeat} onchange={(v) => store.setRoomOption('hasSeat', v)}>{t('play.rooms.filter.seat')}</Checkbox>
+					<Checkbox checked={s.hideLocked} onchange={(v) => store.setRoomOption('hideLocked', v)}>{t('play.rooms.filter.hideLocked')}</Checkbox>
 				</div>
 			{/if}
 		</div>
 		<div role="group" aria-label={t('play.rooms.view')} class="hidden overflow-hidden rounded-xl border-[1.5px] border-(color:--kk-line-strong) md:flex">
 			{#each [['list', 'view_list', 'play.rooms.view.list'], ['tile', 'grid_view', 'play.rooms.view.tile']] as [v, icon, key]}
 				<Tooltip text={t(key)} placement="bottom"><button type="button" aria-pressed={s.view === v} aria-label={t(key)} onclick={() => {
-							s.view = v;
-							s.viewPicked = true;
+							store.setRoomOption('view', v);
+							store.setRoomOption('viewPicked', true);
 						}} class="grid size-11 place-items-center {s.view === v ? 'bg-(--kk-fill) text-white' : 'bg-(--kk-surface) text-(color:--kk-muted) hover:bg-(--kk-accent-soft)'}"><Icon name={icon} /></button></Tooltip>
 			{/each}
 		</div>

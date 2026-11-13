@@ -172,7 +172,8 @@
 			}
 			raf = requestAnimationFrame(frame);
 		};
-		frame();
+		// the first frame runs inside this effect: untracked, or what it reads back (the clocks it has just written) would make the effect depend on them
+		untrack(frame);
 		return () => cancelAnimationFrame(raf);
 	});
 	const turnPct = $derived(g?.turnTime > 0 ? (turnLeft / g.turnTime) * 100 : 0);

@@ -29,6 +29,15 @@
 				if (progress.signedIn) store.conn.send('tutorialClear', { id: lesson.id });
 				return;
 			}
+			if (name === 'openModes' || name === 'closeModes') {
+				const open = name === 'openModes';
+				if (!store.hooks.openModes) return; // the room list lobby has no mode screen
+				store.hooks.openModes(open);
+				await tick();
+				await new Promise((r) => setTimeout(r, open ? 750 : 450)); // the mode screen's slide in / the stage's unblur
+				overlay?.restack();
+				return;
+			}
 			if (name === 'openCreate' || name === 'closeCreate') {
 				store.hooks.setCreateOpen?.(name === 'openCreate');
 				await tick();
@@ -44,6 +53,7 @@
 		return () => {
 			runner.dispose();
 			store.hooks.setCreateOpen?.(false);
+			store.hooks.openModes?.(false);
 			playLobbyBgm({ fromResult: true, fromTutorial: true }); // and the lobby's comes back
 		};
 	});

@@ -74,7 +74,7 @@
 	const waitingOf = (index) => rooms.filter((r) => !r.playing && !r.locked && r.cur < r.max && r.modeIndex === index).length;
 </script>
 
-<div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-16">
+<div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pt-3 pb-16">
 	<!-- me, in full; the balloon is the profile's own. Pressing me is just for fun (the profile is on the 소셜 tab). -->
 	<div class="relative flex h-52 shrink-0 flex-col items-center justify-end pb-1">
 		<button type="button" bind:this={body} onclick={press} aria-label={t('play.home.poke')} class="relative origin-bottom rounded-2xl">

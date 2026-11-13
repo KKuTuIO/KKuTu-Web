@@ -61,6 +61,7 @@
 	]);
 	const lobbyOptions = $derived(LOBBY_BGMS.map((k) => ({ value: k, label: t(`play.audio.lobby.${k}`) })));
 	const setOptions = $derived(SOUND_SETS.map((k) => ({ value: k, label: t(`play.audio.set.${k}`) })));
+	const lobbyStyleOptions = $derived(['match', 'rooms'].map((k) => ({ value: k, label: t(`play.settings.lobbyStyle.${k}`) })));
 	const chatStyleOptions = $derived(['messenger', 'classic'].map((k) => ({ value: k, label: t(`play.settings.chatStyle.${k}`) })));
 	const handOptions = $derived(['right', 'left'].map((k) => ({ value: k, label: t(`play.settings.hand.${k}`) })));
 	const ICONS = { off: 'groups', guest: 'verified_user', friend: 'group', near: 'favorite' };
@@ -184,6 +185,11 @@
 					{@render toggle('vibration', t('play.settings.vibration'))}
 					{@render toggle('spectatorTag', t('play.settings.spectatorTag'))}
 					{@render toggle('chatFloating', t('play.settings.chatFloating'), t('play.settings.chatFloatingExpl'))}
+					{@render toggle('reduceMotion', t('play.settings.reduceMotion'), t('play.settings.reduceMotionExpl'))}
+					<div class="mt-1 flex flex-col gap-1">
+						<Tooltip text={t('play.settings.lobbyStyleExpl')} placement="top"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.settings.lobbyStyle.title')}</span></Tooltip>
+						<Select label={t('play.settings.lobbyStyle.title')} value={draft.lobbyStyle} options={lobbyStyleOptions} onchange={(v) => (draft.lobbyStyle = v)} />
+					</div>
 					<div class="mt-1 flex flex-col gap-1">
 						<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.settings.hand.title')}</span>
 						<Select label={t('play.settings.hand.title')} value={draft.hand} options={handOptions} onchange={(v) => (draft.hand = v)} />

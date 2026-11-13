@@ -15,6 +15,7 @@
 	import RoomList from '$lib/game/lobby/RoomList.svelte';
 	import ChatPanel from '$lib/game/lobby/ChatPanel.svelte';
 	import MobileHome from '$lib/game/lobby/MobileHome.svelte';
+	import MatchHome from '$lib/game/lobby/MatchHome.svelte';
 	import PushScreen from '$lib/game/lobby/PushScreen.svelte';
 	import FullscreenButton from '$lib/game/lobby/FullscreenButton.svelte';
 	import ConnectionGate from '$lib/game/lobby/ConnectionGate.svelte';
@@ -98,6 +99,8 @@
 		};
 	});
 	let peopleTab = $state(false);
+	// 로비 선택 (설정): the match-centred lobby (the stage and 게임 시작!) or the room list as before
+	const newLobby = $derived(prefs.lobbyStyle === 'match');
 	let roomsOpen = $state(false); // the phone's room list: a screen of its own (PushScreen), pushed from the home's 방 목록 button
 	// Being in a room closes it (the list is where I came from, the room is where I am now).
 	$effect(() => {
@@ -106,7 +109,8 @@
 	const tabBar = $derived(phone && !store.net.myRoom);
 	// The desktop's two columns (side bar beside the room list, chat under it): from 1024 px, and on an unfolded folding phone from 768 px (foldable.svelte.js).
 	const desk = $derived(twoColumns(winW));
-	// The phone's home scrolls to the edges of the page: the page's own padding below it would clip the cards short of the tab bar.
+	// The phone's home scrolls to the edges of the page (its scrollbar too): the page's own padding would clip the cards short of the tab bar and push the scrollbar in.
+	// The home has the same padding inside its scroller.
 	const homeBleed = $derived(phone && !store.net.myRoom && !shopOpen && !replayOpen && !newsOpen && !academyOpen && !peopleTab);
 	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen);
 	// Moving between tabs slides the page the way the tab lies: to the right of this one, it comes in from the right.
@@ -199,7 +203,8 @@
 	let replayStart = $state({ game: '', n: 0 }); // a game an outside link (a profile's 경기 내역) wants opened
 	let shopStart = $state({ tab: '', sub: '', n: 0 }); // where an outside link (해커레미's 보너스권) wants the shop to open
 	// 채팅창 띄우기 (설정 > 게임) makes it so on every screen.
-	const chatFab = $derived(prefs.chatFloating || shopOpen || replayOpen || (academyOpen && !store.net.myRoom));
+	// the new lobby always floats the chat (its stage takes the room), whatever the 채팅 띄움 setting says; in a room the setting is back
+	const chatFab = $derived(prefs.chatFloating || (newLobby && !store.net.myRoom) || shopOpen || replayOpen || (academyOpen && !store.net.myRoom));
 	// Leaving: the academy sinks and fades while the lobby is already there (it is lifted out of the layout so nothing jumps).
 	function sink(node, { duration = 260 } = {}) {
 		const { offsetTop: top, offsetLeft: left, offsetWidth: width, offsetHeight: height } = node;
@@ -533,9 +538,9 @@
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
-		<TopBar {store} {phone} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
+		<TopBar {store} {phone} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
-	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:pb-0!' : ''}">
+	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : ''}">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
 		<div style:--side-w="{sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
 			<SidePanel {store} profile={peopleShown || desk} />
@@ -556,6 +561,8 @@
 				{#if store.inGame}<GameScreen {store} />{/if}
 			{:else if academyOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} game={academyGame} /></div>
+			{:else if newLobby}
+				<MatchHome {store} {ready} variant={phone ? 'phone' : 'desk'} oncreate={() => (createOpen = true)} ontutorial={() => (tutorialOpen = true)} onjoin={join} />
 			{:else if phone}
 				<!-- phone: the home (the games); the room list is a screen of its own, pushed over it (below, like the mailbox and the shop) -->
 				<MobileHome {store} {ready} onselect={selectTab} onrooms={() => (roomsOpen = true)} oncreate={() => (createOpen = true)} />
@@ -584,7 +591,7 @@
 			{/if}
 		</main>
 	</div>
-	{#if tabBar}<MobileTabBar {store} active={tabNow} onselect={selectTab} />{/if}
+	{#if tabBar}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} />{/if}
 </div>
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->

@@ -1,5 +1,6 @@
 <script>
-	import { nudgeOpen } from '../nudges.svelte.js';
+	import { nudgeOpen, closeNudge } from '../nudges.svelte.js';
+	import { t } from '../i18n.svelte.js';
 
 	/**
 	 * A one-time hint bubble pointing at the element it wraps (the wrapper adds no box, like Tooltip).
@@ -8,7 +9,7 @@
 	 *
 	 * It shows while `enabled` and the nudge `id` isn't closed (see nudges.svelte.js), and only if the target is on screen (the
 	 * same button exists in the desktop bar and the phone strip; the hidden one has no size and shows nothing).
-	 * The bubble is a button: pressing it presses the target. It is a fixed layer under the loading veil and the dialogs (not in the
+	 * The bubble presses the target when pressed, and has a × that dismisses the nudge for good (closeNudge, kept on the account). It is a fixed layer under the loading veil and the dialogs (not in the
 	 * top layer, which would put it over them), and a fixed layer isn't clipped by the phone strip's scrolling.
 	 * @type {{id:string, enabled?:boolean, above?:boolean, content:import('svelte').Snippet, children:import('svelte').Snippet}}
 	 */
@@ -57,17 +58,16 @@
 
 <span bind:this={host} class="contents">{@render children()}</span>
 {#if wanted && shown}
-	<button
+	<div
 		bind:this={bubble}
-		type="button"
-		onclick={() => target()?.click()}
 		style:left="{pos.left}px"
 		style:top="{pos.top}px"
 		style:--arrow="{pos.arrow}px"
-		class:above class="kk-hint fixed z-40 m-0 flex max-w-[min(20rem,calc(100vw-1rem))] items-center gap-2.5 overflow-visible rounded-2xl border-[1.5px] border-(color:--kk-line-strong) bg-(--kk-surface) py-2 pr-4 pl-2 text-left text-sm font-bold text-balance text-(color:--kk-text) shadow-[0_3px_0_var(--kk-line-strong)]"
+		class:above class="kk-hint fixed z-40 m-0 flex max-w-[min(20rem,calc(100vw-1rem))] items-stretch overflow-visible rounded-2xl border-[1.5px] border-(color:--kk-line-strong) bg-(--kk-surface) text-left text-sm font-bold text-balance text-(color:--kk-text) shadow-[0_3px_0_var(--kk-line-strong)]"
 	>
-		{@render content()}
-	</button>
+		<button type="button" onclick={() => target()?.click()} class="flex min-w-0 flex-1 items-center gap-2.5 rounded-l-2xl py-2 pr-2 pl-2 text-left">{@render content()}</button>
+		<button type="button" aria-label={t('play.dialog.close')} onclick={() => closeNudge(id)} class="grid w-9 shrink-0 place-items-start justify-center rounded-r-2xl pt-1.5 text-(color:--kk-muted) hover:text-(color:--kk-text)"><span class="material-symbols-outlined leading-none select-none" aria-hidden="true" style="font-size:18px">close</span></button>
+	</div>
 {/if}
 
 <style>

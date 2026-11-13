@@ -9,10 +9,10 @@
 	 * (default eyes only) and breathes (everything except the shoes sinks and squashes a little over the legs).
 	 * Any other body (robot, foot remover, carrot...) or a tiny size leaves the avatar still.
 	 */
-	let { equip = {}, shop = {}, parts = [], size = 40, label = '', frame = true, maskable = false, animated = true, class: cls = '' } = $props();
+	let { equip = {}, shop = {}, parts = [], size = 40, label = '', frame = true, maskable = false, animated = true, hide = [], class: cls = '' } = $props();
 	const uid = $props.id();
 	const masked = $derived(maskable && prefs.hideUsers);
-	const layers = $derived(moremiLayers(equip, shop, parts));
+	const layers = $derived(moremiLayers(equip, shop, parts).filter((l) => !hide.includes(l.part))); // `hide`: layer parts to leave out ('back' 배경, 'badge' 휘장)
 	let broken = $state({}); // layer pictures that failed to load: hidden instead of drawing the browser's broken-image icon
 	const vectorBody = $derived(layers.some((l) => l.vector === 'body'));
 	const vectorEye = $derived(layers.some((l) => l.vector === 'eye'));

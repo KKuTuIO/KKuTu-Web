@@ -11,7 +11,8 @@
 	import Nudge from './Nudge.svelte';
 	import Mascot from './Mascot.svelte';
 	import { closeNudge, nudgeOpen } from '../nudges.svelte.js';
-	let { store, active = 'lobby', onselect, phone = false } = $props();
+	/** `noHelp`: the new lobby carries the tutorial itself (a 튜토리얼 button and the nudge), so the bar has no 도움말 */
+	let { store, active = 'lobby', onselect, phone = false, noHelp = false } = $props();
 	const me = $derived(store.me);
 	const guest = $derived(store.net.guest);
 	// Anywhere in the client the logo asks first: it leaves the game page for the portal.
@@ -38,7 +39,7 @@
 		{ id: 'settings', icon: 'settings', color: '#CCCCCC' }
 	];
 	const items = $derived(guest ? guestMenu : menu);
-	const utilities = $derived(guest ? memberUtilities.filter((u) => u.id !== 'mail') : memberUtilities);
+	const utilities = $derived((guest ? memberUtilities.filter((u) => u.id !== 'mail') : memberUtilities).filter((u) => !(noHelp && u.id === 'help')));
 	const fmt = (n) => (n ?? 0).toLocaleString();
 </script>
 

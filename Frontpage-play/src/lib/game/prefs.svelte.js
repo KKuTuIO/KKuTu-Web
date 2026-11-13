@@ -24,7 +24,9 @@ export const DEFAULTS = {
 	itemDock: 'answer', // 아이템전 아이템 막대 위치: answer | top | bottom | left | right
 	hand: 'right', // 주로 사용하는 손: right | left (left puts the lobby's side bar on the right)
 	chatFloating: false, // 채팅창 띄우기: the chat is a floating sheet (opened by a button) on every screen instead of a panel fixed under the room list
-	chatStyle: 'messenger' // 대화 표시 방식: messenger (bubbles) | classic (the legacy client's one line: name, text, time)
+	chatStyle: 'messenger', // 대화 표시 방식: messenger (bubbles) | classic (the legacy client's one line: name, text, time)
+	reduceMotion: false, // 움직임 감소: the lobby stage stands still (no parallax, no falling petals or snow)
+	lobbyStyle: 'match' // 로비 선택: match (the stage and 게임 시작!) | rooms (the room list, as before)
 };
 export const CHOICES = {
 	whisperFrom: ['off', 'guest', 'friend', 'near'],
@@ -32,7 +34,8 @@ export const CHOICES = {
 	userSort: ['entry', 'score', 'name'],
 	hand: ['right', 'left'],
 	itemDock: ['answer', 'top', 'bottom', 'left', 'right'],
-	chatStyle: ['messenger', 'classic']
+	chatStyle: ['messenger', 'classic'],
+	lobbyStyle: ['match', 'rooms']
 };
 export const USER_SORTS = CHOICES.userSort;
 

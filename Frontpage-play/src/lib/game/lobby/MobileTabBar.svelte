@@ -12,22 +12,27 @@
 	 * A guest has no announcements, so 도움말 takes that tab (with 학사모레미's nudge) and 이어하기 moves into the sheet.
 	 * The mailbox lives in the header. Desktop keeps TopBar's menu.
 	 */
-	let { store, active = 'lobby', onselect } = $props();
+	/** `noHelp`: the new lobby carries the tutorial itself, so there is no 도움말 tab or entry and no nudge on 더보기 */
+	let { store, active = 'lobby', onselect, noHelp = false } = $props();
 	const guest = $derived(store.net.guest);
 	let more = $state(false);
-	const tabs = $derived([
-		{ id: 'lobby', icon: 'home' },
-		{ id: 'people', icon: 'group', badge: store.pendingFriends.incoming.length },
-		{ id: 'shop', icon: 'storefront' },
-		guest ? { id: 'help', icon: 'help' } : { id: 'news', icon: 'campaign', dot: store.newsAlerts.length > 0 }
-	]);
-	const extra = $derived([
-		{ id: 'rank', icon: 'trophy' },
-		{ id: 'dict', icon: 'menu_book' },
-		{ id: 'replay', icon: 'replay' },
-		guest ? { id: 'progress', icon: 'cloud_upload' } : { id: 'help', icon: 'help' },
-		{ id: 'settings', icon: 'settings' }
-	]);
+	const tabs = $derived(
+		[
+			{ id: 'lobby', icon: 'home' },
+			{ id: 'people', icon: 'group', badge: store.pendingFriends.incoming.length },
+			{ id: 'shop', icon: 'storefront' },
+			guest ? { id: 'help', icon: 'help' } : { id: 'news', icon: 'campaign', dot: store.newsAlerts.length > 0 }
+		].filter((m) => !(noHelp && m.id === 'help'))
+	);
+	const extra = $derived(
+		[
+			{ id: 'rank', icon: 'trophy' },
+			{ id: 'dict', icon: 'menu_book' },
+			{ id: 'replay', icon: 'replay' },
+			guest ? { id: 'progress', icon: 'cloud_upload' } : { id: 'help', icon: 'help' },
+			{ id: 'settings', icon: 'settings' }
+		].filter((m) => !(noHelp && m.id === 'help'))
+	);
 	const moreActive = $derived(['rank', 'dict', 'replay'].includes(active));
 	const ready = $derived(store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom);
 	const label = (id) => t(`play.nav.${id}`);
@@ -49,7 +54,7 @@
 	</button>
 {/snippet}
 
-<nav data-tour="nav" aria-label={t('play.nav.label')} class="grid shrink-0 grid-cols-5 border-t border-(color:--kk-line) bg-(--kk-surface) pb-[env(safe-area-inset-bottom)]">
+<nav data-tour="nav" aria-label={t('play.nav.label')} style:grid-template-columns="repeat({tabs.length + 1}, minmax(0, 1fr))" class="grid shrink-0 border-t border-(color:--kk-line) bg-(--kk-surface) pb-[env(safe-area-inset-bottom)]">
 	{#each tabs as m (m.id)}
 		{#if m.id === 'help'}
 			<!-- 학사모레미 points at 도움말 until it is opened -->
@@ -71,7 +76,7 @@
 		{/if}
 	{/each}
 	<!-- a member's 도움말 is in the sheet, so the tutorial's nudge points at the tab that holds it -->
-	<Nudge id="tutorial" above enabled={ready && !guest}>
+	<Nudge id="tutorial" above enabled={ready && !guest && !noHelp}>
 		{#snippet content()}<Mascot {store} size={44} /><span>{t('play.nudge.tutorial')}</span>{/snippet}
 		<button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} onclick={() => (haptic(), (more = !more))} class="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
 			<span class="grid h-7 w-14 place-items-center rounded-full transition-colors {moreActive || more ? 'bg-(--kk-accent-soft)' : ''}"><Icon name="more_horiz" size={22} /></span>

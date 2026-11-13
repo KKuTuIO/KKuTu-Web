@@ -8,10 +8,12 @@
 	import { exactRoomNo } from '../lobbyModel.js';
 	import RoomRow from './RoomRow.svelte';
 	// `bare`: no card of its own (a phone's room list is a whole screen: the card's border, rounding and the page's padding around it are lost room)
-	let { store, onjoin, compact = false, bare = false } = $props();
+	/** `lead`: a snippet at the left end of the header row (the new lobby puts its back button there) */
+	/** `dense`: the table with narrower columns and shorter rows, for a stage that is less than 960 px wide (the new lobby) */
+	let { store, onjoin, compact = false, bare = false, lead, dense = false } = $props();
 	const s = $derived(store.ui);
 	// The table needs this much width; where it would scroll sideways the rooms default to tiles (until the user picks a view).
-	const TABLE_MIN = 960;
+	const TABLE_MIN = $derived(dense ? 740 : 960);
 	let width = $state(0);
 	$effect(() => {
 		if (s.viewPicked || !width) return;
@@ -35,6 +37,7 @@
 
 <section data-tour="room-list" bind:clientWidth={width} class="{bare ? 'flex' : `kk-card flex ${compact ? 'min-h-48' : 'min-h-80'}`} min-w-0 flex-1 flex-col overflow-hidden">
 	<div class="flex flex-wrap items-center gap-2.5 border-b border-(color:--kk-line) {bare ? 'px-3' : 'px-3.5'} py-2">
+		{@render lead?.()}
 		<form onsubmit={submit} class="kk-input flex h-12 min-w-0 flex-1 items-center gap-2 rounded-xl px-4 sm:max-w-sm">
 			<Icon name="search" />
 			<input bind:value={s.query} aria-label={t('play.rooms.searchLabel')} placeholder={t('play.rooms.searchPlaceholder')} class="min-w-0 flex-1 bg-transparent text-base outline-none" />
@@ -77,12 +80,12 @@
 		</div>
 	{:else}
 		<div class="min-h-0 flex-1 overflow-x-auto max-md:hidden">
-			<div class="flex h-full min-w-[960px] flex-col">
-				<div class="grid min-h-11 grid-cols-[72px_minmax(220px,1.6fr)_190px_minmax(150px,1.4fr)_120px_110px_84px] items-center border-b border-(color:--kk-line) bg-(--kk-surface-2) px-3.5 text-xs font-extrabold text-(color:--kk-muted)">
+			<div class="flex h-full {dense ? 'min-w-[740px]' : 'min-w-[960px]'} flex-col">
+				<div class="grid {dense ? 'min-h-8 bg-transparent!' : 'min-h-11'} {dense ? 'grid-cols-[52px_minmax(140px,1.5fr)_104px_minmax(100px,1.1fr)_124px_96px_70px]' : 'grid-cols-[72px_minmax(220px,1.6fr)_190px_minmax(150px,1.4fr)_120px_110px_84px]'} items-center border-b border-(color:--kk-line) bg-(--kk-surface-2) px-3.5 text-xs font-extrabold text-(color:--kk-muted)">
 					<span>{t('play.rooms.col.no')}</span><span>{t('play.rooms.col.name')}</span><span>{t('play.rooms.col.game')}</span><span>{t('play.rooms.col.rule')}</span><span>{t('play.rooms.col.roundTime')}</span><span>{t('play.rooms.col.players')}</span><span>{t('play.rooms.col.status')}</span>
 				</div>
 				<div class="min-h-0 flex-1 overflow-y-auto">
-					{#each store.visibleRooms as r (r.no)}<RoomRow room={r} onjoin={() => onjoin(r.no)} onmenu={(e) => store.hooks.openRoomMenu?.(r.no, e)} />{/each}
+					{#each store.visibleRooms as r (r.no)}<RoomRow room={r} {dense} onjoin={() => onjoin(r.no)} onmenu={(e) => store.hooks.openRoomMenu?.(r.no, e)} />{/each}
 				</div>
 			</div>
 		</div>

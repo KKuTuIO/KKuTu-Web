@@ -16,6 +16,7 @@
 	import ChatPanel from '$lib/game/lobby/ChatPanel.svelte';
 	import MobileHome from '$lib/game/lobby/MobileHome.svelte';
 	import PushScreen from '$lib/game/lobby/PushScreen.svelte';
+	import FullscreenButton from '$lib/game/lobby/FullscreenButton.svelte';
 	import ConnectionGate from '$lib/game/lobby/ConnectionGate.svelte';
 	import CreateRoomDialog from '$lib/game/lobby/CreateRoomDialog.svelte';
 	import QuickMatchDialog from '$lib/game/lobby/QuickMatchDialog.svelte';
@@ -591,6 +592,8 @@
 {#if !(phone && shopOpen)}
 <div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage} lift={tabBar ? true : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
 {/if}
+<!-- phone: full screen is a faint icon in the top right corner (the bars have no room for a button) -->
+{#if phone}<FullscreenButton watermark />{/if}
 <CreateRoomDialog {store} bind:open={createOpen} />
 <CreateRoomDialog {store} bind:open={settingsOpen} editing={store.currentRoom} />
 <QuickMatchDialog {store} start={quickMode} bind:open={quickOpen} />

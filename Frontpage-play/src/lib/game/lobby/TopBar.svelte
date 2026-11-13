@@ -6,6 +6,7 @@
 	import Logo from './Logo.svelte';
 	import GameIcon from './GameIcon.svelte';
 	import MailMenu from './MailMenu.svelte';
+	import FullscreenButton from './FullscreenButton.svelte';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import Nudge from './Nudge.svelte';
 	import Mascot from './Mascot.svelte';
@@ -117,6 +118,7 @@
 			<Tooltip text={t('play.currency.pingHint')}><span class="inline-flex h-10 items-center gap-2 rounded-xl bg-(--kk-surface-2) pr-4 pl-2 font-extrabold tabular-nums"><GameIcon name="ping" size={26} />{fmt(me.money)}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.currency.ping')}</span></span></Tooltip>
 			<Tooltip text={t('play.stat.winHint')}><span class="hidden h-10 items-center gap-2 rounded-xl bg-(--kk-surface-2) pr-4 pl-2 font-extrabold tabular-nums lg:inline-flex"><GameIcon name="win" size={26} />{fmt(me.wins)}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.stat.win')}</span></span></Tooltip>
 		{/if}
+		<FullscreenButton class="max-md:hidden" />
 		{#if phone && !guest}<MailMenu {store} />{/if}
 		<div class="hidden items-center gap-1 md:flex">
 			{#each utilities as m (m.id)}{#if m.id === 'mail'}<MailMenu {store} />{:else}{@render item(m, { utility: true })}{/if}{/each}

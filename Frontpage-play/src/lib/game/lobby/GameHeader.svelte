@@ -3,6 +3,7 @@
 	import { prefs } from '../prefs.svelte.js';
 	import { maskBad } from '../badwords.js';
 	import Icon from './Icon.svelte';
+	import FullscreenButton from './FullscreenButton.svelte';
 	import Logo from './Logo.svelte';
 	import { Spring } from '../spring.js';
 
@@ -43,7 +44,7 @@
 
 {#if room}
 	<!-- (in a replay the header sits in the page as a card, without the logo, the dictionary and the reserved exit) -->
-	<header class="kk-card relative z-20 flex min-h-14 shrink-0 items-center gap-3 px-4 py-2 max-md:min-h-12 max-md:gap-2 max-md:px-2 max-md:[&>button:last-child]:ml-auto {store.replay ? 'rounded-2xl' : 'rounded-none border-x-0 border-t-0'}">
+	<header class="kk-card relative z-20 flex min-h-14 shrink-0 items-center gap-3 px-4 py-2 max-md:min-h-12 max-md:gap-2 max-md:px-2 max-md:pr-6! max-md:[&>button:last-child]:ml-auto {store.replay ? 'rounded-2xl' : 'rounded-none border-x-0 border-t-0'}">
 		{#if !store.replay}<span class="hidden sm:inline"><Logo class="h-7" /></span>{/if}
 		{#snippet roomName()}
 			<span class="shrink-0 font-black whitespace-nowrap tabular-nums max-md:hidden">{store.replay ? t('kkutu.js.replay') : room.practice ? t('kkutu.js.practice') : room.no}</span>
@@ -89,6 +90,7 @@
 		{#if canReserve}
 			<button type="button" onclick={() => store.toggleExitReserve()} aria-pressed={store.ui.exitReserved} aria-label={reserveLabel} class="kk-btn max-md:hidden inline-flex shrink-0 items-center gap-1.5 border-transparent text-white {store.ui.exitReserved ? 'bg-[#db2777] shadow-[0_3px_0_#9d174d]' : 'bg-[#ec4899] shadow-[0_3px_0_#be185d]'}"><Icon name="event_busy" size={20} fill={store.ui.exitReserved} /><span class="hidden xl:inline">{reserveLabel}</span></button>
 		{/if}
+		<FullscreenButton class="max-md:hidden" />
 		<button type="button" onclick={() => store.leaveGame()} aria-label={t('play.room.leave')} class="kk-btn kk-btn-danger inline-flex shrink-0 items-center gap-1.5"><Icon name="logout" size={20} /><span class="hidden xl:inline">{t('play.room.leave')}</span></button>
 	</header>
 {/if}

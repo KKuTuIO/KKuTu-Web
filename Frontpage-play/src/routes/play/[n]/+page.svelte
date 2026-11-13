@@ -41,7 +41,7 @@
 	import YellBanner from '$lib/game/ui/YellBanner.svelte';
 	import { confirm } from '$lib/game/ui/confirm.svelte.js';
 	import { prefs } from '$lib/game/prefs.svelte.js';
-	import { foldableWide } from '$lib/game/foldable.svelte.js';
+	import { SPLIT, twoColumns } from '$lib/game/foldable.svelte.js';
 	import { isShut } from '$lib/game/blocks.svelte.js';
 	import SettingsDialog from '$lib/game/lobby/SettingsDialog.svelte';
 	import ExpiredDialog from '$lib/game/lobby/ExpiredDialog.svelte';
@@ -96,9 +96,8 @@
 	});
 	let peopleTab = $state(false);
 	const tabBar = $derived(phone && !store.net.myRoom);
-	// Only on a folding phone (foldable.svelte.js) and only where the screen is wider than tall: the tab bar stands at the side as a rail,
-	// as Apple's guidance for folding phones has navigation controls do, and the page gets the whole height. Other phones keep the bottom bar.
-	const rail = $derived(tabBar && foldableWide(winW, winH));
+	// The desktop's two columns (side bar beside the room list, chat under it): from 1024 px, and on an unfolded folding phone from 768 px (foldable.svelte.js).
+	const desk = $derived(twoColumns(winW));
 	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen);
 	// Moving between tabs slides the page the way the tab lies: to the right of this one, it comes in from the right.
 	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'replay'];
@@ -122,7 +121,9 @@
 	const chatMax = () => Math.max(CHAT.min, Math.min(CHAT.max, winH - 56 - 32 - 12 - 280));
 	// A size saved on a bigger screen still has to fit this one.
 	const sideW = $derived(Math.min(layout.side, sideMax()));
-	const chatH = $derived(Math.min(layout.chat, chatMax()));
+	// An open fold is two columns but short (the address bar and the system bars take height): the chat shrinks to its smallest and the room list may too.
+	const tight = $derived(winW < SPLIT && winH < 760 && twoColumns(winW));
+	const chatH = $derived(tight ? CHAT.min : Math.min(layout.chat, chatMax()));
 	const leftHanded = $derived(prefs.hand === 'left');
 
 	const store = createLobbyStore(Number(page.params.n));
@@ -523,16 +524,15 @@
 	{:else}
 		<TopBar {store} {phone} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
-	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (leftHanded ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
-	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} lg:flex-row lg:overflow-hidden">
+	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''}">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
-		<div style:--side-w="{sideW}px" class="relative order-2 flex max-h-72 lg:max-h-none lg:w-(--side-w) lg:shrink-0 {leftHanded ? 'lg:order-3' : 'lg:order-1'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
-			<SidePanel {store} profile={peopleShown} />
-			<ResizeHandle class="-right-4 hidden h-full w-4 lg:block {leftHanded ? 'lg:hidden' : ''}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
-			<ResizeHandle class="-left-4 hidden h-full w-4 {leftHanded ? 'lg:block' : ''}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
+		<div style:--side-w="{sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
+			<SidePanel {store} profile={peopleShown || desk} />
+			<ResizeHandle class="-right-4 h-full w-4 {desk && !leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
+			<ResizeHandle class="-left-4 h-full w-4 {desk && leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 		</div>
 		<!-- overflow-hidden clips the room while it slides in; the bottom padding keeps the cards' hard shadow visible -->
-		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden lg:order-2 pb-[3px] {peopleShown ? 'max-md:hidden' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''}">
+		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden {desk ? 'order-2' : ''} pb-[3px] {peopleShown ? 'max-md:hidden' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''}">
 			{#if shopOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ShopScreen {store} start={shopStart} onclose={() => (shopOpen = false)} /></div>
 			{:else if replayOpen}
@@ -558,26 +558,25 @@
 					</button>
 					<button type="button" disabled={!ready} data-tour="create-room" onclick={() => (createOpen = true)} class="kk-btn kk-btn-lg min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="add" size={28} /></span><span class="kk-btn-label">{t('play.lobby.createRoom')}</span></button>
 				</div>
-				<RoomList {store} onjoin={join} />
+				<RoomList {store} onjoin={join} compact={tight} />
 				</div>
 			{/if}
 			<!-- Desktop: chat lives under the room list, where the old client had it. -->
 			{#if !chatFab}
-				<div data-tour="chat" class="relative z-10 hidden lg:block">
+				<div data-tour="chat" class="relative z-10 {desk ? 'block' : 'hidden'}">
 					<ResizeHandle class="-top-3 right-0 left-0 h-3 w-full" orientation="horizontal" grow={-1} value={chatH} min={CHAT.min} max={chatMax} def={CHAT.def} label={t('play.layout.resizeChat')} onchange={(v) => setLayout('chat', v)} />
 					<ChatPanel {store} inline height={chatH} />
 				</div>
 			{/if}
 		</main>
 	</div>
-	{#if tabBar}<MobileTabBar {store} active={tabNow} onselect={selectTab} side={rail} edge={leftHanded ? 'right' : 'left'} />{/if}
-	</div>
+	{#if tabBar}<MobileTabBar {store} active={tabNow} onselect={selectTab} />{/if}
 </div>
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->
 <!-- Mobile/tablet: a button opening a docked sheet; in the 아카데미 and the shop the chat is that button on desktop too, so the screen gets the room. -->
 {#if !(phone && shopOpen)}
-<div class={chatFab ? 'contents' : 'contents lg:hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage} lift={tabBar ? !rail : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
+<div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage} lift={tabBar ? true : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
 {/if}
 <CreateRoomDialog {store} bind:open={createOpen} />
 <CreateRoomDialog {store} bind:open={settingsOpen} editing={store.currentRoom} />

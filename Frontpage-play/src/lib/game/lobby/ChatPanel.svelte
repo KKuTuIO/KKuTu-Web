@@ -15,6 +15,7 @@
 	import FamilyChat from './FamilyChat.svelte';
 	import StaffTag from './StaffTag.svelte';
 	import { family } from '../familyStore.svelte.js';
+	import { twoColumns } from '../foldable.svelte.js';
 
 	/**
 	 * `inline`: a permanent panel in the lobby layout (desktop, where the old client kept its chat: under the room list).
@@ -101,14 +102,14 @@
 		return () => ro.disconnect();
 	});
 	// In a game the box warns against typing help (legacy placeholder).
-	const mobileInput = typeof matchMedia !== 'undefined' && !matchMedia('(min-width: 1024px)').matches;
+	const mobileInput = typeof matchMedia !== 'undefined' && !twoColumns(innerWidth);
 	// Something (the user menu's 귓속말) put text into the chat box: take it and put the cursor there.
 	let appliedDraft = untrack(() => store.draft.nonce);
 	$effect(() => {
 		const d = store.draft;
 		if (d.nonce === appliedDraft) return;
 		appliedDraft = d.nonce;
-		const desktop = matchMedia('(min-width: 1024px)').matches;
+		const desktop = twoColumns(innerWidth);
 		// The desktop panel answers on desktop, the sheet elsewhere (and on desktop too when the chat is only a button).
 		if (inline ? !desktop : desktop && !fab) return;
 		text = d.text;
@@ -121,7 +122,7 @@
 		const r = store.dmRequest;
 		if (r.nonce === appliedDm) return;
 		appliedDm = r.nonce;
-		const desktop = matchMedia('(min-width: 1024px)').matches;
+		const desktop = twoColumns(innerWidth);
 		if (inline ? !desktop : desktop && !fab) return;
 		tab = 'dm';
 		if (!inline) show();

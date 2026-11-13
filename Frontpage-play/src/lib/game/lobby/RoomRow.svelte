@@ -38,9 +38,9 @@
 	{/if}
 {/snippet}
 
-<div class="relative" oncontextmenu={(e) => onmenu && (e.preventDefault(), onmenu(e))} role="presentation">
+<div class="relative isolate {tile ? 'h-full' : ''}" oncontextmenu={(e) => onmenu && (e.preventDefault(), onmenu(e))} role="presentation">
 {#if tile}
-	<button type="button" onclick={onjoin} class="kk-card group flex w-full min-h-28 md:min-h-36 overflow-hidden text-left transition hover:-translate-y-0.5 hover:border-(color:--kk-accent) {room.playing ? 'opacity-70' : ''}">
+	<button type="button" onclick={onjoin} class="kk-card group flex h-full w-full min-h-28 md:min-h-36 overflow-hidden text-left transition hover:-translate-y-0.5 hover:border-(color:--kk-accent) {room.playing ? 'opacity-70' : ''}">
 		<span class="grid w-16 shrink-0 place-items-center bg-(--kk-accent-soft) text-xl font-black text-(color:--kk-accent-strong) tabular-nums">{room.no}</span>
 		<span class="flex min-w-0 flex-1 flex-col gap-1.5 p-3">
 			<span class="flex items-center gap-2"><span class="truncate font-extrabold">{room.title}</span>{@render lock()}<span class="ml-auto">{@render seats()}</span></span>

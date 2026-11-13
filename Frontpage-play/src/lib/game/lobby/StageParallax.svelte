@@ -57,6 +57,23 @@
 		stageEl?.style.setProperty('--night', night.toFixed(3));
 	});
 
+	// Where the plate (the round mat) is on the stage, whatever the stage's size: the pictures are square, shown with object-fit: cover at
+	// `pos` and zoomed about 50% 55%, so the anchor (the Moremi's feet, in picture pixels) is mapped the same way. Written as --mx / --my (px)
+	// and --ms (the picture's scale, px per picture pixel) on the stage, for whatever stands on the plate.
+	const ANCHOR = { x: 627, y: 790, size: 1254 };
+	$effect(() => {
+		if (!stageEl || !w || !h) return;
+		const posY = wide ? 0.44 : 0.5;
+		const s = Math.max(w, h) / ANCHOR.size;
+		const bx = (w - ANCHOR.size * s) * 0.5 + ANCHOR.x * s;
+		const by = (h - ANCHOR.size * s) * posY + ANCHOR.y * s;
+		const ox = w * 0.5;
+		const oy = h * 0.55;
+		stageEl.style.setProperty('--mx', `${(ox + (bx - ox) * zoom).toFixed(1)}px`);
+		stageEl.style.setProperty('--my', `${(oy + (by - oy) * zoom).toFixed(1)}px`);
+		stageEl.style.setProperty('--ms', (s * zoom).toFixed(3));
+	});
+
 	onMount(() => {
 		stageEl = root?.closest('[data-stage]') ?? root;
 		const stops = [];

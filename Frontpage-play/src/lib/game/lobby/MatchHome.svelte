@@ -11,6 +11,7 @@
 	import RoomList from './RoomList.svelte';
 	import SingleScreen from './SingleScreen.svelte';
 	import Mascot from './Mascot.svelte';
+	import NickName from './NickName.svelte';
 	import Icon from './Icon.svelte';
 	import Moremi from './Moremi.svelte';
 	import StatusBubble from './StatusBubble.svelte';
@@ -112,16 +113,22 @@
 <svelte:window onkeydown={(e) => e.key === 'Escape' && phase !== 'idle' && !e.defaultPrevented && !document.querySelector('dialog[open]') && back()} />
 
 {#snippet remi(size)}
-	<button type="button" bind:this={body} onclick={press} aria-label={t('play.home.poke')} style:filter="brightness(calc(1 - var(--night, 0) * 0.1))" class="relative origin-bottom rounded-2xl">
-		<Moremi equip={me?.equip ?? {}} shop={store.shop} {parts} {size} label={me?.name ?? ''} frame={false} hide={HIDE} />
-	</button>
-	{#if me}
-		{#key poke?.n ?? 0}
-			{#if poke}<StatusBubble message={poke.text} />
-			{:else if status}<StatusBubble message={status} isMe {mask} onsave={(m) => store.setStatusMessage(m)} />
-			{:else}<StatusBubble message={t('play.home.greeting', { name: me.name })} />{/if}
-		{/key}
-	{/if}
+	<!-- one box the size of the Moremi: the balloon sits right above its head and the nickname plate right under its feet, at any stage size -->
+	<div class="relative shrink-0" style:width="{size}px" style:height="{size}px">
+		<button type="button" bind:this={body} onclick={press} aria-label={t('play.home.poke')} style:filter="brightness(calc(1 - var(--night, 0) * 0.1))" class="relative origin-bottom rounded-2xl">
+			<Moremi equip={me?.equip ?? {}} shop={store.shop} {parts} {size} label={me?.name ?? ''} frame={false} hide={HIDE} />
+		</button>
+		{#if me}
+			<div class="absolute -inset-x-20 h-0" style:top="-5.4rem">
+				{#key poke?.n ?? 0}
+					{#if poke}<StatusBubble message={poke.text} />
+					{:else if status}<StatusBubble message={status} isMe {mask} onsave={(m) => store.setStatusMessage(m)} />
+					{:else}<StatusBubble message={t('play.home.greeting', { name: me.name })} />{/if}
+				{/key}
+			</div>
+			<span class="nick pointer-events-none absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded-full px-3 py-0.5 text-sm font-extrabold whitespace-nowrap"><NickName user={me} /></span>
+		{/if}
+	</div>
 {/snippet}
 
 <!-- the big button: a shine sweeps over it now and then (the enchant button's), and a checkerboard drifts in under it on hover -->
@@ -147,24 +154,15 @@
 	<!-- the whole stage (the area the room list used to fill): the buildings stand at the two edges, me in the middle on the plaza (the mode screen
 	     moves me to the left), the one big button in the lower right -->
 	<div class="@container relative z-10 min-h-0 flex-1 overflow-hidden">
-		<div data-stage-moremi style:transform="translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 6px), 0)" style:opacity={sub ? 0 : 1} style:left="calc(50% - var(--mshift, 0) * 28%)" style:transition="left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)" class="absolute bottom-24 left-1/2 flex h-[24rem] w-80 -translate-x-1/2 flex-col items-center justify-end @max-xl:bottom-28">{@render remi(180)}</div>
+		<div data-stage-moremi style:transform="translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 6px), 0)" style:opacity={sub ? 0 : 1} style:left="calc(var(--mx, 50%) - var(--mshift, 0) * 28%)" style:top="var(--my, 75%)" style:translate="-50% -100%" style:scale="clamp(0.7, calc(var(--ms, 0.8) / 0.8), 1.25)" style:transition="left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)" class="absolute flex h-[24rem] w-80 origin-bottom flex-col items-center justify-end">{@render remi(180)}</div>
 		<section aria-label={t('play.home.play')} style:opacity={phase === 'idle' ? 1 : 0} style:pointer-events={phase === 'idle' ? undefined : 'none'} class="absolute right-0 bottom-24 transition-opacity duration-300">
 			{@render startButton('edge')}
 		</section>
 	</div>
 {:else}
 <div class="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-3 pt-3 pb-16 max-md:justify-end md:pb-6">
-	<div data-stage-moremi style:transform="translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 6px), 0)" style:opacity={sub ? 0 : 1} style:translate="0 calc(var(--mshift, 0) * -220px)" style:transition="translate 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)" class="relative flex h-52 w-full shrink-0 flex-col items-center justify-end pb-1">
-		<button type="button" bind:this={body} onclick={press} aria-label={t('play.home.poke')} style:filter="brightness(calc(1 - var(--night, 0) * 0.1))" class="relative origin-bottom rounded-2xl">
-			<Moremi equip={me?.equip ?? {}} shop={store.shop} {parts} size={132} label={me?.name ?? ''} frame={false} hide={HIDE} />
-		</button>
-		{#if me}
-			{#key poke?.n ?? 0}
-				{#if poke}<StatusBubble message={poke.text} />
-				{:else if status}<StatusBubble message={status} isMe {mask} onsave={(m) => store.setStatusMessage(m)} />
-				{:else}<StatusBubble message={t('play.home.greeting', { name: me.name })} />{/if}
-			{/key}
-		{/if}
+	<div data-stage-moremi style:transform="translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 6px), 0)" style:opacity={sub ? 0 : 1} style:left="var(--mx, 50%)" style:top="calc(var(--my, 60%) - var(--mshift, 0) * 220px)" style:translate="-50% -100%" style:scale="clamp(0.7, calc(var(--ms, 0.63) / 0.63), 1.25)" style:transition="top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)" class="absolute flex h-52 w-72 origin-bottom flex-col items-center justify-end pb-1">
+		{@render remi(132)}
 	</div>
 
 	<section aria-label={t('play.home.play')} style:opacity={phase !== 'idle' ? 0 : 1} style:pointer-events={phase !== 'idle' ? 'none' : undefined} class="flex w-full max-w-md shrink-0 flex-col gap-2.5 transition-opacity duration-300">
@@ -182,7 +180,7 @@
 		{@render backBtn()}
 		<button type="button" disabled={!ready} onclick={oncreate} class="hw kk-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 font-extrabold max-md:hidden"><Icon name="add" size={20} /><HoverWave text={t('play.lobby.createRoom')} /></button>
 	{/snippet}
-	<div role="dialog" aria-modal="true" aria-label={phase === 'rooms' ? t('play.home.rooms') : t('play.lobby.arcade')} class="sub absolute inset-0 z-30 p-3">
+	<div role="dialog" aria-modal="true" aria-label={phase === 'rooms' ? t('play.home.rooms') : t('play.lobby.arcade')} class="sub absolute inset-0 z-30 p-1 pt-2">
 		<div class="glass relative flex h-full min-h-0 w-full flex-col overflow-hidden">
 			{#if phase === 'rooms'}
 				<RoomList {store} onjoin={(no) => onjoin?.(no)} bare dense lead={roomsLead} />
@@ -317,6 +315,15 @@
 		100% {
 			transform: translateX(450%) skewX(-20deg);
 		}
+	}
+
+	/* the nickname plate under the feet, as in the shop's preview */
+	.nick {
+		background: rgb(255 255 255 / 0.88);
+		box-shadow: 0 2px 5px rgb(20 40 80 / 0.25);
+	}
+	.nick :global(*) {
+		color: #1d2433;
 	}
 
 	/* ---- the title lettering: white, an outline in a dark of the card's colour ---- */

@@ -17,7 +17,8 @@
 	import RoomMembers from './RoomMembers.svelte';
 	import FamilyPanel from './FamilyPanel.svelte';
 	import { family } from '../familyStore.svelte.js';
-	let { store, profile = false } = $props();
+	/** `noAvatar`: the new lobby's stage already shows my Moremi, so the profile box leaves its picture out (on the desktop) */
+	let { store, profile = false, noAvatar = false } = $props();
 	let addOpen = $state(false);
 	// While the game runs (and until its result is closed) the second tab is the game room (who plays and who watches) instead of
 	// who is online, and it is the one shown at first. The waiting room keeps the online list.
@@ -110,7 +111,7 @@
 
 		<div class="{profile ? '' : 'hidden'} border-t border-(color:--kk-line) bg-(--kk-panel) p-4 lg:block">
 			<button type="button" data-tour="profile" onclick={() => store.hooks.openDress?.('profile')} aria-label="{me.name}: {t('play.profile.windowTitle')}" class="flex w-full items-center gap-3 text-left">
-				<Moremi equip={me.equip} shop={store.shop} {parts} size={64} label={me.name} frame={false} />
+				{#if !noAvatar}<Moremi equip={me.equip} shop={store.shop} {parts} size={64} label={me.name} frame={false} />{/if}
 				<div class="min-w-0 flex-1">
 					<p class="truncate text-base leading-tight font-extrabold">{me.name}</p>
 					<p class="mt-1 flex items-center gap-1.5 text-xs font-bold text-(color:--kk-muted)"><LevelIcon level={me.lv} size={20} />{t('play.level', { level: me.lv })}</p>

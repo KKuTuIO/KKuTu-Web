@@ -1,5 +1,8 @@
 <script>
-	import { t } from '../i18n.svelte.js';
+	import { onDestroy } from 'svelte';
+	import { t, tList } from '../i18n.svelte.js';
+	import { haptic } from '../haptics.js';
+	import { reducedMotion } from '../motion.js';
 	import { groupModes } from '../lobbyModel.js';
 	import { prefs } from '../prefs.svelte.js';
 	import { maskBad } from '../badwords.js';
@@ -23,6 +26,30 @@
 	// The balloon: what I set as my status message (editable here as in the profile), else the greeting (not an editable text).
 	const status = $derived(me?.statusMessage ?? '');
 	const mask = (s) => (prefs.filter === 'off' ? s : maskBad(s));
+
+	// Pressing my Moremi: it is squashed and springs back (the press you feel), the phone ticks, and the balloon pops up with a new line
+	// (the balloon is keyed on `n`, so it is a new one each time, with the pop that a newly set status message has). Never the same line twice running.
+	let poke = $state(null); // { text, n } while a line is showing
+	let pokes = 0;
+	let body = $state();
+	let timer;
+	function press() {
+		haptic(14);
+		const lines = tList('play.home.poke');
+		if (lines.length) {
+			let text = lines[Math.floor(Math.random() * lines.length)];
+			while (lines.length > 1 && text === poke?.text) text = lines[Math.floor(Math.random() * lines.length)];
+			poke = { text, n: ++pokes };
+			clearTimeout(timer);
+			timer = setTimeout(() => (poke = null), 5000); // then the greeting (or my status message) is back
+		}
+		if (!reducedMotion())
+			body?.animate(
+				[{ transform: 'scale(1, 1)' }, { transform: 'scale(1.06, 0.8)', offset: 0.28 }, { transform: 'scale(0.97, 1.08)', offset: 0.6 }, { transform: 'scale(1, 1)' }],
+				{ duration: 440, easing: 'ease-out' }
+			);
+	}
+	onDestroy(() => clearTimeout(timer));
 
 	// The places that were in 더보기, one tap away.
 	const shortcuts = [
@@ -48,14 +75,17 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-16">
-	<!-- me, in full; the balloon is the profile's own -->
+	<!-- me, in full; the balloon is the profile's own. Pressing me is just for fun (the profile is on the 소셜 tab). -->
 	<div class="relative flex h-52 shrink-0 flex-col items-center justify-end pb-1">
-		<button type="button" onclick={() => store.hooks.openDress?.('profile')} aria-label={t('play.home.profile')} class="relative rounded-2xl">
+		<button type="button" bind:this={body} onclick={press} aria-label={t('play.home.poke')} class="relative origin-bottom rounded-2xl">
 			<Moremi equip={me?.equip ?? {}} shop={store.shop} {parts} size={132} label={me?.name ?? ''} frame={false} />
 		</button>
 		{#if me}
-			{#if status}<StatusBubble message={status} isMe {mask} onsave={(m) => store.setStatusMessage(m)} />
-			{:else}<StatusBubble message={t('play.home.greeting', { name: me.name })} />{/if}
+			{#key poke?.n ?? 0}
+				{#if poke}<StatusBubble message={poke.text} />
+				{:else if status}<StatusBubble message={status} isMe {mask} onsave={(m) => store.setStatusMessage(m)} />
+				{:else}<StatusBubble message={t('play.home.greeting', { name: me.name })} />{/if}
+			{/key}
 		{/if}
 	</div>
 

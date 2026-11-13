@@ -15,6 +15,7 @@
 	import RoomList from '$lib/game/lobby/RoomList.svelte';
 	import ChatPanel from '$lib/game/lobby/ChatPanel.svelte';
 	import MobileHome from '$lib/game/lobby/MobileHome.svelte';
+	import PushScreen from '$lib/game/lobby/PushScreen.svelte';
 	import ConnectionGate from '$lib/game/lobby/ConnectionGate.svelte';
 	import CreateRoomDialog from '$lib/game/lobby/CreateRoomDialog.svelte';
 	import QuickMatchDialog from '$lib/game/lobby/QuickMatchDialog.svelte';
@@ -96,10 +97,16 @@
 		};
 	});
 	let peopleTab = $state(false);
-	let roomsOpen = $state(false); // the phone's room list: a page of its own, behind the home's 방 목록 card
+	let roomsOpen = $state(false); // the phone's room list: a screen of its own (PushScreen), pushed from the home's 방 목록 button
+	// Being in a room closes it (the list is where I came from, the room is where I am now).
+	$effect(() => {
+		if (store.net.myRoom) roomsOpen = false;
+	});
 	const tabBar = $derived(phone && !store.net.myRoom);
 	// The desktop's two columns (side bar beside the room list, chat under it): from 1024 px, and on an unfolded folding phone from 768 px (foldable.svelte.js).
 	const desk = $derived(twoColumns(winW));
+	// The phone's home scrolls to the edges of the page: the page's own padding below it would clip the cards short of the tab bar.
+	const homeBleed = $derived(phone && !store.net.myRoom && !shopOpen && !replayOpen && !newsOpen && !academyOpen && !peopleTab);
 	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen);
 	// Moving between tabs slides the page the way the tab lies: to the right of this one, it comes in from the right.
 	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'replay'];
@@ -527,7 +534,7 @@
 	{:else}
 		<TopBar {store} {phone} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
-	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''}">
+	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:pb-0!' : ''}">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
 		<div style:--side-w="{sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
 			<SidePanel {store} profile={peopleShown || desk} />
@@ -535,7 +542,7 @@
 			<ResizeHandle class="-left-4 h-full w-4 {desk && leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 		</div>
 		<!-- overflow-hidden clips the room while it slides in; the bottom padding keeps the cards' hard shadow visible -->
-		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden {desk ? 'order-2' : ''} pb-[3px] {peopleShown ? 'max-md:hidden' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''} {phone && store.ui.phoneStage ? 'max-md:pb-0!' : ''}">
+		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden {desk ? 'order-2' : ''} pb-[3px] {peopleShown ? 'max-md:hidden' : ''} {(phone && store.ui.phoneStage) || homeBleed ? 'max-md:pb-0!' : ''}">
 			{#if shopOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ShopScreen {store} start={shopStart} onclose={() => (shopOpen = false)} /></div>
 			{:else if replayOpen}
@@ -549,19 +556,8 @@
 			{:else if academyOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} game={academyGame} /></div>
 			{:else if phone}
-				<!-- phone: the home (the games as cards), or the room list as a page of its own -->
-				{#if roomsOpen}
-					<div class="flex min-h-0 flex-1 flex-col gap-2.5">
-						<div class="flex shrink-0 items-center gap-2">
-							<button type="button" onclick={() => (roomsOpen = false)} aria-label={t('play.home.back')} class="kk-btn grid size-11 place-items-center p-0"><Icon name="arrow_back" size={22} /></button>
-							<h2 class="min-w-0 flex-1 truncate text-lg font-black">{t('play.home.rooms')}</h2>
-							<button type="button" disabled={!ready} onclick={() => (createOpen = true)} class="kk-btn kk-btn-primary inline-flex min-h-11 items-center gap-1.5 px-4 text-sm"><Icon name="add" size={20} />{t('play.lobby.createRoom')}</button>
-						</div>
-						<RoomList {store} onjoin={join} />
-					</div>
-				{:else}
-					<MobileHome {store} {ready} onselect={selectTab} onrooms={() => (roomsOpen = true)} oncreate={() => (createOpen = true)} />
-				{/if}
+				<!-- phone: the home (the games); the room list is a screen of its own, pushed over it (below, like the mailbox and the shop) -->
+				<MobileHome {store} {ready} onselect={selectTab} onrooms={() => (roomsOpen = true)} oncreate={() => (createOpen = true)} />
 			{:else}
 				<div class="flex min-h-0 flex-1 flex-col gap-3">
 				<div class="grid grid-cols-2 gap-2.5 md:flex md:flex-wrap md:items-center">
@@ -611,6 +607,13 @@
 <CommandHelpDialog bind:open={helpOpen} />
 <TutorialDialog {store} bind:open={tutorialOpen} onstart={startLesson} oncommands={() => ((tutorialOpen = false), (helpOpen = true))} />
 {#if lessonId}<TutorialSession {store} lesson={lessonById(lessonId)} onexit={() => (lessonId = '')} />{/if}
+<!-- phone: the room list is a screen of its own, as the mailbox and the shop are (declared before the menus, which must lie over it) -->
+<PushScreen open={roomsOpen && phone} title={t('play.home.rooms')} onclose={() => (roomsOpen = false)}>
+	{#snippet actions()}
+		<button type="button" disabled={!ready} onclick={() => (createOpen = true)} class="inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-extrabold text-(color:--kk-accent-strong) hover:bg-(--kk-surface-2) disabled:opacity-50"><Icon name="add" size={22} />{t('play.lobby.createRoom')}</button>
+	{/snippet}
+	<RoomList {store} onjoin={join} bare />
+</PushScreen>
 <UserMenu bind:this={userMenu} {store} />
 <RoomMenu bind:this={roomMenu} {store} />
 <RoomInfoDialog bind:this={roomInfo} {store} onjoin={join} />

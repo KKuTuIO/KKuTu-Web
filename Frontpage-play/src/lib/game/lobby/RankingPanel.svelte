@@ -94,7 +94,7 @@
 	const deltaClass = { up: 'text-(color:--kk-danger)', down: 'text-(color:--kk-blue)', none: 'text-(color:--kk-muted)' };
 
 	const columns = $derived([
-		{ key: 'rank', label: t('play.rank.col.rank'), align: 'center', width: 'w-20', class: 'font-black', numeric: true },
+		{ key: 'rank', label: t('play.rank.col.rank'), align: 'center', width: 'w-20', class: 'font-black whitespace-nowrap', numeric: true },
 		{ key: 'name', label: t('play.rank.col.name'), class: 'max-w-0 font-bold' },
 		{ key: 'level', label: t('play.rank.col.level'), align: 'center', width: 'w-20' },
 		{ key: 'score', label: t('play.rank.col.score'), align: 'right', width: 'w-32', class: 'font-semibold', numeric: true },
@@ -105,7 +105,8 @@
 
 {#snippet cell(r, col)}
 	{#if col.key === 'rank'}
-		{t('play.rank.rankValue', { n: r.rank + 1 })}
+		<!-- the column's title says 순위: a 위 after a six-digit rank (the live ranking goes past 400,000) does not fit the column and wraps -->
+		{r.rank + 1}
 	{:else if col.key === 'name'}
 		<span class="block truncate">{@render who(r)}</span>
 	{:else if col.key === 'level'}

@@ -7,7 +7,8 @@
 	import RadioGroup from '../ui/RadioGroup.svelte';
 	import { exactRoomNo } from '../lobbyModel.js';
 	import RoomRow from './RoomRow.svelte';
-	let { store, onjoin, compact = false } = $props();
+	// `bare`: no card of its own (a phone's room list is a whole screen: the card's border, rounding and the page's padding around it are lost room)
+	let { store, onjoin, compact = false, bare = false } = $props();
 	const s = $derived(store.ui);
 	// The table needs this much width; where it would scroll sideways the rooms default to tiles (until the user picks a view).
 	const TABLE_MIN = 960;
@@ -32,8 +33,8 @@
 	}
 </script>
 
-<section data-tour="room-list" bind:clientWidth={width} class="kk-card flex {compact ? 'min-h-48' : 'min-h-80'} min-w-0 flex-1 flex-col overflow-hidden">
-	<div class="flex flex-wrap items-center gap-2.5 border-b border-(color:--kk-line) px-3.5 py-2">
+<section data-tour="room-list" bind:clientWidth={width} class="{bare ? 'flex' : `kk-card flex ${compact ? 'min-h-48' : 'min-h-80'}`} min-w-0 flex-1 flex-col overflow-hidden">
+	<div class="flex flex-wrap items-center gap-2.5 border-b border-(color:--kk-line) {bare ? 'px-3' : 'px-3.5'} py-2">
 		<form onsubmit={submit} class="kk-input flex h-12 min-w-0 flex-1 items-center gap-2 rounded-xl px-4 sm:max-w-sm">
 			<Icon name="search" />
 			<input bind:value={s.query} aria-label={t('play.rooms.searchLabel')} placeholder={t('play.rooms.searchPlaceholder')} class="min-w-0 flex-1 bg-transparent text-base outline-none" />

@@ -59,6 +59,9 @@
 	let palOpen = $state(false);
 	// the frog is drawn at 500 px and scaled to the width of the stage
 	let jjoH = $state(135);
+	// The word games' frog has a box of a fixed height (.jjoriping, gameStage.css): his mouth opening and shutting must not move him or what is under him,
+	// so the phone's container takes that height instead of what his contents reach (that grew and shrank with the mouth, and the stage under it with it).
+	const JJO_FRAME = 176;
 	// The frog's height: the floats inside it do not always count for its own box, so what its contents reach is read (as it changes).
 	function measureH(node) {
 		const run = () => {
@@ -837,7 +840,8 @@
 {/snippet}
 
 {#snippet jjo()}
-<div class="jjoriping" style:transform="translateY({(BAR_OPEN - barH) / 2}px)">
+<!-- On the desktop the frog is kept centred as the mouth opens; on a phone he stays where he is and the mouth opens downwards inside his box. -->
+<div class="jjoriping" style:transform={phoneStage ? undefined : `translateY(${(BAR_OPEN - barH) / 2}px)`}>
 	<img class="jjoObj jjoEyeL" src="{IMAGE_CDN}jjoeyeL.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoNose" src="{IMAGE_CDN}jjonose.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoEyeR" src="{IMAGE_CDN}jjoeyeR.svg{IMAGE_VERSION}" alt="" />
 	<div class="jjoDisplayBar" bind:offsetHeight={barH}>
 		<div class="graph jjo-turn-time" role="progressbar" aria-label={t('kkutu.js.second')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, turnPct))}>
@@ -976,7 +980,7 @@
 		{#if family !== 'Jaqwi' && !boardMode}<button type="button" class="kkp-pill kkp-histbtn" onclick={() => (histOpen = true)} aria-haspopup="dialog" aria-label={t('play.game.history')}><Icon name="history" size={18} /></button>{/if}
 	</div>
 	<!-- 쪼리핑: the legacy frog, 500 px wide, drawn at the width of the screen (its two bars are the turn's and the round's clock) -->
-	<div class="kkp-jjo" style:width="{Math.floor(jjoW * jk)}px" style:height="{Math.floor(jjoH * jk)}px">
+	<div class="kkp-jjo" style:width="{Math.floor(jjoW * jk)}px" style:height="{Math.floor((boardMode ? jjoH : JJO_FRAME) * jk)}px">
 		<div class="kkg-jjo-inner" style:width="{jjoW}px" style:transform="scale({jk})" use:measureH>{#if boardMode}{@render boardJjo()}{:else}{@render jjo()}{/if}</div>
 	</div>
 	<!-- a row of its own, always there: the board must not move when it fills and empties -->

@@ -42,6 +42,8 @@
 	let seen = $state(0); // how many messages were on screen when the panel was last open
 	const unread = $derived(open ? 0 : chat.slice(seen).filter((m) => !m.mine).length + store.dmUnread + family.unread);
 	const tabs = $derived([{ id: 'lobby', label: store.net.myRoom ? t('play.chat.roomTab') : t('play.chat.lobbyTab') }, { id: 'dm', label: t('play.dm.tab'), count: store.dmUnread, alert: true }, ...(family.mine ? [{ id: 'family', label: t('play.family.chat.tab'), count: family.unread, alert: true }] : []), ...(rnet ? [{ id: 'replay', label: t('kkutu.js.replay') }] : [])]);
+	// the legacy stamp: toLocaleTimeString(), seconds included
+	const fullTime = (at) => new Date(at).toLocaleTimeString(i18n.language);
 	const time = (at) => new Date(at).toLocaleTimeString(i18n.language, { hour: 'numeric', minute: '2-digit' });
 
 
@@ -218,15 +220,18 @@
 		<div class="relative flex min-h-0 flex-1 flex-col">
 		<div bind:this={list} {onscroll} role="log" aria-live="polite" id="{uid}-log" class="flex min-h-0 flex-1 flex-col {classic ? 'gap-0.5' : 'gap-2.5'} overflow-y-auto p-3 text-sm">
 			{#each visible as m, i (i)}
-				{#if classic && !m.system}
-					<!-- 클래식: the legacy client's line, name first, the words, and the time at the right edge -->
-					<p class="flex items-baseline gap-2 leading-snug">
-						<span class="min-w-0 flex-1 break-words whitespace-pre-wrap">
-							<b class="font-extrabold"><StaffTag nik={m.nik} />{#if m.mine && m.whisper}<span class="text-(color:--kk-whisper)">{t('play.chat.whisperLabel')} {m.who}</span>{:else}<button type="button" onclick={() => m.uid && store.hooks.openProfile?.(m.uid)} class="font-extrabold hover:underline">{m.who}</button>{#if prefs.spectatorTag && m.spectator}<span class="kk-chip ml-1">{t('play.room.status.spectate')}</span>{/if}{#if m.whisper}<span class="ml-1 text-(color:--kk-whisper)">{t('play.chat.whisperLabel')}</span>{/if}{/if}</b>
-							{words(m)}
-						</span>
-						<span class="shrink-0 text-[11px] text-(color:--kk-muted) tabular-nums">{time(m.at)}</span>
-					</p>
+				{#if classic}
+					<!-- 클래식: the legacy client's row (.chat-item): a 100 px name column (bold, centred, cut with an ellipsis), the text, and a 70 px time column
+					     at the right (11 px, grey, with seconds). A notice has the grey band and the blue head; a spectator is grey with [관전]; a whisper has <귓속말> before the text. -->
+					<div class="grid grid-cols-[100px_minmax(0,1fr)_70px] items-start gap-x-1.5 py-px text-[13px] leading-snug {m.system ? 'rounded-sm bg-(--kk-surface-2)' : ''}">
+						{#if m.system}
+							<b class="truncate pr-1 text-center text-(color:--kk-accent-strong)">{m.who}</b>
+						{:else}
+							<button type="button" title={m.who} onclick={() => m.uid && store.hooks.openProfile?.(m.uid)} class="truncate rounded-sm pr-1 text-center font-bold hover:bg-(--kk-surface-2) {prefs.spectatorTag && m.spectator ? 'text-(color:--kk-muted)' : ''}">{#if prefs.spectatorTag && m.spectator}[{t('play.room.status.spectate')}] {/if}<StaffTag nik={m.nik} />{m.who}</button>
+						{/if}
+						<span class="min-w-0 break-words whitespace-pre-wrap">{#if m.whisper}<b class="text-(color:--kk-whisper)">{t('play.chat.whisperLabel')}</b> {/if}{m.system ? m.msg : words(m)}</span>
+						<span class="pt-0.5 text-right text-[11px] text-(color:--kk-muted) tabular-nums">{fullTime(m.at)}</span>
+					</div>
 				{:else if m.system}
 					<p class="flex items-center gap-3 text-xs text-(color:--kk-muted)"><span class="h-px flex-1 bg-(--kk-line)"></span><span>{m.msg}</span><span class="h-px flex-1 bg-(--kk-line)"></span></p>
 				{:else if m.mine}

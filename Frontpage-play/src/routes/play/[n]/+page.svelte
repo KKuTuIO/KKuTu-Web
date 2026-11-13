@@ -14,6 +14,7 @@
 	import SidePanel from '$lib/game/lobby/SidePanel.svelte';
 	import RoomList from '$lib/game/lobby/RoomList.svelte';
 	import ChatPanel from '$lib/game/lobby/ChatPanel.svelte';
+	import MobileHome from '$lib/game/lobby/MobileHome.svelte';
 	import ConnectionGate from '$lib/game/lobby/ConnectionGate.svelte';
 	import CreateRoomDialog from '$lib/game/lobby/CreateRoomDialog.svelte';
 	import QuickMatchDialog from '$lib/game/lobby/QuickMatchDialog.svelte';
@@ -95,6 +96,7 @@
 		};
 	});
 	let peopleTab = $state(false);
+	let roomsOpen = $state(false); // the phone's room list: a page of its own, behind the home's 방 목록 card
 	const tabBar = $derived(phone && !store.net.myRoom);
 	// The desktop's two columns (side bar beside the room list, chat under it): from 1024 px, and on an unfolded folding phone from 768 px (foldable.svelte.js).
 	const desk = $derived(twoColumns(winW));
@@ -106,6 +108,7 @@
 	async function selectTab(id) {
 		const before = tabNow;
 		peopleTab = false;
+		roomsOpen = false; // any tab (the home's own too) leaves the room list page
 		if (id === 'people') {
 			selectMenu('lobby');
 			peopleTab = true;
@@ -545,6 +548,20 @@
 				{#if store.inGame}<GameScreen {store} />{/if}
 			{:else if academyOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} game={academyGame} /></div>
+			{:else if phone}
+				<!-- phone: the home (the games as cards), or the room list as a page of its own -->
+				{#if roomsOpen}
+					<div class="flex min-h-0 flex-1 flex-col gap-2.5">
+						<div class="flex shrink-0 items-center gap-2">
+							<button type="button" onclick={() => (roomsOpen = false)} aria-label={t('play.home.back')} class="kk-btn grid size-11 place-items-center p-0"><Icon name="arrow_back" size={22} /></button>
+							<h2 class="min-w-0 flex-1 truncate text-lg font-black">{t('play.home.rooms')}</h2>
+							<button type="button" disabled={!ready} onclick={() => (createOpen = true)} class="kk-btn kk-btn-primary inline-flex min-h-11 items-center gap-1.5 px-4 text-sm"><Icon name="add" size={20} />{t('play.lobby.createRoom')}</button>
+						</div>
+						<RoomList {store} onjoin={join} />
+					</div>
+				{:else}
+					<MobileHome {store} {ready} onselect={selectTab} onrooms={() => (roomsOpen = true)} oncreate={() => (createOpen = true)} />
+				{/if}
 			{:else}
 				<div class="flex min-h-0 flex-1 flex-col gap-3">
 				<div class="grid grid-cols-2 gap-2.5 md:flex md:flex-wrap md:items-center">

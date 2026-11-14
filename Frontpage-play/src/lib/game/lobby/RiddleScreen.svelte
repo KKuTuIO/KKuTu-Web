@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Icon from './Icon.svelte';
 	import GameIcon from './GameIcon.svelte';
+	import PriceChip from './PriceChip.svelte';
 	import Dialog from './Dialog.svelte';
 	import RewardChip from './RewardChip.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
@@ -293,15 +294,15 @@
 				<b class="text-sm font-extrabold">{t('play.riddle.hint.free.title')}</b>
 				<span class="text-xs font-medium text-(color:--kk-muted)">{t('play.riddle.hint.free.desc')}</span>
 			</div>
-			<button type="button" onclick={hint} disabled={!canHint || !!board?.hint} class="hw kk-btn kk-btn-primary min-h-11 shrink-0 px-3 font-extrabold">{board?.hint ? t('play.riddle.hint.used') : t('play.riddle.hint.free.free')}</button>
+			<button type="button" onclick={hint} disabled={!canHint || !!board?.hint} class="hw kk-btn kk-btn-primary inline-flex min-h-12 shrink-0 items-center justify-center px-5 font-extrabold">{board?.hint ? t('play.riddle.hint.used') : t('play.riddle.hint.free.free')}</button>
 		</div>
 		<div class="hint-card">
 			<div class="flex flex-col gap-0.5">
 				<b class="text-sm font-extrabold">{t('play.riddle.hint.paid.title')}</b>
 				<span class="text-xs font-medium text-(color:--kk-muted)">{t('play.riddle.hint.paid.desc')}</span>
 			</div>
-			<button type="button" onclick={buyHint} disabled={!canHint || !!board?.paid || money < cost} class="hw kk-btn kk-btn-primary inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 font-extrabold">
-				{#if board?.paid}{t('play.riddle.hint.used')}{:else}<GameIcon name="ping" size={20} />{t('play.riddle.hint.paid.buy', { cost })}{/if}
+			<button type="button" onclick={buyHint} disabled={!canHint || !!board?.paid || money < cost} class="hw kk-btn kk-btn-primary inline-flex min-h-12 shrink-0 items-center justify-center gap-2.5 px-5 font-extrabold">
+				{#if board?.paid}{t('play.riddle.hint.used')}{:else}{t('play.riddle.hint.paid.buy')}<PriceChip price={cost} lacking={money < cost} />{/if}
 			</button>
 		</div>
 		{#if !board?.paid && money < cost}<p class="text-center text-xs font-bold text-(color:--kk-muted)">{t('play.riddle.error.poor')}</p>{/if}

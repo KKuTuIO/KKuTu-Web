@@ -7,7 +7,7 @@
 	import Icon from '../lobby/Icon.svelte';
 	import Dialog from '../lobby/Dialog.svelte';
 	import WordCard from './WordCard.svelte';
-	import GameIcon from '../lobby/GameIcon.svelte';
+	import PriceChip from '../lobby/PriceChip.svelte';
 	import { NON_TOPIC_THEMES } from './themes.js';
 
 
@@ -64,7 +64,7 @@
 
 <!-- What it costs, on the button itself: the word-token icon and the number. Nothing is shown when it is free. -->
 {#snippet cost(n)}
-	{#if n}<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1.5 text-base font-extrabold tabular-nums"><GameIcon name="wordToken" size={22} />{n}</span>{/if}
+	{#if n}<PriceChip price={String(n)} icon="wordToken" />{/if}
 {/snippet}
 
 <div class="mx-auto flex max-w-3xl flex-col gap-4">

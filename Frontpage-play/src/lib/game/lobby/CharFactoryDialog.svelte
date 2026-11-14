@@ -11,7 +11,7 @@
 	import { playSound } from '../audio.svelte.js';
 	import Select from '../ui/Select.svelte';
 	import Dialog from './Dialog.svelte';
-	import GameIcon from './GameIcon.svelte';
+	import PriceChip from './PriceChip.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
 	import ShopThumb from './ShopThumb.svelte';
 
@@ -197,7 +197,7 @@
 			<div class="grid grid-cols-[1fr_auto] gap-2">
 				<button type="button" class="kk-btn kk-btn-primary inline-flex min-h-12 items-center justify-center gap-2.5 px-6" disabled={!ok || busy || preview.cost > money} onclick={compose}>
 					{t('play.lab.compose')}
-					<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1.5 text-base font-extrabold tabular-nums"><GameIcon name="ping" size={22} />{ok ? fmt(preview.cost) : '–'}</span>
+					<PriceChip price={ok ? preview.cost : '–'} />
 				</button>
 				<button type="button" class="kk-btn min-h-12 px-5" disabled={!tray.length || busy} onclick={reset}>{t('play.lab.reset')}</button>
 			</div>

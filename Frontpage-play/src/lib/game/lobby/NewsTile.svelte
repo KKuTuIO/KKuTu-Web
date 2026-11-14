@@ -5,6 +5,7 @@
 	import ObtainScreen from './ObtainScreen.svelte';
 	import ShopThumb from './ShopThumb.svelte';
 	import TileTicket from './TileTicket.svelte';
+	import PriceChip from './PriceChip.svelte';
 	import NewsGauge from './NewsGauge.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
 	import { t } from '../i18n.svelte.js';
@@ -193,7 +194,7 @@
 				{#each [1, ...tile.multi] as count (count)}
 					<button type="button" disabled={!canDraw(count)} onclick={() => start(count)} class="kk-btn kk-btn-primary flex h-auto min-h-0 flex-col items-center gap-1.5 py-3 leading-tight">
 						<span class="text-base font-extrabold">{count === 1 ? t('kkutu.product.shopList.draw.one') : t('play.news.tile.drawN', { n: count })}</span>
-						<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1.5 text-base font-extrabold tabular-nums"><TileTicket size={28} />{(tile.cost * count).toLocaleString()}</span>
+						<PriceChip price={tile.cost * count}>{#snippet glyph()}<TileTicket size={28} />{/snippet}</PriceChip>
 					</button>
 				{/each}
 			</div>

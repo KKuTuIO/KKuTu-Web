@@ -7,6 +7,7 @@
 	import Tooltip from '../ui/Tooltip.svelte';
 	import Dialog from './Dialog.svelte';
 	import GameIcon from './GameIcon.svelte';
+	import PriceChip from './PriceChip.svelte';
 	import Icon from './Icon.svelte';
 	import NickName from './NickName.svelte';
 
@@ -99,7 +100,7 @@
 			<button type="button" class="kk-btn min-h-12 px-6" onclick={() => (open = false)}>{t('play.confirm.cancel')}</button>
 			<button class="kk-btn kk-btn-primary inline-flex min-h-12 items-center gap-2.5 px-6" disabled={!s.canSubmit || sent}>
 				{t('play.nick.submit')}
-				{#if s.cost}<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1.5 text-base font-extrabold tabular-nums"><GameIcon name="ping" size={22} />{s.cost}</span>{/if}
+				{#if s.cost}<PriceChip price={String(s.cost)} />{/if}
 			</button>
 		</div>
 	</form>

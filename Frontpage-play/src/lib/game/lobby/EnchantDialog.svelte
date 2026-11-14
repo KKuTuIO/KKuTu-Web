@@ -11,6 +11,7 @@
 	import ShopQty from './ShopQty.svelte';
 	import Dialog from './Dialog.svelte';
 	import GameIcon from './GameIcon.svelte';
+	import PriceChip from './PriceChip.svelte';
 	import ShopThumb from './ShopThumb.svelte';
 	import NewsExchangeDialog from './NewsExchangeDialog.svelte';
 
@@ -358,7 +359,7 @@
 						{#if ticket && owned(ticket.id) < 1}
 							<button type="button" class="kk-btn kk-btn-primary nudge flex min-h-12 w-full items-center justify-center gap-2.5 px-6 text-base font-extrabold" disabled={busy || !buyExchange || money < price(ticket.id)} onclick={() => (buyOpen = true)} aria-label="{t('play.enchant.buy')} {price(ticket.id) != null ? fmt(price(ticket.id)) : ''}{buyExchange && money < price(ticket.id) ? `, ${t('play.lab.short')}` : ''}">
 								<span>{t('play.enchant.buy')}</span>
-								{#if price(ticket.id) != null}<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1.5 text-base font-extrabold tabular-nums {money < price(ticket.id) ? 'text-red-200' : ''}" title={money < price(ticket.id) ? t('play.lab.short') : undefined}><GameIcon name="ping" size={22} />{fmt(price(ticket.id))}</span>{/if}
+								{#if price(ticket.id) != null}<PriceChip price={price(ticket.id)} lacking={money < price(ticket.id)} title={money < price(ticket.id) ? t('play.lab.short') : undefined} />{/if}
 							</button>
 						{:else}
 							<div class="flex gap-2">

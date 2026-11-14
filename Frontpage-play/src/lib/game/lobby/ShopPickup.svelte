@@ -2,7 +2,7 @@
 	import { t } from '../i18n.svelte.js';
 	import { cdnImg } from '../../cdn.js';
 	import { gachaPool, drawPrice, itemName } from '../shop.js';
-	import GameIcon from './GameIcon.svelte';
+	import PriceChip from './PriceChip.svelte';
 	import Icon from './Icon.svelte';
 	import ShopThumb from './ShopThumb.svelte';
 
@@ -39,7 +39,7 @@
 				{@const price = drawPrice(gacha.cost, d.count)}
 				<button type="button" disabled={price > money} onclick={() => ondraw(gacha, d.count)} class="kk-btn kk-btn-primary flex h-auto min-h-0 flex-col items-center gap-1.5 py-3 leading-tight">
 					<span class="text-base font-extrabold">{t(`kkutu.product.shopList.draw.${d.key}`)}</span>
-					<span class="inline-flex items-center gap-1 rounded-full bg-black/20 py-0.5 pr-3 pl-1.5 text-base font-extrabold tabular-nums"><GameIcon name="ping" size={22} />{price.toLocaleString()}</span>
+					<PriceChip {price} />
 					{#if d.count > 1 && price < gacha.cost * d.count}<s class="text-xs opacity-75 tabular-nums">{(gacha.cost * d.count).toLocaleString()}</s>{/if}
 				</button>
 			{/each}

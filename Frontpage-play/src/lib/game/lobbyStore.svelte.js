@@ -278,6 +278,8 @@ export function createLobbyStore(server) {
 		riddleGuess: (mode, word) => conn.send('riddle.guess', { mode, word }),
 		/** A new free puzzle (`force`: give up the one in progress). */
 		riddleNew: (force = false) => conn.send('riddle.new', force ? { force: true } : {}),
+		/** The puzzle's one hint (free): a jamo of the answer the tries have not shown, and its place; it comes back with the board. */
+		riddleHint: (mode) => conn.send('riddle.hint', { mode }),
 		/** GG: give up the free puzzle in progress (the server shows its word; nothing is paid). */
 		riddleGiveUp: () => conn.send('riddle.giveup'),
 		claimEventMission: (eventId, missionId) => conn.send('event.claimMission', { eventId, missionId }),

@@ -61,12 +61,19 @@
 
 	// The server's answer ends the wait; a try that did not count is said once; one that did is answered with a sound.
 	let seen = 0;
+	let hintAsked = false;
 	$effect(() => {
 		const last = riddle.last;
 		if (!last || last.at === seen) return;
 		seen = last.at;
 		waiting = false;
 		if (last.mode !== mode) return;
+		// the answer to the hint button is not a try: the board only gains its hint
+		if (hintAsked) {
+			hintAsked = false;
+			if (last.error === 'nohint') toast(t(ERROR_KEYS.nohint), { kind: 'info', icon: 'lightbulb' });
+			return;
+		}
 		if (last.error) {
 			if (last.error !== 'done') {
 				toast(t(ERROR_KEYS[last.error] ?? ERROR_KEYS.invalid), { kind: 'info', icon: 'spellcheck' });
@@ -161,13 +168,20 @@
 		if (board?.answer) store.ui.dictRequest = board.answer;
 	}
 	async function share() {
-		const text = shareText({ rows, won: board?.status === 'won', number: mode === 'daily' && summary ? dailyNumber(summary.resetAt) : null, title: t('play.riddle.free') });
+		const text = shareText({ rows, won: board?.status === 'won', number: mode === 'daily' && summary ? dailyNumber(summary.resetAt) : null, title: t('play.riddle.free'), hint: !!board?.hint });
 		try {
 			await navigator.clipboard.writeText(text);
 			toast(t('play.riddle.copied'), { kind: 'info', icon: 'content_copy' });
 		} catch {
 			toast(t('play.riddle.copyFailed'), { kind: 'info', icon: 'content_copy' });
 		}
+	}
+	function hint() {
+		if (over || waiting || revealing || !board || board.hint) return;
+		hintAsked = true;
+		playSound('mission');
+		haptic(10);
+		store.riddleHint(mode);
 	}
 	/**
 	 * The way out of a free puzzle is a give-up (GG): once a try has been made, leaving asks first, and the server then drops the puzzle (its word
@@ -263,7 +277,8 @@
 		<button type="button" aria-label={t('play.riddle.back')} onclick={leave} class="round"><Icon name="arrow_back" size={24} /></button>
 		<h2 class="title text-xl font-extrabold">{title}</h2>
 		{#if mode === 'daily' && streak > 0}<span class="chip">{t('play.riddle.streak', { n: streak })}</span>{/if}
-		<button type="button" aria-label={t('play.riddle.helpButton')} onclick={() => (helpOpen = true)} class="round ml-auto"><Icon name="help" size={24} /></button>
+		<button type="button" aria-label={t('play.riddle.hint.button')} onclick={hint} disabled={over || waiting || revealing || !board || !!board.hint} class="round ml-auto disabled:opacity-50"><Icon name="lightbulb" size={24} fill={!board?.hint} /></button>
+		<button type="button" aria-label={t('play.riddle.helpButton')} onclick={() => (helpOpen = true)} class="round"><Icon name="help" size={24} /></button>
 	</div>
 
 	<div class="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto px-3 pb-3">
@@ -275,14 +290,17 @@
 					<button type="button" aria-label={t(hideLetters ? 'play.riddle.showLetters' : 'play.riddle.hideLetters')} aria-pressed={hideLetters} onclick={toggleLetters} class="grid size-8 shrink-0 place-items-center rounded-full text-(color:--kk-muted) transition-colors hover:bg-(--kk-surface-2)"><Icon name={hideLetters ? 'visibility_off' : 'visibility'} size={20} /></button>
 				{/if}
 			</div>
+			{#if board?.hint && !over}<p class="hint-line flex items-center gap-1 text-xs font-bold"><Icon name="lightbulb" size={16} fill />{t('play.riddle.hint.text', { n: board.hint.place + 1, jamo: hideLetters ? '○' : board.hint.jamo })}</p>{/if}
 
 			<div class="grid gap-1.5 {hideLetters ? 'hide-letters' : ''}" role="grid" aria-label={t('play.riddle.board', { title })}>
 				{#each { length: MAX_TRIES } as _, r (r)}
 					{@const row = rows[r]}
 					<div class="grid grid-cols-6 gap-1.5" role="row">
 						{#each { length: LENGTH } as _, c (c)}
-							{@const ch = row ? row.j[c] : r === rows.length && !over && !revealing ? typed[c] : ''}
-							<span role="gridcell" class="tile {r === flipRow ? 'flip' : ''}" style:--d="{c * STEP_MS}ms" data-m={row ? row.m[c] : ''} data-filled={!!ch}>{ch ?? ''}</span>
+							{@const active = !row && r === rows.length && !over && !revealing}
+							{@const ch = row ? row.j[c] : active ? typed[c] : ''}
+							{@const ghost = active && !ch && board?.hint?.place === c}
+							<span role="gridcell" class="tile {r === flipRow ? 'flip' : ''} {ghost ? 'ghost' : ''}" style:--d="{c * STEP_MS}ms" data-m={row ? row.m[c] : ''} data-filled={!!ch}>{ghost ? board.hint.jamo : (ch ?? '')}</span>
 						{/each}
 					</div>
 				{/each}
@@ -361,9 +379,9 @@
 		background: color-mix(in srgb, var(--kk-surface) 94%, transparent);
 		box-shadow: 0 3px 6px rgb(20 40 80 / 0.22);
 	}
-	/* the tile size follows the room there is (the keyboard and the header take about 31rem) */
+	/* the tile size follows the room there is (the keyboard, the header and the hint's line take about 33rem) */
 	.tile {
-		--s: clamp(2.1rem, min(12.5vw, (100dvh - 31rem) / 6), 3.4rem);
+		--s: clamp(2.1rem, min(12.5vw, (100dvh - 33rem) / 6), 3.4rem);
 		display: grid;
 		place-items: center;
 		width: var(--s);
@@ -378,6 +396,22 @@
 	/* the letters go clear, the colours stay: what a screenshot shows says how the tries went but not the word */
 	.hide-letters .tile {
 		color: transparent !important;
+	}
+	/* the hint: its jamo waits in its place in the row being typed, in the green of "right place" but only drawn, not filled */
+	.tile.ghost {
+		border: 2px dashed #5fb86a;
+		color: #5fb86a;
+	}
+	.hint-line {
+		color: #3f8a4a;
+	}
+	@media (prefers-color-scheme: dark) {
+		:global(:root:not([data-theme='light'])) .hint-line {
+			color: #7bd488;
+		}
+	}
+	:global(:root[data-theme='dark']) .hint-line {
+		color: #7bd488;
 	}
 	.tile-sm {
 		--s: 2.4rem;

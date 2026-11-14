@@ -44,7 +44,8 @@ export const ERROR_KEYS = {
 	invalid: 'play.riddle.error.invalid',
 	notWord: 'play.riddle.error.notWord',
 	dup: 'play.riddle.error.dup',
-	done: 'play.riddle.error.done'
+	done: 'play.riddle.error.done',
+	nohint: 'play.riddle.error.nohint'
 };
 
 /** "06:12:05": what is left until `at` (ms since the epoch). */
@@ -65,9 +66,9 @@ const EMOJI = { c: '🟩', p: '🟨', a: '⬜' };
 
 /**
  * The text a finished puzzle is shared as, in the way of Wordle: a title with the number of tries, then a line of squares for each try. It says
- * nothing about the word. `title` is the game's name; `number` is the daily's number (a free puzzle has none).
+ * nothing about the word. `title` is the game's name; `number` is the daily's number (a free puzzle has none); `hint` marks a puzzle that used its hint.
  */
-export function shareText({ rows, won, number = null, title }) {
-	const head = `${number ? `${title} ${number}` : title} ${won ? rows.length : 'X'}/${MAX_TRIES}`;
+export function shareText({ rows, won, number = null, title, hint = false }) {
+	const head = `${number ? `${title} ${number}` : title} ${won ? rows.length : 'X'}/${MAX_TRIES}${hint ? ' 💡' : ''}`;
 	return `${head}\n\n${rows.map((r) => [...r.m].map((m) => EMOJI[m] ?? '⬜').join('')).join('\n')}`;
 }

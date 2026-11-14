@@ -163,6 +163,18 @@
 	let passwordRoom = $state(null);
 	let rankOpen = $state(false);
 	let dictOpen = $state(false);
+	// a screen can ask for the small dictionary with a word already looked up (the riddle's answer): `store.ui.dictRequest`
+	let dictWord = $state('');
+	$effect(() => {
+		const word = store.ui.dictRequest;
+		if (!word) return;
+		store.ui.dictRequest = '';
+		dictWord = word;
+		dictOpen = true;
+	});
+	$effect(() => {
+		if (!dictOpen) dictWord = '';
+	});
 	let calcOpen = $state(false);
 	let progressOpen = $state(false);
 	let prefsOpen = $state(false);
@@ -593,7 +605,7 @@
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->
 <!-- Mobile/tablet: a button opening a docked sheet; in the 아카데미 and the shop the chat is that button on desktop too, so the screen gets the room. -->
 {#if !(phone && shopOpen)}
-<div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage} lift={tabBar ? true : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
+<div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage || store.ui.hideFab} lift={tabBar ? true : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
 {/if}
 <!-- phone: full screen is a faint icon in the top right corner (the bars have no room for a button) -->
 {#if phone}<FullscreenButton watermark />{/if}
@@ -602,7 +614,7 @@
 <QuickMatchDialog {store} start={quickMode} bind:open={quickOpen} />
 <DmNotice {store} />
 <RankingDialog {store} bind:open={rankOpen} />
-<DictionaryDialog bind:open={dictOpen} />
+<DictionaryDialog bind:open={dictOpen} initial={dictWord} />
 <WordDetail />
 <WikiWindow />
 <CalculatorWindow bind:open={calcOpen} />

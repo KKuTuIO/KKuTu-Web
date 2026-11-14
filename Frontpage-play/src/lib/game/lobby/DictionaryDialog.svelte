@@ -5,7 +5,8 @@
 	import FloatWindow from './FloatWindow.svelte';
 	import Icon from './Icon.svelte';
 
-	let { open = $bindable(false) } = $props();
+	/** `initial`: a word to look up as soon as it opens (the riddle's answer), instead of an empty field. */
+	let { open = $bindable(false), initial = '' } = $props();
 	let query = $state('');
 	let input = $state();
 	let busy = $state(false);
@@ -15,14 +16,18 @@
 	// Fresh each time it opens; the field is ready to type in.
 	$effect(() => {
 		if (open) {
-			query = '';
+			query = initial;
 			result = null;
-			queueMicrotask(() => setTimeout(() => input?.focus(), 60));
+			if (initial) void run();
+			else queueMicrotask(() => setTimeout(() => input?.focus(), 60));
 		}
 	});
 
-	async function search(e) {
+	function search(e) {
 		e.preventDefault();
+		return run();
+	}
+	async function run() {
 		if (busy || !query.trim()) return;
 		busy = true;
 		result = null;

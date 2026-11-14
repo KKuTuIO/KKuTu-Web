@@ -50,6 +50,7 @@ export async function openLink(href) {
 export function rewardLabel(reward, details) {
 	if (reward.kind === 'ping') return t('play.news.reward.ping');
 	if (reward.kind === 'ep') return t('play.news.reward.ep');
+	if (reward.kind === 'xp') return t('play.obtain.exp');
 	if (reward.kind === 'letter') return t(`play.news.reward.letter.${reward.tier}`);
 	return itemName(details, reward.id ?? '');
 }

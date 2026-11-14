@@ -13,7 +13,7 @@
 	 * The mailbox lives in the header. Desktop keeps TopBar's menu.
 	 */
 	/** `noHelp`: the new lobby carries the tutorial itself, so there is no 도움말 tab or entry and no nudge on 더보기 */
-	let { store, active = 'lobby', onselect, noHelp = false } = $props();
+	let { store, active = 'lobby', onselect, noHelp = false, noNews = false } = $props();
 	const guest = $derived(store.net.guest);
 	let more = $state(false);
 	const tabs = $derived(
@@ -22,7 +22,7 @@
 			{ id: 'people', icon: 'group', badge: store.pendingFriends.incoming.length },
 			{ id: 'shop', icon: 'storefront' },
 			guest ? { id: 'help', icon: 'help' } : { id: 'news', icon: 'campaign', dot: store.newsAlerts.length > 0 }
-		].filter((m) => !(noHelp && m.id === 'help'))
+		].filter((m) => !(noHelp && m.id === 'help') && !(noNews && m.id === 'news'))
 	);
 	const extra = $derived(
 		[

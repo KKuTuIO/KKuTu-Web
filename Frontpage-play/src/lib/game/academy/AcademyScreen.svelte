@@ -19,7 +19,10 @@
 	 * The 아카데미: the word tools (search, 어인정, 수순 실험, 루트 대결, 전략 엔진, 게임 복기) as a page of the game,
 	 * shown in the lobby's main area like the waiting room. `tab` and `game` come from the address (?view=academy&tab=…).
 	 */
-	let { store, tab = $bindable('dictionary'), game = '' } = $props();
+	// `lead` (the new lobby's back button) switches the page to the stage's layout: one compact header row (back button, then the tools as one-line tabs on
+	// a translucent pill) and translucent cards, so the blurred picture shows through; without it the page keeps its tool cards.
+	const bare = $derived(!!lead);
+	let { store, tab = $bindable('dictionary'), game = '', lead } = $props();
 
 	const ids = $derived(['dictionary', 'injeong', 'simulator', 'practice', 'engine', 'replay', ...(store.net.admin ? ['admin'] : [])]);
 	const ICONS = { dictionary: 'dictionary', injeong: 'verified', simulator: 'conversion_path', practice: 'swords', engine: 'account_tree', replay: 'movie_edit', admin: 'admin_panel_settings' };
@@ -44,6 +47,8 @@
 		includeLoanword: true, includeSpaced: true, includeDialect: true, includeOld: true, includeCultural: true, includeKung: true,
 		themes: [], excludedThemes: [], excludedWords: []
 	});
+	// the tool cards' own look (the page without a stage)
+	const TILE = (on) => `flex min-h-16 min-w-24 flex-1 flex-col items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-bold whitespace-nowrap transition-[background-color,color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--kk-accent) ${on ? 'border-(color:--kk-line-strong) bg-(--kk-surface) text-(color:--kk-text) shadow-[0_2px_0_var(--kk-line-strong)]' : 'border-transparent text-(color:--kk-muted) hover:text-(color:--kk-text)'}`;
 	const showRules = $derived(!['replay', 'injeong', 'admin'].includes(tab));
 
 	// The address follows the tab (so a link opens the same tool).
@@ -64,9 +69,11 @@
 	});
 </script>
 
-<section aria-label={t('play.academy.title')} in:rise|global class="flex min-h-0 flex-1 flex-col gap-3">
+<section aria-label={t('play.academy.title')} in:rise|global class="flex min-h-0 flex-1 flex-col gap-3 {bare ? 'bare' : ''}">
 	<!-- The tools as a row of cards: icon above the name, the open one raised. Scrolls sideways when the window is narrow. -->
-	<div role="tablist" aria-label={t('play.academy.tabs.label')} class="kk-card flex shrink-0 gap-1.5 overflow-x-auto bg-(--kk-surface-2) p-1.5">
+	<div class="flex shrink-0 items-center gap-3">
+	{@render lead?.()}
+	<div role="tablist" aria-label={t('play.academy.tabs.label')} class="flex min-w-0 gap-1.5 overflow-x-auto {bare ? 'rounded-xl bg-(--kk-surface)/80 p-1' : 'kk-card flex-1 bg-(--kk-surface-2) p-1.5'}">
 		{#each tabs as tb, i (tb.id)}
 			{@const on = tb.id === tab}
 			<button
@@ -79,12 +86,15 @@
 				tabindex={on ? 0 : -1}
 				onclick={() => pick(tb.id)}
 				onkeydown={(e) => nav(e, i)}
-				class="flex min-h-16 min-w-24 flex-1 flex-col items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-bold whitespace-nowrap transition-[background-color,color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--kk-accent) {on ? 'border-(color:--kk-line-strong) bg-(--kk-surface) text-(color:--kk-text) shadow-[0_2px_0_var(--kk-line-strong)]' : 'border-transparent text-(color:--kk-muted) hover:text-(color:--kk-text)'}"
+				class={bare
+					? `inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm font-bold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 ${on ? 'bg-(--kk-accent-soft) text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted) hover:bg-(--kk-surface-2)'}`
+					: TILE(on)}
 			>
-				<Icon name={tb.icon} size={26} fill={on} class={on ? 'text-(color:--kk-accent-strong)' : ''} />
+				<Icon name={tb.icon} size={bare ? 20 : 26} fill={on} class={!bare && on ? 'text-(color:--kk-accent-strong)' : ''} />
 				{tb.label}
 			</button>
 		{/each}
+	</div>
 	</div>
 	<div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1 pb-1">
 		{#if showRules}<RuleBar bind:config {meta} />{/if}
@@ -101,3 +111,10 @@
 		{/key}
 	</div>
 </section>
+
+<style>
+	/* on the stage the tools' cards are translucent, so the blurred picture shows through */
+	section.bare :global(.kk-card) {
+		background: color-mix(in srgb, var(--kk-surface) 82%, transparent);
+	}
+</style>

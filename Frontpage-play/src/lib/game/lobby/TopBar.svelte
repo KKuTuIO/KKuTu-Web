@@ -12,7 +12,8 @@
 	import Mascot from './Mascot.svelte';
 	import { closeNudge, nudgeOpen } from '../nudges.svelte.js';
 	/** `noHelp`: the new lobby carries the tutorial itself (a 튜토리얼 button and the nudge), so the bar has no 도움말 */
-	let { store, active = 'lobby', onselect, phone = false, noHelp = false } = $props();
+	let { store, active = 'lobby', onselect, phone = false, noHelp = false, noNews = false } = $props();
+	// `noNews`: the new lobby has 공지·행사 as an icon on its stage, so the bar leaves it out while the lobby is showing
 	const me = $derived(store.me);
 	const guest = $derived(store.net.guest);
 	// Anywhere in the client the logo asks first: it leaves the game page for the portal.
@@ -38,7 +39,7 @@
 		{ id: 'help', icon: 'help', color: '#BBBBBB' },
 		{ id: 'settings', icon: 'settings', color: '#CCCCCC' }
 	];
-	const items = $derived(guest ? guestMenu : menu);
+	const items = $derived((guest ? guestMenu : menu).filter((m) => !(noNews && m.id === 'news')));
 	const utilities = $derived((guest ? memberUtilities.filter((u) => u.id !== 'mail') : memberUtilities).filter((u) => !(noHelp && u.id === 'help')));
 	const fmt = (n) => (n ?? 0).toLocaleString();
 </script>

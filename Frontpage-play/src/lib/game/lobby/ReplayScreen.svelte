@@ -23,6 +23,7 @@
 	import ReplayPlayer from './ReplayPlayer.svelte';
 	import ReplaySummary from './ReplaySummary.svelte';
 	import ShareDialog from './ShareDialog.svelte';
+	import Tabs from '../ui/Tabs.svelte';
 
 	/**
 	 * The 리플레이 page. Left: where a replay comes from (the game I just played, my games on the server, any game by its ID or a player's
@@ -34,7 +35,10 @@
 	 * host keep the address in step (a game's link can be shared); `shareLink(gameId)` makes that link.
 	 * @type {{store:any, start?:{game:string, user?:string, userType?:string, n:number}, onroute?:((id:string|null)=>void)|null, shareLink?:((id:string)=>string)|null}}
 	 */
-	let { store, start = { game: '', user: '', userType: '', n: 0 }, onroute = null, shareLink = null } = $props();
+	let { store, start = { game: '', user: '', userType: '', n: 0 }, onroute = null, shareLink = null, lead } = $props();
+	// `lead` (the new lobby's back button) switches the page to the stage's layout: one header row (back button, then the sections as tabs) and the games
+	// straight on the blurred picture, each on a translucent row; without it the page keeps its side menu and cards.
+	const bare = $derived(!!lead);
 	const net = $derived(store.net);
 	const guest = $derived(net.guest);
 	// Members: their own games first. Anonymous visitors have no games of their own to replay: a game by its ID, or a file.
@@ -244,7 +248,7 @@
 
 {#snippet gameRow(row)}
 	{@const out = historyOutcome(row)}
-	<button type="button" onclick={() => openGame(row.gameId)} class="flex w-full items-center gap-3 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) px-3 py-2 text-left shadow-[0_2px_0_var(--kk-line)] hover:bg-(--kk-surface-2)">
+	<button type="button" onclick={() => openGame(row.gameId)} class="flex w-full items-center gap-3 rounded-xl border border-(color:--kk-line) px-3 py-2 text-left shadow-[0_2px_0_var(--kk-line)] {bare ? 'bg-(--kk-surface)/80 hover:bg-(--kk-surface)' : 'bg-(--kk-surface) hover:bg-(--kk-surface-2)'}">
 		<PlacementMedal placement={row.placement} won={row.won} outcome={out} size={40} />
 		<span class="min-w-0 flex-1">
 			<span class="block truncate text-sm font-extrabold">{modeName(row.modeName)}</span>
@@ -261,8 +265,17 @@
 	<ShareDialog bind:open={shareOpen} title={t('play.replay.share')} link={sheet.id ? linkTo(sheet.id) : ''} shareTitle={t('play.replay.shareTitle')} copied={t('play.replay.linkCopied')} shareText={sheet.room.title || modeName(sheet.room.modeKey)} />
 	<ReplaySummary {store} {sheet} onclose={closeSheet} onshare={share} onplay={dbPlay ? () => (playing = { rec: dbPlay }) : null} />
 {:else}
-	<section aria-label={t('play.nav.replay')} in:rise|global class="flex min-h-0 flex-1 gap-3 max-sm:flex-col">
-		<nav aria-label={t('play.nav.replay')} class="kk-card flex w-full shrink-0 gap-1 self-stretch p-1.5 sm:w-56 sm:flex-col sm:self-start">
+	<section aria-label={t('play.nav.replay')} in:rise|global class="flex min-h-0 flex-1 gap-3 {bare ? 'flex-col' : 'max-sm:flex-col'}">
+		{#if bare}
+			<div class="flex shrink-0 items-center gap-2 px-3 py-2">
+				{@render lead?.()}
+				<div class="min-w-0 overflow-x-auto rounded-xl bg-(--kk-surface)/80 [&_.kk-tab]:px-4 [&_.kk-tab]:whitespace-nowrap">
+					<Tabs bind:value={section} tabs={SIDE.map((x) => ({ id: x.id, label: x.label }))} idPrefix="replay" label={t('play.nav.replay')} />
+				</div>
+			</div>
+		{:else}
+		<div class="flex w-full shrink-0 flex-col gap-3 self-stretch sm:w-56 sm:self-start">
+		<nav aria-label={t('play.nav.replay')} class="kk-card flex w-full shrink-0 gap-1 p-1.5 sm:flex-col">
 			{#each SIDE as s (s.id)}
 				{@const on = s.id === section}
 				<button type="button" aria-current={on ? 'page' : undefined} aria-label={s.label} onclick={() => (section = s.id)} class="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 text-left text-sm font-bold transition-colors max-sm:flex-1 max-sm:flex-col max-sm:justify-center max-sm:gap-0.5 max-sm:py-1.5 max-sm:text-xs {on ? 'bg-(--kk-accent-soft) text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)'}">
@@ -270,8 +283,10 @@
 				</button>
 			{/each}
 		</nav>
+		</div>
+		{/if}
 
-		<div class="kk-card min-h-0 min-w-0 flex-1 overflow-y-auto p-4 max-sm:p-3">
+		<div class="min-h-0 min-w-0 flex-1 overflow-y-auto {bare ? 'px-3 pb-3' : 'kk-card p-4 max-sm:p-3'}">
 			{#key section}
 				<div in:fly|global={{ y: 12, duration: ms(240), easing: quintOut }} class="flex flex-col gap-3">
 					{#if section === 'mine'}

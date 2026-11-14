@@ -6,6 +6,7 @@
 	import { prefs } from '../prefs.svelte.js';
 	import { maskBad } from '../badwords.js';
 	import { nudgeOpen, closeNudge } from '../nudges.svelte.js';
+	import { toast } from '../ui/toast.svelte.js';
 	import Nudge from './Nudge.svelte';
 	import HoverWave from './HoverWave.svelte';
 	import RoomList from './RoomList.svelte';
@@ -22,9 +23,9 @@
 	 * 게임 시작! button. Pressing it freezes the backdrop (no parallax, no particles) and blurs it while the mode screen slides in: 멀티플레이
 	 * (매칭 시작, 방 목록, 방 만들기), then 싱글플레이 (아케이드, 튜토리얼). 방 목록 and 아케이드 are screens of their own on the same blurred stage.
 	 * `variant` is 'desk' (the stage under the top bar) or 'phone' (the whole page).
-	 * @type {{store:any, ready?:boolean, variant?:'desk'|'phone', oncreate:()=>void, ontutorial?:()=>void, onjoin?:(no:number)=>void}}
+	 * @type {{store:any, ready?:boolean, variant?:'desk'|'phone', oncreate:()=>void, ontutorial?:()=>void, page?:string|null, screen?:import('svelte').Snippet<[import('svelte').Snippet]>, onpageclose?:()=>void, onjoin?:(no:number)=>void}}
 	 */
-	let { store, ready = true, variant = 'phone', oncreate, ontutorial, onjoin } = $props();
+	let { store, ready = true, variant = 'phone', oncreate, ontutorial, page = null, screen, onpageclose, onjoin } = $props();
 	const net = $derived(store.net);
 	const me = $derived(store.me);
 	const parts = $derived(net.meta.moremiParts);
@@ -67,9 +68,16 @@
 		phase = 'select';
 	}
 	// The room list and the arcade replace the mode screen at once (it is not animated out); the blurred stage stays behind them.
-	const sub = $derived(phase === 'rooms' || phase === 'arcade');
+	const sub = $derived(phase === 'rooms' || phase === 'arcade' || phase === 'page');
+	// 공지·행사, 사전 and 리플레이 are pages of the top bar: the page says which one is open, and the stage shows it on the blurred picture
+	$effect(() => {
+		if (page) phase = 'page';
+		else if (phase === 'page') phase = 'idle';
+	});
 	function back() {
-		phase = sub ? 'select' : 'idle';
+		if (phase === 'page') return onpageclose?.();
+		// 공지·행사 is opened from the stage itself, so it goes back to the stage; 방 목록 and 아케이드 go back to the mode screen
+		phase = phase === 'rooms' || phase === 'arcade' ? 'select' : 'idle';
 	}
 	// The stage's own element carries the state as CSS variables (the backdrop reads --stage-blur, --stage-zoom and --play, the Moremi --mshift),
 	// and the layered backdrop freezes its parallax on 'stagepause'.
@@ -94,7 +102,8 @@
 	const multi = $derived([
 		{ label: t('play.lobby.matchStart'), icon: 'groups', c: ['#63d49e', '#cff28c', '#285d30'], act: () => store.hooks.openQuick(2), off: !ready, tour: 'quick-match' },
 		{ label: t('play.home.rooms'), icon: 'meeting_room', c: ['#64c7c3', '#a2f4f4', '#005f5c'], act: () => (phase = 'rooms'), tour: 'room-list' },
-		{ label: t('play.lobby.createRoom'), icon: 'add', c: ['#7bbde8', '#b6eaff', '#09567c'], act: oncreate, off: !ready, tour: 'create-room' }
+		{ label: t('play.lobby.createRoom'), icon: 'add', c: ['#7bbde8', '#b6eaff', '#09567c'], act: oncreate, off: !ready, tour: 'create-room' },
+		{ label: t('play.lobby.trophyLeague'), icon: 'emoji_events', c: ['#f6a65c', '#fee273', '#73420c'], act: () => toast(t('play.lobby.trophyLeagueTbd'), { kind: 'info', icon: 'event' }) }
 	]);
 	// 싱글플레이 is a section of its own: 아케이드 and 튜토리얼 side by side.
 	const arcade = $derived({ label: t('play.lobby.arcade'), icon: 'sports_esports', c: ['#b2aeff', '#f0ceff', '#4b4780'], act: () => (phase = 'arcade'), off: !ready });
@@ -180,14 +189,16 @@
 		{@render backBtn()}
 		<button type="button" disabled={!ready} onclick={oncreate} class="hw kk-btn inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 font-extrabold max-md:hidden"><Icon name="add" size={20} /><HoverWave text={t('play.lobby.createRoom')} /></button>
 	{/snippet}
-	<div role="dialog" aria-modal="true" aria-label={phase === 'rooms' ? t('play.home.rooms') : t('play.lobby.arcade')} class="sub absolute inset-0 z-30 p-1 pt-2">
+	<div role="dialog" aria-modal="true" aria-label={phase === 'rooms' ? t('play.home.rooms') : phase === 'page' ? t(`play.nav.${page}`) : t('play.lobby.arcade')} class="sub absolute inset-0 z-30 p-1 pt-2">
 		<div class="glass relative flex h-full min-h-0 w-full flex-col overflow-hidden">
 			{#if phase === 'rooms'}
 				<RoomList {store} onjoin={(no) => onjoin?.(no)} bare dense lead={roomsLead} />
 				<!-- phone: the button floats at the lower left (the chat button is at the right), so the header stays one row -->
 				<button type="button" disabled={!ready} onclick={oncreate} class="hw kk-btn absolute bottom-3 left-3 z-10 inline-flex min-h-12 items-center gap-1.5 px-4 font-extrabold shadow-lg md:hidden"><Icon name="add" size={22} /><HoverWave text={t('play.lobby.createRoom')} /></button>
+			{:else if phase === 'page'}
+				{@render screen?.(backBtn)}
 			{:else}
-				<SingleScreen lead={backBtn} />
+				<SingleScreen {store} lead={backBtn} />
 			{/if}
 		</div>
 	</div>
@@ -200,15 +211,16 @@
 				<span class="mchip">{t('play.lobby.group.multi')}</span>
 				{@render card(0, multi[0], true)}
 				{@render card(1, multi[1], true)}
-				{@render card(2, multi[2], false, true)}
+				{@render card(2, multi[2], false)}
+				{@render card(3, multi[3], false)}
 			</div>
 			<div data-tour="mode-single" class="mpanel mpanel-row relative grid grid-cols-2 gap-3 max-md:flex-none">
 				<span class="mchip">{t('play.lobby.group.single')}</span>
-				{@render card(3, arcade, false)}
+				{@render card(4, arcade, false)}
 				<!-- 학사모레미 points at 튜토리얼 until it is opened or dismissed (the bubble waits while the mode screen is closed: no target, no bubble) -->
 				<Nudge id="tutorial" above enabled={ready && phase === 'select' && settled}>
 					{#snippet content()}<Mascot {store} size={44} /><span>{t('play.nudge.tutorial')}</span>{/snippet}
-					{@render card(4, tutorial, false)}
+					{@render card(5, tutorial, false)}
 				</Nudge>
 			</div>
 		</div>

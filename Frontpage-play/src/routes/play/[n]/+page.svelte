@@ -111,7 +111,7 @@
 	const desk = $derived(twoColumns(winW));
 	// The phone's home scrolls to the edges of the page (its scrollbar too): the page's own padding would clip the cards short of the tab bar and push the scrollbar in.
 	// The home has the same padding inside its scroller.
-	const homeBleed = $derived(phone && !store.net.myRoom && !shopOpen && !replayOpen && !newsOpen && !academyOpen && !peopleTab);
+	const homeBleed = $derived(phone && !store.net.myRoom && !shopOpen && (!replayOpen || newLobby) && (!newsOpen || newLobby) && (!academyOpen || newLobby) && !peopleTab);
 	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen);
 	// Moving between tabs slides the page the way the tab lies: to the right of this one, it comes in from the right.
 	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'replay'];
@@ -204,6 +204,11 @@
 	let shopStart = $state({ tab: '', sub: '', n: 0 }); // where an outside link (해커레미's 보너스권) wants the shop to open
 	// 채팅창 띄우기 (설정 > 게임) makes it so on every screen.
 	// the new lobby always floats the chat (its stage takes the room), whatever the 채팅 띄움 setting says; in a room the setting is back
+	// The new lobby shows the top bar's pages (공지·행사, 사전, 리플레이) on its blurred stage: the stage hands each one its back button.
+	function closePages() {
+		replayOpen = newsOpen = false;
+		if (academyOpen) setAcademy(false);
+	}
 	const chatFab = $derived(prefs.chatFloating || (newLobby && !store.net.myRoom) || shopOpen || replayOpen || (academyOpen && !store.net.myRoom));
 	// Leaving: the academy sinks and fades while the lobby is already there (it is lifted out of the layout so nothing jumps).
 	function sink(node, { duration = 260 } = {}) {
@@ -323,8 +328,6 @@
 		clearRef();
 		toast(t(`play.news.invite.linked.${answer.result}`), { kind: answer.result === 'ok' ? 'success' : 'info' });
 	});
-	// Embers for the 트로피 리그 button (fixed values: the pattern is decoration, not data).
-	const embers = Array.from({ length: 10 }, (_, i) => ({ x: 6 + ((i * 29) % 86), d: 0.9 + ((i * 11) % 5) * 0.2, delay: -i * 0.21, drift: (i % 2 ? 1 : -1) * (4 + (i % 3) * 3) }));
 
 	onMount(() => {
 		// What the chat commands (/설정, /정보, /주제) open.
@@ -551,18 +554,18 @@
 		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden {desk ? 'order-2' : ''} pb-[3px] {peopleShown ? 'max-md:hidden' : ''} {(phone && store.ui.phoneStage) || homeBleed ? 'max-md:pb-0!' : ''}">
 			{#if shopOpen}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ShopScreen {store} start={shopStart} onclose={() => (shopOpen = false)} /></div>
-			{:else if replayOpen}
+			{:else if replayOpen && !newLobby}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><ReplayScreen {store} start={replayStart} /></div>
-			{:else if newsOpen}
+			{:else if newsOpen && !newLobby}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><NewsScreen {store} /></div>
 			{:else if store.net.myRoom && store.currentRoom}
 				<!-- the waiting room stays until the loading veil covers it; the board is set up beneath the veil -->
 				{#if !(store.inGame && store.ui.gameCovered)}<RoomScreen {store} onsettings={() => (settingsOpen = true)} />{/if}
 				{#if store.inGame}<GameScreen {store} />{/if}
-			{:else if academyOpen}
+			{:else if academyOpen && !newLobby}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} game={academyGame} /></div>
 			{:else if newLobby}
-				<MatchHome {store} {ready} variant={phone ? 'phone' : 'desk'} oncreate={() => (createOpen = true)} ontutorial={() => (tutorialOpen = true)} onjoin={join} />
+				<MatchHome {store} {ready} variant={phone ? 'phone' : 'desk'} oncreate={() => (createOpen = true)} ontutorial={() => (tutorialOpen = true)} page={replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : null} {screen} onpageclose={closePages} onjoin={join} />
 			{:else if phone}
 				<!-- phone: the home (the games); the room list is a screen of its own, pushed over it (below, like the mailbox and the shop) -->
 				<MobileHome {store} {ready} onselect={selectTab} onrooms={() => (roomsOpen = true)} oncreate={() => (createOpen = true)} />
@@ -570,13 +573,6 @@
 				<div class="flex min-h-0 flex-1 flex-col gap-3">
 				<div class="grid grid-cols-2 gap-2.5 md:flex md:flex-wrap md:items-center">
 					<button type="button" disabled={!ready} data-tour="quick-match" onclick={() => store.hooks.openQuick(2)} class="kk-btn kk-btn-hero kk-btn-lg col-span-2 min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.lobby.quickMatch')}</span></button>
-					<button type="button" disabled={!ready} onclick={() => toast(t('play.lobby.trophyLeagueTbd'), { kind: 'info', icon: 'event' })} class="kk-btn kk-btn-lg kk-btn-league min-w-40 flex-1 md:w-52 md:flex-none">
-						<span class="kk-embers" aria-hidden="true">
-							{#each embers as e}<b style="--x:{e.x};--d:{e.d}s;--delay:{e.delay}s;--drift:{e.drift}px"></b>{/each}
-						</span>
-						<span class="kk-btn-icon"><Icon name="emoji_events" size={28} fill /></span>
-						<span class="kk-btn-label">{t('play.lobby.trophyLeague')}</span>
-					</button>
 					<button type="button" disabled={!ready} data-tour="create-room" onclick={() => (createOpen = true)} class="kk-btn kk-btn-lg min-w-40 flex-1 md:w-52 md:flex-none"><span class="kk-btn-icon"><Icon name="add" size={28} /></span><span class="kk-btn-label">{t('play.lobby.createRoom')}</span></button>
 				</div>
 				<RoomList {store} onjoin={join} compact={tight} />
@@ -624,6 +620,11 @@
 	{/snippet}
 	<RoomList {store} onjoin={join} bare />
 </PushScreen>
+{#snippet screen(lead)}
+	{#if replayOpen}<ReplayScreen {store} start={replayStart} {lead} />
+	{:else if newsOpen}<NewsScreen {store} bare {lead} />
+	{:else if academyOpen}<div class="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-3"><AcademyScreen {store} bind:tab={academyTab} game={academyGame} {lead} /></div>{/if}
+{/snippet}
 <UserMenu bind:this={userMenu} {store} />
 <RoomMenu bind:this={roomMenu} {store} />
 <RoomInfoDialog bind:this={roomInfo} {store} onjoin={join} />

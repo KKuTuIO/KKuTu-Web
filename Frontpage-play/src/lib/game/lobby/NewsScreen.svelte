@@ -23,9 +23,11 @@
 	 * takes the rest, so the rail stays at hand while reading; a button at the top of the rail goes back to the overview. The page picks
 	 * the layout from its own width, not the window's (the side bar can be dragged and the chat can dock): from 48rem the rail and the
 	 * detail sit side by side; below that the detail takes the list's place with a way back.
-	 * @type {{store:any}}
+	 * `bare`: no card of its own, for a stage with a blurred picture behind it (the new lobby); `lead` is a snippet at the left end of the header
+	 * (its back button). The tabs and the detail then sit on translucent surfaces so they read on the picture.
+	 * @type {{store:any, bare?:boolean, lead?:import('svelte').Snippet}}
 	 */
-	let { store } = $props();
+	let { store, bare = false, lead } = $props();
 	const WIDE = 768; // 48rem at the usual 16px: the narrowest page that holds the rail (16rem) and a readable detail
 	const net = $derived(store.net);
 	let tab = $state('all');
@@ -100,14 +102,15 @@
 	const fresh = (e) => eventPhase(e, now) === 'ongoing' && !seen.has(e.id);
 </script>
 
-<section data-tour="news" aria-label={t('play.news.title')} bind:clientWidth={width} in:rise|global class="@container flex min-h-0 flex-1 flex-col overflow-hidden kk-card">
-	<div class="flex shrink-0 flex-col gap-2 border-b border-(color:--kk-line) p-2">
-		<div class="min-w-0 overflow-x-auto [&_.kk-tab]:px-4 [&_.kk-tab]:whitespace-nowrap">
+<section data-tour="news" aria-label={t('play.news.title')} bind:clientWidth={width} in:rise|global class="@container flex min-h-0 flex-1 flex-col overflow-hidden {bare ? '' : 'kk-card'}">
+	<div class="flex shrink-0 items-center gap-2 {bare ? 'px-3 py-2' : 'flex-col items-stretch border-b border-(color:--kk-line) p-2'}">
+		{@render lead?.()}
+		<div class="min-w-0 overflow-x-auto [&_.kk-tab]:px-4 [&_.kk-tab]:whitespace-nowrap {bare ? 'rounded-xl bg-(--kk-surface)/80' : ''}">
 			<Tabs bind:value={tab} {tabs} idPrefix="news" label={t('play.news.title')} />
 		</div>
 	</div>
 
-	<div role="tabpanel" id="news-panel-{tab}" aria-labelledby="news-tab-{tab}" class="flex min-h-0 flex-1">
+	<div role="tabpanel" id="news-panel-{tab}" aria-labelledby="news-tab-{tab}" class="flex min-h-0 flex-1 {bare && selected ? 'mx-2 mb-2 overflow-hidden rounded-2xl bg-(--kk-surface)/85' : ''}">
 		{#if !shown.length}
 			<div class="grid flex-1 place-items-center overflow-y-auto"><EmptyState title={t('play.news.empty.title')} hint={t('play.news.empty.hint')} /></div>
 		{:else if selected}
@@ -130,7 +133,7 @@
 				{#key selected.id}<div in:swap|global={{ dx: 24 }} class="flex min-h-0 flex-1 flex-col"><NewsDetail {store} event={selected} {now} shop={store.shop} {details} loading={!net.eventsLoaded} {stage} onback={wide ? null : () => (selectedId = '')} /></div>{/key}
 			</div>
 		{:else}
-			<div class="min-h-0 min-w-0 flex-1 overflow-y-auto p-3 @md:p-4">
+			<div class="min-h-0 min-w-0 flex-1 overflow-y-auto p-3 {bare ? '' : '@md:p-4'}">
 				<!-- one list of everything, going ones first: a card says what kind it is, so the page is not cut up by kind -->
 				<ul class="grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] gap-3" aria-label={t('play.news.title')}>
 					{#each shown as event (event.id)}

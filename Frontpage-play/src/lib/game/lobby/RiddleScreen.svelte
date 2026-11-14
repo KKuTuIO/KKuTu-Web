@@ -185,10 +185,14 @@
 		store.riddleNew(true);
 	}
 
+	// a key pressed with the mouse must not keep the focus: Enter would press it again instead of sending the try
+	const keepFocus = (e) => e.preventDefault();
+
 	function onkey(e) {
 		if (helpOpen) return;
 		const el = /** @type {HTMLElement|null} */ (e.target);
-		if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+		// (the haptics' hidden checkbox is not a field the player types in)
+		if (el && el.id !== 'kk-haptic' && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
 		if (e.ctrlKey || e.metaKey || e.altKey) return;
 		if (e.key === 'Enter') {
 			if (el?.tagName === 'BUTTON') return; // a focused button takes its own Enter
@@ -310,11 +314,11 @@
 			<div class="keys flex w-full max-w-md flex-col gap-1.5" role="group" aria-label={t('play.riddle.keyboard')}>
 				{#each KEY_ROWS as keys, i (i)}
 					<div class="flex justify-center gap-1">
-						{#if i === 2}<button type="button" class="key key-wide" onclick={erase}>{t('play.riddle.key.delete')}</button>{/if}
+						{#if i === 2}<button type="button" class="key key-wide" onmousedown={keepFocus} onclick={erase}>{t('play.riddle.key.delete')}</button>{/if}
 						{#each keys as k (k)}
-							<button type="button" class="key" data-m={marks[k] ?? ''} onclick={() => add(k)}>{k}</button>
+							<button type="button" class="key" data-m={marks[k] ?? ''} onmousedown={keepFocus} onclick={() => add(k)}>{k}</button>
 						{/each}
-						{#if i === 2}<button type="button" class="key key-wide" onclick={submit} disabled={waiting || revealing}>{t('play.riddle.key.enter')}</button>{/if}
+						{#if i === 2}<button type="button" class="key key-wide" onmousedown={keepFocus} onclick={submit} disabled={waiting || revealing}>{t('play.riddle.key.enter')}</button>{/if}
 					</div>
 				{/each}
 			</div>
@@ -353,6 +357,7 @@
 	}
 	.panel {
 		border-radius: 20px;
+		color: var(--kk-text);
 		background: color-mix(in srgb, var(--kk-surface) 94%, transparent);
 		box-shadow: 0 3px 6px rgb(20 40 80 / 0.22);
 	}

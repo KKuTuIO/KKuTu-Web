@@ -3,3 +3,15 @@
 /* Shared design tokens, the `.kk` surface and its common classes, and the `dark:` variant: it follows the device (prefers-color-scheme) unless the
    root says otherwise. The game client sets `data-theme` while a 테마 is worn, so a light theme on a dark device (or the other way round) gets its own light/dark styling. */
 @import '@kkutuio/ui/theme.css';
+
+/* The page draws its own dark theme, so it says so: a browser that darkens pages by itself (Safari's Adaptive Dark Mode, Samsung Internet's dark mode)
+   leaves a page alone that declares it handles `dark`. A worn 테마 that fixes the scheme gets its own value. */
+:root {
+	color-scheme: light dark;
+}
+:root[data-theme='light'] {
+	color-scheme: light;
+}
+:root[data-theme='dark'] {
+	color-scheme: dark;
+}

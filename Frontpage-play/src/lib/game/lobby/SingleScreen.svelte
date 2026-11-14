@@ -254,7 +254,8 @@
 	/* the description and the numbers: a translucent container of their own */
 	.info {
 		border-radius: 20px;
-		background: rgb(255 255 255 / 0.6);
+		background: color-mix(in srgb, var(--kk-surface) 72%, transparent);
+		color: var(--kk-text);
 		box-shadow: 0 3px 6px rgb(20 40 80 / 0.18);
 	}
 	/* the lettering is One Mobile POP in the ink of the game's hue, as on the mode cards */
@@ -269,8 +270,8 @@
 	}
 	/* the descriptions sit on a translucent container of their own so they read on any fill */
 	.note-pane {
-		background: rgb(255 255 255 / 0.78);
-		color: #1d2433;
+		background: color-mix(in srgb, var(--kk-surface) 82%, transparent);
+		color: var(--kk-text);
 	}
 	.note-row {
 		background: rgb(20 30 60 / 0.06);

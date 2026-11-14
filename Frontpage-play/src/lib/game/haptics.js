@@ -4,9 +4,10 @@
  * user gesture, and neither throws anywhere else: no haptics is not an error.
  */
 let label;
+let box;
 function iosTick() {
 	if (!label) {
-		const input = document.createElement('input');
+		const input = (box = document.createElement('input'));
 		input.type = 'checkbox';
 		input.setAttribute('switch', '');
 		input.id = 'kk-haptic';
@@ -17,7 +18,13 @@ function iosTick() {
 		input.tabIndex = label.tabIndex = -1;
 		document.body.append(input, label);
 	}
+	// Clicking the label can move the focus onto the hidden checkbox, and then every key the player types goes to it: give the focus back
+	const before = document.activeElement;
 	label.click();
+	if (document.activeElement === box) {
+		if (before && before !== box && before !== document.body && typeof before.focus === 'function') before.focus({ preventScroll: true });
+		else box.blur();
+	}
 }
 export function haptic(ms = 10) {
 	try {

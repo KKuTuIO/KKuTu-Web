@@ -60,6 +60,7 @@ export const initialState = () => ({
 	gained: [], // items the server gave (a gacha draw sends one packet per prize): [{key, q}], taken by whoever shows them
 	gifts: [], // what an admin gave me (`#give`): [{key, q}], taken by GiftHost, which shows them on the obtain screen
 	obtained: null, // {rewards, at} what the last claimed mail gave
+	sok: { summary: null, session: null, last: null }, // 아케이드 미니 솎솎: where I stand, the round (the board, the words, the time left as of `at`) and the latest answer
 	riddle: { summary: null, boards: { daily: null, free: null }, last: null }, // 아케이드 리들: where I stand, the board of each mode, and the latest answer ({mode, error?, reward?, at})
 	tutorial: null, // {id, done, ping, at} the server's answer to a cleared tutorial lesson: what the account has cleared, and the 핑 this clear paid
 	friends: {}, // id -> nickname
@@ -450,6 +451,14 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			if (pkt.exp) notice(state, `${state.meta.labels['kkutu.js.obtainExp'] ?? ''}: ${Math.round(pkt.exp).toLocaleString()}`);
 			if (pkt.money) notice(state, `${state.meta.labels['kkutu.js.obtainMoney'] ?? ''}: ${Math.round(pkt.money).toLocaleString()}`);
 			break;
+		case 'sok': {
+			// the server keeps the board and judges every send; what it says is what is drawn
+			const k = state.sok;
+			if (pkt.summary) k.summary = pkt.summary;
+			k.session = pkt.session ? { ...pkt.session, at: Date.now() } : null;
+			k.last = { accepted: pkt.accepted ?? null, error: pkt.error ?? null, reward: pkt.reward ?? null, unpaid: pkt.unpaid ?? null, at: now };
+			break;
+		}
 		case 'riddle': {
 			// the server judges every try; the board is what it says (it keeps the answer until the puzzle is over)
 			const r = state.riddle;

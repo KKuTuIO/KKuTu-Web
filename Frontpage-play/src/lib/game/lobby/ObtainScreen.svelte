@@ -218,6 +218,11 @@
 	.band {
 		animation: ob-rise 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 	}
+	/* Its surface is set here too, and with the dialog in the selector, not only by the utility class: a screen that shows this inside the lobby's panel
+	   (the arcade, the room list) is under `.glass section { background: transparent }`, which is more specific than `.band` alone and took the band away */
+	.obtain .band {
+		background: var(--kk-surface);
+	}
 	.stack.closing {
 		animation: kk-pop-out 0.2s ease-in both;
 	}

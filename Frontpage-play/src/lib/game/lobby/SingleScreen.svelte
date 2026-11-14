@@ -4,6 +4,7 @@
 	import HoverWave from './HoverWave.svelte';
 	import RewardChip from './RewardChip.svelte';
 	import RiddleScreen from './RiddleScreen.svelte';
+	import SokssokScreen from './SokssokScreen.svelte';
 	import { onMount } from 'svelte';
 	import { countdown } from '../riddle.js';
 	import { t } from '../i18n.svelte.js';
@@ -28,9 +29,11 @@
 	];
 	// 리들 (오늘의 리들 and the free one): what the server says about me, in place of the sample numbers
 	const riddle = $derived(store?.net.riddle.summary ?? null);
+	const sok = $derived(store?.net.sok.summary ?? null);
 	let tick = $state(Date.now());
 	onMount(() => {
 		store?.riddleOpen();
+		store?.sokOpen();
 		const id = setInterval(() => (tick = Date.now()), 1000);
 		return () => clearInterval(id);
 	});
@@ -45,6 +48,18 @@
 	const games = $derived(
 		base.map((g) => {
 			const loc = localized(g);
+			if (g.id === 'sokssok' && sok) {
+				return {
+					...loc,
+					rewards: sok.reward.pay ? [{ kind: 'xp', q: sok.reward.exp }, { kind: 'ping', q: sok.reward.ping }] : [],
+					desc: sok.reward.pay ? t('play.arcade.sokssok.descPay', { time: sok.time, min: sok.minWords }) : loc.desc,
+					stats: [
+						[t('play.sok.stat.bestScore'), sok.best.score ? t('play.sok.stat.score', { n: sok.best.score }) : '-'],
+						[t('play.sok.stat.bestWords'), sok.best.words ? t('play.sok.stat.words', { n: sok.best.words }) : '-'],
+						...(sok.reward.pay ? [[t('play.sok.stat.leftToday'), t('play.riddle.stat.leftCount', { n: sok.left })]] : [])
+					]
+				};
+			}
 			if (!riddle || (g.id !== 'daily' && g.id !== 'wordle')) return loc;
 			const pay = riddle.reward;
 			if (g.id === 'daily') {
@@ -73,8 +88,8 @@
 		})
 	);
 	/** the game being played (a riddle's screen replaces the list) */
-	let playing = $state(/** @type {'daily'|'free'|null} */ (null));
-	const play = (id) => (id === 'daily' ? (playing = 'daily') : id === 'wordle' ? (playing = 'free') : soon());
+	let playing = $state(/** @type {'daily'|'free'|'sok'|null} */ (null));
+	const play = (id) => (id === 'daily' ? (playing = 'daily') : id === 'wordle' ? (playing = 'free') : id === 'sokssok' ? (playing = 'sok') : soon());
 	// desktop: one is always open (the first at the start); phone: none until one is touched
 	let sel = $state(/** @type {string|null} */ (null));
 	const open = $derived(sel ?? (desk ? games[0].id : null));
@@ -122,10 +137,12 @@
 {/snippet}
 
 {#snippet startBtn(g)}
-	<button type="button" disabled={g.id === 'sokssok' || ((g.id === 'daily' || g.id === 'wordle') && !riddle)} onclick={() => play(g.id)} class="hw kk-btn kk-btn-hero kk-btn-lg w-full"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label"><HoverWave text={t('play.arcade.start')} /></span></button>
+	<button type="button" disabled={(g.id === 'daily' || g.id === 'wordle') && !riddle} onclick={() => play(g.id)} class="hw kk-btn kk-btn-hero kk-btn-lg w-full"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label"><HoverWave text={t('play.arcade.start')} /></span></button>
 {/snippet}
 
-{#if playing}
+{#if playing === 'sok'}
+	<SokssokScreen {store} onback={() => { playing = null; store?.sokOpen(); }} />
+{:else if playing}
 	<RiddleScreen {store} mode={playing} onback={() => { playing = null; store?.riddleOpen(); }} />
 {:else}
 <div class="flex min-h-0 flex-1 flex-col">

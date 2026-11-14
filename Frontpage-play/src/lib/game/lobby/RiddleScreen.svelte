@@ -3,6 +3,7 @@
 	import Icon from './Icon.svelte';
 	import GameIcon from './GameIcon.svelte';
 	import PriceChip from './PriceChip.svelte';
+	import JjoFrame from './JjoFrame.svelte';
 	import Dialog from './Dialog.svelte';
 	import RewardChip from './RewardChip.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
@@ -330,10 +331,13 @@
 			{#if board?.hint && !over}<p class="hint-line flex items-center gap-1 text-xs font-bold"><Icon name="lightbulb" size={16} fill />{t('play.riddle.hint.text', { n: board.hint.place + 1, jamo: hideLetters ? '○' : board.hint.jamo })}</p>{/if}
 			{#if board?.paid && !over}<p class="hint-line flex items-center gap-1 text-xs font-bold"><GameIcon name="ping" size={16} />{t('play.riddle.hint.paid.text', { range: t('play.riddle.hint.paid.range', { from: board.paid.start + 1, to: board.paid.start + board.paid.jamo.length }), text: hideLetters ? '○'.repeat(board.paid.text.length) : board.paid.text })}</p>{/if}
 
-			<div class="grid gap-1.5 {hideLetters ? 'hide-letters' : ''}" role="grid" aria-label={t('play.riddle.board', { title })}>
+		</div>
+
+		<JjoFrame label={t('play.riddle.board', { title })} reserve={470} top={{ pct: (rows.length / MAX_TRIES) * 100 }}>
+			<div class="rboard {hideLetters ? 'hide-letters' : ''}" role="grid" aria-label={t('play.riddle.board', { title })}>
 				{#each { length: MAX_TRIES } as _, r (r)}
 					{@const row = rows[r]}
-					<div class="grid grid-cols-6 gap-1.5" role="row">
+					<div class="rrow" role="row">
 						{#each { length: LENGTH } as _, c (c)}
 							{@const active = !row && r === rows.length && !over && !revealing}
 							{@const ch = row ? row.j[c] : active ? typed[c] : ''}
@@ -344,7 +348,7 @@
 					</div>
 				{/each}
 			</div>
-		</div>
+		</JjoFrame>
 
 		{#if over}
 			<div class="panel flex w-full max-w-md flex-col items-center gap-3 p-3">
@@ -413,14 +417,31 @@
 		color: #285d30;
 	}
 	.panel {
+		flex: none; /* in the screen's column a panel keeps its own height (a flex item would be squeezed once the frog and the keys take the room) */
 		border-radius: 20px;
 		color: var(--kk-text);
 		background: color-mix(in srgb, var(--kk-surface) 94%, transparent);
 		box-shadow: 0 3px 6px rgb(20 40 80 / 0.22);
 	}
-	/* the tile size follows the room there is (the keyboard, the header and the hint's line take about 33rem) */
+	/* the board is drawn at the frog's own size (44 px tiles, 6 px apart, 294 px of his 298 px mouth) and the frame scales it */
+	.rboard {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin: 2px;
+		width: 294px;
+	}
+	.rrow {
+		display: grid;
+		grid-template-columns: repeat(6, 44px);
+		gap: 6px;
+	}
+	.rboard .tile {
+		--s: 44px;
+	}
+	/* (the tile of the help's examples sizes itself, `tile-sm`) */
 	.tile {
-		--s: clamp(2.1rem, min(12.5vw, (100dvh - 33rem) / 6), 3.4rem);
+		--s: 2.4rem;
 		display: grid;
 		place-items: center;
 		width: var(--s);

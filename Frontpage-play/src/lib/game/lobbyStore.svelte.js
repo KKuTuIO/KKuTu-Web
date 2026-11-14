@@ -271,6 +271,15 @@ export function createLobbyStore(server) {
 			newsSeen = next;
 			saveSeen(next);
 		},
+		// ---- 아케이드: 미니 솎솎 (the server keeps the board and judges; these only ask) ----
+		/** Where I stand, and the round in progress. */
+		sokOpen: () => conn.send('sok.state'),
+		/** A round: the one in progress is resumed, unless `force` gives it up. */
+		sokStart: (force = false) => conn.send('sok.start', force ? { force: true } : {}),
+		/** A send: the places of the tiles I tapped, in order. */
+		sokSubmit: (tiles) => conn.send('sok.submit', { tiles }),
+		/** The time is up: the server settles the round. */
+		sokFinish: () => conn.send('sok.finish'),
 		// ---- 아케이드: 리들 (the server holds the answer and judges; these only ask) ----
 		/** Where I stand in the riddle; with `mode` also that mode's board (the daily is always the same puzzle, a free one is the one in progress). */
 		riddleOpen: (mode) => conn.send('riddle.state', mode ? { mode } : {}),

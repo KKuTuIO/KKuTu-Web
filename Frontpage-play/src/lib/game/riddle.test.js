@@ -33,6 +33,7 @@ describe('riddle', () => {
 		expect(shareText({ rows, won: true, number: 12, title: '리들' })).toBe('리들 12 2/6\n\n⬜⬜🟨⬜⬜🟩\n🟩🟩🟩🟩🟩🟩');
 		expect(shareText({ rows, won: false, title: '리들' })).toBe('리들 X/6\n\n⬜⬜🟨⬜⬜🟩\n🟩🟩🟩🟩🟩🟩');
 		expect(shareText({ rows, won: true, number: 3, title: '리들', hint: true }).split('\n')[0]).toBe('리들 3 2/6 💡');
+		expect(shareText({ rows, won: true, title: '리들', hint: true, paid: true }).split('\n')[0]).toBe('리들 2/6 💡 💰');
 	});
 	it('numbers the daily from the first day, by Korean midnight', () => {
 		const open = Date.UTC(2026, 10, 15, 15, 0, 0); // the 16th 00:00 in Seoul: the next puzzle opens, so the one now open is the 15th

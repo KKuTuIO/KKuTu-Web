@@ -454,6 +454,8 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			// the server judges every try; the board is what it says (it keeps the answer until the puzzle is over)
 			const r = state.riddle;
 			if (pkt.summary) r.summary = pkt.summary;
+			// the paid hint's price: my balance goes down at once
+			if (pkt.paid && state.users[state.id]) state.users[state.id].money -= Number(pkt.paid);
 			if (pkt.mode && pkt.board) r.boards[pkt.mode] = pkt.board;
 			r.last = { mode: pkt.mode ?? null, error: pkt.error ?? null, reward: pkt.reward ?? null, unpaid: pkt.unpaid ?? null, at: now };
 			break;

@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import Icon from './Icon.svelte';
+	import GameIcon from './GameIcon.svelte';
 	import Dialog from './Dialog.svelte';
 	import RewardChip from './RewardChip.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
@@ -36,6 +37,7 @@
 	let revealTimer;
 	let rewardOpen = $state(false);
 	let helpOpen = $state(false);
+	let hintOpen = $state(false);
 	// the letters on the board can be hidden (a screenshot or a stream must not give the word away): the tiles keep their colours; the choice is kept
 	let hideLetters = $state(false);
 	try {
@@ -71,7 +73,7 @@
 		// the answer to the hint button is not a try: the board only gains its hint
 		if (hintAsked) {
 			hintAsked = false;
-			if (last.error === 'nohint') toast(t(ERROR_KEYS.nohint), { kind: 'info', icon: 'lightbulb' });
+			if (last.error === 'nohint' || last.error === 'poor') toast(t(ERROR_KEYS[last.error]), { kind: 'info', icon: 'lightbulb' });
 			return;
 		}
 		if (last.error) {
@@ -168,7 +170,7 @@
 		if (board?.answer) store.ui.dictRequest = board.answer;
 	}
 	async function share() {
-		const text = shareText({ rows, won: board?.status === 'won', number: mode === 'daily' && summary ? dailyNumber(summary.resetAt) : null, title: t('play.riddle.free'), hint: !!board?.hint });
+		const text = shareText({ rows, won: board?.status === 'won', number: mode === 'daily' && summary ? dailyNumber(summary.resetAt) : null, title: t('play.riddle.free'), hint: !!board?.hint, paid: !!board?.paid });
 		try {
 			await navigator.clipboard.writeText(text);
 			toast(t('play.riddle.copied'), { kind: 'info', icon: 'content_copy' });
@@ -176,12 +178,24 @@
 			toast(t('play.riddle.copyFailed'), { kind: 'info', icon: 'content_copy' });
 		}
 	}
+	const money = $derived(store.net.users[store.net.id]?.money ?? 0);
+	const cost = $derived(summary?.hintCost ?? 0);
+	const canHint = $derived(!!board && !over && !revealing && !waiting);
 	function hint() {
-		if (over || waiting || revealing || !board || board.hint) return;
+		if (!canHint || board.hint) return;
+		hintOpen = false;
 		hintAsked = true;
 		playSound('mission');
 		haptic(10);
 		store.riddleHint(mode);
+	}
+	function buyHint() {
+		if (!canHint || board.paid || money < cost) return;
+		hintOpen = false;
+		hintAsked = true;
+		playSound('mission');
+		haptic(14);
+		store.riddleBuyHint(mode);
 	}
 	/**
 	 * The way out of a free puzzle is a give-up (GG): once a try has been made, leaving asks first, and the server then drops the puzzle (its word
@@ -272,12 +286,34 @@
 	</div>
 </Dialog>
 
+<Dialog bind:open={hintOpen} title={t('play.riddle.hint.title')}>
+	<div class="flex flex-col gap-3">
+		<div class="hint-card">
+			<div class="flex flex-col gap-0.5">
+				<b class="text-sm font-extrabold">{t('play.riddle.hint.free.title')}</b>
+				<span class="text-xs font-medium text-(color:--kk-muted)">{t('play.riddle.hint.free.desc')}</span>
+			</div>
+			<button type="button" onclick={hint} disabled={!canHint || !!board?.hint} class="hw kk-btn kk-btn-primary min-h-11 shrink-0 px-3 font-extrabold">{board?.hint ? t('play.riddle.hint.used') : t('play.riddle.hint.free.free')}</button>
+		</div>
+		<div class="hint-card">
+			<div class="flex flex-col gap-0.5">
+				<b class="text-sm font-extrabold">{t('play.riddle.hint.paid.title')}</b>
+				<span class="text-xs font-medium text-(color:--kk-muted)">{t('play.riddle.hint.paid.desc')}</span>
+			</div>
+			<button type="button" onclick={buyHint} disabled={!canHint || !!board?.paid || money < cost} class="hw kk-btn kk-btn-primary inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 font-extrabold">
+				{#if board?.paid}{t('play.riddle.hint.used')}{:else}<GameIcon name="ping" size={20} />{t('play.riddle.hint.paid.buy', { cost })}{/if}
+			</button>
+		</div>
+		{#if !board?.paid && money < cost}<p class="text-center text-xs font-bold text-(color:--kk-muted)">{t('play.riddle.error.poor')}</p>{/if}
+	</div>
+</Dialog>
+
 <div class="flex min-h-0 flex-1 flex-col">
 	<div class="flex items-center gap-3 px-3 py-2">
 		<button type="button" aria-label={t('play.riddle.back')} onclick={leave} class="round"><Icon name="arrow_back" size={24} /></button>
 		<h2 class="title text-xl font-extrabold">{title}</h2>
 		{#if mode === 'daily' && streak > 0}<span class="chip">{t('play.riddle.streak', { n: streak })}</span>{/if}
-		<button type="button" aria-label={t('play.riddle.hint.button')} onclick={hint} disabled={over || waiting || revealing || !board || !!board.hint} class="round ml-auto disabled:opacity-50"><Icon name="lightbulb" size={24} fill={!board?.hint} /></button>
+		<button type="button" aria-label={t('play.riddle.hint.button')} onclick={() => (hintOpen = true)} disabled={!canHint} class="round ml-auto disabled:opacity-50"><Icon name="lightbulb" size={24} fill={!board?.hint || !board?.paid} /></button>
 		<button type="button" aria-label={t('play.riddle.helpButton')} onclick={() => (helpOpen = true)} class="round"><Icon name="help" size={24} /></button>
 	</div>
 
@@ -291,6 +327,7 @@
 				{/if}
 			</div>
 			{#if board?.hint && !over}<p class="hint-line flex items-center gap-1 text-xs font-bold"><Icon name="lightbulb" size={16} fill />{t('play.riddle.hint.text', { n: board.hint.place + 1, jamo: hideLetters ? '○' : board.hint.jamo })}</p>{/if}
+			{#if board?.paid && !over}<p class="hint-line flex items-center gap-1 text-xs font-bold"><GameIcon name="ping" size={16} />{t('play.riddle.hint.paid.text', { range: t('play.riddle.hint.paid.range', { from: board.paid.start + 1, to: board.paid.start + board.paid.jamo.length }), text: hideLetters ? '○'.repeat(board.paid.text.length) : board.paid.text })}</p>{/if}
 
 			<div class="grid gap-1.5 {hideLetters ? 'hide-letters' : ''}" role="grid" aria-label={t('play.riddle.board', { title })}>
 				{#each { length: MAX_TRIES } as _, r (r)}
@@ -299,8 +336,9 @@
 						{#each { length: LENGTH } as _, c (c)}
 							{@const active = !row && r === rows.length && !over && !revealing}
 							{@const ch = row ? row.j[c] : active ? typed[c] : ''}
-							{@const ghost = active && !ch && board?.hint?.place === c}
-							<span role="gridcell" class="tile {r === flipRow ? 'flip' : ''} {ghost ? 'ghost' : ''}" style:--d="{c * STEP_MS}ms" data-m={row ? row.m[c] : ''} data-filled={!!ch}>{ghost ? board.hint.jamo : (ch ?? '')}</span>
+							{@const ghostJamo = active && !ch ? (board?.hint?.place === c ? board.hint.jamo : board?.paid && c >= board.paid.start && c < board.paid.start + board.paid.jamo.length ? board.paid.jamo[c - board.paid.start] : '') : ''}
+							{@const ghost = !!ghostJamo}
+							<span role="gridcell" class="tile {r === flipRow ? 'flip' : ''} {ghost ? 'ghost' : ''}" style:--d="{c * STEP_MS}ms" data-m={row ? row.m[c] : ''} data-filled={!!ch}>{ghost ? ghostJamo : (ch ?? '')}</span>
 						{/each}
 					</div>
 				{/each}
@@ -401,6 +439,15 @@
 	.tile.ghost {
 		border: 2px dashed #5fb86a;
 		color: #5fb86a;
+	}
+	.hint-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		border-radius: 14px;
+		border: 1.5px solid var(--kk-line);
+		padding: 0.75rem;
 	}
 	.hint-line {
 		color: #3f8a4a;

@@ -5,6 +5,8 @@
 	import RewardChip from './RewardChip.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
 	import PriceChip from './PriceChip.svelte';
+	import JjoFrame from './JjoFrame.svelte';
+	import ShopQty from './ShopQty.svelte';
 	import TypingChart from './TypingChart.svelte';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
@@ -15,9 +17,9 @@
 	import { ERROR_KEYS, UNPAID_KEYS, clock, live, marks } from '../typing.js';
 
 	/**
-	 * 타자 연습 (the arcade): the player sets a goal (strokes a minute; the first setting of a day is free, a change after it costs 핑), picks one of the
-	 * texts of the 장문 타자대결 and types it line by line. The server holds the text and the clock and judges every line (this only draws and sends what
-	 * was typed); a text typed at the goal's speed with enough accuracy pays.
+	 * 타자 연습 (the arcade): the player sets a goal (strokes a minute; the first setting of a day is free, a change after it costs 핑) and types today's
+	 * text (one a day) line by line in JJo's mouth, as the 타자 대결 shows its words. The server holds the text and the clock and judges every line (this
+	 * only draws and sends what was typed); a text typed at the goal's speed with enough accuracy pays.
 	 * @type {{store:any, onback:()=>void}}
 	 */
 	let { store, onback } = $props();
@@ -26,12 +28,15 @@
 	const summary = $derived(typing.summary);
 	const session = $derived(typing.session);
 	const money = $derived(store.net.users[store.net.id]?.money ?? 0);
-	const texts = $derived(summary?.texts ?? []);
-	const goal = $derived(summary?.goal ?? null);
+	const range = $derived(summary?.goal ?? { min: 100, max: 1200, step: 50 });
+	const current = $derived(summary?.current ?? null);
+	const cost = $derived(summary?.goalCost ?? 0);
 
-	/** 'pick' (the goal and the texts), 'count' (3, 2, 1), 'play', 'over' */
+	/** 'pick' (the goal and today's text), 'count' (3, 2, 1), 'play', 'over' */
 	let phase = $state('pick');
-	let chosen = $state('');
+	/** the goal being chosen (what the account has set, or 200 the first time) until it is changed with the + and − */
+	let draft = $state(/** @type {number|null} */ (null));
+	const goal = $derived(draft ?? current ?? 200);
 	let count = $state(3);
 	let typed = $state('');
 	let composing = $state(false);
@@ -40,8 +45,7 @@
 	let right = $state(0);
 	let total = $state(0);
 	let points = $state(/** @type {{t:number, v:number}[]} */ ([]));
-	let pendingGoal = $state(/** @type {number|null} */ (null));
-	let changeOpen = $state(false);
+	let warnOpen = $state(false);
 	let rewardOpen = $state(false);
 	let inputEl = $state(/** @type {HTMLInputElement|null} */ (null));
 	let waitTimer;
@@ -58,8 +62,9 @@
 	);
 	const result = $derived(over ? typing.last?.result : null);
 	const reward = $derived(over ? typing.last?.reward : null);
-	const reached = $derived(!!result && goal !== null && result.speed >= goal && result.accuracy >= (summary?.minAccuracy ?? 95));
+	const reached = $derived(!!result && current !== null && result.speed >= current && result.accuracy >= (summary?.minAccuracy ?? 95));
 	const marked = $derived(marks(lines[index] ?? '', typed, composing));
+	const mult = $derived([...(summary?.reward.tiers ?? [])].reverse().find((x) => goal >= x.from)?.mult ?? 1);
 
 	// What the server answered.
 	let seen = 0;
@@ -69,9 +74,13 @@
 		seen = last.at;
 		waiting = false;
 		if (last.error) {
-			const key = ERROR_KEYS[last.error] ?? ERROR_KEYS.over;
-			toast(t(key), { kind: 'info', icon: 'keyboard' });
+			toast(t(ERROR_KEYS[last.error] ?? ERROR_KEYS.over), { kind: 'info', icon: 'keyboard' });
 			if (last.error !== 'same') playSound('fail');
+			// the goal could not be set: the countdown is called off
+			if (phase === 'count' && (last.error === 'poor' || last.error === 'same')) {
+				clearInterval(countTimer);
+				phase = 'pick';
+			}
 			return;
 		}
 		if (last.line) {
@@ -106,24 +115,19 @@
 		};
 	});
 
-	// ---- the goal ----
-	function pickGoal(g) {
-		if (g === goal) return;
-		if (summary?.goalFree) store.typingGoal(g);
-		else {
-			pendingGoal = g;
-			changeOpen = true;
-		}
+	// ---- start: a goal that is not the one set yet is set first (and said what it costs), then the count begins ----
+	function start() {
+		if (!summary?.today) return;
+		if (goal !== current) warnOpen = true;
+		else begin();
 	}
-	function changeGoal() {
-		if (pendingGoal === null || money < (summary?.goalCost ?? 0)) return;
-		store.typingGoal(pendingGoal);
-		changeOpen = false;
+	function setAndBegin() {
+		if (goal !== current && !summary?.goalFree && money < cost) return;
+		warnOpen = false;
+		store.typingGoal(goal);
+		begin();
 	}
-
-	// ---- a text ----
-	function begin(key) {
-		chosen = key;
+	function begin() {
 		right = 0;
 		total = 0;
 		points = [];
@@ -136,7 +140,7 @@
 			count -= 1;
 			if (count > 0) return playSound('As2');
 			clearInterval(countTimer);
-			store.typingStart(key);
+			store.typingStart();
 			phase = 'play';
 			await nextTick();
 			inputEl?.focus();
@@ -147,10 +151,12 @@
 			if (!(await confirm({ message: t('play.typing.leave.confirm'), ok: t('play.typing.leave.ok'), cancel: t('play.typing.leave.cancel') }))) return;
 			clearInterval(countTimer);
 			phase = 'pick';
+			draft = null;
 			return;
 		}
 		if (phase === 'over') {
 			phase = 'pick';
+			draft = null;
 			store.typingOpen();
 			return;
 		}
@@ -180,13 +186,13 @@
 	<ObtainScreen bind:open={rewardOpen} title={t('play.obtain.acquired')} items={[{ key: 'exp', q: reward.exp }, { key: 'ping', q: reward.ping }]} shop={store.shop} details={{}} ribbon ambient="shine" palette="teal" />
 {/if}
 
-<Dialog bind:open={changeOpen} title={t('play.typing.goal.change.title')}>
+<Dialog bind:open={warnOpen} title={summary?.goalFree ? t('play.typing.goal.first.title') : t('play.typing.goal.change.title')}>
 	<div class="flex flex-col gap-3">
-		<p class="text-sm leading-relaxed font-medium">{t('play.typing.goal.change.body', { goal: pendingGoal ?? 0 })}</p>
-		<button type="button" onclick={changeGoal} disabled={money < (summary?.goalCost ?? 0)} class="hw kk-btn kk-btn-primary inline-flex min-h-12 items-center justify-center gap-2.5 px-5 font-extrabold">
-			{t('play.typing.goal.change.ok')}<PriceChip price={summary?.goalCost ?? 0} lacking={money < (summary?.goalCost ?? 0)} />
+		<p class="text-sm leading-relaxed font-medium">{summary?.goalFree ? t('play.typing.goal.first.body', { goal, cost }) : t('play.typing.goal.change.body', { goal })}</p>
+		<button type="button" onclick={setAndBegin} disabled={!summary?.goalFree && money < cost} class="hw kk-btn kk-btn-primary inline-flex min-h-12 items-center justify-center gap-2.5 px-5 font-extrabold">
+			{#if summary?.goalFree}{t('play.typing.goal.first.ok')}{:else}{t('play.typing.goal.change.ok')}<PriceChip price={cost} lacking={money < cost} />{/if}
 		</button>
-		{#if money < (summary?.goalCost ?? 0)}<p class="text-center text-xs font-bold text-(color:--kk-muted)">{t('play.typing.error.poor')}</p>{/if}
+		{#if !summary?.goalFree && money < cost}<p class="text-center text-xs font-bold text-(color:--kk-muted)">{t('play.typing.error.poor')}</p>{/if}
 	</div>
 </Dialog>
 
@@ -197,105 +203,86 @@
 	</div>
 
 	<div class="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto px-3 pb-3">
-		{#if phase === 'pick'}
-			<div class="panel flex w-full max-w-md flex-col gap-2 p-3">
-				<div class="flex items-baseline justify-between gap-2">
-					<b class="text-sm font-extrabold">{t('play.typing.goal.title')}</b>
-					<span class="text-xs font-bold text-(color:--kk-muted)">{summary?.goalFree ? t('play.typing.goal.free') : t('play.typing.goal.changeNote')}</span>
-				</div>
-				<div class="flex flex-wrap gap-1.5">
-					{#each summary?.goals ?? [] as g (g)}
-						<button type="button" class="chip" class:on={g === goal} onclick={() => pickGoal(g)}>{t('play.typing.speed', { n: g.toLocaleString() })}</button>
+		<JjoFrame
+			label={t('play.typing.board')}
+			reserve={phase === 'pick' ? 420 : 300}
+			top={phase === 'pick' || !lines.length ? null : { pct: (Math.min(index, lines.length) / lines.length) * 100, text: `${Math.min(index + (over ? 0 : 1), lines.length)} / ${lines.length} · ${clock(elapsed)}` }}
+			bottom={phase === 'pick' || !lines.length ? null : { pct: Math.min(100, (stats.speed / goal) * 100), text: t('play.typing.pace', { speed: stats.speed, goal }), extreme: !over && elapsed > 8000 && stats.speed < goal }}
+		>
+			<div class="mouth" lang="ko">
+				{#if phase === 'pick'}
+					<span class="hint">{t('play.typing.today')}</span>
+					<b class="today">{summary?.today?.title ?? '…'}</b>
+					{#if summary?.today}<span class="hint">{t('play.typing.today.lines', { n: summary.today.lines })}</span>{/if}
+				{:else if phase === 'count'}
+					<span class="count" aria-live="polite">{count}</span>
+				{:else}
+					{#each lines as line, i (i)}
+						{#if i === index && !over}
+							<div class="cur">{#each marked as m, k (k)}<span class:wrong={m.ok === false} class:ok={m.ok === true}>{m.ch}</span>{/each}</div>
+						{:else if i > index && i < index + 4}
+							<div class="next">{line}</div>
+						{/if}
 					{/each}
+					{#if over}<b class="today">{t('play.typing.done')}</b>{/if}
+				{/if}
+			</div>
+		</JjoFrame>
+
+		{#if phase === 'pick'}
+			<div class="panel flex w-full max-w-md flex-col gap-3 p-3">
+				<div class="flex items-center justify-between gap-2">
+					<b class="text-sm font-extrabold">{t('play.typing.goal.title')}</b>
+					<ShopQty value={goal} min={range.min} max={range.max} step={range.step} unit={t('play.typing.unit')} name={t('play.typing.goal.title')} onchange={(v) => (draft = v)} />
 				</div>
-				<p class="text-xs font-medium text-(color:--kk-muted)">{goal === null ? t('play.typing.goal.none') : t('play.typing.goal.rule', { goal, acc: summary?.minAccuracy ?? 95 })}</p>
+				<p class="text-xs font-medium text-(color:--kk-muted)">{t('play.typing.goal.rule', { acc: summary?.minAccuracy ?? 95 })}</p>
 				{#if summary?.reward.pay}
 					<div class="flex items-center justify-between gap-2 text-xs font-bold text-(color:--kk-muted)">
 						<span>{t('play.typing.leftToday', { n: summary.left })}</span>
-						{#if goal !== null}
-							{@const mult = [...summary.reward.tiers].reverse().find((x) => goal >= x.from)?.mult ?? 1}
-							<span class="flex items-center gap-1"><RewardChip reward={{ kind: 'xp', q: Math.round(summary.reward.exp * mult) }} size={28} /><RewardChip reward={{ kind: 'ping', q: Math.round(summary.reward.ping * mult) }} size={28} /></span>
-						{/if}
+						<span class="flex items-center gap-1"><RewardChip reward={{ kind: 'xp', q: Math.round(summary.reward.exp * mult) }} size={28} /><RewardChip reward={{ kind: 'ping', q: Math.round(summary.reward.ping * mult) }} size={28} /></span>
 					</div>
 				{/if}
+				<button type="button" disabled={!summary?.today} onclick={start} class="hw kk-btn kk-btn-hero kk-btn-lg w-full"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.arcade.start')}</span></button>
 			</div>
-
-			<div class="panel flex w-full max-w-md flex-col gap-2 p-3">
-				<b class="text-sm font-extrabold">{t('play.typing.text.title')}</b>
-				<div class="flex flex-col gap-1.5">
-					{#each texts as x (x.key)}
-						<button type="button" class="text" onclick={() => begin(x.key)}>
-							<b class="font-extrabold">{x.title}</b>
-							<small class="font-bold text-(color:--kk-muted)">{t('play.typing.text.lines', { n: x.lines })}</small>
-						</button>
-					{/each}
-				</div>
+		{:else if phase === 'play'}
+			<div class="panel flex w-full max-w-md flex-col gap-1 p-3">
+				<input
+					bind:this={inputEl}
+					bind:value={typed}
+					oncompositionstart={() => (composing = true)}
+					oncompositionend={() => (composing = false)}
+					oninput={ontype}
+					onkeydown={onkey}
+					class="entry"
+					lang="ko"
+					autocomplete="off"
+					autocapitalize="off"
+					spellcheck="false"
+					autocorrect="off"
+					aria-label={t('play.typing.input')}
+					placeholder={t('play.typing.input.empty')}
+					disabled={waiting}
+				/>
+				<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.typing.accuracy', { acc: stats.accuracy.toFixed(1), wrong: stats.wrong })}</span>
 			</div>
-		{:else if phase === 'count'}
-			<div class="panel flex w-full max-w-md flex-col items-center gap-2 p-8">
-				<span class="count" aria-live="polite">{count}</span>
-				<span class="text-sm font-bold text-(color:--kk-muted)">{texts.find((x) => x.key === chosen)?.title ?? ''}</span>
-			</div>
-		{:else}
+		{:else if phase === 'over' && result}
 			<div class="panel flex w-full max-w-md flex-col gap-3 p-3">
-				<div class="flex items-center justify-between text-xs font-extrabold text-(color:--kk-muted)">
-					<b>{session?.title ?? ''}</b>
-					<span class="tabular-nums">{Math.min(index + (over ? 0 : 1), lines.length)} / {lines.length}</span>
+				<b class="text-center text-lg font-extrabold">{reached ? t('play.typing.result.success', { goal: current ?? 0 }) : t('play.typing.result.fail')}</b>
+				<div>
+					<b class="text-xs font-extrabold text-(color:--kk-muted)">{t('play.typing.chart.title')}</b>
+					<TypingChart {points} goal={current} label={t('play.typing.chart.title')} />
 				</div>
-				<div class="lines" aria-live="off">
-					{#each lines as line, i (i)}
-						{#if i === index && !over}
-							<div class="cur">
-								<div class="prompt" lang="ko">{#each marked as m, k (k)}<span class:right={m.ok === true} class:wrong={m.ok === false}>{m.ch}</span>{/each}</div>
-								<input
-									bind:this={inputEl}
-									bind:value={typed}
-									oncompositionstart={() => (composing = true)}
-									oncompositionend={() => (composing = false)}
-									oninput={ontype}
-									onkeydown={onkey}
-									class="entry"
-									lang="ko"
-									autocomplete="off"
-									autocapitalize="off"
-									spellcheck="false"
-									autocorrect="off"
-									aria-label={t('play.typing.input')}
-									placeholder={t('play.typing.input.empty')}
-									disabled={waiting}
-								/>
-							</div>
-						{:else if i > index - 2 && i < index + 4}
-							<div class="line" class:done={i < index}>{line}</div>
-						{/if}
-					{/each}
+				<p class="text-center text-xs font-bold text-(color:--kk-muted)">{t('play.typing.accuracy', { acc: result.accuracy.toFixed(1), wrong: result.wrong })}</p>
+				{#if reward}
+					<div class="flex flex-wrap items-center justify-center gap-1.5"><RewardChip reward={{ kind: 'xp', q: reward.exp }} size={36} /><RewardChip reward={{ kind: 'ping', q: reward.ping }} size={36} /></div>
+				{:else if typing.last?.unpaid && UNPAID_KEYS[typing.last.unpaid]}
+					<p class="text-center text-sm font-bold text-(color:--kk-muted)">{t(UNPAID_KEYS[typing.last.unpaid], { goal: current ?? 0, acc: summary?.minAccuracy ?? 95 })}</p>
+				{/if}
+				<div class="flex gap-2">
+					<button type="button" onclick={leave} class="hw kk-btn min-h-12 flex-1 font-extrabold">{t('play.typing.stop')}</button>
+					<button type="button" onclick={begin} class="hw kk-btn kk-btn-primary min-h-12 flex-1 font-extrabold">{t('play.typing.again')}</button>
 				</div>
 			</div>
-
-			<div class="panel grid w-full max-w-md grid-cols-3 gap-2 p-3 text-center">
-				<div><small>{t('play.typing.stat.time')}</small><b class="tabular-nums">{clock(elapsed)}</b></div>
-				<div><small>{t('play.typing.stat.speed')}</small><b class="tabular-nums">{stats.speed}</b></div>
-				<div><small>{t('play.typing.stat.accuracy')}</small><b class="tabular-nums">{stats.accuracy.toFixed(1)}</b><i>{t('play.typing.stat.wrong', { n: stats.wrong })}</i></div>
-			</div>
-
-			{#if over && result}
-				<div class="panel flex w-full max-w-md flex-col gap-3 p-3">
-					<b class="text-center text-lg font-extrabold">{reached ? t('play.typing.result.success', { goal: goal ?? 0 }) : t('play.typing.result.fail')}</b>
-					<div>
-						<b class="text-xs font-extrabold text-(color:--kk-muted)">{t('play.typing.chart.title')}</b>
-						<TypingChart {points} {goal} label={t('play.typing.chart.title')} />
-					</div>
-					{#if reward}
-						<div class="flex flex-wrap items-center justify-center gap-1.5"><RewardChip reward={{ kind: 'xp', q: reward.exp }} size={36} /><RewardChip reward={{ kind: 'ping', q: reward.ping }} size={36} /></div>
-					{:else if typing.last?.unpaid && UNPAID_KEYS[typing.last.unpaid]}
-						<p class="text-center text-sm font-bold text-(color:--kk-muted)">{t(UNPAID_KEYS[typing.last.unpaid], { goal: goal ?? 0, acc: summary?.minAccuracy ?? 95 })}</p>
-					{/if}
-					<div class="flex gap-2">
-						<button type="button" onclick={leave} class="hw kk-btn min-h-12 flex-1 font-extrabold">{t('play.typing.stop')}</button>
-						<button type="button" onclick={() => begin(chosen)} class="hw kk-btn kk-btn-primary min-h-12 flex-1 font-extrabold">{t('play.typing.again')}</button>
-					</div>
-				</div>
-			{/if}
 		{/if}
 	</div>
 </div>
@@ -328,93 +315,53 @@
 		background: color-mix(in srgb, var(--kk-surface) 94%, transparent);
 		box-shadow: 0 3px 6px rgb(20 40 80 / 0.22);
 	}
-	.chip {
-		border-radius: 999px;
-		border: 1.5px solid var(--kk-line);
-		background: var(--kk-surface-2);
-		padding: 0.3rem 0.8rem;
-		font-size: 0.85rem;
-		font-weight: 800;
-		font-variant-numeric: tabular-nums;
-	}
-	.chip.on {
-		border-color: var(--kk-accent);
-		background: var(--kk-accent);
+	/* what the frog's mouth shows (as the 타자 대결 does): the line being typed in yellow, the wrong letters struck out in red, and the lines after it in white */
+	.mouth {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 10px;
+		height: 100%;
+		padding: 10px 12px;
+		text-align: center;
+		overflow: hidden;
 		color: #fff;
 	}
-	.text {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 0.5rem;
-		border-radius: 12px;
-		border: 1.5px solid var(--kk-line);
-		background: var(--kk-surface-2);
-		padding: 0.6rem 0.9rem;
-		text-align: left;
-		transition: border-color 0.15s;
-	}
-	.text:hover {
-		border-color: var(--kk-accent);
-	}
-	.count {
-		font-size: 4rem;
+	.mouth .cur {
+		color: #ffff44;
+		font-size: 26px;
 		font-weight: 800;
-		line-height: 1;
-		color: var(--kk-accent);
-	}
-	.lines {
-		display: flex;
-		flex-direction: column;
-		gap: 0.4rem;
-	}
-	.line {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		padding: 0.15rem 0.6rem;
-		font-size: 1rem;
-		font-weight: 700;
-		color: var(--kk-muted);
-	}
-	.line.done {
-		opacity: 0.55;
-	}
-	.cur {
-		display: flex;
-		flex-direction: column;
-		gap: 0.3rem;
-		border-radius: 12px;
-		background: var(--kk-surface-2);
-		padding: 0.5rem 0.6rem;
-		border: 2px solid var(--kk-accent);
-	}
-	.prompt {
-		font-size: 1.15rem;
-		font-weight: 800;
-		line-height: 1.5;
+		line-height: 1.35;
 		overflow-wrap: anywhere;
 	}
-	.prompt .right {
-		color: #3f8a4a;
+	.mouth .cur .wrong {
+		color: #ff5a4d;
+		text-decoration: line-through;
+		text-decoration-thickness: 3px;
 	}
-	.prompt .wrong {
-		color: #d33b3b;
-		text-decoration: underline;
+	.mouth .next {
+		font-size: 17px;
+		font-weight: 700;
+		line-height: 1.3;
+		opacity: 0.85;
+		overflow-wrap: anywhere;
 	}
-	@media (prefers-color-scheme: dark) {
-		:global(:root:not([data-theme='light'])) .prompt .right {
-			color: #7bd488;
-		}
-		:global(:root:not([data-theme='light'])) .prompt .wrong {
-			color: #ff8a8a;
-		}
+	.mouth .today {
+		color: #ffff44;
+		font-size: 28px;
+		font-weight: 800;
 	}
-	:global(:root[data-theme='dark']) .prompt .right {
-		color: #7bd488;
+	.mouth .hint {
+		font-size: 14px;
+		font-weight: 700;
+		opacity: 0.8;
 	}
-	:global(:root[data-theme='dark']) .prompt .wrong {
-		color: #ff8a8a;
+	.mouth .count {
+		color: #ffff44;
+		font-size: 96px;
+		font-weight: 800;
+		line-height: 1;
 	}
 	.entry {
 		width: 100%;
@@ -429,22 +376,5 @@
 	}
 	.entry:focus {
 		border-bottom-color: var(--kk-accent);
-	}
-	.grid small {
-		display: block;
-		font-size: 0.65rem;
-		font-weight: 800;
-		color: var(--kk-muted);
-	}
-	.grid b {
-		font-size: 1.25rem;
-		font-weight: 800;
-	}
-	.grid i {
-		display: block;
-		font-size: 0.65rem;
-		font-style: normal;
-		font-weight: 700;
-		color: var(--kk-muted);
 	}
 </style>

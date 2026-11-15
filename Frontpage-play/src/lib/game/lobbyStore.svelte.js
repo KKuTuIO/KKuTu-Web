@@ -285,8 +285,8 @@ export function createLobbyStore(server) {
 		typingOpen: () => conn.send('typing.state'),
 		/** The goal (strokes a minute); the first of a day is free, a change after it costs 핑. */
 		typingGoal: (goal) => conn.send('typing.goal', { goal }),
-		/** A text (the key of a file of the 장문 texts); the clock starts now. */
-		typingStart: (key) => conn.send('typing.start', { key }),
+		/** Today's text; the clock starts now. */
+		typingStart: () => conn.send('typing.start'),
 		/** The line I typed. */
 		typingSubmit: (text) => conn.send('typing.submit', { text }),
 		// ---- 아케이드: 리들 (the server holds the answer and judges; these only ask) ----

@@ -47,6 +47,7 @@
 	let total = $state(0);
 	let points = $state(/** @type {{t:number, v:number}[]} */ ([]));
 	let warnOpen = $state(false);
+	let helpOpen = $state(false);
 	let rewardOpen = $state(false);
 	let inputEl = $state(/** @type {HTMLInputElement|null} */ (null));
 	let waitTimer;
@@ -107,6 +108,14 @@
 	onMount(() => {
 		store.typingOpen();
 		store.ui.hideFab = true; // the chat button would sit over the input
+		try {
+			if (!localStorage.getItem('kk-typing-help')) {
+				helpOpen = true;
+				localStorage.setItem('kk-typing-help', '1');
+			}
+		} catch {
+			/* no storage: the help is only a button then */
+		}
 		const timer = setInterval(() => {
 			now = Date.now();
 			// the speed over the time, a point a second
@@ -211,10 +220,26 @@
 	</div>
 </Dialog>
 
+<Dialog bind:open={helpOpen} title={t('play.typing.help.title')}>
+	<div class="flex flex-col gap-3">
+		<p class="text-sm leading-relaxed font-medium">{t('play.typing.help.intro')}</p>
+		<ul class="flex list-disc flex-col gap-1 pl-5 text-xs leading-relaxed font-medium text-(color:--kk-muted)">
+			<li>{t('play.typing.help.rule.text')}</li>
+			<li>{t('play.typing.help.rule.goal', { acc: summary?.minAccuracy ?? 95 })}</li>
+			<li>{t('play.typing.help.rule.reward', { ref: summary?.reward.reference ?? 200, exp: summary?.reward.exp ?? 50, ping: summary?.reward.ping ?? 5 })}</li>
+			<li>{t('play.typing.help.rule.typo')}</li>
+			<li>{t('play.typing.help.rule.tries', { n: summary?.perDay ?? 5 })}</li>
+			<li>{t('play.typing.help.rule.cost', { cost })}</li>
+		</ul>
+		<button type="button" onclick={() => (helpOpen = false)} class="hw kk-btn kk-btn-primary min-h-11 font-extrabold">{t('play.typing.help.ok')}</button>
+	</div>
+</Dialog>
+
 <div class="flex min-h-0 flex-1 flex-col">
 	<div class="flex items-center gap-3 px-3 py-2">
 		<button type="button" aria-label={t('play.typing.back')} onclick={leave} class="round"><Icon name="arrow_back" size={24} /></button>
 		<h2 class="title text-xl font-extrabold">{t('play.typing.title')}</h2>
+		<button type="button" aria-label={t('play.typing.helpButton')} onclick={() => (helpOpen = true)} class="round ml-auto"><Icon name="help" size={24} /></button>
 	</div>
 
 	<div class="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto px-3 pb-3">
@@ -250,7 +275,6 @@
 					<b class="text-sm font-extrabold">{t('play.typing.goal.title')}</b>
 					<ShopQty value={goal} min={range.min} max={range.max} step={range.step} unit={t('play.typing.unit')} name={t('play.typing.goal.title')} onchange={(v) => (draft = v)} />
 				</div>
-				<p class="text-xs font-medium text-(color:--kk-muted)">{t('play.typing.goal.rule', { acc: summary?.minAccuracy ?? 95 })}</p>
 				{#if summary?.reward.pay}
 					<div class="flex items-center justify-between gap-2 text-xs font-bold text-(color:--kk-muted)">
 						<span>{t('play.typing.leftToday', { n: summary.left })}</span>

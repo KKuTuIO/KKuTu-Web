@@ -21,8 +21,8 @@ describe('typing', () => {
 	});
 	it('gives the speed and the accuracy so far', () => {
 		const r = live({ right: 10, total: 10, expected: '가나', typed: '가라', elapsed: 6000 });
-		// 가 right (2), 나 wrong (2): 12 right of 14
-		expect(r.speed).toBe(120);
+		// 가 right (2), 나 wrong (2): 12 right of 14, and the 2 wrong ones take 2 right ones away: 10 net in 6 s
+		expect(r.speed).toBe(100);
 		expect(r.accuracy).toBe(85.7);
 		expect(r.wrong).toBe(2);
 		expect(live({ right: 0, total: 0, expected: '', typed: '', elapsed: 0 })).toEqual({ speed: 0, accuracy: 100, wrong: 0 });

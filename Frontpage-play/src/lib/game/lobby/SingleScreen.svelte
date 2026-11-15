@@ -67,7 +67,7 @@
 				return {
 					...loc,
 					rewards: typing.reward.pay ? [{ kind: 'xp', q: typing.reward.exp }, { kind: 'ping', q: typing.reward.ping }] : [],
-					desc: typing.reward.pay ? t('play.arcade.typing.descPay', { acc: typing.minAccuracy }) : loc.desc,
+					desc: typing.reward.pay ? t('play.arcade.typing.descPay', { acc: typing.minAccuracy, n: typing.perDay }) : loc.desc,
 					stats: [
 						[t('play.arcade.stat.best'), typing.best.speed ? t('play.arcade.unit.strokes', { n: typing.best.speed }) : '-'],
 						[t('play.arcade.stat.accuracy'), typing.best.accuracy ? `${typing.best.accuracy}%` : '-'],

@@ -36,7 +36,7 @@ export function marks(expected, typed, composing = false) {
 	});
 }
 
-/** The speed (right strokes a minute) and the accuracy (per cent) so far: the lines done (`right` of `total` strokes) and the line being typed. */
+/** The speed and the accuracy (per cent) so far: the lines done (`right` of `total` strokes) and the line being typed. A wrong stroke takes a right one away from the speed. */
 export function live({ right, total, expected, typed, elapsed, composing = false }) {
 	const m = marks(expected ?? '', typed ?? '', composing);
 	let r = right;
@@ -47,7 +47,7 @@ export function live({ right, total, expected, typed, elapsed, composing = false
 		n += s;
 		if (ok) r += s;
 	}
-	return { speed: elapsed > 0 ? Math.round((r * 60000) / elapsed) : 0, accuracy: n ? Math.floor((r / n) * 1000) / 10 : 100, wrong: n - r };
+	return { speed: elapsed > 0 ? Math.round((Math.max(0, r - (n - r)) * 60000) / elapsed) : 0, accuracy: n ? Math.floor((r / n) * 1000) / 10 : 100, wrong: n - r };
 }
 
 /** "0:12": minutes and seconds. */
@@ -64,11 +64,11 @@ export const ERROR_KEYS = {
 	none: 'play.typing.error.none',
 	poor: 'play.typing.error.poor',
 	same: 'play.typing.error.same',
+	cap: 'play.typing.error.cap',
 	text: 'play.typing.error.text'
 };
 export const UNPAID_KEYS = {
 	goal: 'play.typing.unpaid.goal',
 	speed: 'play.typing.unpaid.speed',
-	accuracy: 'play.typing.unpaid.accuracy',
-	cap: 'play.typing.unpaid.cap'
+	accuracy: 'play.typing.unpaid.accuracy'
 };

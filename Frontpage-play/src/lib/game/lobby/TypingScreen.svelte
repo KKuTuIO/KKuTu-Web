@@ -5,12 +5,13 @@
 	import RewardChip from './RewardChip.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
 	import PriceChip from './PriceChip.svelte';
+	import GameIcon from './GameIcon.svelte';
 	import JjoFrame from './JjoFrame.svelte';
 	import ShopQty from './ShopQty.svelte';
 	import TypingChart from './TypingChart.svelte';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
-	import { playSound } from '../audio.svelte.js';
+	import { playGameBgm, playLobbyBgm, playResultBgm, playSound } from '../audio.svelte.js';
 	import { haptic } from '../haptics.js';
 	import { levelUp } from '../levelUp.svelte.js';
 	import { t } from '../i18n.svelte.js';
@@ -64,7 +65,8 @@
 	const reward = $derived(over ? typing.last?.reward : null);
 	const reached = $derived(!!result && current !== null && result.speed >= current && result.accuracy >= (summary?.minAccuracy ?? 95));
 	const marked = $derived(marks(lines[index] ?? '', typed, composing));
-	const mult = $derived([...(summary?.reward.tiers ?? [])].reverse().find((x) => goal >= x.from)?.mult ?? 1);
+	const mult = $derived(goal / (summary?.reward.reference ?? 200));
+	const noTries = $derived(!!summary?.reward.pay && (summary?.left ?? 1) <= 0);
 
 	// What the server answered.
 	let seen = 0;
@@ -76,8 +78,8 @@
 		if (last.error) {
 			toast(t(ERROR_KEYS[last.error] ?? ERROR_KEYS.over), { kind: 'info', icon: 'keyboard' });
 			if (last.error !== 'same') playSound('fail');
-			// the goal could not be set: the countdown is called off
-			if (phase === 'count' && (last.error === 'poor' || last.error === 'same')) {
+			// the goal could not be set, or the day's tries are used up: the text is called off
+			if ((phase === 'count' || phase === 'play') && (last.error === 'poor' || last.error === 'same' || last.error === 'cap')) {
 				clearInterval(countTimer);
 				phase = 'pick';
 			}
@@ -91,9 +93,15 @@
 			if (last.result) {
 				phase = 'over';
 				playSound(reward || reached ? 'success' : 'timeout');
+				playResultBgm();
 				if (reward) setTimeout(() => levelUp.whenIdle(() => (rewardOpen = true)), 400);
 			}
 		}
+	});
+
+	// the music of a text is 자퀴's (as in the quiz rounds)
+	$effect(() => {
+		if (phase === 'count' || phase === 'play') playGameBgm('JaqwiBGM');
 	});
 
 	onMount(() => {
@@ -112,12 +120,13 @@
 			clearTimeout(waitTimer);
 			clearInterval(countTimer);
 			store.ui.hideFab = false;
+			playLobbyBgm({ fromResult: phase === 'over' }); // the lobby's music comes back (crossfaded from the result's if the text had ended)
 		};
 	});
 
 	// ---- start: a goal that is not the one set yet is set first (and said what it costs), then the count begins ----
 	function start() {
-		if (!summary?.today) return;
+		if (!summary?.today || noTries) return;
 		if (goal !== current) warnOpen = true;
 		else begin();
 	}
@@ -152,12 +161,14 @@
 			clearInterval(countTimer);
 			phase = 'pick';
 			draft = null;
+			playLobbyBgm({ fromResult: false });
 			return;
 		}
 		if (phase === 'over') {
 			phase = 'pick';
 			draft = null;
 			store.typingOpen();
+			playLobbyBgm({ fromResult: true });
 			return;
 		}
 		onback();
@@ -186,11 +197,15 @@
 	<ObtainScreen bind:open={rewardOpen} title={t('play.obtain.acquired')} items={[{ key: 'exp', q: reward.exp }, { key: 'ping', q: reward.ping }]} shop={store.shop} details={{}} ribbon ambient="shine" palette="teal" />
 {/if}
 
-<Dialog bind:open={warnOpen} title={summary?.goalFree ? t('play.typing.goal.first.title') : t('play.typing.goal.change.title')}>
+<Dialog bind:open={warnOpen} title={t('play.typing.confirm.title')}>
 	<div class="flex flex-col gap-3">
-		<p class="text-sm leading-relaxed font-medium">{summary?.goalFree ? t('play.typing.goal.first.body', { goal, cost }) : t('play.typing.goal.change.body', { goal })}</p>
+		<p class="text-base leading-relaxed font-medium">{t('play.typing.confirm.head')} <b class="font-extrabold">{goal.toLocaleString()}{t('play.typing.unit')}</b>{t('play.typing.confirm.tail')}</p>
+		<p class="text-sm leading-relaxed font-medium text-(color:--kk-muted)">
+			{summary?.goalFree ? t('play.typing.confirm.after') : t('play.typing.confirm.now')}
+			<span class="inline-flex items-center gap-1 align-middle font-extrabold text-(color:--kk-warn) tabular-nums"><GameIcon name="ping" size={16} />{cost.toLocaleString()}</span>{t('play.typing.confirm.need')}
+		</p>
 		<button type="button" onclick={setAndBegin} disabled={!summary?.goalFree && money < cost} class="hw kk-btn kk-btn-primary inline-flex min-h-12 items-center justify-center gap-2.5 px-5 font-extrabold">
-			{#if summary?.goalFree}{t('play.typing.goal.first.ok')}{:else}{t('play.typing.goal.change.ok')}<PriceChip price={cost} lacking={money < cost} />{/if}
+			{t('play.typing.confirm.ok')}{#if !summary?.goalFree}<PriceChip price={cost} lacking={money < cost} />{/if}
 		</button>
 		{#if !summary?.goalFree && money < cost}<p class="text-center text-xs font-bold text-(color:--kk-muted)">{t('play.typing.error.poor')}</p>{/if}
 	</div>
@@ -206,7 +221,7 @@
 		<JjoFrame
 			label={t('play.typing.board')}
 			reserve={phase === 'pick' ? 420 : 300}
-			top={phase === 'pick' || !lines.length ? null : { pct: (Math.min(index, lines.length) / lines.length) * 100, text: `${Math.min(index + (over ? 0 : 1), lines.length)} / ${lines.length} · ${clock(elapsed)}` }}
+			top={phase === 'pick' || !lines.length ? null : { pct: (Math.min(index, lines.length) / lines.length) * 100, text: t('play.typing.progress', { n: Math.min(index + (over ? 0 : 1), lines.length), total: lines.length }) }}
 			bottom={phase === 'pick' || !lines.length ? null : { pct: Math.min(100, (stats.speed / goal) * 100), text: t('play.typing.pace', { speed: stats.speed, goal }), extreme: !over && elapsed > 8000 && stats.speed < goal }}
 		>
 			<div class="mouth" lang="ko">
@@ -242,7 +257,7 @@
 						<span class="flex items-center gap-1"><RewardChip reward={{ kind: 'xp', q: Math.round(summary.reward.exp * mult) }} size={28} /><RewardChip reward={{ kind: 'ping', q: Math.round(summary.reward.ping * mult) }} size={28} /></span>
 					</div>
 				{/if}
-				<button type="button" disabled={!summary?.today} onclick={start} class="hw kk-btn kk-btn-hero kk-btn-lg w-full"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.arcade.start')}</span></button>
+				<button type="button" disabled={!summary?.today || noTries} onclick={start} class="hw kk-btn kk-btn-hero kk-btn-lg w-full"><span class="kk-btn-icon"><Icon name="play_arrow" size={28} fill /></span><span class="kk-btn-label">{t('play.arcade.start')}</span></button>
 			</div>
 		{:else if phase === 'play'}
 			<div class="panel flex w-full max-w-md flex-col gap-1 p-3">
@@ -263,7 +278,11 @@
 					placeholder={t('play.typing.input.empty')}
 					disabled={waiting}
 				/>
-				<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.typing.accuracy', { acc: stats.accuracy.toFixed(1), wrong: stats.wrong })}</span>
+				<div class="flex items-center justify-between text-xs font-bold tabular-nums text-(color:--kk-muted)">
+					<span>{clock(elapsed)}</span>
+					<span>{t('play.typing.stat.accuracy', { acc: stats.accuracy.toFixed(1) })}</span>
+					<span class:typo={stats.wrong > 0}>{t('play.typing.stat.wrong', { n: stats.wrong })}</span>
+				</div>
 			</div>
 		{:else if phase === 'over' && result}
 			<div class="panel flex w-full max-w-md flex-col gap-3 p-3">
@@ -272,7 +291,10 @@
 					<b class="text-xs font-extrabold text-(color:--kk-muted)">{t('play.typing.chart.title')}</b>
 					<TypingChart {points} goal={current} label={t('play.typing.chart.title')} />
 				</div>
-				<p class="text-center text-xs font-bold text-(color:--kk-muted)">{t('play.typing.accuracy', { acc: result.accuracy.toFixed(1), wrong: result.wrong })}</p>
+				<p class="flex justify-center gap-4 text-xs font-bold tabular-nums text-(color:--kk-muted)">
+					<span>{t('play.typing.stat.accuracy', { acc: result.accuracy.toFixed(1) })}</span>
+					<span>{t('play.typing.stat.wrong', { n: result.wrong })}</span>
+				</p>
 				{#if reward}
 					<div class="flex flex-wrap items-center justify-center gap-1.5"><RewardChip reward={{ kind: 'xp', q: reward.exp }} size={36} /><RewardChip reward={{ kind: 'ping', q: reward.ping }} size={36} /></div>
 				{:else if typing.last?.unpaid && UNPAID_KEYS[typing.last.unpaid]}
@@ -280,7 +302,7 @@
 				{/if}
 				<div class="flex gap-2">
 					<button type="button" onclick={leave} class="hw kk-btn min-h-12 flex-1 font-extrabold">{t('play.typing.stop')}</button>
-					<button type="button" onclick={begin} class="hw kk-btn kk-btn-primary min-h-12 flex-1 font-extrabold">{t('play.typing.again')}</button>
+					<button type="button" onclick={begin} disabled={noTries} class="hw kk-btn kk-btn-primary min-h-12 flex-1 font-extrabold">{t('play.typing.again')}</button>
 				</div>
 			</div>
 		{/if}
@@ -337,7 +359,7 @@
 	}
 	.mouth .cur .wrong {
 		color: #ff5a4d;
-		text-decoration: line-through;
+		text-decoration: underline;
 		text-decoration-thickness: 3px;
 	}
 	.mouth .next {
@@ -362,6 +384,17 @@
 		font-size: 96px;
 		font-weight: 800;
 		line-height: 1;
+	}
+	.typo {
+		color: #d33b3b;
+	}
+	@media (prefers-color-scheme: dark) {
+		:global(:root:not([data-theme='light'])) .typo {
+			color: #ff8a8a;
+		}
+	}
+	:global(:root[data-theme='dark']) .typo {
+		color: #ff8a8a;
 	}
 	.entry {
 		width: 100%;

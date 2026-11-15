@@ -52,6 +52,9 @@
 	let inputEl = $state(/** @type {HTMLInputElement|null} */ (null));
 	let waitTimer;
 	let countTimer;
+	let endTimer;
+	/** the length of what was typed before this key (a key that takes letters away is silent) */
+	let prevLen = 0;
 
 	const lines = $derived(session?.lines ?? []);
 	const index = $derived(session?.index ?? 0);
@@ -90,12 +93,18 @@
 			total += last.line.strokes;
 			right += last.line.strokes - last.line.wrong;
 			typed = '';
-			playSound(last.line.wrong ? 'fail' : 'K2');
+			prevLen = 0;
 			if (last.result) {
+				// the text is over: the whistle first, then how it went
 				phase = 'over';
-				playSound(reward || reached ? 'success' : 'timeout');
+				playSound('horr');
+				clearTimeout(endTimer);
+				endTimer = setTimeout(() => playSound(reward || reached ? 'success' : 'timeout'), 900);
 				playResultBgm();
-				if (reward) setTimeout(() => levelUp.whenIdle(() => (rewardOpen = true)), 400);
+				if (reward) setTimeout(() => levelUp.whenIdle(() => (rewardOpen = true)), 1000);
+			} else {
+				playSound(last.line.wrong ? 'fail' : 'mission');
+				nextTick().then(() => inputEl?.focus());
 			}
 		}
 	});
@@ -127,6 +136,7 @@
 		return () => {
 			clearInterval(timer);
 			clearTimeout(waitTimer);
+			clearTimeout(endTimer);
 			clearInterval(countTimer);
 			store.ui.hideFab = false;
 			playLobbyBgm({ fromResult: phase === 'over' }); // the lobby's music comes back (crossfaded from the result's if the text had ended)
@@ -152,11 +162,12 @@
 		typed = '';
 		phase = 'count';
 		count = 3;
-		playSound('As2');
+		prevLen = 0;
+		playSound('round_start'); // once, not a beat for each number
 		clearInterval(countTimer);
 		countTimer = setInterval(async () => {
 			count -= 1;
-			if (count > 0) return playSound('As2');
+			if (count > 0) return;
 			clearInterval(countTimer);
 			store.typingStart();
 			phase = 'play';
@@ -197,8 +208,13 @@
 			send();
 		}
 	}
+	// a key: Al when what is typed is right so far, fail when it is not (a key that only takes letters away is silent)
 	function ontype() {
-		if (phase === 'play') playSound('As2');
+		if (phase !== 'play') return;
+		const grew = typed.length >= prevLen;
+		prevLen = typed.length;
+		if (!grew || !typed.length) return;
+		playSound(marks(lines[index] ?? '', typed, composing).some((m) => m.ok === false) ? 'fail' : 'Al');
 	}
 </script>
 
@@ -300,7 +316,7 @@
 					autocorrect="off"
 					aria-label={t('play.typing.input')}
 					placeholder={t('play.typing.input.empty')}
-					disabled={waiting}
+					readonly={waiting}
 				/>
 				<div class="flex items-center justify-between text-xs font-bold tabular-nums text-(color:--kk-muted)">
 					<span>{clock(elapsed)}</span>

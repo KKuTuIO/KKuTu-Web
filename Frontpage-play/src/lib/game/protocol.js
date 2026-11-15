@@ -61,6 +61,7 @@ export const initialState = () => ({
 	gifts: [], // what an admin gave me (`#give`): [{key, q}], taken by GiftHost, which shows them on the obtain screen
 	obtained: null, // {rewards, at} what the last claimed mail gave
 	sok: { summary: null, session: null, last: null }, // 아케이드 미니 솎솎: where I stand, the round (the board, the words, the time left as of `at`) and the latest answer
+	typing: { summary: null, session: null, last: null }, // 아케이드 타자 연습: where I stand, the text in progress (as of `at`) and the latest answer ({line?, result?, error?, reward?, unpaid?, at})
 	riddle: { summary: null, boards: { daily: null, free: null }, last: null }, // 아케이드 리들: where I stand, the board of each mode, and the latest answer ({mode, error?, reward?, at})
 	tutorial: null, // {id, done, ping, at} the server's answer to a cleared tutorial lesson: what the account has cleared, and the 핑 this clear paid
 	friends: {}, // id -> nickname
@@ -457,6 +458,16 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			if (pkt.summary) k.summary = pkt.summary;
 			k.session = pkt.session ? { ...pkt.session, at: Date.now() } : null;
 			k.last = { accepted: pkt.accepted ?? null, error: pkt.error ?? null, reward: pkt.reward ?? null, unpaid: pkt.unpaid ?? null, at: now };
+			break;
+		}
+		case 'typing': {
+			// the server holds the clock and judges every line; what it says is what is shown
+			const k = state.typing;
+			if (pkt.summary) k.summary = pkt.summary;
+			k.session = pkt.session ? { ...pkt.session, at: Date.now() } : null;
+			// the price of changing the goal: my balance goes down at once
+			if (pkt.paid && state.users[state.id]) state.users[state.id].money -= Number(pkt.paid);
+			k.last = { line: pkt.line ?? null, result: pkt.result ?? null, error: pkt.error ?? null, reward: pkt.reward ?? null, unpaid: pkt.unpaid ?? null, paid: pkt.paid ?? null, at: now };
 			break;
 		}
 		case 'riddle': {

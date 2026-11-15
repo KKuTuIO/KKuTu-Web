@@ -280,6 +280,15 @@ export function createLobbyStore(server) {
 		sokSubmit: (tiles) => conn.send('sok.submit', { tiles }),
 		/** The time is up: the server settles the round. */
 		sokFinish: () => conn.send('sok.finish'),
+		// ---- 아케이드: 타자 연습 (the server holds the text and the clock and judges; these only ask) ----
+		/** Where I stand (the goal, the texts, today's rewards left). */
+		typingOpen: () => conn.send('typing.state'),
+		/** The goal (strokes a minute); the first of a day is free, a change after it costs 핑. */
+		typingGoal: (goal) => conn.send('typing.goal', { goal }),
+		/** A text (the key of a file of the 장문 texts); the clock starts now. */
+		typingStart: (key) => conn.send('typing.start', { key }),
+		/** The line I typed. */
+		typingSubmit: (text) => conn.send('typing.submit', { text }),
 		// ---- 아케이드: 리들 (the server holds the answer and judges; these only ask) ----
 		/** Where I stand in the riddle; with `mode` also that mode's board (the daily is always the same puzzle, a free one is the one in progress). */
 		riddleOpen: (mode) => conn.send('riddle.state', mode ? { mode } : {}),

@@ -121,6 +121,11 @@
 	const play = (id) => (id === 'daily' ? (playing = 'daily') : id === 'wordle' ? (playing = 'free') : id === 'sokssok' ? (playing = 'sok') : id === 'typing' ? (playing = 'typing') : id === 'math' ? (playing = 'math') : soon());
 	// desktop: one is always open (the first at the start); phone: none until one is touched
 	let sel = $state(/** @type {string|null} */ (null));
+	// while a game is open the bottom bar and the nudges are away (nothing to tap by mistake; the game has its own way back)
+	$effect(() => {
+		store.ui.arcade = playing !== null;
+		return () => (store.ui.arcade = false);
+	});
 	const open = $derived(sel ?? (desk ? games[0].id : null));
 	const current = $derived(games.find((g) => g.id === open));
 	function pick(id) {

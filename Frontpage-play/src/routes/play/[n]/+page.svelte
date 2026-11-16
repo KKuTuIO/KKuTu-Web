@@ -599,7 +599,7 @@
 			{/if}
 		</main>
 	</div>
-	{#if tabBar}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} />{/if}
+	{#if tabBar && !store.ui.arcade}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} />{/if}
 </div>
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->

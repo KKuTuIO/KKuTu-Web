@@ -58,7 +58,7 @@ export function createLobbyStore(server) {
 	let newsSeen = $state(loadSeen()); // the event ids whose page I have opened since they began
 	const net = conn.state;
 	const live = $state({ value: '', composing: false }); // what I am typing right now, from the board's field or the chat box
-	const ui = $state({ query: '', ...loadRoomFilter(), gameCovered: false, exitReserved: false, chatNonce: 0, phoneStage: false, hideFab: false, dictRequest: '' });
+	const ui = $state({ query: '', ...loadRoomFilter(), gameCovered: false, exitReserved: false, chatNonce: 0, phoneStage: false, hideFab: false, arcade: false, dictRequest: '' });
 	// the replay being watched (its store, see replayPlayer.svelte.js): the chat shows its chat, the lobby music steps aside
 	let replayView = $state.raw(null);
 

@@ -438,7 +438,7 @@
                                 <Icon
                                     name="expand_more"
                                     size={24}
-                                    class="shrink-0 text-(color:--kk-muted) transition-transform {on ? 'rotate-180' : ''}"
+                                    class="chev shrink-0 text-(color:--kk-muted) transition-transform {on ? 'rotate-180' : ''}"
                                 />
                             </button>
                             <div class="acc" class:acc-open={on} inert={!on}>
@@ -475,7 +475,9 @@
                         </li>
                     {/each}
                 </ul>
-                {#if pays}<p class="text-xs font-medium text-(color:--kk-muted)">
+                {#if pays}<p
+                        class="text-center text-xs font-medium text-(color:--kk-muted)"
+                    >
                         {t("play.math.fullReward")}
                     </p>{/if}
             </div>
@@ -789,7 +791,7 @@
         object-fit: contain;
         object-position: top;
     }
-    .head :global(.shrink-0) {
+    .head :global(.chev) {
         align-self: center;
         margin-bottom: 0.5rem;
     }

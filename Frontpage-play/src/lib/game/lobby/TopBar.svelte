@@ -52,13 +52,13 @@
 {#snippet item(m, o = {})}
 	{#if m.id === 'help'}
 		<!-- 학사모레미 points at 도움말 until the player opens it (not inside a room, where the lobby's help isn't the point) -->
-		<Nudge id="tutorial" enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom}>
+		<Nudge id="tutorial" enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !store.ui.arcade}>
 			{#snippet content()}<Mascot {store} size={44} /><span>{t('play.nudge.tutorial')}</span>{/snippet}
 			{@render navButton(m, o)}
 		</Nudge>
 	{:else if m.id === 'news'}
 		<!-- a new event the player has not seen: its picture under the menu. It waits for the tutorial's nudge, so two bubbles never compete; pressing it opens the page, which counts the event as seen. -->
-		<Nudge id="news" enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
+		<Nudge id="news" enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !store.ui.arcade && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
 			{#snippet content()}
 				<span class="flex min-w-0 flex-col gap-1.5">
 					<span class="flex flex-col px-1"><b class="text-sm font-extrabold">{t('play.news.nudge')}</b><span class="truncate text-xs font-bold text-(color:--kk-muted)">{store.newsNudge?.name}</span></span>

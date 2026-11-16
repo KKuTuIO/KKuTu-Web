@@ -30,11 +30,50 @@ export function typeJamo(typed, add) {
 
 const RANK = { a: 1, p: 2, c: 3 };
 
-/** The best mark each jamo has got so far (the keyboard's colours): in place beats elsewhere beats not in the word. */
+/**
+ * A try as the board shows it: one tile for each syllable (`row.s` says how many jamo each is spelled in, `row.w` is the word). A tile says how many of its jamo
+ * are in their place (`c`, orange) and how many are in the word elsewhere (`p`, yellow). Its `state`: `g` the syllable is right (every jamo in place), `a` none of its
+ * jamo is in the word, `o` some are in place and the rest not in the word, `y` some are in the word elsewhere and none in place, `m` both. A try without sizes is a tile for each jamo.
+ */
+export function tilesOf(row) {
+	const sizes = row.s?.length ? row.s : Array.from({ length: row.j.length }, () => 1);
+	const chars = row.w ? [...row.w] : null;
+	const out = [];
+	let at = 0;
+	for (let i = 0; i < sizes.length; i++) {
+		const size = sizes[i];
+		const part = row.m.slice(at, at + size);
+		const c = [...part].filter((x) => x === 'c').length;
+		const p = [...part].filter((x) => x === 'p').length;
+		const jamo = row.j.slice(at, at + size);
+		out.push({ size, start: at, ch: chars && chars.length === sizes.length ? chars[i] : jamo, c, p, state: c === size ? 'g' : c + p === 0 ? 'a' : c && p ? 'm' : c ? 'o' : 'y' });
+		at += size;
+	}
+	return out;
+}
+
+/**
+ * What the keyboard shows. A tile does not say which of its jamo are in the word, so a key is coloured only for what a try makes certain: the jamo of a right
+ * syllable are in place (`c`); the jamo of a syllable whose jamo are all in the word (in place or not) are in the word (`p`); and a jamo is not in the word (`a`) when
+ * every place it has in the try is in a tile with none in the word (a jamo that the word has would have been counted in one of its places, so one counted out in
+ * a tile because it was already counted in another is not taken for absent). The best of what a key got stays: in place beats in the word beats not in it.
+ */
 export function keyMarks(rows) {
 	const out = {};
-	for (const { j, m } of rows) {
-		for (let i = 0; i < j.length; i++) if ((RANK[m[i]] ?? 0) > (RANK[out[j[i]]] ?? 0)) out[j[i]] = m[i];
+	const give = (key, mark) => {
+		if ((RANK[mark] ?? 0) > (RANK[out[key]] ?? 0)) out[key] = mark;
+	};
+	for (const row of rows) {
+		const tiles = tilesOf(row);
+		const onlyGray = {};
+		for (const tile of tiles) {
+			for (const key of row.j.slice(tile.start, tile.start + tile.size)) {
+				onlyGray[key] = (onlyGray[key] ?? true) && tile.state === 'a';
+			}
+			const mark = tile.state === 'g' ? 'c' : tile.c + tile.p === tile.size && tile.state !== 'a' ? 'p' : null;
+			if (mark) for (const key of row.j.slice(tile.start, tile.start + tile.size)) give(key, mark);
+		}
+		for (const key of Object.keys(onlyGray)) if (onlyGray[key]) give(key, 'a');
 	}
 	return out;
 }
@@ -63,7 +102,13 @@ const KST = 9 * 3_600_000;
 /** The number of the daily whose puzzle is open until `resetAt` (the server says when the next one opens). */
 export const dailyNumber = (resetAt) => Math.floor((resetAt - 1 + KST) / 86_400_000) - FIRST_DAY + 1;
 
-const EMOJI = { c: '🟩', p: '🟨', a: '⬜' };
+/** A tile as squares: 🟩 a right syllable, ⬜ one with no jamo in the word, 🟧 the jamo in place and 🟨 the ones in the word elsewhere, each with its number (a one-jamo tile has none). */
+function tileEmoji(t) {
+	if (t.state === 'g') return '🟩';
+	if (t.state === 'a') return '⬜';
+	const n = (k) => (t.size > 1 ? String(k) : '');
+	return `${t.c ? `🟧${n(t.c)}` : ''}${t.p ? `🟨${n(t.p)}` : ''}`;
+}
 
 /**
  * The text a finished puzzle is shared as, in the way of Wordle: a title with the number of tries, then a line of squares for each try. It says
@@ -71,5 +116,5 @@ const EMOJI = { c: '🟩', p: '🟨', a: '⬜' };
  */
 export function shareText({ rows, won, number = null, title, hint = false, paid = false }) {
 	const head = `${number ? `${title} ${number}` : title} ${won ? rows.length : 'X'}/${MAX_TRIES}${hint ? ' 💡' : ''}${paid ? ' 💰' : ''}`;
-	return `${head}\n\n${rows.map((r) => [...r.m].map((m) => EMOJI[m] ?? '⬜').join('')).join('\n')}`;
+	return `${head}\n\n${rows.map((r) => { const tiles = tilesOf(r); return tiles.map(tileEmoji).join(tiles.some((t) => t.size > 1) ? ' ' : ''); }).join('\n')}`;
 }

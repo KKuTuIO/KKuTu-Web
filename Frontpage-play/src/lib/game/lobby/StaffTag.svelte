@@ -2,9 +2,9 @@
 	import { staffOf } from '../staffTag.js';
 	import { t } from '../i18n.svelte.js';
 
-	/** The badge of a staff team in front of a name; nothing for an ordinary name skin. `nik` is the worn `equip.NIK`. */
-	let { nik } = $props();
-	const staff = $derived(staffOf(nik));
+	/** The tag of a staff team in front of a name; nothing for an ordinary player. `staff` is a team id (`staffIdOf(equip)`). */
+	let { staff: id = null } = $props();
+	const staff = $derived(staffOf(id));
 </script>
 
 {#if staff}<span class="kk-staff" style:--staff={staff.color}>{t(`play.staff.${staff.id}`)}</span>{/if}

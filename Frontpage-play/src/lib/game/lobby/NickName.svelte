@@ -1,6 +1,7 @@
 <script>
 	import Icon from './Icon.svelte';
 	import StaffTag from './StaffTag.svelte';
+	import { staffIdOf } from '../staffTag.js';
 	import { prefs } from '../prefs.svelte.js';
 	import { t } from '../i18n.svelte.js';
 	/** A nickname the way the legacy client shows it: name, then a small grey #tag; fixed nicknames (no tag) can show a check mark. */
@@ -11,4 +12,4 @@
 	const skin = $derived(!masked && user.equip?.NIK ? `x-${user.equip.NIK}` : '');
 </script>
 
-<span class={skin}>{#if masked}{t('play.anonymous')}{:else}<StaffTag nik={user.equip?.NIK} />{user.name}{#if user.tag && !hideTag}<small class="font-normal text-(color:--kk-muted)">#{user.tag}</small>{:else if user.fixed && showCheck}<Icon name="check" size={14} class="ml-0.5 align-[-1px] text-(color:--kk-accent-strong)" />{/if}{/if}</span>
+<span class={skin}>{#if masked}{t('play.anonymous')}{:else}<StaffTag staff={staffIdOf(user.equip)} />{user.name}{#if user.tag && !hideTag}<small class="font-normal text-(color:--kk-muted)">#{user.tag}</small>{:else if user.fixed && showCheck}<Icon name="check" size={14} class="ml-0.5 align-[-1px] text-(color:--kk-accent-strong)" />{/if}{/if}</span>

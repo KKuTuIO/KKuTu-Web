@@ -72,3 +72,24 @@ export function levelSpriteStyle(level) {
 	const i = level - 1;
 	return `background-image:url('${IMAGE_CDN}kkutu/lv/newlv.png${LEVEL_SHEET_VERSION}');background-size:2560%;background-position:${(i % 25) * -100}% ${Math.floor(i / 25) * -100}%`;
 }
+
+/** Levels from here to 800 have an animated badge: `fxlv.png` holds one row per level, `LEVEL_FX_FRAMES` frames (7 moving, the last at rest). */
+export const LEVEL_FX_FIRST = 751;
+export const LEVEL_FX_FRAMES = 8;
+const LEVEL_FX_LAST = 800;
+
+/** Whether this level has an animated badge. */
+export const hasLevelFx = (level) => level >= LEVEL_FX_FIRST && level <= LEVEL_FX_LAST;
+
+/**
+ * CSS for the animated badge of `level` at `size` px. It sets the sheet, the row and `--s` (the badge size); the frame itself is moved by the
+ * `lv-fx` animation of `LevelIcon`, which also holds the rest frame so the badge stands still for a while.
+ */
+export function levelFxStyle(level, size) {
+	const rows = LEVEL_FX_LAST - LEVEL_FX_FIRST + 1;
+	return `background-image:url('${IMAGE_CDN}kkutu/lv/fxlv.png${LEVEL_SHEET_VERSION}');background-size:${LEVEL_FX_FRAMES * 100}% ${rows * 100}%;--s:${size}px;background-position-y:calc(var(--s) * -${level - LEVEL_FX_FIRST})`;
+}
+
+/** The level badge of a staff team (`gmlv.png`, 40x40, drawn like the level sprite: one picture scaled to the badge size). */
+export const staffLevelImage = (id) => `${IMAGE_CDN}kkutu/lv/${id}lv.png${LEVEL_SHEET_VERSION}`;
+

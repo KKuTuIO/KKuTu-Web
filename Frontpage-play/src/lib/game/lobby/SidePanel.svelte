@@ -80,7 +80,7 @@
 			{#each store.users as u (u.id)}
 					<li>
 					<button type="button" onclick={(e) => store.hooks.openUserMenu?.(u.id, e, 'userList')} class="flex min-h-10 w-full items-center gap-2.5 rounded-lg px-2 text-left hover:bg-(--kk-surface-2)">
-						<LevelIcon level={u.lv} size={22} maskable={u.id !== store.net.id} />
+						<LevelIcon level={u.lv} equip={u.equip} size={22} maskable={u.id !== store.net.id} />
 						<Tooltip text={prefs.hideUsers && u.id !== store.net.id ? t('play.anonymous') : fullNick(u)}><span class="truncate">{#if prefs.hideUsers && u.id !== store.net.id}{t('play.anonymous')}{:else}{u.name}{/if}</span></Tooltip>
 						{#if u.rating != null && u.rating < 2}<RatingMark rating={u.rating} size={15} mine={u.id === store.net.id} />{/if}
 					</button>
@@ -114,7 +114,7 @@
 				{#if !noAvatar}<Moremi equip={me.equip} shop={store.shop} {parts} size={64} label={me.name} frame={false} />{/if}
 				<div class="min-w-0 flex-1">
 					<p class="truncate text-base leading-tight font-extrabold">{me.name}</p>
-					<p class="mt-1 flex items-center gap-1.5 text-xs font-bold text-(color:--kk-muted)"><LevelIcon level={me.lv} size={20} />{t('play.level', { level: me.lv })}</p>
+					<p class="mt-1 flex items-center gap-1.5 text-xs font-bold text-(color:--kk-muted)"><LevelIcon level={me.lv} equip={me.equip} size={20} />{t('play.level', { level: me.lv })}</p>
 				</div>
 			</button>
 

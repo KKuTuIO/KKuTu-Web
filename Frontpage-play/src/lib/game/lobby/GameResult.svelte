@@ -425,7 +425,7 @@
 								<div class="pstep" style:height="{STEP_H[pl.place]}px">
 									<i class="ptop"></i>
 									<div class="pface">
-										<div class="pname" class:self={pl.p.me}>{#if pl.p.user}<LevelIcon level={pl.p.user.lv} size={16} /><NickName user={pl.p.user} hideTag maskable={!pl.p.user.robot && !pl.p.me} />{/if}</div>
+										<div class="pname" class:self={pl.p.me}>{#if pl.p.user}<LevelIcon level={pl.p.user.lv} equip={pl.p.user.equip} size={16} /><NickName user={pl.p.user} hideTag maskable={!pl.p.user.robot && !pl.p.me} />{/if}</div>
 										<div class="pscore">{commify(pl.p.score)}</div>
 									</div>
 								</div>

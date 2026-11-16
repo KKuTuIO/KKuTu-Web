@@ -752,7 +752,7 @@
 		{@const hidden = !p.robot && p.id !== net.id}
 		<div id="game-user-{p.id}" data-player={p.id} role="button" tabindex="0" onclick={() => store.hooks.openProfile?.(p.id)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), store.hooks.openProfile?.(p.id))} class="game-user {bombs[p.id] || g?.gaveUp?.[p.id] ? 'game-user-bomb' : ''} {family === 'Drawing' && g?.painter === p.id ? 'game-user-drawing' : ''} {family === 'Drawing' && g?.winner === p.id ? 'game-user-current' : ''}">
 			{#if leaders.has(p.id)}<span class="game-user-lead" data-leader>{t('play.game.leader')}</span>{/if}
-			<div class="game-user-level"><LevelIcon level={p.robot ? 1 : p.lv} size={18} maskable={hidden} /></div>
+			<div class="game-user-level"><LevelIcon level={p.robot ? 1 : p.lv} equip={p.equip} size={18} maskable={hidden} /></div>
 			<div class="game-user-name ellipse"><NickName user={p} showCheck maskable={hidden} /></div>
 			<div class="game-user-score {p.game.team ? `team-${p.game.team}` : ''}" data-score data-value={Math.round(p.game.score ?? 0)}>
 				{#each scoreChars(shown[p.id] ?? 0) as c, i (i)}<div class="game-user-score-char">{c}</div>{/each}
@@ -772,7 +772,7 @@
 									<div class="moremi game-user-image"><Moremi equip={p.equip} shop={store.shop} {parts} size={large ? 76 : 100} label={p.name} frame={false} maskable={hidden} /></div>
 									<Tooltip content={who} placement="bottom">
 										<div class="game-user-title">
-											<div class="game-user-level"><LevelIcon level={p.robot ? 1 : p.lv} size={18} maskable={hidden} /></div>
+											<div class="game-user-level"><LevelIcon level={p.robot ? 1 : p.lv} equip={p.equip} size={18} maskable={hidden} /></div>
 											<div class="game-user-name ellipse"><NickName user={p} showCheck maskable={hidden} /></div>
 										</div>
 									</Tooltip>
@@ -915,7 +915,7 @@
 			{#if leaders.has(p.id)}<span class="game-user-lead" data-leader>{t('play.game.leader')}</span>{/if}
 			<span class="kkp-ava"><Moremi equip={p.equip} shop={store.shop} {parts} size={36} label={p.name} frame={false} maskable={hidden} /></span>
 			<span class="who">
-				<span class="nm"><LevelIcon level={p.robot ? 1 : p.lv} size={14} maskable={hidden} /><NickName user={p} showCheck maskable={hidden} /></span>
+				<span class="nm"><LevelIcon level={p.robot ? 1 : p.lv} equip={p.equip} size={14} maskable={hidden} /><NickName user={p} showCheck maskable={hidden} /></span>
 				<span class="sc {team ? `team-${team}` : ''}" data-score data-value={Math.round(p.game.score ?? 0)}>
 					{#if g?.solved?.[p.id] !== undefined}{Number(g.solved[p.id]).toLocaleString()}<small>{t('play.game.solvedUnit')}</small>
 					{:else if g?.kpm?.[p.id] !== undefined}{g.kpm[p.id]}<small>{plainText(t('kkutu.js.kpm'))}</small>

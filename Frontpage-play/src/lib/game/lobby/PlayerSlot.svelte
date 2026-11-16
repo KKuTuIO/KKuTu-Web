@@ -45,7 +45,7 @@
 	<div class="flex min-w-0 flex-col items-center gap-0.5 {compact ? '' : 'w-full'}">
 	<TitleBadge user={player} shop={store.shop} maskable={!isMe && !player.robot} />
 	<div class="flex min-w-0 items-center gap-1.5 {compact ? '' : 'w-full justify-center'}">
-		<LevelIcon level={player.robot ? 1 : player.lv} size={compact ? 22 : 24} maskable={!isMe && !player.robot} />
+		<LevelIcon level={player.robot ? 1 : player.lv} equip={player.equip} size={compact ? 22 : 24} maskable={!isMe && !player.robot} />
 		<Tooltip text={prefs.hideUsers && !isMe && !player.robot ? t('play.anonymous') : fullNick(player)}><span class="min-w-0 truncate font-extrabold {small ? 'text-xs' : ''}"><NickName user={player} showCheck maskable={!isMe && !player.robot} /></span></Tooltip>
 		{#if !player.robot && player.rating != null && player.rating < 2}<RatingMark rating={player.rating} size={compact ? 14 : 16} mine={isMe} />{/if}
 		{#if isMe && !compact}<span class="kk-chip shrink-0">{t('play.room.you')}</span>{/if}

@@ -43,7 +43,7 @@
 		<ul class="flex max-h-72 min-h-40 flex-col overflow-y-auto rounded-xl border-[1.5px] border-(color:--kk-line)">
 			{#each candidates as u (u.id)}
 				<li class="border-b border-(color:--kk-line) last:border-b-0">
-					<button type="button" onclick={() => ask(u)} class="flex min-h-11 w-full items-center gap-2.5 px-3 text-left hover:bg-(--kk-accent-soft)"><LevelIcon level={u.lv} size={22} /><span class="truncate font-bold"><NickName user={u} showCheck /></span></button>
+					<button type="button" onclick={() => ask(u)} class="flex min-h-11 w-full items-center gap-2.5 px-3 text-left hover:bg-(--kk-accent-soft)"><LevelIcon level={u.lv} equip={u.equip} size={22} /><span class="truncate font-bold"><NickName user={u} showCheck /></span></button>
 				</li>
 			{:else}
 				<li class="grid flex-1 place-items-center"><EmptyState compact size={110} title={t('play.invite.empty')} /></li>

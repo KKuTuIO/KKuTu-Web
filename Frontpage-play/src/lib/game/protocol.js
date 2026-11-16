@@ -5,6 +5,7 @@
 import { createSplitFilter } from './badwords.js';
 import { isAdminCommand } from './commands.js';
 import { getLevel } from './level.js';
+import { staffIdOf } from './staffTag.js';
 import { applyGamePacket } from './gameModel.js';
 import { t } from './i18n.svelte.js';
 import { newDm, dmReceive, dmLoad } from './dm.js';
@@ -548,7 +549,7 @@ export function applyPacket(state, pkt, now = Date.now()) {
 						at: Date.now(),
 						system: false,
 						uid,
-						nik: state.users[uid]?.equip?.NIK ?? '', // the staff badge before the name
+						staff: staffIdOf(state.users[uid]?.equip) ?? '', // the staff tag before the name (from the worn staff badge)
 						whisper: false,
 						spectator: state.users[uid]?.game?.form === 'S',
 						mine: !!state.id && uid === state.id

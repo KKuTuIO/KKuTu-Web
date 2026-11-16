@@ -37,7 +37,7 @@
 		{@const s = status(u)}
 		<li class="flex items-center gap-1 rounded-lg hover:bg-(--kk-surface-2)">
 			<button type="button" onclick={(e) => store.hooks.openUserMenu?.(u.id, e, 'roomUser')} class="flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 text-left">
-				<LevelIcon level={u.lv} size={22} maskable={u.id !== store.net.id && !u.robot} />
+				<LevelIcon level={u.lv} equip={u.equip} size={22} maskable={u.id !== store.net.id && !u.robot} />
 				<Tooltip text={fullNick(u)}><span class="truncate">{name(u)}</span></Tooltip>
 				{#if u.rating != null && u.rating < 2}<RatingMark rating={u.rating} size={15} mine={u.id === store.net.id} />{/if}
 				{#if s}<span class="ml-auto shrink-0 rounded-md px-1.5 py-0.5 text-[11px] leading-none font-extrabold {s === 'practice' ? 'text-[#2c2200]' : 'text-white'}" style:background-color="var(--kk-st-{s})">{t(`play.room.status.${s}`)}</span>{/if}

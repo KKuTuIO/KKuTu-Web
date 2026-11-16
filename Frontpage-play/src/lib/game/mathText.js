@@ -7,12 +7,12 @@ import katex from 'katex';
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const escape = (s) => s.replace(/[&<>"']/g, (c) => ESC[c]);
 
-export function mathHtml(text) {
-	if (!text) return '';
-	return String(text)
+/** One line of text with its formulas drawn. */
+function inline(line) {
+	return line
 		.split('$')
 		.map((part, i) => {
-			if (i % 2 === 0) return escape(part).replace(/\n/g, '<br>');
+			if (i % 2 === 0) return escape(part);
 			try {
 				return katex.renderToString(part, { throwOnError: false, strict: false, trust: false, output: 'html' });
 			} catch {
@@ -22,8 +22,29 @@ export function mathHtml(text) {
 		.join('');
 }
 
+/** A text with formulas as HTML. A line that begins with `> ` is a box (the <보기> of a question: lines that stand together); the other lines break as they are. */
+export function mathHtml(text) {
+	if (!text) return '';
+	const items = [];
+	let quote = [];
+	const flush = () => {
+		if (quote.length) items.push({ html: `<div class="mq">${quote.join('<br>')}</div>`, block: true });
+		quote = [];
+	};
+	for (const line of String(text).split('\n')) {
+		if (line.startsWith('> ') || line === '>') quote.push(inline(line.slice(2)));
+		else {
+			flush();
+			items.push({ html: inline(line), block: false });
+		}
+	}
+	flush();
+	return items.map((it, i) => (i > 0 && !it.block && !items[i - 1].block ? '<br>' : '') + it.html).join('');
+}
+
 /** A formula alone (a choice): the same drawing, no text around it. */
-export const formulaHtml = (latex) => mathHtml(`$${latex}$`);
+/** A choice that is made of words ('ㄱ, ㄴ') is shown as text; the others are drawn as formulas. */
+export const formulaHtml = (latex) => (/[가-힣ㄱ-ㅎ]/.test(latex) ? escape(latex) : mathHtml(`$${latex}$`));
 
 /** "1:23": minutes and seconds left. */
 export function clock(ms) {

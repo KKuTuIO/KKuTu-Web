@@ -334,6 +334,16 @@
 		font-weight: 700;
 		opacity: 0.8;
 	}
+	.stem :global(.mq),
+	.why :global(.mq) {
+		margin: 0.3rem 0;
+		border: 1.5px solid var(--kk-line);
+		border-radius: 10px;
+		background: var(--kk-surface-2);
+		padding: 0.4rem 0.7rem;
+		font-size: 0.95rem;
+		line-height: 1.7;
+	}
 	.stem {
 		overflow-x: auto;
 		overflow-y: hidden;

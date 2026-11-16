@@ -1,6 +1,8 @@
 /** Image URL rules shared with the legacy client (`iImage`). */
 export const IMAGE_CDN = 'https://cdn.kkutu.io/img/';
 export const IMAGE_VERSION = '?v=4.0.5f';
+/** The level sheet changes on its own (721~800 were added in place), so it has its own cache key; bump it with the sheet. */
+export const LEVEL_SHEET_VERSION = '?lv=800';
 const DEFAULT_HEAD = IMAGE_CDN + 'kkutu/moremi/head/default.png?s=fb';
 
 let shopRequest;
@@ -68,5 +70,5 @@ export function moremiLayers(equip = {}, shop = {}, parts = []) {
 /** CSS for the level sprite (`newlv.png`, 25 columns), same maths as legacy `getLevelImage`. */
 export function levelSpriteStyle(level) {
 	const i = level - 1;
-	return `background-image:url('${IMAGE_CDN}kkutu/lv/newlv.png');background-size:2560%;background-position:${(i % 25) * -100}% ${Math.floor(i / 25) * -100}%`;
+	return `background-image:url('${IMAGE_CDN}kkutu/lv/newlv.png${LEVEL_SHEET_VERSION}');background-size:2560%;background-position:${(i % 25) * -100}% ${Math.floor(i / 25) * -100}%`;
 }

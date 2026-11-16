@@ -1,7 +1,7 @@
 <script>
 	import { tick } from 'svelte';
 	import { t } from '../i18n.svelte.js';
-	import { EXP, MAX_LEVEL, requiredScore } from '../level.js';
+	import { BASE_MAX_LEVEL, EXP, MAX_LEVEL, requiredScore } from '../level.js';
 	import DataTable from '../ui/DataTable.svelte';
 	import Dialog from './Dialog.svelte';
 	import GameIcon from './GameIcon.svelte';
@@ -19,9 +19,11 @@
 
 	const commify = (n) => Number(n).toLocaleString('en-US');
 	const list = (pairs) => (pairs ?? []).map(([key, q]) => ({ key, q }));
+	// 720 rows as always; when the server's table goes above 720 (a channel with the extended cap) the rows follow it, up to MAX_LEVEL.
+	const top = $derived(table ? Math.min(MAX_LEVEL, Math.max(BASE_MAX_LEVEL, ...Object.keys(table).map(Number))) : 0);
 	const rows = $derived(
 		table
-			? Array.from({ length: MAX_LEVEL }, (_, i) => {
+			? Array.from({ length: top }, (_, i) => {
 					const lv = i + 1;
 					const row = table[lv];
 					return { key: lv, lv, total: lv > 1 ? EXP[lv - 2] : 0, step: lv > 1 ? requiredScore(lv - 1) : 0, gift: row ? { ping: row[0], items: list(row[1]), mail: list(row[2]) } : null };

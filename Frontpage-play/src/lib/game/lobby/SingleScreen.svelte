@@ -6,6 +6,7 @@
 	import RiddleScreen from './RiddleScreen.svelte';
 	import SokssokScreen from './SokssokScreen.svelte';
 	import TypingScreen from './TypingScreen.svelte';
+	import MathScreen from './MathScreen.svelte';
 	import { onMount } from 'svelte';
 	import { countdown } from '../riddle.js';
 	import { t } from '../i18n.svelte.js';
@@ -26,17 +27,19 @@
 		{ id: 'wordle', name: 'play.riddle.free', icon: 'spellcheck', m: ['#7bbde8', '#b6eaff', '#09567c'], rewards: [], c: {d: 'm564-192 198-198q11-11 28-11t28 11q11 11 11 28t-11 28L621-137q-12 12-27 18t-30 6q-15 0-30-6t-27-18l-85-85q-11-11-11-28t11-28q11-11 28-11t28 11l86 86Z', ga: 'M424.1 -804.5H484.5V-338H424.1ZM468.8 -623.3H552V-573.5H468.8ZM302.3 -755.8H361.1Q361.1 -686.7 340.8 -624.8Q320.5 -562.9 274.8 -510.8Q229.2 -458.8 151.5 -420.2L118 -465.9Q180.4 -498.4 221.3 -539.3Q262.2 -580.1 282.2 -631.4Q302.3 -682.7 302.3 -745.6ZM142.9 -755.8H333.2V-707H142.9Z', t: ['#0284c7', '#075985'], k: ['#7dd3fc', '#0ea5e9']}, note: 'play.riddle.free.note', desc: 'play.riddle.free.desc', stats: [] },
 		{ id: 'sokssok', name: 'play.arcade.sokssok.name', icon: 'grid_view', m: ['#f6a65c', '#fee273', '#73420c'], rewards: [], c: {d: 'M200-520q-33 0-56.5-23.5T120-600v-160q0-33 23.5-56.5T200-840h160q33 0 56.5 23.5T440-760v160q0 33-23.5 56.5T360-520H200Zm0 400q-33 0-56.5-23.5T120-200v-160q0-33 23.5-56.5T200-440h160q33 0 56.5 23.5T440-360v160q0 33-23.5 56.5T360-120H200Zm400-400q-33 0-56.5-23.5T520-600v-160q0-33 23.5-56.5T600-840h160q33 0 56.5 23.5T840-760v160q0 33-23.5 56.5T760-520H600Zm0 400q-33 0-56.5-23.5T520-200v-160q0-33 23.5-56.5T600-440h160q33 0 56.5 23.5T840-360v160q0 33-23.5 56.5T760-120H600Z', t: ['#d97706', '#92400e'], k: ['#fcd34d', '#f59e0b']}, note: 'play.arcade.sokssok.note', desc: 'play.arcade.sokssok.desc', stats: [] },
 		{ id: 'typing', name: 'play.arcade.typing.name', icon: 'keyboard', m: ['#64c7c3', '#a2f4f4', '#005f5c'], rewards: [], c: {d: 'M160-200q-33 0-56.5-23.5T80-280v-400q0-33 23.5-56.5T160-760h640q33 0 56.5 23.5T880-680v400q0 33-23.5 56.5T800-200H160Zm200-120h240q17 0 28.5-11.5T640-360q0-17-11.5-28.5T600-400H360q-17 0-28.5 11.5T320-360q0 17 11.5 28.5T360-320ZM240-560q17 0 28.5-11.5T280-600q0-17-11.5-28.5T240-640q-17 0-28.5 11.5T200-600q0 17 11.5 28.5T240-560Zm120 0q17 0 28.5-11.5T400-600q0-17-11.5-28.5T360-640q-17 0-28.5 11.5T320-600q0 17 11.5 28.5T360-560Zm120 0q17 0 28.5-11.5T520-600q0-17-11.5-28.5T480-640q-17 0-28.5 11.5T440-600q0 17 11.5 28.5T480-560Zm120 0q17 0 28.5-11.5T640-600q0-17-11.5-28.5T600-640q-17 0-28.5 11.5T560-600q0 17 11.5 28.5T600-560Zm120 0q17 0 28.5-11.5T760-600q0-17-11.5-28.5T720-640q-17 0-28.5 11.5T680-600q0 17 11.5 28.5T720-560ZM240-440q17 0 28.5-11.5T280-480q0-17-11.5-28.5T240-520q-17 0-28.5 11.5T200-480q0 17 11.5 28.5T240-440Zm120 0q17 0 28.5-11.5T400-480q0-17-11.5-28.5T360-520q-17 0-28.5 11.5T320-480q0 17 11.5 28.5T360-440Zm120 0q17 0 28.5-11.5T520-480q0-17-11.5-28.5T480-520q-17 0-28.5 11.5T440-480q0 17 11.5 28.5T480-440Zm120 0q17 0 28.5-11.5T640-480q0-17-11.5-28.5T600-520q-17 0-28.5 11.5T560-480q0 17 11.5 28.5T600-440Zm120 0q17 0 28.5-11.5T760-480q0-17-11.5-28.5T720-520q-17 0-28.5 11.5T680-480q0 17 11.5 28.5T720-440Z', t: ['#0d9488', '#115e59'], k: ['#5eead4', '#14b8a6']}, note: 'play.arcade.typing.note', desc: 'play.arcade.typing.desc', stats: [] },
-		{ id: 'math', name: 'play.arcade.math.name', icon: 'calculate', m: ['#fa96c3', '#ffbccb', '#753855'], rewards: [{ kind: 'ping', q: 10 }], c: {d: 'M320-320v50q0 13 8.5 21.5T350-240q13 0 21.5-8.5T380-270v-50h50q13 0 21.5-8.5T460-350q0-13-8.5-21.5T430-380h-50v-50q0-13-8.5-21.5T350-460q-13 0-21.5 8.5T320-430v50h-50q-13 0-21.5 8.5T240-350q0 13 8.5 21.5T270-320h50Zm230 50h140q13 0 21.5-8.5T720-300q0-13-8.5-21.5T690-330H550q-13 0-21.5 8.5T520-300q0 13 8.5 21.5T550-270Zm0-100h140q13 0 21.5-8.5T720-400q0-13-8.5-21.5T690-430H550q-13 0-21.5 8.5T520-400q0 13 8.5 21.5T550-370Zm70-208 35 35q9 9 21 9t21-9q8-8 8.5-20.5T698-585l-36-37 35-35q9-9 9-21t-9-21q-9-9-21-9t-21 9l-35 35-35-35q-9-9-21-9t-21 9q-9 9-9 21t9 21l35 35-36 37q-8 9-8 21t9 21q9 9 21 9t21-9l35-35Zm-340-14h140q13 0 21.5-8.5T450-622q0-13-8.5-21.5T420-652H280q-13 0-21.5 8.5T250-622q0 13 8.5 21.5T280-592Zm-80 472q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z', t: ['#db2777', '#9d174d'], k: ['#f9a8d4', '#ec4899']}, note: 'play.arcade.math.note', desc: 'play.arcade.math.desc', stats: [['play.arcade.stat.best', ['play.arcade.unit.problems', 38]], ['play.arcade.stat.average', ['play.arcade.unit.problems', 27]]] }
+		{ id: 'math', name: 'play.arcade.math.name', icon: 'calculate', m: ['#fa96c3', '#ffbccb', '#753855'], rewards: [], c: {d: 'M320-320v50q0 13 8.5 21.5T350-240q13 0 21.5-8.5T380-270v-50h50q13 0 21.5-8.5T460-350q0-13-8.5-21.5T430-380h-50v-50q0-13-8.5-21.5T350-460q-13 0-21.5 8.5T320-430v50h-50q-13 0-21.5 8.5T240-350q0 13 8.5 21.5T270-320h50Zm230 50h140q13 0 21.5-8.5T720-300q0-13-8.5-21.5T690-330H550q-13 0-21.5 8.5T520-300q0 13 8.5 21.5T550-270Zm0-100h140q13 0 21.5-8.5T720-400q0-13-8.5-21.5T690-430H550q-13 0-21.5 8.5T520-400q0 13 8.5 21.5T550-370Zm70-208 35 35q9 9 21 9t21-9q8-8 8.5-20.5T698-585l-36-37 35-35q9-9 9-21t-9-21q-9-9-21-9t-21 9l-35 35-35-35q-9-9-21-9t-21 9q-9 9-9 21t9 21l35 35-36 37q-8 9-8 21t9 21q9 9 21 9t21-9l35-35Zm-340-14h140q13 0 21.5-8.5T450-622q0-13-8.5-21.5T420-652H280q-13 0-21.5 8.5T250-622q0 13 8.5 21.5T280-592Zm-80 472q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z', t: ['#db2777', '#9d174d'], k: ['#f9a8d4', '#ec4899']}, note: 'play.arcade.math.note', desc: 'play.arcade.math.desc', stats: [] }
 	];
 	// 리들 (오늘의 리들 and the free one): what the server says about me, in place of the sample numbers
 	const riddle = $derived(store?.net.riddle.summary ?? null);
 	const sok = $derived(store?.net.sok.summary ?? null);
 	const typing = $derived(store?.net.typing.summary ?? null);
+	const math = $derived(store?.net.math.summary ?? null);
 	let tick = $state(Date.now());
 	onMount(() => {
 		store?.riddleOpen();
 		store?.sokOpen();
 		store?.typingOpen();
+		store?.mathOpen();
 		const id = setInterval(() => (tick = Date.now()), 1000);
 		return () => clearInterval(id);
 	});
@@ -60,6 +63,18 @@
 						[t('play.sok.stat.bestScore'), sok.best.score ? t('play.sok.stat.score', { n: sok.best.score }) : '-'],
 						[t('play.sok.stat.bestWords'), sok.best.words ? t('play.sok.stat.words', { n: sok.best.words }) : '-'],
 						...(sok.reward.pay ? [[t('play.sok.stat.leftToday'), t('play.riddle.stat.leftCount', { n: sok.left })]] : [])
+					]
+				};
+			}
+			if (g.id === 'math' && math) {
+				const full = math.slots.reduce((a, b) => a + b, 0);
+				return {
+					...loc,
+					rewards: math.reward.pay ? [{ kind: 'xp', q: Math.round(math.reward.expPerPoint * full) }, { kind: 'ping', q: Math.round(math.reward.pingPerPoint * full) }] : [],
+					desc: math.reward.pay ? t('play.arcade.math.descPay', { n: math.slots.length, min: math.minCorrect, tries: math.perDay }) : loc.desc,
+					stats: [
+						[t('play.arcade.stat.best'), math.best.points ? t('play.math.stat.best', { n: math.best.correct, points: math.best.points }) : '-'],
+						...(math.reward.pay ? [[t('play.math.stat.leftToday'), t('play.riddle.stat.leftCount', { n: math.left })]] : [])
 					]
 				};
 			}
@@ -103,8 +118,8 @@
 		})
 	);
 	/** the game being played (a riddle's screen replaces the list) */
-	let playing = $state(/** @type {'daily'|'free'|'sok'|'typing'|null} */ (null));
-	const play = (id) => (id === 'daily' ? (playing = 'daily') : id === 'wordle' ? (playing = 'free') : id === 'sokssok' ? (playing = 'sok') : id === 'typing' ? (playing = 'typing') : soon());
+	let playing = $state(/** @type {'daily'|'free'|'sok'|'typing'|'math'|null} */ (null));
+	const play = (id) => (id === 'daily' ? (playing = 'daily') : id === 'wordle' ? (playing = 'free') : id === 'sokssok' ? (playing = 'sok') : id === 'typing' ? (playing = 'typing') : id === 'math' ? (playing = 'math') : soon());
 	// desktop: one is always open (the first at the start); phone: none until one is touched
 	let sel = $state(/** @type {string|null} */ (null));
 	const open = $derived(sel ?? (desk ? games[0].id : null));
@@ -157,6 +172,8 @@
 
 {#if playing === 'sok'}
 	<SokssokScreen {store} onback={() => { playing = null; store?.sokOpen(); }} />
+{:else if playing === 'math'}
+	<MathScreen {store} onback={() => { playing = null; store?.mathOpen(); }} />
 {:else if playing === 'typing'}
 	<TypingScreen {store} onback={() => { playing = null; store?.typingOpen(); }} />
 {:else if playing}

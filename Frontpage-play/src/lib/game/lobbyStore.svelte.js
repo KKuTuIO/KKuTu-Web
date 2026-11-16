@@ -280,6 +280,13 @@ export function createLobbyStore(server) {
 		sokSubmit: (tiles) => conn.send('sok.submit', { tiles }),
 		/** The time is up: the server settles the round. */
 		sokFinish: () => conn.send('sok.finish'),
+		// ---- 아케이드: 수학 연습 (the server draws the set, keeps the answers and grades; these only ask) ----
+		/** Where I stand; with `resume` also the set still being solved (a reloaded page goes on with it). */
+		mathOpen: (resume = false) => conn.send('math.state', resume ? { resume: true } : {}),
+		/** A set of a level ('h1', 'h23'). */
+		mathStart: (level) => conn.send('math.start', { level }),
+		/** The answer sheet: the number chosen for each question (1 to 5, 0 for none). */
+		mathSubmit: (answers) => conn.send('math.submit', { answers: [...answers] }),
 		// ---- 아케이드: 타자 연습 (the server holds the text and the clock and judges; these only ask) ----
 		/** Where I stand (the goal, the texts, today's rewards left). */
 		typingOpen: () => conn.send('typing.state'),

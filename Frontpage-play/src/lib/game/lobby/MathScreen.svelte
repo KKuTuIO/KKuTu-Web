@@ -29,11 +29,14 @@
 	const playing = $derived(session?.status === 'playing');
 	const over = $derived(session?.status === 'over' && !!result);
 	const reward = $derived(over ? math.last?.reward : null);
-	const noTries = $derived(!!summary?.reward.pay && (summary?.left ?? 1) <= 0);
-	const full = $derived((summary?.slots ?? []).reduce((a, b) => a + b, 0));
+	const levels = $derived(summary?.levels ?? []);
+	const cur = $derived(levels.find((l) => l.id === session?.level) ?? null);
+	const minCorrect = $derived(cur?.minCorrect ?? 0);
+	const pays = $derived(!!summary?.pay);
+	const noTries = $derived(pays && (summary?.left ?? 1) <= 0);
 
 	/** the number chosen for each question (0: none), kept here until the sheet is sent */
-	let answers = $state(/** @type {number[]} */ ([]));
+	let answers = $state(/** @type {(number|string)[]} */ ([]));
 	let now = $state(Date.now());
 	let helpOpen = $state(false);
 	let rewardOpen = $state(false);
@@ -42,7 +45,7 @@
 	let lastSend = 0;
 	let endTimer;
 	const left = $derived(session ? Math.max(0, session.left - (now - session.at)) : 0);
-	const answered = $derived(answers.filter((a) => a > 0).length);
+	const answered = $derived(answers.filter((a) => (typeof a === 'string' ? a.trim() !== '' : a > 0)).length);
 
 	// What the server answered.
 	let seen = 0;
@@ -60,14 +63,14 @@
 		const isPlaying = session ? session.status === 'playing' : null;
 		if (isPlaying === true && wasPlaying !== true) {
 			// a set has begun: a clean sheet
-			answers = Array.from({ length: session.questions.length }, () => 0);
+			answers = session.questions.map((q) => (q.kind === 'input' ? '' : 0));
 			sent = false;
 		}
 		if (wasPlaying === true && isPlaying === false && result) {
 			// the set was graded: the whistle first, then how it went
 			playSound('horr');
 			clearTimeout(endTimer);
-			endTimer = setTimeout(() => playSound(reward || result.correct >= (summary?.minCorrect ?? 4) ? 'success' : 'timeout'), 900);
+			endTimer = setTimeout(() => playSound(reward || result.correct >= minCorrect ? 'success' : 'timeout'), 900);
 			playResultBgm();
 			if (reward) setTimeout(() => levelUp.whenIdle(() => (rewardOpen = true)), 1000);
 		}
@@ -111,6 +114,12 @@
 		answers[q] = answers[q] === n ? 0 : n;
 		playSound('Al');
 		haptic(6);
+	}
+	/** a number is typed: only what a number is made of is taken (a minus sign, digits, a point) */
+	function type(q, e) {
+		const v = e.currentTarget.value.replace(/[^0-9.\-−]/g, '').slice(0, 12);
+		e.currentTarget.value = v;
+		answers[q] = v;
 	}
 	function send() {
 		if (!playing) return;
@@ -157,10 +166,11 @@
 
 <Dialog bind:open={helpOpen} title={t('play.math.help.title')}>
 	<div class="flex flex-col gap-3">
-		<p class="text-sm leading-relaxed font-medium">{t('play.math.help.intro', { n: summary?.slots.length ?? 5, min: Math.round((summary?.time ?? 900) / 60) })}</p>
+		<p class="text-sm leading-relaxed font-medium">{t('play.math.help.intro')}</p>
 		<ul class="flex list-disc flex-col gap-1 pl-5 text-xs leading-relaxed font-medium text-(color:--kk-muted)">
-			<li>{t('play.math.help.rule.pass', { min: summary?.minCorrect ?? 4 })}</li>
-			<li>{t('play.math.help.rule.points', { exp: summary?.reward.expPerPoint ?? 5, ping: summary?.reward.pingPerPoint ?? 0.5 })}</li>
+			<li>{t('play.math.help.rule.pass')}</li>
+			<li>{t('play.math.help.rule.points')}</li>
+			<li>{t('play.math.help.rule.input')}</li>
 			<li>{t('play.math.help.rule.tries', { n: summary?.perDay ?? 5 })}</li>
 			<li>{t('play.math.help.rule.leave')}</li>
 			<li>{t('play.math.help.rule.pool')}</li>
@@ -181,29 +191,24 @@
 			<div class="panel flex w-full max-w-md flex-col gap-2 p-3">
 				<div class="flex items-center justify-between gap-2">
 					<b class="text-sm font-extrabold">{t('play.math.level.title')}</b>
-					{#if summary?.reward.pay}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.math.leftToday', { n: summary.left })}</span>{/if}
+					{#if pays}<span class="text-xs font-bold text-(color:--kk-muted)">{t('play.math.leftToday', { n: summary?.left ?? 0 })}</span>{/if}
 				</div>
 				<div class="flex flex-col gap-1.5">
-					{#each Object.keys(LEVEL_KEYS) as level (level)}
-						{@const ready = summary?.levels.includes(level)}
-						<button type="button" class="level" disabled={!ready || noTries} onclick={() => start(level)}>
-							<b class="font-extrabold">{t(LEVEL_KEYS[level])}</b>
-							<small class="font-bold text-(color:--kk-muted)">{ready ? t(`${LEVEL_KEYS[level]}.desc`) : t('play.arcade.soon')}</small>
-						</button>
-					{/each}
-					{#each ['e1', 'e2', 'm'] as level (level)}
-						<button type="button" class="level" disabled>
-							<b class="font-extrabold">{t(`play.math.level.${level}`)}</b>
-							<small class="font-bold text-(color:--kk-muted)">{t('play.arcade.soon')}</small>
+					{#each levels as l (l.id)}
+						{@const full = l.slots.reduce((a, b) => a + b, 0)}
+						<button type="button" class="level" disabled={noTries} onclick={() => start(l.id)}>
+							<span class="flex flex-col items-start gap-0.5">
+								<b class="font-extrabold">{t(LEVEL_KEYS[l.id])}</b>
+								<small class="font-bold text-(color:--kk-muted)">{t(`${LEVEL_KEYS[l.id]}.desc`)}</small>
+								<small class="font-bold text-(color:--kk-muted)">{t('play.math.level.info', { n: l.slots.length, min: Math.round(l.time / 60), pass: l.minCorrect })}</small>
+							</span>
+							{#if pays}
+								<span class="flex flex-none items-center gap-1"><RewardChip reward={{ kind: 'xp', q: Math.round(l.expPerPoint * full) }} size={26} /><RewardChip reward={{ kind: 'ping', q: Math.round(l.pingPerPoint * full) }} size={26} /></span>
+							{/if}
 						</button>
 					{/each}
 				</div>
-				{#if summary?.reward.pay}
-					<div class="flex items-center justify-between gap-2 text-xs font-bold text-(color:--kk-muted)">
-						<span>{t('play.math.fullReward')}</span>
-						<span class="flex items-center gap-1"><RewardChip reward={{ kind: 'xp', q: Math.round(summary.reward.expPerPoint * full) }} size={28} /><RewardChip reward={{ kind: 'ping', q: Math.round(summary.reward.pingPerPoint * full) }} size={28} /></span>
-					</div>
-				{/if}
+				{#if pays}<p class="text-xs font-medium text-(color:--kk-muted)">{t('play.math.fullReward')}</p>{/if}
 			</div>
 		{:else}
 			<div class="panel flex w-full max-w-md items-center justify-between gap-2 px-3 py-2 text-sm font-extrabold tabular-nums">
@@ -222,6 +227,16 @@
 						</span>
 					</div>
 					<div class="stem">{@html mathHtml(q.stem)}</div>
+					{#if q.kind === 'input'}
+						{#if over}
+							<div class="flex items-center justify-between gap-2 rounded-xl border-[1.5px] px-3 py-2 text-sm font-extrabold tabular-nums {mark.right ? 'border-[#3f8a4a]' : 'border-[#d33b3b]'}">
+								<span>{t('play.math.mine', { v: mark.mine === '' ? t('play.math.none') : mark.mine })}</span>
+								<span class="right">{t('play.math.correctAnswer', { v: mark.answer })}</span>
+							</div>
+						{:else}
+							<input class="entry" inputmode="decimal" lang="en" autocomplete="off" autocapitalize="off" spellcheck="false" autocorrect="off" aria-label={t('play.math.input.label', { n: i + 1 })} placeholder={t('play.math.input.placeholder')} value={answers[i] ?? ''} readonly={sent} oninput={(e) => type(i, e)} />
+						{/if}
+					{:else}
 					<div class="flex flex-col gap-1.5">
 						{#each q.choices as c, n (n)}
 							{@const picked = (over ? mark.mine : answers[i]) === n + 1}
@@ -238,6 +253,7 @@
 							</button>
 						{/each}
 					</div>
+					{/if}
 					{#if over && result.explanations[i]}
 						<div class="why"><b>{t('play.math.explanation')}</b> {@html mathHtml(result.explanations[i])}</div>
 					{/if}
@@ -248,11 +264,11 @@
 				<button type="button" onclick={submit} disabled={sent} class="hw kk-btn kk-btn-hero kk-btn-lg w-full max-w-md"><span class="kk-btn-label">{t('play.math.submit')}</span></button>
 			{:else if over}
 				<div class="panel flex w-full max-w-md flex-col gap-3 p-3">
-					<b class="text-center text-lg font-extrabold">{reward || result.correct >= (summary?.minCorrect ?? 4) ? t('play.math.result.success', { n: result.correct, points: result.points }) : t('play.math.result.fail', { n: result.correct, points: result.points })}</b>
+					<b class="text-center text-lg font-extrabold">{reward || result.correct >= minCorrect ? t('play.math.result.success', { n: result.correct, points: result.points }) : t('play.math.result.fail', { n: result.correct, points: result.points })}</b>
 					{#if reward}
 						<div class="flex flex-wrap items-center justify-center gap-1.5"><RewardChip reward={{ kind: 'xp', q: reward.exp }} size={36} /><RewardChip reward={{ kind: 'ping', q: reward.ping }} size={36} /></div>
 					{:else if math.last?.unpaid === 'few'}
-						<p class="text-center text-sm font-bold text-(color:--kk-muted)">{t('play.math.unpaid.few', { min: summary?.minCorrect ?? 4 })}</p>
+						<p class="text-center text-sm font-bold text-(color:--kk-muted)">{t('play.math.unpaid.few', { min: minCorrect })}</p>
 					{/if}
 					<div class="flex gap-2">
 						<button type="button" onclick={leave} class="hw kk-btn min-h-12 flex-1 font-extrabold">{t('play.math.stop')}</button>
@@ -355,6 +371,20 @@
 	.choice.bad {
 		border-color: #d33b3b;
 		background: color-mix(in srgb, #d33b3b 16%, var(--kk-surface-2));
+	}
+	.entry {
+		width: 100%;
+		border: 0;
+		border-bottom: 2px solid var(--kk-line-strong);
+		background: transparent;
+		padding: 0.45rem 0.1rem;
+		font-size: 1.25rem;
+		font-weight: 800;
+		color: var(--kk-text);
+		outline: none;
+	}
+	.entry:focus {
+		border-bottom-color: var(--kk-accent);
 	}
 	.right {
 		color: #3f8a4a;

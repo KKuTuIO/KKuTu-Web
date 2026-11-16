@@ -34,7 +34,7 @@ export function clock(ms) {
 export const CIRCLED = ['①', '②', '③', '④', '⑤'];
 
 /** The locale key of the name of each level, and of each reason a send did not count. */
-export const LEVEL_KEYS = { h1: 'play.math.level.h1', h23: 'play.math.level.h23' };
+export const LEVEL_KEYS = { e1: 'play.math.level.e1', e2: 'play.math.level.e2', m: 'play.math.level.m', h1: 'play.math.level.h1', h23: 'play.math.level.h23' };
 export const ERROR_KEYS = {
 	level: 'play.math.error.level',
 	cap: 'play.math.error.cap',

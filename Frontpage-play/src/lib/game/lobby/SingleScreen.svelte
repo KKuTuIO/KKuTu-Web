@@ -67,14 +67,13 @@
 				};
 			}
 			if (g.id === 'math' && math) {
-				const full = math.slots.reduce((a, b) => a + b, 0);
 				return {
 					...loc,
-					rewards: math.reward.pay ? [{ kind: 'xp', q: Math.round(math.reward.expPerPoint * full) }, { kind: 'ping', q: Math.round(math.reward.pingPerPoint * full) }] : [],
-					desc: math.reward.pay ? t('play.arcade.math.descPay', { n: math.slots.length, min: math.minCorrect, tries: math.perDay }) : loc.desc,
+					rewards: [],
+					desc: math.pay ? t('play.arcade.math.descPay', { tries: math.perDay }) : loc.desc,
 					stats: [
 						[t('play.arcade.stat.best'), math.best.points ? t('play.math.stat.best', { n: math.best.correct, points: math.best.points }) : '-'],
-						...(math.reward.pay ? [[t('play.math.stat.leftToday'), t('play.riddle.stat.leftCount', { n: math.left })]] : [])
+						...(math.pay ? [[t('play.math.stat.leftToday'), t('play.riddle.stat.leftCount', { n: math.left })]] : [])
 					]
 				};
 			}

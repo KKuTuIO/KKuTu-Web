@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CIRCLED, clock, formulaHtml, mathHtml } from './mathText.js';
+import { CIRCLED, clock, formulaHtml, mathHtml, mathHtmlPts, numberHtml } from './mathText.js';
 
 describe('mathText', () => {
 	it('draws the formulas and escapes the text around them', () => {
@@ -29,6 +29,22 @@ describe('mathText', () => {
 		expect(formulaHtml('ㄱ, ㄴ')).toBe('ㄱ, ㄴ');
 		expect(formulaHtml('ㄱ, ㄴ')).not.toContain('katex');
 		expect(formulaHtml('x^{2}')).toContain('katex');
+	});
+	it('sets the number of a question as an exam does: bold, in the LaTeX face', () => {
+		const html = numberHtml(12);
+		expect(html).toContain('katex');
+		expect(html).toContain('mathbf');
+		expect(html).toContain('12');
+		expect(numberHtml('abc')).toContain('0');
+	});
+	it('sets the points right after the question, before the <보기> box when there is one', () => {
+		const plain = mathHtmlPts('$x+1$의 값은?', 3);
+		expect(plain).toContain('<span class="pts">[3점]</span>');
+		expect(plain.indexOf('katex')).toBeLessThan(plain.indexOf('[3점]'));
+		const withBox = mathHtmlPts('옳은 것은?\n\n> ㄱ. 참이다.\n> ㄴ. 거짓이다.', 4);
+		expect(withBox.indexOf('[4점]')).toBeLessThan(withBox.indexOf('class="mq"'));
+		expect(withBox.match(/\[4점\]/g)).toHaveLength(1);
+		expect(mathHtmlPts('', 2)).toBe('');
 	});
 	it('gives nothing for nothing, and writes minutes and seconds', () => {
 		expect(mathHtml('')).toBe('');

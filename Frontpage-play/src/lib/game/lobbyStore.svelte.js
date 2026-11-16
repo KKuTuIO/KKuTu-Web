@@ -285,8 +285,10 @@ export function createLobbyStore(server) {
 		mathOpen: (resume = false) => conn.send('math.state', resume ? { resume: true } : {}),
 		/** A set of a level ('h1', 'h23'). */
 		mathStart: (level) => conn.send('math.start', { level }),
-		/** The answer sheet: the number chosen for each question (1 to 5, 0 for none). */
-		mathSubmit: (answers) => conn.send('math.submit', { answers: [...answers] }),
+		/** The answer to question `index` (the number chosen, 1 to 5, 0 for none; or the text typed), to be graded. */
+		mathCheck: (index, answer) => conn.send('math.check', { index, answer }),
+		/** The set is ended: what was not graded is wrong. */
+		mathFinish: () => conn.send('math.finish'),
 		// ---- 아케이드: 타자 연습 (the server holds the text and the clock and judges; these only ask) ----
 		/** Where I stand (the goal, the texts, today's rewards left). */
 		typingOpen: () => conn.send('typing.state'),

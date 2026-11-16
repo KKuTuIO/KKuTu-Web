@@ -42,6 +42,21 @@ export function mathHtml(text) {
 	return items.map((it, i) => (i > 0 && !it.block && !items[i - 1].block ? '<br>' : '') + it.html).join('');
 }
 
+/**
+ * The text of a question with its points set right after the question, as an exam sets them ("… 값은? [3점]"): at the end of the text, or, when a <보기> box
+ * (lines that begin with `> `) follows the question, at the end of the last line before it.
+ */
+export function mathHtmlPts(text, points) {
+	if (!text) return '';
+	const lines = String(text ?? '').split('\n');
+	const box = lines.findIndex((l) => l.startsWith('> ') || l === '>');
+	let at = (box < 0 ? lines.length : box) - 1;
+	while (at > 0 && lines[at].trim() === '') at--;
+	if (at < 0) return mathHtml(text);
+	lines[at] += ' @@PTS@@';
+	return mathHtml(lines.join('\n')).replace('@@PTS@@', `<span class="pts">[${Number(points) || 0}점]</span>`);
+}
+
 /** A formula alone (a choice): the same drawing, no text around it. */
 /** A choice that is made of words ('ㄱ, ㄴ') is shown as text; the others are drawn as formulas. */
 export const formulaHtml = (latex) => (/[가-힣ㄱ-ㅎ]/.test(latex) ? escape(latex) : mathHtml(`$${latex}$`));
@@ -51,6 +66,9 @@ export function clock(ms) {
 	const s = Math.max(0, Math.ceil(ms / 1000));
 	return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
+
+/** The number of a question, as an exam sets it: bold, in the LaTeX face ("1."). */
+export const numberHtml = (n) => katex.renderToString(`\\mathbf{${Number(n) || 0}.}`, { throwOnError: false, strict: false, output: 'html' });
 
 export const CIRCLED = ['①', '②', '③', '④', '⑤'];
 

@@ -79,7 +79,8 @@
 	import ResizeHandle from '$lib/game/ui/ResizeHandle.svelte';
 	import { guard, linkGuard, unloadGuard } from '$lib/game/leaveGuard.svelte.js';
 	import StatusMark from '$lib/game/lobby/StatusMark.svelte';
-	import { layout, setLayout, SIDE, CHAT } from '$lib/game/layout.svelte.js';
+	import { layout, setLayout, setSideOpen, SIDE, CHAT } from '$lib/game/layout.svelte.js';
+	import Tooltip from '$lib/game/ui/Tooltip.svelte';
 
 	// The bars can be resized within limits; the real maximum also leaves the room list / the lobby room enough space.
 	let winW = $state(1280);
@@ -140,6 +141,10 @@
 	const dockOn = $derived(showTabBar && !rail);
 	// The desktop's two columns (side bar beside the room list, chat under it): from 1024 px, and on an unfolded folding phone from 768 px (foldable.svelte.js).
 	const desk = $derived(twoColumns(winW));
+	// Under 1024 px the two columns are tight (an open fold is 845 px wide: the side bar would take a third of it), so the side bar can be folded away to a slim strip
+	// there; until the player chooses, it starts folded. From 1024 px it is always open, as it was.
+	const canFold = $derived(desk && winW < SPLIT);
+	const sideFolded = $derived(canFold && !layout.sideOpen);
 	// The phone's home scrolls to the edges of the page (its scrollbar too): the page's own padding would clip the cards short of the tab bar and push the scrollbar in.
 	// The home has the same padding inside its scroller.
 	const homeBleed = $derived(phone && !store.net.myRoom && !shopOpen && (!replayOpen || newLobby) && (!newsOpen || newLobby) && (!academyOpen || newLobby) && !peopleTab);
@@ -641,10 +646,27 @@
 	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (prefs.hand === 'left' ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
 	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : 'max-md:pb-[calc(0.75rem+var(--dock,0px))]'}">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
-		<div style:--side-w="{sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen || inLeague ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
-			<SidePanel {store} profile={(peopleShown || desk) && !kbd} noAvatar={newLobby && desk && !store.net.myRoom && !peopleShown} />
-			<ResizeHandle class="-right-4 h-full w-4 {desk && !leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
-			<ResizeHandle class="-left-4 h-full w-4 {desk && leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
+		<div style:--side-w="{sideFolded ? 56 : sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen || inLeague ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
+			{#if sideFolded}
+				<!-- folded: a slim strip with the one button that opens it (and a mark while friend requests wait) -->
+				<div class="kk-card flex h-full w-full flex-col items-center py-2">
+					<Tooltip text={t('play.side.open')} placement={leftHanded ? 'left' : 'right'}>
+						<button type="button" aria-label={t('play.side.open')} aria-expanded="false" onclick={() => setSideOpen(true)} class="kk-btn relative grid size-10 min-h-0 place-items-center p-0">
+							<Icon name="group" size={22} />
+							{#if store.pendingFriends.incoming.length}<span class="absolute -top-1.5 -right-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-(--kk-danger) px-1 text-[11px] font-extrabold text-white">{store.pendingFriends.incoming.length}</span>{/if}
+						</button>
+					</Tooltip>
+				</div>
+			{:else}
+				<SidePanel {store} profile={(peopleShown || desk) && !kbd} noAvatar={newLobby && desk && !store.net.myRoom && !peopleShown} />
+				{#if canFold}
+					<Tooltip text={t('play.side.fold')} placement={leftHanded ? 'right' : 'left'}>
+						<button type="button" aria-label={t('play.side.fold')} aria-expanded="true" onclick={() => setSideOpen(false)} class="absolute top-1/2 z-10 grid h-12 w-5 -translate-y-1/2 place-items-center border border-(color:--kk-line) bg-(--kk-surface) text-(color:--kk-muted) hover:text-(color:--kk-text) {leftHanded ? 'left-0 rounded-r-lg border-l-0' : 'right-0 rounded-l-lg border-r-0'}"><Icon name={leftHanded ? 'chevron_right' : 'chevron_left'} size={18} /></button>
+					</Tooltip>
+				{/if}
+				<ResizeHandle class="-right-4 h-full w-4 {desk && !leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
+				<ResizeHandle class="-left-4 h-full w-4 {desk && leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
+			{/if}
 		</div>
 		<!-- overflow-hidden clips the room while it slides in; the bottom padding keeps the cards' hard shadow visible -->
 		<main class="relative order-1 flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden {desk ? 'order-2' : ''} pb-[3px] {peopleShown ? 'max-md:hidden' : ''} {(phone && store.ui.phoneStage) || homeBleed ? 'max-md:pb-0!' : ''}">

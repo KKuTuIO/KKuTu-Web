@@ -8,13 +8,13 @@
 	import ShopPreview from './ShopPreview.svelte';
 	import ShopThumb from './ShopThumb.svelte';
 
-	/** The left panel: the wide preview (avatar, banner, name skin, chat), the cart, the price and the buy button. */
-	let { equip, parts, shop, user, details, cart, owned, money, total, buying, bare = false, list = false, onremove, onreset, onbare, onbuy } = $props();
+	/** The left panel (`split`: beside the shelf, the two columns; otherwise above it): the wide preview (avatar, banner, name skin, chat), the cart, the price and the buy button. */
+	let { equip, parts, shop, user, details, cart, owned, money, total, buying, bare = false, list = false, split = false, onremove, onreset, onbare, onbuy } = $props();
 	const after = $derived(money - total);
 	const fmt = (n) => (n ?? 0).toLocaleString();
 </script>
 
-<aside class="flex shrink-0 flex-col gap-3 {list ? '' : 'overflow-y-auto border-b border-(color:--kk-line) p-3 max-lg:max-h-[60dvh] max-lg:overflow-y-auto lg:w-[27rem] lg:border-r lg:border-b-0'}">
+<aside class="flex shrink-0 flex-col gap-3 {list ? '' : split ? 'w-[min(27rem,45%)] overflow-y-auto border-r border-(color:--kk-line) p-3' : 'max-h-[60dvh] overflow-y-auto border-b border-(color:--kk-line) p-3'}">
 	{#if !list}<ShopPreview {equip} {parts} {shop} {user} canReset={cart.length > 0 || bare} canBare={!bare} {onreset} {onbare} />{/if}
 
 	<div class="flex min-h-0 flex-1 flex-col gap-2">
@@ -22,7 +22,7 @@
 		{#if !cart.length}
 			<p class="rounded-xl bg-(--kk-surface-2) p-4 text-center text-sm text-(color:--kk-muted)">{t('kkutu.product.shopCart.empty')}</p>
 		{:else}
-			<ul class="flex min-h-0 flex-col gap-1.5 overflow-y-auto pr-0.5 lg:max-h-48">
+			<ul class="flex min-h-0 flex-col gap-1.5 overflow-y-auto pr-0.5 {split ? 'max-h-48' : ''}">
 				{#each cart as c (c.id)}
 					<li class="flex items-center gap-2 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) p-1.5">
 						<span class="grid size-10 shrink-0 place-items-center rounded-lg bg-(--kk-surface-2)"><ShopThumb id={c.id} {shop} class="size-9" /></span>

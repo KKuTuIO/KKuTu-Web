@@ -17,7 +17,8 @@ function load() {
 		/* private mode or damaged data: use the defaults */
 	}
 	const num = (v, r) => (Number.isFinite(v) ? clamp(Math.round(v), r.min, r.max) : r.def);
-	return { side: num(o.side, SIDE), chat: num(o.chat, CHAT) };
+	// `sideOpen`: whether the lobby's side bar is open where it can be folded away (the two columns under 1024 px); null: not chosen, the page decides
+	return { side: num(o.side, SIDE), chat: num(o.chat, CHAT), sideOpen: typeof o.sideOpen === 'boolean' ? o.sideOpen : null };
 }
 
 export const layout = $state(load());
@@ -26,6 +27,16 @@ export function setLayout(name, value) {
 	const r = name === 'side' ? SIDE : name === 'chat' ? CHAT : null;
 	if (!r || !Number.isFinite(value)) return;
 	layout[name] = clamp(Math.round(value), r.min, r.max);
+	try {
+		localStorage.setItem(KEY, JSON.stringify({ ...layout }));
+	} catch {
+		/* private mode */
+	}
+}
+
+/** Fold the side bar away or open it again (kept in this browser). */
+export function setSideOpen(open) {
+	layout.sideOpen = !!open;
 	try {
 		localStorage.setItem(KEY, JSON.stringify({ ...layout }));
 	} catch {

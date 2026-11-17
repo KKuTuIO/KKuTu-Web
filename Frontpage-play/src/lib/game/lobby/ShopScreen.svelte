@@ -2,6 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { quintOut } from 'svelte/easing';
 	import { ms } from '../motion.js';
+	import { twoColumns } from '../foldable.svelte.js';
 	import { t } from '../i18n.svelte.js';
 	import { i18n } from '../i18n.svelte.js';
 	import { plainText, cleanBox } from '../protocol.js';
@@ -46,6 +47,8 @@
 	// at the bottom that opens as a sheet. The banner page (메인) needs artwork made for a phone, so there the shop opens on the 모레미 shelf.
 	let winW = $state(typeof innerWidth === 'undefined' ? 1280 : innerWidth);
 	const phone = $derived(winW < 768);
+	// the cart beside the shelf: from 1024 px, and on an open folding phone from 768 px (the same rule as the lobby's two columns)
+	const split = $derived(twoColumns(winW));
 	let cartOpen = $state(false);
 	let searchOpen = $state(false);
 	let pushed = $state(false); // the full-screen scene is pushed in once the shop has mounted, so it slides in
@@ -259,7 +262,7 @@
 <svelte:window bind:innerWidth={winW} />
 
 {#snippet shelf()}
-	<div bind:this={panel} role="tabpanel" id="shop-panel-{tab}" aria-labelledby="shop-tab-{tab}" class="shop-stage min-h-0 flex-1 p-2 md:p-4 {view === 'pickup' ? 'overflow-y-auto lg:overflow-hidden' : 'overflow-y-auto'}">
+	<div bind:this={panel} role="tabpanel" id="shop-panel-{tab}" aria-labelledby="shop-tab-{tab}" class="shop-stage min-h-0 flex-1 p-2 md:p-4 {view === 'pickup' ? (split ? 'overflow-hidden' : 'overflow-y-auto') : 'overflow-y-auto'}">
 		{#key pageKey}
 			<div class="h-full" in:swap={{ dx }}>
 			{#if !details || !box || !home}
@@ -330,7 +333,7 @@
 {@render phoneShop()}
 {:else}
 <section
-	class="kk-card flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row {home?.season ? 'shop-season' : ''}"
+	class="kk-card flex min-h-0 flex-1 overflow-hidden {split ? 'flex-row' : 'flex-col'} {home?.season ? 'shop-season' : ''}"
 	style:--sa-l={home?.season?.accent?.light}
 	style:--sa-d={home?.season?.accent?.dark}
 	style:--st-l={home?.season?.tint?.light}
@@ -339,6 +342,7 @@
 	in:rise|global
 >
 	<ShopCart
+		{split}
 		equip={preview}
 		user={me}
 		parts={meta.moremiParts}

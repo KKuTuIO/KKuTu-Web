@@ -1,6 +1,7 @@
 /**
  * What there is to play and where it lives (same CDN layout as the legacy client). Pure, so it is easy to test.
  */
+import { PENDING_CDN } from "../cdn.js";
 export const AUDIO_CDN = "https://cdn.kkutu.io/media/";
 export const MEDIA_VERSION = "?v=4.1.3c";
 
@@ -31,6 +32,10 @@ export const DEFAULT_AUDIO = {
 /** @param {string} name file name without extension, e.g. "dialog" */
 export const soundUrl = (name, set = DEFAULT_AUDIO.set) =>
   `${AUDIO_CDN}${set}/${name}.mp3${MEDIA_VERSION}`;
+/** 소리 묶음과 무관한 고정 효과음(`media/league/<name>.mp3`): 트로피 리그의 규칙 릴. */
+export const leagueSoundUrl = (name) => `${PENDING_CDN}/media/league/${name}.mp3${MEDIA_VERSION}`;
+/** 모든 버튼이 같이 쓰는 인터페이스 소리(`media/ui/<name>.mp3`): 'click', 'hover'. 소리 묶음과 무관한 고정 파일. */
+export const uiSoundUrl = (name) => `${PENDING_CDN}/media/ui/${name}.mp3${MEDIA_VERSION}`;
 export const lobbyBgmUrl = (lobby = DEFAULT_AUDIO.lobby) =>
   `${AUDIO_CDN}${lobby}.mp3${MEDIA_VERSION}`;
 /** The shop's music (`ShopBGM.mp3`). */

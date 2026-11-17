@@ -17,6 +17,12 @@
 	import Moremi from './Moremi.svelte';
 	import StatusBubble from './StatusBubble.svelte';
 	import StageBackdrop from './StageBackdrop.svelte';
+	import LeagueLobby from './LeagueLobby.svelte';
+	import MatchSettingsDialog from './MatchSettingsDialog.svelte';
+	import { league } from '../leagueStore.svelte.js';
+	import { MATCH_KINDS, loadOffKinds, dayNudgeKey } from '../leagueModel.js';
+	import { preloadLeagueSounds } from '../audio.svelte.js';
+	import { confirm } from '../ui/confirm.svelte.js';
 
 	/**
 	 * The match-centred lobby (설정 > 로비 선택), for the phone and the desktop: the school plaza as a stage, my Moremi standing on it, and one big
@@ -56,6 +62,40 @@
 
 	// ---- 게임 시작: idle -> select. The backdrop stops and blurs while the mode screen slides in: one gesture, both at once. ----
 	let phase = $state('idle');
+	let matchSettingsOpen = $state(false);
+	// 오늘의 혜택(스페셜 데이, 트로피 방어 무료, 보상 증가)은 매칭 시작 버튼 곁의 말풍선으로 알린다. 일반 운영일에는 아무것도 띄우지 않는다.
+	let dayNudgeShut = $state(false);
+	// 리그 로비가 열려 있는 동안은 위의 행사 말풍선을 접는다(상단 가운데의 내 등급을 가린다)
+	$effect(() => {
+		league.lobbyOpen = phase === 'league';
+		return () => (league.lobbyOpen = false);
+	});
+	const dayNudge = $derived(dayNudgeKey(league.state?.dayKind));
+	const dayNudgeOn = $derived(phase === 'league' && !!dayNudge && !dayNudgeShut && !league.queued && !matchSettingsOpen);
+	// 매칭 대기 시간(초): 대기 중일 때만 돌아가는 시계
+	let tickNow = $state(Date.now());
+	$effect(() => {
+		if (!league.queued) return;
+		tickNow = Date.now();
+		const id = setInterval(() => (tickNow = Date.now()), 500);
+		return () => clearInterval(id);
+	});
+	const waited = $derived(league.queued ? Math.max(0, Math.floor((tickNow - league.queue.localAt) / 1000)) : 0);
+
+	/** 켜 둔 모드(꺼 둔 것을 뺀 나머지)를 서버 모드 코드로. */
+	function startMatching() {
+		preloadLeagueSounds(); // 규칙 릴의 소리를 미리 받아 둔다(클릭 직후라 소리가 열려 있다)
+		const off = loadOffKinds();
+		league.enqueue(MATCH_KINDS.map((k) => k.id).filter((id) => !off.includes(id)));
+	}
+	/** 매칭 취소: 평점이 깎이므로 먼저 확인한다. 취소했으면 true. */
+	async function cancelMatching() {
+		if (league.found) return false; // 매칭이 잡힌 뒤에는 취소할 수 없다
+		if (!league.queued) return true;
+		if (!(await confirm({ message: t('play.league.cancelConfirm'), ok: t('play.league.queue.cancelYes'), cancel: t('play.league.queue.cancelNo') }))) return false;
+		league.cancel();
+		return true;
+	}
 	let stageEl = $state();
 	let settled = $state(false); // the mode screen has finished sliding in
 	$effect(() => {
@@ -74,10 +114,11 @@
 		if (page) phase = 'page';
 		else if (phase === 'page') phase = 'idle';
 	});
-	function back() {
+	async function back() {
+		if (phase === 'league' && league.queued && !(await cancelMatching())) return;
 		if (phase === 'page') return onpageclose?.();
 		// 공지·행사 is opened from the stage itself, so it goes back to the stage; 방 목록 and 아케이드 go back to the mode screen
-		phase = phase === 'rooms' || phase === 'arcade' ? 'select' : 'idle';
+		phase = phase === 'rooms' || phase === 'arcade' || phase === 'league' ? 'select' : 'idle';
 	}
 	// The stage's own element carries the state as CSS variables (the backdrop reads --stage-blur, --stage-zoom and --play, the Moremi --mshift),
 	// and the layered backdrop freezes its parallax on 'stagepause'.
@@ -103,7 +144,7 @@
 		{ label: t('play.lobby.matchStart'), icon: 'groups', c: ['#63d49e', '#cff28c', '#285d30'], act: () => store.hooks.openQuick(2), off: !ready, tour: 'quick-match' },
 		{ label: t('play.home.rooms'), icon: 'meeting_room', c: ['#64c7c3', '#a2f4f4', '#005f5c'], act: () => (phase = 'rooms'), tour: 'room-list' },
 		{ label: t('play.lobby.createRoom'), icon: 'add', c: ['#7bbde8', '#b6eaff', '#09567c'], act: oncreate, off: !ready, tour: 'create-room' },
-		{ label: t('play.lobby.trophyLeague'), icon: 'emoji_events', c: ['#f6a65c', '#fee273', '#73420c'], act: () => toast(t('play.lobby.trophyLeagueTbd'), { kind: 'info', icon: 'event' }) }
+		{ label: t('play.lobby.trophyLeague'), icon: 'emoji_events', c: ['#f6a65c', '#fee273', '#73420c'], act: () => (phase = 'league'), off: !ready }
 	]);
 	// 싱글플레이 is a section of its own: 아케이드 and 튜토리얼 side by side.
 	const arcade = $derived({ label: t('play.lobby.arcade'), icon: 'sports_esports', c: ['#b2aeff', '#f0ceff', '#4b4780'], act: () => (phase = 'arcade'), off: !ready });
@@ -119,7 +160,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && phase !== 'idle' && !e.defaultPrevented && !document.querySelector('dialog[open]') && back()} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && phase !== 'idle' && !e.defaultPrevented && !e.target?.closest?.('dialog') && !document.querySelector('dialog[open]') && back()} />
 
 {#snippet remi(size)}
 	<!-- one box the size of the Moremi: the balloon sits right above its head and the nickname plate right under its feet, at any stage size -->
@@ -149,6 +190,44 @@
 	</button>
 {/snippet}
 
+<!-- 매칭 설정: 매칭 시작 바로 위. 매칭에서 만날 게임 유형을 고른다. -->
+{#snippet matchSettingsButton(cls)}
+	{#if league.queued}
+		<!-- 대기 중에는 설정 대신 취소(평점이 깎이므로 눌러도 한 번 더 묻는다) -->
+		<button type="button" disabled={league.found} onclick={cancelMatching} data-tour="league-cancel" class="hw start msub kk-btn kk-btn-hero calm {cls}">
+			<span class="start-check" aria-hidden="true"><span class="kk-checker"></span></span>
+			<Icon name="close" size={22} />
+			<span class="mlabel text-[1.1rem]"><HoverWave text={t('play.league.queue.cancel')} /></span>
+		</button>
+	{:else}
+		<button type="button" onclick={() => (matchSettingsOpen = true)} data-tour="league-settings" class="hw start msub kk-btn kk-btn-hero calm {cls}">
+			<span class="start-check" aria-hidden="true"><span class="kk-checker"></span></span>
+			<Icon name="settings" size={22} fill />
+			<span class="mlabel text-[1.1rem]"><HoverWave text={t('play.league.settings')} /></span>
+		</button>
+	{/if}
+{/snippet}
+
+<!-- 트로피 리그의 매칭 시작 버튼: 게임 시작 버튼과 같은 모양·크기·자리이고 색만 다르다(.league). 대기 중에는 같은 자리에서 경과 시간을 보여 준다. -->
+{#snippet leagueButton(cls)}
+	{#if cls.includes('flat')}
+		{@render leagueButtonBody(cls)}
+	{:else}
+		<Nudge id="league-day" beside="left" enabled={dayNudgeOn} onclose={() => (dayNudgeShut = true)}>
+			{#snippet content()}{@render dayNudgeText()}{/snippet}
+			{@render leagueButtonBody(cls)}
+		</Nudge>
+	{/if}
+{/snippet}
+{#snippet dayNudgeText()}<span class="px-1 whitespace-nowrap">{dayNudge ? t(dayNudge) : ''}</span>{/snippet}
+{#snippet leagueButtonBody(cls)}
+	<button type="button" disabled={!ready || league.queued || league.found || store.net.guest} onclick={startMatching} data-tour="league-start" class="hw start league kk-btn kk-btn-hero calm {cls} {league.queued ? 'searching' : ''}">
+		<span class="start-check" aria-hidden="true"><span class="kk-checker"></span></span>
+		<Icon name="emoji_events" size={34} fill />
+		<span class="mlabel {cls.includes('flat') ? 'text-[1.5rem]' : 'text-[1.8rem]'}">{#if league.queued}{t('play.league.queue.searching', { n: waited })}{:else}<HoverWave text={t('play.league.find')} />{/if}</span>
+	</button>
+{/snippet}
+
 {#snippet card(i, m, big, span = false)}
 	<button type="button" disabled={m.off} data-tour={m.tour} onclick={m.act} style:--i={i} style:--c1={m.c[0]} style:--c2={m.c[1]} style:--ink={m.c[2]} class="hw mcard {big ? 'mcard-big' : 'mcard-sm'} {span ? 'col-span-2' : ''} {m.nudge ? 'nudge' : ''}">
 		<span class="mcard-check" aria-hidden="true"><span class="kk-checker"></span></span>
@@ -159,13 +238,17 @@
 
 <div bind:this={stageEl} data-stage class="relative isolate flex min-h-0 flex-1 flex-col overflow-clip rounded-2xl max-md:rounded-none">
 <StageBackdrop />
+{#if phase === 'league'}
+	<!-- 트로피 리그 로비: 무대를 어둡게 눌러 금테 패널과 모레미가 도드라지게 한다 -->
+	<div class="pointer-events-none absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_50%_70%,rgb(20_22_52/0.35),rgb(8_9_24/0.85))]"></div>
+{/if}
 {#if variant === 'desk'}
 	<!-- the whole stage (the area the room list used to fill): the buildings stand at the two edges, me in the middle on the plaza (the mode screen
 	     moves me to the left), the one big button in the lower right -->
 	<div class="@container relative z-10 min-h-0 flex-1 overflow-hidden">
 		<div data-stage-moremi style:transform="translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 6px), 0)" style:opacity={sub ? 0 : 1} style:left="calc(var(--mx, 50%) - var(--mshift, 0) * 28%)" style:top="var(--my, 75%)" style:translate="-50% -100%" style:scale="clamp(0.7, calc(var(--ms, 0.8) / 0.8), 1.25)" style:transition="left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)" class="absolute flex h-[24rem] w-80 origin-bottom flex-col items-center justify-end">{@render remi(180)}</div>
-		<section aria-label={t('play.home.play')} style:opacity={phase === 'idle' ? 1 : 0} style:pointer-events={phase === 'idle' ? undefined : 'none'} class="absolute right-0 bottom-24 transition-opacity duration-300">
-			{@render startButton('edge')}
+		<section aria-label={phase === 'league' ? t('play.lobby.trophyLeague') : t('play.home.play')} style:opacity={phase === 'idle' || phase === 'league' ? 1 : 0} style:pointer-events={phase === 'idle' || phase === 'league' ? undefined : 'none'} class="absolute right-0 bottom-24 transition-opacity duration-300">
+			{#if phase === 'league'}<div class="flex flex-col items-end gap-2">{@render matchSettingsButton('edge')}{@render leagueButton('edge')}</div>{:else}{@render startButton('edge')}{/if}
 		</section>
 	</div>
 {:else}
@@ -174,8 +257,8 @@
 		{@render remi(132)}
 	</div>
 
-	<section aria-label={t('play.home.play')} style:opacity={phase !== 'idle' ? 0 : 1} style:pointer-events={phase !== 'idle' ? 'none' : undefined} class="flex w-full max-w-md shrink-0 flex-col gap-2.5 transition-opacity duration-300">
-		{@render startButton('flat')}
+	<section aria-label={phase === 'league' ? t('play.lobby.trophyLeague') : t('play.home.play')} style:opacity={phase === 'idle' || phase === 'league' ? 1 : 0} style:pointer-events={phase === 'idle' || phase === 'league' ? undefined : 'none'} class="flex w-full max-w-md shrink-0 flex-col gap-2.5 transition-opacity duration-300">
+		{#if phase === 'league'}<Nudge id="league-day" above enabled={dayNudgeOn} onclose={() => (dayNudgeShut = true)}>{#snippet content()}{@render dayNudgeText()}{/snippet}<div class="flex w-full flex-col items-stretch gap-2">{@render matchSettingsButton('flat')}{@render leagueButton('flat')}</div></Nudge>{:else}{@render startButton('flat')}{/if}
 	</section>
 </div>
 {/if}
@@ -202,6 +285,9 @@
 			{/if}
 		</div>
 	</div>
+{:else if phase === 'league'}
+	<MatchSettingsDialog bind:open={matchSettingsOpen} />
+	<LeagueLobby {store} {variant} onback={back} onranking={() => store.hooks.openRanking?.('trophy')} />
 {:else if phase === 'select'}
 	<!-- the mode screen: me on the left, the cards on the right (a phone: the cards in the lower half) -->
 	<div role="dialog" aria-modal="true" aria-label={t('play.lobby.modeTitle')} class="absolute inset-0 z-30 flex items-center justify-end p-6 max-md:items-end max-md:justify-center max-md:p-3 max-md:pb-20">
@@ -281,6 +367,54 @@
 		36% {
 			transform: scale(1.04, 0.97);
 		}
+	}
+	/* 매칭 설정: 매칭 시작과 같은 모양을 작게, 회색으로 */
+	.start.msub {
+		--kk-cta-from: #cfd2db;
+		--kk-cta-to: #a3a9b8;
+		--kk-cta-edge: #636a7a;
+		color: #2a2f3d;
+		text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+	}
+	.start.msub.edge {
+		width: 11rem;
+		height: 3rem;
+	}
+	.start.msub.flat {
+		height: 3rem;
+	}
+	.start.msub :global(.material-symbols-outlined) {
+		color: #fff;
+		-webkit-text-stroke: 3px #636a7a;
+		filter: drop-shadow(0 2px 0 #636a7a);
+	}
+	/* 트로피 리그의 매칭 시작 버튼: 게임 시작과 같은 모양에 금빛으로 */
+	.start.league {
+		--kk-cta-from: #f7c948;
+		--kk-cta-to: #f08a24;
+		--kk-cta-edge: #8a5a0a;
+		color: #3b2400;
+		text-shadow: 0 1px 0 rgb(255 255 255 / 0.45);
+	}
+	.start.league :global(.material-symbols-outlined) {
+		color: #fff7d6;
+		-webkit-text-stroke: 4px #8a5a0a;
+		filter: drop-shadow(0 2px 0 #8a5a0a);
+	}
+	.start.league:disabled {
+		opacity: 0.72;
+	}
+	/* 대기 중: 흐려지지 않고 천천히 숨 쉰다 */
+	.start.league.searching:disabled {
+		opacity: 1;
+		animation: league-wait 1.6s ease-in-out infinite;
+	}
+	@keyframes league-wait {
+		0%, 100% { filter: brightness(1); }
+		50% { filter: brightness(1.14); }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.start.league.searching:disabled { animation: none; }
 	}
 	.start :global(.material-symbols-outlined) {
 		color: #fff;

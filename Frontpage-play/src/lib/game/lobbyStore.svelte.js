@@ -2,6 +2,7 @@ import { prefs } from './prefs.svelte.js';
 import { FRIEND_LIMIT, filterRooms, needsThemes as rulePicks } from './lobbyModel.js';
 import { levelSpan } from './level.js';
 import { createConnection } from './connection.svelte.js';
+import { league } from './leagueStore.svelte.js';
 import { md5 } from './md5.js';
 import { notice, plainText } from './protocol.js';
 import { showInjeongHint } from './injeongHint.js';
@@ -123,10 +124,12 @@ export function createLobbyStore(server) {
 		},
 		modeIndex,
 		join(no, password = '') {
+			if (league.queued) return void toast(t('play.league.queue.locked'), { kind: 'info' }); // 리그 매칭 중에는 다른 방에 들어갈 수 없다
 			conn.send('enter', { id: Number(no), password: password ? md5(password) : '' });
 		},
 		/** @param {{title:string,password?:string,limit:number,mode:number,round:number,time:number,opts:Record<string,boolean>}} f */
 		createRoom(f) {
+			if (league.queued) return void toast(t('play.league.queue.locked'), { kind: 'info' });
 			conn.send('enter', { title: f.title, password: f.password ? md5(f.password) : '', limit: f.limit, mode: f.mode, round: f.round, time: f.time, opts: f.opts, injpick: f.injpick ?? [] });
 		},
 		/** Join a random open room of this mode, or open a fresh one - same as the legacy quick match. */

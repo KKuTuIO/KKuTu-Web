@@ -10,22 +10,26 @@
 	import DataTable from '../ui/DataTable.svelte';
 	import Select from '../ui/Select.svelte';
 	import { toast } from '../ui/toast.svelte.js';
+	import TierBadge from './TierBadge.svelte';
+	import { untrack } from 'svelte';
+	import { tierIdOf } from '../leagueModel.js';
 
 	/**
 	 * The ranking itself: the game client shows it in a dialog (RankingDialog), the portal's /rank page inline.
 	 * `store` is the lobby store in the game, or the portal host (createPortalHost) outside it. `active` re-loads from the top each time it turns true
 	 * (a dialog opening); `onprofile(id)` is what a click on a player does, since only the host knows where a profile lives.
 	 */
-	let { store, active = true, onprofile } = $props();
+	let { store, active = true, onprofile, startKind = 'score' } = $props();
 	const parts = $derived(store.net.meta.moremiParts);
 	const canViewMine = $derived(!store.net.guest);
 
-	// Ranking kinds. Only the score ranking exists today; the trophy league is announced but not built yet.
+	// Ranking kinds: the score ranking and the 트로피 리그 ranking (the current season's trophies).
 	let kind = $state('score');
 	const kinds = $derived([
 		{ value: 'score', label: t('play.rank.type.score') },
-		{ value: 'trophy', label: t('play.rank.type.trophy'), disabled: true, badge: t('play.options.tbd') }
+		{ value: 'trophy', label: t('play.rank.type.trophy') }
 	]);
+	const trophy = $derived(kind === 'trophy');
 
 	let page = $state(0);
 	let rows = $state([]);
@@ -39,7 +43,7 @@
 		loading = true;
 		failed = false;
 		try {
-			const res = await fetchRanking(opts);
+			const res = await fetchRanking({ ...opts, kind });
 			rows = res.rows;
 			page = res.page;
 			label = resultLabel;
@@ -56,7 +60,7 @@
 		if (opts.page === 0 && !opts.me && !opts.query) return res.rows.slice(0, 4);
 		if (top.length) return top;
 		try {
-			return (await fetchRanking({ page: 0 })).rows.slice(0, 4);
+			return (await fetchRanking({ page: 0, kind })).rows.slice(0, 4);
 		} catch {
 			return [];
 		}
@@ -72,11 +76,27 @@
 	}
 
 	// Load when shown; start again from the top each time.
+	let loadedKind = ''; // the kind the rows on screen belong to (not state: only the effect below compares it)
 	$effect(() => {
 		if (active) {
 			query = '';
-			kind = 'score';
+			kind = startKind;
+			loadedKind = startKind;
+			top = [];
 			run({ page: 0 }, { keepTop: false });
+		}
+	});
+	// Another kind picked in the toolbar: load it from the top.
+	$effect(() => {
+		const k = kind;
+		if (active && k !== loadedKind) {
+			loadedKind = k;
+			untrack(() => {
+				query = '';
+				label = '';
+				top = [];
+				run({ page: 0 }, { keepTop: false });
+			});
 		}
 	});
 
@@ -93,14 +113,25 @@
 	const medal = ['#f59e0b', '#94a3b8', '#c2813f', 'var(--kk-line-strong)'];
 	const deltaClass = { up: 'text-(color:--kk-danger)', down: 'text-(color:--kk-blue)', none: 'text-(color:--kk-muted)' };
 
-	const columns = $derived([
-		{ key: 'rank', label: t('play.rank.col.rank'), align: 'center', width: 'w-20', class: 'font-black whitespace-nowrap', numeric: true },
-		{ key: 'name', label: t('play.rank.col.name'), class: 'max-w-0 font-bold' },
-		{ key: 'level', label: t('play.rank.col.level'), align: 'center', width: 'w-20' },
-		{ key: 'score', label: t('play.rank.col.score'), align: 'right', width: 'w-32', class: 'font-semibold', numeric: true },
-		{ key: 'delta', label: t('play.rank.col.delta'), align: 'center', width: 'w-16', class: 'font-black' },
-		{ key: 'actions', label: t('play.rank.col.actions'), width: 'w-24', pad: 'px-2 py-1', hideLabel: true }
-	]);
+	const columns = $derived(
+		trophy
+			? [
+					{ key: 'rank', label: t('play.rank.col.rank'), align: 'center', width: 'w-20', class: 'font-black whitespace-nowrap', numeric: true },
+					{ key: 'name', label: t('play.rank.col.name'), class: 'max-w-0 font-bold' },
+					{ key: 'tier', label: t('play.rank.col.tier'), align: 'center', width: 'w-20' },
+					{ key: 'score', label: t('play.rank.col.trophies'), align: 'right', width: 'w-28', class: 'font-semibold', numeric: true },
+					{ key: 'record', label: t('play.rank.col.record'), align: 'right', width: 'w-24', numeric: true },
+					{ key: 'actions', label: t('play.rank.col.actions'), width: 'w-24', pad: 'px-2 py-1', hideLabel: true }
+				]
+			: [
+					{ key: 'rank', label: t('play.rank.col.rank'), align: 'center', width: 'w-20', class: 'font-black whitespace-nowrap', numeric: true },
+					{ key: 'name', label: t('play.rank.col.name'), class: 'max-w-0 font-bold' },
+					{ key: 'level', label: t('play.rank.col.level'), align: 'center', width: 'w-20' },
+					{ key: 'score', label: t('play.rank.col.score'), align: 'right', width: 'w-32', class: 'font-semibold', numeric: true },
+					{ key: 'delta', label: t('play.rank.col.delta'), align: 'center', width: 'w-16', class: 'font-black' },
+					{ key: 'actions', label: t('play.rank.col.actions'), width: 'w-24', pad: 'px-2 py-1', hideLabel: true }
+				]
+	);
 </script>
 
 {#snippet cell(r, col)}
@@ -111,8 +142,12 @@
 		<span class="block truncate">{@render who(r)}</span>
 	{:else if col.key === 'level'}
 		<div class="flex justify-center"><LevelIcon score={Number(r.score)} size={22} /></div>
+	{:else if col.key === 'tier'}
+		<div class="flex justify-center"><TierBadge tier={tierIdOf(r.tier)} size={38} /></div>
+	{:else if col.key === 'record'}
+		{t('play.rank.recordValue', { wins: Number(r.wins ?? 0), games: Number(r.games ?? 0) })}
 	{:else if col.key === 'score'}
-		{t('play.rank.scoreValue', { n: Number(r.score).toLocaleString() })}
+		{t(trophy ? 'play.league.trophyValue' : 'play.rank.scoreValue', { n: Number(r.score).toLocaleString() })}
 	{:else if col.key === 'delta'}
 		{@const d = displayDelta(r.delta)}
 		<span class={deltaClass[d.dir]} aria-label={t('play.rank.delta', { delta: d.text })}>{d.text}</span>
@@ -131,7 +166,7 @@
 
 	<div class="flex flex-col gap-4" aria-busy={loading}>
 		<!-- Top four, like the homepage -->
-		{#if top.length && page === 0 && !label}
+		{#if !trophy && top.length && page === 0 && !label}
 			<ul class="grid grid-cols-2 gap-3 lg:grid-cols-4">
 				{#each top as r, i (r.id)}
 					{@const d = displayDelta(r.delta)}
@@ -174,7 +209,7 @@
 		{#if label}<p class="-mt-2 text-xs font-bold text-(color:--kk-muted)">{label}</p>{/if}
 
 		<!-- Table -->
-		<DataTable caption={t('play.rank.title')} {columns} {rows} minWidth="min-w-[34rem]" busy={loading} onrowclick={(r) => showProfile(r.id)} {cell}>
+		<DataTable caption={t('play.rank.title')} {columns} {rows} minWidth={trophy ? 'min-w-[38rem]' : 'min-w-[34rem]'} busy={loading} onrowclick={(r) => showProfile(r.id)} {cell}>
 			{#snippet empty()}
 				{#if !rows.length && !loading}
 					<EmptyState title={t(failed ? 'play.rank.error' : 'play.rank.empty')} />

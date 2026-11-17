@@ -30,7 +30,7 @@
 	}
 	const room = $derived(store.currentRoom);
 	// 퇴장 예약 is for players of a real game only: a spectator or someone practising can just leave (legacy)
-	const canReserve = $derived(!store.replay && !!g && g.phase !== 'ended' && store.net.users[store.net.id]?.game.form !== 'S' && !room?.practice);
+	const canReserve = $derived(!room?.league && !store.replay && !!g && g.phase !== 'ended' && store.net.users[store.net.id]?.game.form !== 'S' && !room?.practice);
 	$effect(() => {
 		if (!canReserve && store.ui.exitReserved) store.ui.exitReserved = false;
 	});
@@ -80,7 +80,7 @@
 			<li class="inline-flex items-center gap-1"><Icon name="timer" size={18} />{room.time}{second}</li>
 			<li class="inline-flex items-center gap-1"><Icon name="group" size={18} />{room.cur} / {room.limit}</li>
 		</ul>
-		{#if !store.replay}
+		{#if !store.replay && !room?.league}
 		{#if math}
 			<button type="button" onclick={oncalc} aria-label={t('play.calc.title')} class="kk-btn inline-flex shrink-0 items-center gap-1.5"><Icon name="calculate" size={20} /><span class="hidden xl:inline">{t('play.calc.title')}</span></button>
 		{:else}
@@ -91,7 +91,7 @@
 			<button type="button" onclick={() => store.toggleExitReserve()} aria-pressed={store.ui.exitReserved} aria-label={reserveLabel} class="kk-btn max-md:hidden inline-flex shrink-0 items-center gap-1.5 border-transparent text-white {store.ui.exitReserved ? 'bg-[#db2777] shadow-[0_3px_0_#9d174d]' : 'bg-[#ec4899] shadow-[0_3px_0_#be185d]'}"><Icon name="event_busy" size={20} fill={store.ui.exitReserved} /><span class="hidden xl:inline">{reserveLabel}</span></button>
 		{/if}
 		<FullscreenButton class="max-md:hidden" />
-		<button type="button" onclick={() => store.leaveGame()} aria-label={t('play.room.leave')} class="kk-btn kk-btn-danger inline-flex shrink-0 items-center gap-1.5"><Icon name="logout" size={20} /><span class="hidden xl:inline">{t('play.room.leave')}</span></button>
+		{#if !room?.league}<button type="button" onclick={() => store.leaveGame()} aria-label={t('play.room.leave')} class="kk-btn kk-btn-danger inline-flex shrink-0 items-center gap-1.5"><Icon name="logout" size={20} /><span class="hidden xl:inline">{t('play.room.leave')}</span></button>{/if}
 	</header>
 {/if}
 

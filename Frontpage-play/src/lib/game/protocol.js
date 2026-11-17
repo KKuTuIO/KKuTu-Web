@@ -140,6 +140,23 @@ export function normalizeUser(raw) {
 	};
 }
 
+/** 트로피 리그 판에서 보여 줄 익명 이름. 서버(service.ts의 ANON_NAME)와 같다. */
+export const LEAGUE_ANON_NAME = '끄투리오';
+
+/**
+ * 내가 트로피 리그 판 안에 있으면, 그 방 사람들(나 제외)은 이름과 모습을 익명으로 둔다. 서버가 방 데이터를 익명으로 보내지만,
+ * 로비 방송(`user`, `connRoom`)이 같은 사람의 실제 이름·모습으로 덮어쓸 수 있어서 한 번 더 막는다. 레벨은 그대로 둔다.
+ */
+export function maskLeagueUsers(state) {
+	const room = state.myRoom ? state.rooms[state.myRoom] : null;
+	if (!room?.league) return;
+	for (const id of room.players ?? []) {
+		const u = state.users[id];
+		if (!u || id === state.id) continue;
+		state.users[id] = { ...u, name: LEAGUE_ANON_NAME, tag: '', fixed: false, equip: {}, robot: false, level: null, record: {}, exordial: '', statusMessage: '', guest: false };
+	}
+}
+
 export function normalizeRoom(raw, meta) {
 	const key = meta.modes[raw.mode];
 	const label = meta.labels[`game.mode.${key}.name`] ?? key ?? '';
@@ -173,6 +190,7 @@ export function normalizeRoom(raw, meta) {
 		limit: raw.limit,
 		injpick: raw.injpick ?? [],
 		practice: !!raw.practice,
+		league: !!raw.league, // 트로피 리그 판: 모두 같은 모습(익명), 채팅 없음, 방 목록에 없음
 		players: (raw.players ?? []).map((p) => p.id),
 		master: raw.master,
 		game: { seq: raw.game?.seq ?? [], turn: raw.game?.turn ?? 0, round: raw.game?.round ?? 0, title: raw.game?.title ?? [] }
@@ -295,6 +313,7 @@ export function applyPacket(state, pkt, now = Date.now()) {
 		case 'user':
 		case 'nickUpdate':
 			state.users[pkt.user?.id ?? pkt.id] = normalizeUser(pkt.user ?? pkt);
+			maskLeagueUsers(state);
 			break;
 		case 'disconn':
 			delete state.users[pkt.id];
@@ -314,6 +333,7 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			for (const id of prev?.players ?? []) if (!room.players?.some((p) => p.id === id) && state.users[id]) state.users[id].place = 0;
 			if (mine) state.myRoom = room.id;
 			else if (wasMine) state.myRoom = null;
+			maskLeagueUsers(state);
 			// A game that stopped without a result (everyone left, the room broke) leaves nothing to show.
 			if (state.game && (mine || wasMine) && (!mine || (!room.gaming && !state.game.result))) state.game = null;
 			if (mine || wasMine) {
@@ -333,6 +353,7 @@ export function applyPacket(state, pkt, now = Date.now()) {
 		}
 		case 'connRoom': {
 			if (pkt.user?.id) state.users[pkt.user.id] = normalizeUser(pkt.user);
+			maskLeagueUsers(state);
 			if (state.myRoom) joinLeave(state, pkt.user?.id, 'joined'); // only my own room's comings and goings are my business
 			break;
 		}

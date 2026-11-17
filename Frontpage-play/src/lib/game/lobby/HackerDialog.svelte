@@ -5,13 +5,13 @@
 	import { cdnImg } from '../../cdn.js';
 	import { reducedMotion } from '../motion.js';
 	import { fetchHistory } from '../profile.js';
-	import { TILE, TILE_SQUARES } from '../gameTile.js';
 	import { totals, perGame, baseGame, bestFormula } from '../formula.js';
 	import { isEquipped } from '../shop.js';
 	import { refreshEnchants } from '../enchantStore.svelte.js';
 	import { wearPlan, wearAll } from '../enchant.js';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import Dialog from './Dialog.svelte';
+	import RemiBand from './RemiBand.svelte';
 	import GameIcon from './GameIcon.svelte';
 	import Icon from './Icon.svelte';
 	import ShopThumb from './ShopThumb.svelte';
@@ -25,16 +25,8 @@
 	let step = $state('ask'); // ask | hacking | result
 	let banner = $state(null); // the full-width band: null | 'in' (hacking) | 'success' | 'out'
 	let goalPicked = $state('xp'); // which currency the particles are, set as soon as a goal is chosen
-	// Matrix rain around 해커레미: a few columns of random glyphs, each falling at its own speed (generated once; they only need to look random).
-	const GLYPHS = 'ㄱㄴㄷㅏㅓㅗㅜ해킹조합XP핑0123456789ABCDEF<>/#$';
+	const GLYPHS = 'ㄱㄴㄷㅏㅓㅗㅜ해킹조합XP핑0123456789ABCDEF<>/#$'; // what falls in the matrix rain (the band itself is RemiBand)
 	const rnd = (a, b) => a + Math.random() * (b - a);
-	const RAIN = Array.from({ length: 16 }, (_, i) => ({
-		x: 2 + i * 6.2 + rnd(-1.5, 1.5),
-		text: Array.from({ length: 11 }, () => GLYPHS[Math.floor(Math.random() * GLYPHS.length)]).join('\n'),
-		dur: rnd(1.1, 2.1),
-		delay: -rnd(0, 2),
-		size: rnd(0.8, 1.15)
-	}));
 	// The currency particles that burst from 해커레미 on success (12 of them, thrown out in random directions, falling a little).
 	const BURST = Array.from({ length: 14 }, (_, i) => {
 		const a = rnd(-Math.PI * 0.95, -Math.PI * 0.05) + (i % 2 ? 0.2 : -0.2);
@@ -230,79 +222,54 @@
 	</div>
 
 	{#if banner}
-		<!-- the band spans the whole display, like a stage title over the screen. It is a popover (top layer) because the dialog's own pop-in animation would make it the containing block of anything fixed inside it. -->
-		<div bind:this={overlay} popover="manual" class="hacker-overlay visible pointer-events-none fixed inset-x-0 top-1/2 bottom-auto m-0 h-44 w-screen max-w-none -translate-y-1/2 overflow-visible border-0 bg-transparent p-0" aria-hidden="true">
-			<div class="hacker-band relative h-44 overflow-hidden text-white {banner === 'out' ? 'is-out' : ''}">
-				<span class="absolute inset-0 bg-[linear-gradient(90deg,#4338ca,#7c3aed_55%,#a855f7)]"></span>
-				<span class="hacker-gold absolute inset-0 bg-[linear-gradient(90deg,#f59e0b,#facc15_50%,#fde047)] {won ? 'on' : ''}"></span>
-				<span class="hacker-gray absolute inset-0 bg-[linear-gradient(90deg,#4b5563,#6b7280_50%,#9ca3af)] {lost ? 'on' : ''}"></span>
-				<svg class="hacker-tile absolute top-0 left-0 h-full" style="width: calc(100% + {TILE * 2}px)" xmlns="http://www.w3.org/2000/svg">
-					<defs>
-						<pattern id="hacker-tile" width={TILE} height={TILE} patternUnits="userSpaceOnUse" patternTransform="scale(2)">
-							{#each [-TILE, 0, TILE] as dx}{#each [-TILE, 0, TILE] as dy}{#each TILE_SQUARES as sq}<polygon points={sq.map((q) => `${q[0] + dx},${q[1] + dy}`).join(' ')} fill="#fff" fill-opacity="0.16" />{/each}{/each}{/each}
-						</pattern>
-					</defs>
-					<rect width="100%" height="100%" fill="url(#hacker-tile)" />
-				</svg>
-				<!-- fixed layout: 해커레미 and the title keep their places in every stage (only the text inside changes) -->
-				<div class="relative mx-auto h-full max-w-4xl">
-					{#if !won && !lost}
-						<div class="hacker-rain absolute bottom-0 -left-8 h-full w-[30rem]" aria-hidden="true">
-							{#each RAIN as c}
-								<span class="hacker-rain-col" style="left: {c.x}%; animation-duration: {c.dur}s; animation-delay: {c.delay}s; font-size: {c.size}rem">{c.text}</span>
-							{/each}
-						</div>
+		<!-- the band spans the whole display, like a stage title over the screen. It is a popover (top layer) because the dialog's own pop-in animation would make it the containing block of anything fixed inside it. The band itself is RemiBand (shared with 파란 머리 모레미의 장난). -->
+		<div bind:this={overlay} popover="manual" class="hacker-overlay visible pointer-events-none fixed inset-x-0 top-1/2 bottom-auto m-0 h-44 w-screen max-w-none -translate-y-1/2 overflow-visible border-0 bg-transparent p-0 max-md:h-40" aria-hidden="true">
+			<RemiBand out={banner === 'out'} remi={cdnImg('play/hackerremi.png')} glyphs={GLYPHS} rain={!won && !lost} remiClass="{won ? 'jump' : ''} {lost ? 'slump' : ''}">
+				{#snippet underlay()}
+					<span class="hacker-gold absolute inset-0 bg-[linear-gradient(90deg,#f59e0b,#facc15_50%,#fde047)] {won ? 'on' : ''}"></span>
+					<span class="hacker-gray absolute inset-0 bg-[linear-gradient(90deg,#4b5563,#6b7280_50%,#9ca3af)] {lost ? 'on' : ''}"></span>
+				{/snippet}
+				{#snippet remiExtras()}
+					<!-- the lens: a streak of light sweeps over it and a star glints on its corner -->
+					{#if !lost}
+						<span class="hacker-lens absolute" aria-hidden="true"><span class="hacker-streak"></span></span>
+						<i class="hacker-glint {won ? 'big' : ''} absolute not-italic" aria-hidden="true">✦</i>
+					{:else}
+						<!-- cold sweat running down the temple -->
+						{#each [{ x: 74, y: 22, d: 0 }, { x: 80, y: 30, d: 0.35 }, { x: 27, y: 26, d: 0.7 }, { x: 70, y: 18, d: 1.0 }] as d}
+							<svg class="hacker-sweat absolute" style="left: {d.x}%; top: {d.y}%; animation-delay: {d.d}s" viewBox="0 0 10 14" width="18" height="25" aria-hidden="true"><path d="M5 .6C5 .6.8 6.2.8 9.1a4.2 4.2 0 0 0 8.4 0C9.2 6.2 5 .6 5 .6Z" fill="#bae6fd" stroke="#38bdf8" stroke-width="1" /><path d="M3 9.4a2.2 2.2 0 0 0 1.6 2" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" /></svg>
+						{/each}
 					{/if}
-					<div class="hacker-remi-wrap absolute bottom-[-4rem] left-8 h-48 w-48 {won ? 'jump' : ''} {lost ? 'slump' : ''}">
-						<img src={cdnImg('play/hackerremi.png')} alt="" draggable="false" class="hacker-band-remi h-full w-full object-contain" />
-						<!-- the lens: a streak of light sweeps over it and a star glints on its corner -->
-						{#if !lost}
-							<span class="hacker-lens absolute" aria-hidden="true"><span class="hacker-streak"></span></span>
-							<i class="hacker-glint {won ? 'big' : ''} absolute not-italic" aria-hidden="true">✦</i>
-						{:else}
-							<!-- cold sweat running down the temple -->
-							{#each [{ x: 74, y: 22, d: 0 }, { x: 80, y: 30, d: 0.35 }, { x: 27, y: 26, d: 0.7 }, { x: 70, y: 18, d: 1.0 }] as d}
-								<svg class="hacker-sweat absolute" style="left: {d.x}%; top: {d.y}%; animation-delay: {d.d}s" viewBox="0 0 10 14" width="18" height="25" aria-hidden="true"><path d="M5 .6C5 .6.8 6.2.8 9.1a4.2 4.2 0 0 0 8.4 0C9.2 6.2 5 .6 5 .6Z" fill="#bae6fd" stroke="#38bdf8" stroke-width="1" /><path d="M3 9.4a2.2 2.2 0 0 0 1.6 2" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" /></svg>
+					{#if won}
+						<span class="absolute top-1/3 left-1/2 block size-0">
+							{#each BURST as q, i}
+								{@const icon = goalPicked === 'both' ? (i % 2 ? 'ping' : 'xp') : goalPicked}
+								<i class="hacker-particle absolute block w-max" style="--dx: {q.dx}px; --dy: {q.dy}px; --rot: {q.rot}deg; animation-delay: {q.delay}s"><GameIcon name={icon} size={q.size} /></i>
 							{/each}
-						{/if}
-						{#if won}
-							<span class="absolute top-1/3 left-1/2 block size-0">
-								{#each BURST as q, i}
-									{@const icon = goalPicked === 'both' ? (i % 2 ? 'ping' : 'xp') : goalPicked}
-									<i class="hacker-particle absolute block w-max" style="--dx: {q.dx}px; --dy: {q.dy}px; --rot: {q.rot}deg; animation-delay: {q.delay}s"><GameIcon name={icon} size={q.size} /></i>
-								{/each}
-							</span>
-						{/if}
-					</div>
-					<div class="absolute inset-y-0 right-0 left-60 flex items-center justify-center">
-						{#if won}
-							<p class="hacker-success kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.25)]">
-								{t('play.hacker.success')}
-								<i class="hacker-spark absolute -top-3 -right-8 text-3xl not-italic">✦</i>
-								<i class="hacker-spark absolute top-8 -right-14 text-xl not-italic" style="animation-delay: 0.25s">✦</i>
-								<i class="hacker-spark absolute -bottom-1 -left-8 text-2xl not-italic" style="animation-delay: 0.5s">✦</i>
-							</p>
-						{:else if lost}
-							<p class="hacker-success kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.3)]">{t('play.hacker.fail')}</p>
-						{:else}
-							<p class="hacker-text kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.25)]">{t('play.hacker.hacking')}<span class="hacker-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
-						{/if}
-					</div>
-				</div>
-			</div>
+						</span>
+					{/if}
+				{/snippet}
+				{#snippet title()}
+					{#if won}
+						<p class="remi-text now kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.25)] max-md:text-3xl">
+							{t('play.hacker.success')}
+							<i class="remi-spark absolute -top-3 -right-8 text-3xl not-italic max-md:-right-3">✦</i>
+							<i class="remi-spark absolute top-8 -right-14 text-xl not-italic max-md:hidden" style="animation-delay: 0.25s">✦</i>
+							<i class="remi-spark absolute -bottom-1 -left-8 text-2xl not-italic max-md:-left-3" style="animation-delay: 0.5s">✦</i>
+						</p>
+					{:else if lost}
+						<p class="remi-text now kk-pop-font relative text-5xl tracking-tight drop-shadow-[0_3px_0_rgb(0_0_0/0.3)] max-md:text-3xl">{t('play.hacker.fail')}</p>
+					{:else}
+						<p class="remi-text kk-pop-font relative text-center text-5xl tracking-tight text-balance break-keep drop-shadow-[0_3px_0_rgb(0_0_0/0.25)] max-md:text-3xl max-md:leading-tight">{t('play.hacker.hacking')}<span class="hacker-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></p>
+					{/if}
+				{/snippet}
+			</RemiBand>
 		</div>
 	{/if}
 </Dialog>
 
 <style>
-	/* the banner: the band wipes in from the left (band and text are clipped together, so the text is masked by the growing width) */
-	.hacker-band {
-		box-shadow: 0 -2px 0 rgb(0 0 0 / 0.55), 0 2px 0 rgb(0 0 0 / 0.55);
-		animation: hacker-wipe 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-	}
-	.hacker-band.is-out {
-		animation: hacker-wipe-out 0.42s cubic-bezier(0.64, 0, 0.78, 0) both;
-	}
+	/* 해커레미만의 것: 성공의 금빛과 실패의 회색 층, 렌즈의 빛, 땀, 흩어지는 입자. (띠 자체의 닦아 들어오기·무늬·글자 비·모레미·제목은 RemiBand) */
 	.hacker-gold {
 		opacity: 0;
 		transition: opacity 0.25s ease-out;
@@ -317,50 +284,9 @@
 	.hacker-gray.on {
 		opacity: 1;
 	}
-	.hacker-tile {
-		animation: hacker-drift 4s linear infinite;
-	}
-	.hacker-tile {
-		will-change: transform;
-	}
-	.hacker-remi-wrap {
-		will-change: transform;
-		transform-origin: 50% 100%;
-	}
-	/* 해킹 성공: a hop with a squash on landing, then a smaller second one */
-	.hacker-remi-wrap.slump {
-		animation: hacker-slump 0.8s cubic-bezier(0.3, 0, 0.4, 1) both;
-	}
-	.hacker-remi-wrap.slump .hacker-band-remi {
-		filter: grayscale(0.55) brightness(0.92);
-		transition: filter 0.4s;
-	}
 	.hacker-sweat {
 		opacity: 0;
 		animation: hacker-sweat 1.1s ease-in infinite;
-	}
-	.hacker-remi-wrap.jump {
-		animation: hacker-jump 0.9s cubic-bezier(0.3, 0, 0.4, 1) both;
-	}
-	/* matrix rain: glyph columns fall at their own speeds, bright at the head and fading up the tail, masked to a soft patch around 해커레미 */
-	.hacker-rain {
-		-webkit-mask-image: radial-gradient(ellipse 65% 80% at 45% 55%, #000 35%, transparent 100%);
-		mask-image: radial-gradient(ellipse 65% 80% at 45% 55%, #000 35%, transparent 100%);
-	}
-	.hacker-rain-col {
-		position: absolute;
-		top: 0;
-		white-space: pre;
-		line-height: 1.05;
-		font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-		font-weight: 800;
-		text-align: center;
-		color: transparent;
-		background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 0.75) 45%, #fff);
-		-webkit-background-clip: text;
-		background-clip: text;
-		will-change: transform;
-		animation: hacker-rain 1.6s linear infinite;
 	}
 	/* the lens sits at about 69% / 30% of the picture */
 	.hacker-lens {
@@ -401,25 +327,6 @@
 		animation: hacker-burst 1.15s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 		filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.9));
 	}
-	.hacker-band-remi {
-		animation: hacker-remi 0.55s cubic-bezier(0.34, 1.6, 0.64, 1) 0.6s both;
-	}
-	/* the title enters de-skewing from the left, and leaves skewing off to the right */
-	.hacker-text {
-		animation: hacker-text-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
-	}
-	.hacker-success {
-		animation: hacker-text-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-	}
-	.hacker-band.is-out .hacker-text,
-	.hacker-band.is-out .hacker-success {
-		animation: hacker-text-out 0.38s cubic-bezier(0.64, 0, 0.78, 0) both;
-	}
-	.hacker-spark {
-		animation: hacker-twinkle 0.9s ease-in-out infinite;
-		color: #fff;
-		text-shadow: 0 0 10px rgb(255 255 255 / 0.9);
-	}
 	.hacker-dots i {
 		font-style: normal;
 		animation: hacker-blink 1s steps(1) infinite;
@@ -430,15 +337,6 @@
 	.hacker-stomp {
 		animation: hacker-stomp 0.55s cubic-bezier(0.34, 1.5, 0.64, 1) both;
 	}
-	@keyframes hacker-wipe {
-		from { clip-path: inset(0 100% 0 0); opacity: 0; }
-		to { clip-path: inset(0 0 0 0); opacity: 1; }
-	}
-	@keyframes hacker-wipe-out {
-		from { clip-path: inset(0 0 0 0); opacity: 1; }
-		to { clip-path: inset(0 0 0 100%); opacity: 0; }
-	}
-	@keyframes hacker-drift { to { transform: translate3d(-400px, 0, 0); } }
 	@keyframes hacker-streak {
 		0%, 30% { transform: skewX(-22deg) translateX(-160%); }
 		70%, 100% { transform: skewX(-22deg) translateX(420%); }
@@ -448,44 +346,16 @@
 		45% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(25deg); }
 		65%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(70deg); }
 	}
-	@keyframes hacker-slump {
-		0% { transform: none; }
-		35% { transform: translateY(10px) scale(1.04, 0.93) rotate(-2deg); }
-		55% { transform: translateY(6px) scale(1.02, 0.96) rotate(1.5deg); }
-		100% { transform: translateY(8px) scale(1.03, 0.94) rotate(-1deg); }
-	}
 	@keyframes hacker-sweat {
 		0% { opacity: 0; transform: translateY(-4px) scale(0.5); }
 		20% { opacity: 1; transform: translateY(0) scale(1); }
 		100% { opacity: 0; transform: translateY(2.6rem) scale(0.9); }
-	}
-	@keyframes hacker-rain { from { transform: translate3d(0, -100%, 0); } to { transform: translate3d(0, 11rem, 0); } }
-	@keyframes hacker-jump {
-		0% { transform: none; }
-		28% { transform: translateY(-38px) scale(0.96, 1.07); }
-		50% { transform: translateY(0) scale(1.08, 0.9); }
-		68% { transform: translateY(-14px) scale(0.98, 1.03); }
-		84% { transform: translateY(0) scale(1.03, 0.97); }
-		100% { transform: none; }
 	}
 	@keyframes hacker-burst {
 		0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0); }
 		12% { opacity: 1; }
 		70% { opacity: 1; }
 		100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 40px)) scale(1) rotate(var(--rot)); }
-	}
-	@keyframes hacker-text-in {
-		from { opacity: 0; transform: translateX(-56px) skewX(-24deg); }
-		to { opacity: 1; transform: none; }
-	}
-	@keyframes hacker-text-out {
-		from { opacity: 1; transform: none; }
-		to { opacity: 0; transform: translateX(72px) skewX(-24deg); }
-	}
-	@keyframes hacker-twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.6) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(20deg); } }
-	@keyframes hacker-remi {
-		from { transform: translateY(110%) scale(0.8); opacity: 0; }
-		to { transform: none; opacity: 1; }
 	}
 	@keyframes hacker-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
 	@keyframes hacker-stomp {
@@ -497,7 +367,7 @@
 		animation: kk-pop-in 0.45s cubic-bezier(0.34, 1.7, 0.64, 1) both;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.hacker-band, .hacker-tile, .hacker-rain-col, .hacker-particle, .hacker-streak, .hacker-glint, .hacker-remi-wrap, .hacker-sweat, .hacker-band-remi, .hacker-text, .hacker-success, .hacker-spark, .hacker-dots i, .hacker-stomp,
+		.hacker-particle, .hacker-streak, .hacker-glint, .hacker-sweat, .hacker-dots i, .hacker-stomp,
 		.hacker-up {
 			animation: none;
 		}

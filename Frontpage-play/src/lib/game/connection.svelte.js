@@ -22,6 +22,7 @@ import { activeMaintenance, classifyOutage, SCHEDULE_EVERY, SCHEDULE_URL } from 
 import { createRecorder } from './replayRec.js';
 import { createGameAudio } from './gameAudio.js';
 import { family } from './familyStore.svelte.js';
+import { league } from './leagueStore.svelte.js';
 
 /** Server messages are HTML snippets (<br>, links); toasts show plain text. */
 export { plainText };
@@ -170,6 +171,7 @@ export function createConnection(server) {
 				startPing();
 				family.attach(send);
 				family.fetch();
+				league.attach(send);
 				clearInterval(familyTimer);
 				familyTimer = setInterval(() => family.fetch(), 60_000);
 				state.outage = null;
@@ -185,6 +187,7 @@ export function createConnection(server) {
 			clearInterval(pingTimer);
 			clearInterval(familyTimer);
 			family.detach();
+			league.detach();
 			rws?.close(); // the room socket belongs to this session too
 			rws = undefined;
 			if (leaving || state.status === 'error') return;
@@ -223,6 +226,8 @@ export function createConnection(server) {
 		const hadGame = !!state.game;
 		applyPacket(state, pkt);
 		if (fromMaster && typeof pkt.type === 'string' && pkt.type.startsWith('family')) family.receive(pkt);
+		// 리그 패킷은 마스터에서 오지만, 판의 결과(leagueResult)는 방이 있는 워커가 직접 보낸다
+		if ((fromMaster || pkt.type === 'leagueResult') && typeof pkt.type === 'string' && pkt.type.startsWith('league')) league.receive(pkt);
 		// Broadcasts from "#notice", "#yell" and "#alert": a toast, the scrolling banner, and a dialog (to be confirmed)
 		if (pkt.type === 'notice' && typeof pkt.value === 'string' && pkt.value) toast(plainText(pkt.value), { kind: 'info', icon: 'alert' });
 		else if (pkt.type === 'yell' && typeof pkt.value === 'string') yell(plainText(pkt.value));
@@ -342,7 +347,7 @@ export function createConnection(server) {
 
 	// Which socket a message goes to, same rule as the legacy client: lobby-level messages to master, room
 	// actions to the room worker, and everything else (chat, room settings) to the worker while in a room.
-	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'levelRewards', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry', 'family']);
+	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'levelRewards', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry', 'family', 'league']);
 	const ROOM_ONLY = new Set(['leave', 'ready', 'start', 'practice', 'invite', 'form', 'team', 'kick', 'kickVote', 'handover', 'setAI', 'useItem', 'wp']);
 	/** 22-char url-safe id (16 random bytes), required by the server on durable requests so a retry can't apply twice. */
 	function newRequestId() {
@@ -433,6 +438,7 @@ export function createConnection(server) {
 			clearInterval(pingTimer);
 			clearInterval(familyTimer);
 			family.detach();
+			league.detach();
 			if (browser) {
 				window.removeEventListener('online', wake);
 				document.removeEventListener('visibilitychange', onVisible);

@@ -6,6 +6,7 @@
 	import { themeOf } from '$lib/game/theme.js';
 	import GameResult from '$lib/game/lobby/GameResult.svelte';
 	import LevelUpHost from '$lib/game/lobby/LevelUpHost.svelte';
+	import LeagueResultBand from '$lib/game/lobby/LeagueResultBand.svelte';
 	import GiftHost from '$lib/game/lobby/GiftHost.svelte';
 	import ObtainScreen from '$lib/game/lobby/ObtainScreen.svelte';
 	import Icon from '$lib/game/lobby/Icon.svelte';
@@ -27,10 +28,12 @@
 	import { t } from '$lib/game/i18n.svelte.js';
 	import { plainText } from '$lib/game/protocol.js';
 	import { toast } from '$lib/game/ui/toast.svelte.js';
+	import { league } from '$lib/game/leagueStore.svelte.js';
 	import { watchIdle } from '$lib/game/autoIdle.js';
 	import ShopScreen from '$lib/game/lobby/ShopScreen.svelte';
 	import { playSound } from '$lib/game/audio.svelte.js';
 	import RankingDialog from '$lib/game/lobby/RankingDialog.svelte';
+	import RuleReel from '$lib/game/lobby/RuleReel.svelte';
 	import DictionaryDialog from '$lib/game/lobby/DictionaryDialog.svelte';
 	import WikiWindow from '$lib/game/lobby/WikiWindow.svelte';
 	import WordDetail from '$lib/game/lobby/WordDetail.svelte';
@@ -68,7 +71,8 @@
 	import ChatLogDialog from '$lib/game/lobby/ChatLogDialog.svelte';
 	import ProfileWindow from '$lib/game/lobby/ProfileWindow.svelte';
 	import RatingDialog from '$lib/game/lobby/RatingDialog.svelte';
-	import { installUnlock, playLobbyBgm, playShopBgm, stopBgm } from '$lib/game/audio.svelte.js';
+	import { installUiSounds } from '$lib/game/uiSounds.js';
+	import { installUnlock, playLeagueBgm, playLobbyBgm, playShopBgm, stopBgm } from '$lib/game/audio.svelte.js';
 	import RoomScreen from '$lib/game/lobby/RoomScreen.svelte';
 	import GameScreen from '$lib/game/lobby/GameScreen.svelte';
 	import GameHeader from '$lib/game/lobby/GameHeader.svelte';
@@ -144,7 +148,43 @@
 	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'replay'];
 	let pageEl = $state();
 	const tabNow = $derived(shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : peopleShown ? 'people' : 'lobby');
+	// 리그 매칭을 기다리는 동안에는 설정 밖의 메뉴로 나갈 수 없다(큐를 비운 채 다른 화면으로 가는 것을 막는다)
+	// 리그 판 안에서도 같다: 실력만 겨루는 익명 판이라 다른 메뉴로 나가거나 사전·채팅·소셜을 쓸 수 없다
+	const inLeague = $derived(!!store.currentRoom?.league);
+	const locked = $derived(league.queued || inLeague);
+	// 리그 방에는 대기실이 없다: 판이 끝나고 결과 화면을 닫으면 방을 나가서 로비로 돌아온다(그냥 두면 가림막만 남고 메뉴도 잠겨 아무것도 못 한다).
+	// 판이 끝내 시작되지 않는 경우에도 40초 뒤에는 나간다.
+	let leagueGameSeen = false;
+	$effect(() => {
+		if (!inLeague) return void (leagueGameSeen = false);
+		if (store.inGame) return void (leagueGameSeen = true);
+		if (leagueGameSeen && !store.game) {
+			leagueGameSeen = false;
+			store.leaveGame();
+			return;
+		}
+		if (leagueGameSeen) return;
+		const timer = setTimeout(() => store.leaveGame(), 40_000);
+		return () => clearTimeout(timer);
+	});
+	// 리그 판에서 돌아오면 다시 매칭할 수 있게 하고, 트로피와 시즌 정보를 새로 받는다
+	let wasLeague = false;
+	$effect(() => {
+		if (inLeague) wasLeague = true;
+		else if (wasLeague) {
+			wasLeague = false;
+			league.endMatch();
+			league.fetch();
+		}
+	});
+	$effect(() => {
+		if (!inLeague) return;
+		dictOpen = false; // 사전은 어느 길로도 열 수 없다(단축 요청, 인정 힌트 등)
+		profileOpen = false; // 판이 시작될 때 열려 있던 프로필 창도 닫는다
+	});
+	const lockedOut = (id) => locked && id !== 'settings';
 	async function selectTab(id) {
+		if (lockedOut(id)) return void toast(t('play.league.queue.locked'), { kind: 'info' });
 		const before = tabNow;
 		peopleTab = false;
 		roomsOpen = false; // any tab (the home's own too) leaves the room list page
@@ -189,6 +229,7 @@
 	let quickMode = $state(2);
 	let passwordRoom = $state(null);
 	let rankOpen = $state(false);
+	let rankKind = $state('score'); // which ranking the dialog starts on
 	let dictOpen = $state(false);
 	// a screen can ask for the small dictionary with a word already looked up (the riddle's answer): `store.ui.dictRequest`
 	let dictWord = $state('');
@@ -274,6 +315,7 @@
 
 	// 상점: replaces the main area (lobby or waiting room), as the legacy shop box replaces the room box.
 	function selectMenu(id) {
+		if (lockedOut(id)) return void toast(t('play.league.queue.locked'), { kind: 'info' });
 		if (id === 'news') {
 			shopOpen = replayOpen = false;
 			if (academyOpen) setAcademy(false);
@@ -311,6 +353,7 @@
 		}
 		if (id === 'lobby') return academyOpen && setAcademy(false);
 		if (id === 'rank') {
+			rankKind = 'score';
 			rankOpen = true;
 			return;
 		}
@@ -375,6 +418,7 @@
 			prefsOpen = true;
 		};
 		store.hooks.openProfile = (who, opts = {}) => {
+			if (inLeague) return; // 리그 판에서는 상대(와 나)의 프로필·전적을 볼 수 없다: 카드, 이름, 명령어 모두 이 입구를 지난다
 			profileId = typeof who === 'string' ? who : who.id;
 			profileStart = { tab: opts.tab ?? 'profile', n: profileStart.n + 1 };
 			profileOpen = true;
@@ -437,11 +481,18 @@
 		store.hooks.openRoomSettings = () => (settingsOpen = true);
 		store.hooks.setCreateOpen = (v) => (createOpen = v); // the 방 만들기 lesson opens and closes the real dialog
 		store.hooks.openHelp = () => (helpOpen = true);
+		store.hooks.openRanking = (kind = 'score') => {
+			rankKind = kind;
+			rankOpen = true;
+		};
 		store.hooks.openQuick = (mode = 2) => {
 			quickMode = mode;
 			quickOpen = true;
 		};
-		store.hooks.openUserMenu = (id, e, layout) => userMenu?.show(id, e, layout);
+		store.hooks.openUserMenu = (id, e, layout) => {
+			if (inLeague) return; // 같은 이유(친구 추가, 신고, 귓속말 메뉴도 열 수 없다)
+			userMenu?.show(id, e, layout);
+		};
 		store.hooks.openRoomMenu = (no, e) => roomMenu?.show(no, e);
 		store.hooks.openRoomInfo = (no) => roomInfo?.show(no);
 		store.hooks.openReport = (target) => report?.show(target);
@@ -453,6 +504,7 @@
 		document.addEventListener('click', linkGuard, true);
 		window.addEventListener('beforeunload', unloadGuard);
 		const unlock = installUnlock(); // browsers keep audio locked until the first click or key press
+		const offUiSounds = installUiSounds(); // 모든 버튼: 누르면 click, 마우스를 올리면 hover 소리
 		const stopIdle = watchIdle({ status: () => store.net.myStatus, set: (s, auto) => store.setStatus(s, auto) }); // 자리 비움 by itself after a quiet spell
 		store.conn.open();
 		return () => {
@@ -462,6 +514,7 @@
 			window.removeEventListener('beforeunload', unloadGuard);
 			guard.active = false;
 			unlock();
+			offUiSounds();
 			stopBgm();
 			store.conn.close();
 		};
@@ -479,10 +532,13 @@
 
 	// Lobby music plays in the lobby and in waiting rooms (the shop has its own, crossfaded); the game will bring its own.
 	$effect(() => {
-		if (store.net.status !== 'ready' || store.currentRoom?.playing || store.replayView) stopBgm();
+		// 리그: 매칭이 잡힌 때부터(규칙 룰렛, 판 시작 전) 메인 BGM을 끈다. 판이 끝난 뒤에는 결과 화면의 음악이 이어받는다.
+		if (store.net.status !== 'ready' || store.currentRoom?.playing || store.replayView || league.reelOpen) stopBgm();
 		else if (store.game?.result) {
 			// between the end of a game and its result screen: silence, then the result's own music (not the lobby's, which waits for the result to be closed)
-		} else shopOpen ? playShopBgm() : playLobbyBgm({ fromResult: true }); // (a closed result: its music crossfades into the lobby's)
+		} else if (inLeague || league.found) stopBgm();
+		else if (league.lobbyOpen) playLeagueBgm(); // 트로피 리그 로비에서는 로비와 다른 음악(인트로 한 번, 그다음 루프)
+		else shopOpen ? playShopBgm() : playLobbyBgm({ fromResult: true }); // (a closed result: its music crossfades into the lobby's)
 	});
 
 	// An address with ?view=academy&tab=… (a shared link) opens that tool.
@@ -580,12 +636,12 @@
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
-		<TopBar {store} {phone} rail={duoRail} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
+		<TopBar {store} {phone} {locked} rail={duoRail} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
 	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (prefs.hand === 'left' ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
 	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : 'max-md:pb-[calc(0.75rem+var(--dock,0px))]'}">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
-		<div style:--side-w="{sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
+		<div style:--side-w="{sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen || inLeague ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
 			<SidePanel {store} profile={(peopleShown || desk) && !kbd} noAvatar={newLobby && desk && !store.net.myRoom && !peopleShown} />
 			<ResizeHandle class="-right-4 h-full w-4 {desk && !leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 			<ResizeHandle class="-left-4 h-full w-4 {desk && leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
@@ -600,7 +656,9 @@
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><NewsScreen {store} /></div>
 			{:else if store.net.myRoom && store.currentRoom}
 				<!-- the waiting room stays until the loading veil covers it; the board is set up beneath the veil -->
-				{#if !(store.inGame && store.ui.gameCovered)}<RoomScreen {store} onsettings={() => (settingsOpen = true)} />{/if}
+				<!-- 리그 판은 대기실 없이 서버가 바로 시작한다: 그 사이에는 준비·초대·채팅이 있는 일반 대기실 대신 규칙 릴과 같은 바탕만 보인다 -->
+				{#if inLeague}{#if !store.inGame}<div class="kk-arcade min-h-0 flex-1 rounded-2xl" style="--ac: #3553a0"><div class="kk-checker-clip"><span class="kk-checker"></span></div></div>{/if}
+				{:else if !(store.inGame && store.ui.gameCovered)}<RoomScreen {store} onsettings={() => (settingsOpen = true)} />{/if}
 				{#if store.inGame}<GameScreen {store} />{/if}
 			{:else if academyOpen && !newLobby}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} game={academyGame} /></div>
@@ -619,7 +677,7 @@
 				</div>
 			{/if}
 			<!-- Desktop: chat lives under the room list, where the old client had it. -->
-			{#if !chatFab}
+			{#if !chatFab && !inLeague}
 				<div data-tour="chat" class="relative z-10 {desk ? 'block' : 'hidden'}">
 					<ResizeHandle class="-top-3 right-0 left-0 h-3 w-full" orientation="horizontal" grow={-1} value={chatH} min={CHAT.min} max={chatMax} def={CHAT.def} label={t('play.layout.resizeChat')} onchange={(v) => setLayout('chat', v)} />
 					<ChatPanel {store} inline height={chatH} />
@@ -627,14 +685,14 @@
 			{/if}
 		</main>
 	</div>
-	{#if railDesk}<MobileTabBar {store} noHelp={newLobby} noPeople active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} side edge={prefs.hand === 'left' ? 'left' : 'right'} />{:else if showTabBar && !store.ui.arcade}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
+	{#if railDesk}<MobileTabBar {store} {locked} noHelp={newLobby} noPeople active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} side edge={prefs.hand === 'left' ? 'left' : 'right'} />{:else if showTabBar && !store.ui.arcade}<MobileTabBar {store} {locked} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
 	</div>
 </div>
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->
 <!-- Mobile/tablet: a button opening a docked sheet; in the 아카데미 and the shop the chat is that button on desktop too, so the screen gets the room. -->
 {#if !(phone && shopOpen)}
-<div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} rail={rail ? (prefs.hand === 'left' ? 'left' : 'right') : null} fab={chatFab} hideFab={store.ui.phoneStage || store.ui.hideFab} lift={tabBar ? !rail : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
+{#if !inLeague}<div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} rail={rail ? (prefs.hand === 'left' ? 'left' : 'right') : null} fab={chatFab} hideFab={store.ui.phoneStage || store.ui.hideFab} lift={tabBar ? !rail : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>{/if}
 {/if}
 <!-- phone: full screen is a faint icon in the top right corner (the bars have no room for a button) -->
 {#if phone}<FullscreenButton watermark />{/if}
@@ -642,7 +700,8 @@
 <CreateRoomDialog {store} bind:open={settingsOpen} editing={store.currentRoom} />
 <QuickMatchDialog {store} start={quickMode} bind:open={quickOpen} />
 <DmNotice {store} />
-<RankingDialog {store} bind:open={rankOpen} />
+<RankingDialog {store} bind:open={rankOpen} startKind={rankKind} />
+<RuleReel {store} />
 <DictionaryDialog bind:open={dictOpen} initial={dictWord} />
 <WordDetail />
 <WikiWindow />
@@ -681,6 +740,7 @@
 <LoadingScreen {store} />
 <StatusMark {store} />
 <LevelUpHost {store} />
+<LeagueResultBand {store} />
 <GiftHost {store} />
 {#if tutorialReward.details}<ObtainScreen bind:open={tutorialReward.open} title={t('play.obtain.acquired')} notice={t('play.tutorial.reward.notice')} items={[{ key: 'ping', q: store.net.tutorial?.ping || 100 }]} shop={store.shop} details={tutorialReward.details} ribbon ambient="shine" palette="teal" />{/if}
 <ToastHost />

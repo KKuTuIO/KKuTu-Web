@@ -4,7 +4,7 @@
 	import PushScreen from './PushScreen.svelte';
 	import RankingPanel from './RankingPanel.svelte';
 
-	let { store, open = $bindable(false) } = $props();
+	let { store, open = $bindable(false), startKind = 'score' } = $props();
 	// Phone: the ranking is a screen of its own (a place to go), not a sheet
 	let winW = $state(typeof innerWidth === 'undefined' ? 1280 : innerWidth);
 	const phone = $derived(winW < 768);
@@ -20,9 +20,9 @@
 <svelte:window bind:innerWidth={winW} />
 
 {#if phone}
-	<PushScreen bind:open title={t('play.rank.title')}><div class="p-3"><RankingPanel {store} active={open} onprofile={showProfile} /></div></PushScreen>
+	<PushScreen bind:open title={t('play.rank.title')}><div class="p-3"><RankingPanel {store} active={open} {startKind} onprofile={showProfile} /></div></PushScreen>
 {:else}
 	<Dialog bind:open title={t('play.rank.title')} size="lg">
-		<RankingPanel {store} active={open} onprofile={showProfile} />
+		<RankingPanel {store} active={open} {startKind} onprofile={showProfile} />
 	</Dialog>
 {/if}

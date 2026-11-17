@@ -3,7 +3,7 @@
  * Browsers keep audio locked until the user interacts, so playback requests made earlier are remembered and start on the
  * first click or key press. Every call is a harmless no-op when Web Audio is unavailable.
  */
-import { DEFAULT_AUDIO, effectiveVolume, lobbyBgmUrl, resultBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl, tutorialBgmUrl } from './audioCatalog.js';
+import { DEFAULT_AUDIO, effectiveVolume, leagueSoundUrl, uiSoundUrl, lobbyBgmUrl, resultBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl, tutorialBgmUrl } from './audioCatalog.js';
 
 const STORAGE_KEY = 'kkutu-play-audio';
 
@@ -93,9 +93,77 @@ function buffer(url) {
 	return buffers.get(url);
 }
 
+/**
+ * 트로피 리그 로비의 음악: 인트로를 한 번 재생하다가 루프 부분으로 넘어가 그 뒤로 계속 되풀이한다(두 파일은 media/league/bgm-intro.mp3, bgm-loop.mp3).
+ * 인트로 파일은 루프가 시작하는 지점보다 LEAGUE_BGM_OVERLAP 초 더 길게 잘려 있고, 그 겹치는 구간에서 인트로는 줄고 루프는 커져서 이어진다(MP3 디코드가
+ * 몇 ms 어긋나도 이음매가 들리지 않게). 루프 파일은 버퍼 전체가 한 바퀴다. 두 파일을 못 쓰면 로비 음악으로 대신한다.
+ */
+const LEAGUE_BGM_OVERLAP = 0.12;
+async function startLeagueBgm(mine) {
+	const [intro, loop] = await Promise.all([buffer(leagueSoundUrl('bgm-intro')), buffer(leagueSoundUrl('bgm-loop'))]);
+	if (mine !== token || wanted !== 'league') return;
+	if (!intro || !loop || intro.audioUrl || loop.audioUrl) {
+		wanted = 'lobby'; // 리그 음악을 쓸 수 없으면 로비 음악
+		return startBgm();
+	}
+	const prev = current;
+	current = null;
+	const fadeIn = !!prev;
+	if (prev) fadeOut(prev);
+	const node = ctx.createGain();
+	node.gain.value = fadeIn ? 0 : 1;
+	node.connect(gains.bgm);
+	const t0 = ctx.currentTime + 0.05;
+	const join = t0 + intro.duration - LEAGUE_BGM_OVERLAP; // 루프가 시작하는 때
+	const gi = ctx.createGain();
+	const gl = ctx.createGain();
+	gi.connect(node);
+	gl.connect(node);
+	gi.gain.setValueAtTime(1, t0);
+	gi.gain.setValueAtTime(1, join);
+	gi.gain.linearRampToValueAtTime(0, join + LEAGUE_BGM_OVERLAP);
+	gl.gain.setValueAtTime(0, t0);
+	gl.gain.setValueAtTime(0, join);
+	gl.gain.linearRampToValueAtTime(1, join + LEAGUE_BGM_OVERLAP);
+	const si = ctx.createBufferSource();
+	si.buffer = intro;
+	si.connect(gi);
+	si.start(t0);
+	si.stop(join + LEAGUE_BGM_OVERLAP + 0.05);
+	const sl = ctx.createBufferSource();
+	sl.buffer = loop;
+	sl.loop = true;
+	sl.loopStart = 0;
+	sl.loopEnd = loop.duration;
+	sl.connect(gl);
+	sl.start(join);
+	const handle = {
+		stop: () => {
+			for (const x of [si, sl]) {
+				try {
+					x.stop();
+				} catch {
+					/* already stopped */
+				}
+			}
+			node.disconnect();
+		},
+		ramp: (to, done) => {
+			const now = ctx.currentTime;
+			node.gain.cancelScheduledValues(now);
+			node.gain.setValueAtTime(node.gain.value, now);
+			node.gain.linearRampToValueAtTime(to, now + FADE_MS / 1000);
+			if (done) setTimeout(done, FADE_MS + 50);
+		}
+	};
+	current = { src: handle };
+	if (fadeIn) handle.ramp(1);
+}
+
 async function startBgm() {
 	const mine = ++token;
 	if (!wanted || !ensure()) return stopCurrent();
+	if (wanted === 'league') return startLeagueBgm(mine);
 	// 'lobby' is the waiting-room music, 'shop' the shop's; 'game:<name>' is a track of the sound set that plays in a game (the quiz modes loop one)
 	const url = wanted === 'lobby' ? lobbyBgmUrl(audio.lobby) : wanted === 'shop' ? shopBgmUrl() : wanted === 'result' ? resultBgmUrl() : wanted === 'tutorial' ? tutorialBgmUrl() : soundUrl(wanted.slice(5), audio.set);
 	// The track that is playing goes on until the new one has arrived, then they are crossfaded.
@@ -282,6 +350,13 @@ export function playResultBgm() {
 	if (unlocked) startBgm();
 }
 
+/** 트로피 리그 로비의 음악(인트로 한 번, 그다음 루프); 재생 중인 곡과 교차한다. */
+export function playLeagueBgm() {
+	if (wanted === 'league' && current) return;
+	wanted = 'league';
+	if (unlocked) startBgm();
+}
+
 /** The shop's music; crossfades with whatever is playing. */
 export function playShopBgm() {
 	if (wanted === 'shop' && current) return;
@@ -308,7 +383,7 @@ export function stopBgm({ fade = false } = {}) {
 	}
 	stopCurrent();
 }
-/** Which track is wanted now: 'lobby' | 'shop' | 'result' | 'tutorial' | 'game:<name>' | null. */
+/** Which track is wanted now: 'lobby' | 'shop' | 'league' | 'result' | 'tutorial' | 'game:<name>' | null. */
 export const wantedBgm = () => wanted;
 
 /**
@@ -332,6 +407,95 @@ export async function playSound(name, { ui = false } = {}) {
 	src.start();
 	// A handle for sounds that have to be cut short (the turn clock's ticking).
 	return { stop: () => { try { src.stop(); } catch { /* already ended */ } } };
+}
+
+/**
+ * A fixed file (not part of a sound set), played once or `loop`ed seamlessly until `stop()`; the handle's `stop(fade)` fades it out (seconds) and ends it.
+ * The file must start and end on the same beat to loop without a seam: the buffer loops over its whole length. Resolves to null while the audio is locked,
+ * muted, or the file is missing.
+ * @param {string} url
+ * @param {{ui?:boolean, loop?:boolean, gain?:number}} [opts] `gain` scales the file's own loudness (1 = as it is)
+ * @returns {Promise<{stop:(fade?:number)=>void}|null>}
+ */
+const missingFiles = new Map(); // url -> when it was found missing (a file that is not on the CDN yet is not asked for again every time, e.g. on every hover)
+const MISSING_RETRY_MS = 5 * 60_000;
+export async function playFile(url, { ui = false, loop = false, gain = 1 } = {}) {
+	if (!unlocked || !ensure()) return null;
+	const vol = effectiveVolume(audio, ui ? 'vu' : 've');
+	if (vol <= 0) return null;
+	const gone = missingFiles.get(url);
+	if (gone && performance.now() - gone < MISSING_RETRY_MS) return null;
+	const buf = await buffer(url);
+	if (!buf) missingFiles.set(url, performance.now());
+	if (!buf || !ctx) return null;
+	if (buf.audioUrl) {
+		const el = new Audio(buf.audioUrl);
+		el.loop = loop;
+		el.volume = Math.min(1, vol * gain);
+		el.play().catch(() => {});
+		return { stop: () => el.pause() };
+	}
+	const src = ctx.createBufferSource();
+	src.buffer = buf;
+	src.loop = loop;
+	const g = ctx.createGain();
+	g.gain.value = gain;
+	src.connect(g);
+	g.connect(ui ? gains.ui : gains.effect);
+	src.start();
+	return {
+		stop(fade = 0.12) {
+			const now = ctx.currentTime;
+			g.gain.cancelScheduledValues(now);
+			g.gain.setValueAtTime(g.gain.value, now);
+			g.gain.linearRampToValueAtTime(0.0001, now + fade);
+			try { src.stop(now + fade + 0.02); } catch { /* already ended */ }
+		}
+	};
+}
+
+/** The sound every button makes ('click' when pressed, 'hover' when the mouse comes over it). Quiet and short; follows the interface volume. */
+export const playUi = (name) => playFile(uiSoundUrl(name), { ui: true });
+/** Loads the button sounds ahead, so the first press is not late. */
+export function preloadUiFiles() {
+	if (!unlocked || !ensure()) return Promise.resolve();
+	return loadAll([uiSoundUrl('click'), uiSoundUrl('hover')]);
+}
+
+/** Loads the league's sounds ahead (the match jingle, the game's own `mission` sound, the reel's spin and lock; the lobby music loads when it is asked for), so the spin starts the instant the reel opens (call from a click: the audio is unlocked then). */
+export function preloadLeagueSounds() {
+	if (!unlocked || !ensure()) return Promise.resolve();
+	return loadAll([leagueSoundUrl('spin'), leagueSoundUrl('lock'), leagueSoundUrl('matched'), soundUrl('mission', audio.set)]);
+}
+
+/**
+ * A short sound made on the spot (no file): `notes` is a list of `{ at, hz, to?, dur, type?, vol? }` (seconds from now, a start and an optional end
+ * pitch that it glides to, a length, a wave shape, a loudness 0..1). It goes through the same channel mixer as the recorded sounds, so the volume
+ * and the mute switch of the settings apply. A no-op while the audio is locked or unavailable.
+ * @param {{at?:number, hz:number, to?:number, dur:number, type?:OscillatorType, vol?:number}[]} notes
+ */
+export function playTone(notes, { ui = false } = {}) {
+	if (!unlocked || !ensure()) return;
+	if (effectiveVolume(audio, ui ? 'vu' : 've') <= 0) return;
+	const t0 = ctx.currentTime + 0.01;
+	for (const n of notes) {
+		const start = t0 + (n.at ?? 0);
+		const end = start + n.dur;
+		const osc = ctx.createOscillator();
+		const g = ctx.createGain();
+		osc.type = n.type ?? 'sine';
+		osc.frequency.setValueAtTime(n.hz, start);
+		if (n.to) osc.frequency.exponentialRampToValueAtTime(n.to, end);
+		// a quick attack and an exponential fade, so a note never clicks at its edges
+		const vol = Math.max(0.0002, (n.vol ?? 0.5) * 0.6);
+		g.gain.setValueAtTime(0.0001, start);
+		g.gain.exponentialRampToValueAtTime(vol, start + Math.min(0.008, n.dur / 4));
+		g.gain.exponentialRampToValueAtTime(0.0001, end);
+		osc.connect(g);
+		g.connect(ui ? gains.ui : gains.effect);
+		osc.start(start);
+		osc.stop(end + 0.02);
+	}
 }
 
 /** @param {'vb'|'ve'|'vu'} channel @param {number} value 0..1 */

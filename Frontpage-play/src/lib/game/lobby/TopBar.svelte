@@ -1,6 +1,8 @@
 <script>
 	import Tooltip from '../ui/Tooltip.svelte';
 	import { t } from '../i18n.svelte.js';
+	import { toast } from '../ui/toast.svelte.js';
+	import { league } from '../leagueStore.svelte.js';
 	import ProfileSwitcher from '$lib/ProfileSwitcher.svelte';
 	import Icon from './Icon.svelte';
 	import Logo from './Logo.svelte';
@@ -13,13 +15,15 @@
 	import { closeNudge, nudgeOpen } from '../nudges.svelte.js';
 	/** `noHelp`: the new lobby carries the tutorial itself (a 튜토리얼 button and the nudge), so the bar has no 도움말 */
 	/** `rail`: the tab bar stands at the side (the open folding iPhone), so the header keeps no menu of its own */
-	let { store, active = 'lobby', onselect, phone = false, noHelp = false, noNews = false, rail = false } = $props();
+	/** `locked`: 리그 매칭을 기다리는 중이라 설정 밖의 메뉴와 포털로 나가는 로고를 막는다 */
+	let { store, active = 'lobby', onselect, phone = false, noHelp = false, noNews = false, rail = false, locked = false } = $props();
 	// `noNews`: the new lobby has 공지·행사 as an icon on its stage, so the bar leaves it out while the lobby is showing
 	const me = $derived(store.me);
 	const guest = $derived(store.net.guest);
 	// Anywhere in the client the logo asks first: it leaves the game page for the portal.
 	async function leaveToPortal(e) {
 		e.preventDefault();
+		if (locked) return void toast(t('play.league.queue.locked'), { kind: 'info' });
 		if (await confirm({ message: store.currentRoom?.playing ? t('play.leave.playing') : t('play.leave.message'), ok: t('play.leave.go'), cancel: t('play.leave.stay') })) location.href = '/';
 	}
 
@@ -59,7 +63,7 @@
 		</Nudge>
 	{:else if m.id === 'news'}
 		<!-- a new event the player has not seen: its picture under the menu. It waits for the tutorial's nudge, so two bubbles never compete; pressing it opens the page, which counts the event as seen. -->
-		<Nudge id="news" onclose={() => store.dismissNewsNudge()} enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !store.ui.arcade && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
+		<Nudge id="news" onclose={() => store.dismissNewsNudge()} enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !store.ui.arcade && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge && !league.lobbyOpen}>
 			{#snippet content()}
 				<span class="flex min-w-0 flex-col gap-1.5">
 					<span class="flex flex-col px-1"><b class="text-sm font-extrabold">{t('play.news.nudge')}</b><span class="truncate text-xs font-bold text-(color:--kk-muted)">{store.newsNudge?.name}</span></span>
@@ -81,6 +85,7 @@
 	<Tooltip text={t(`play.nav.${m.id}`)} placement="bottom">
 		<button
 			type="button"
+			disabled={locked && m.id !== 'settings'}
 			aria-current={on ? 'page' : undefined}
 			aria-label={m.id === 'news' && store.newsAlerts.length ? t('play.news.alertAria', { n: store.newsAlerts.length }) : t(`play.nav.${m.id}`)}
 			data-tour={utility ? m.id : undefined}
@@ -91,7 +96,7 @@
 			style:--c={m.color}
 			class="relative inline-flex h-10 min-w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl font-bold whitespace-nowrap transition-all duration-300 ease-out {on
 				? 'bg-(--c) px-3.5 font-extrabold text-[#111]'
-				: `${utility ? 'px-2.5' : 'px-2.5 xl:px-3.5'} bg-transparent text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)`}"
+				: `${utility ? 'px-2.5' : 'px-2.5 xl:px-3.5'} bg-transparent text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)`} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
 		>
 			{#if m.id === 'news' && store.newsAlerts.length && !on}<span class="absolute top-1.5 right-1.5 size-2 rounded-full bg-(--kk-danger)" aria-hidden="true"></span>{/if}
 			<!-- width goes 0 -> its own size through a 0fr -> 1fr grid track, so the motion follows the real width, not a guessed maximum -->

@@ -6,11 +6,12 @@ export const PAGE_SIZE = 15;
 
 /** @typedef {{id:string,name:string|null,rank:number,score:number|string,delta?:string}} RankRow */
 
-/** @param {{page?:number, me?:boolean, query?:string}} o */
-export function rankingUrl({ page, me, query } = {}) {
-	if (me) return '/ranking?me=true';
-	if (query?.trim()) return `/ranking?query=${encodeURIComponent(query.trim())}`;
-	return `/ranking?page=${page ?? 0}`;
+/** @param {{page?:number, me?:boolean, query?:string, kind?:string}} o `kind` 'trophy' is the 트로피 리그 ranking (rows also carry tier, games, wins); anything else the score ranking. */
+export function rankingUrl({ page, me, query, kind } = {}) {
+	const base = kind === 'trophy' ? '/ranking/league' : '/ranking';
+	if (me) return `${base}?me=true`;
+	if (query?.trim()) return `${base}?query=${encodeURIComponent(query.trim())}`;
+	return `${base}?page=${page ?? 0}`;
 }
 
 /**

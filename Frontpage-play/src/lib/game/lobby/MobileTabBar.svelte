@@ -1,5 +1,7 @@
 <script>
 	import { t } from '../i18n.svelte.js';
+	import { toast } from '../ui/toast.svelte.js';
+	import { league } from '../leagueStore.svelte.js';
 	import Icon from './Icon.svelte';
 	import Dialog from './Dialog.svelte';
 	import Nudge from './Nudge.svelte';
@@ -20,7 +22,7 @@
 	 * edge: the capsule stands upright there, its tabs one under the other, on the `edge` of the dominant hand (where the thumb is). Upright, its slot is part of the layout (the page ends beside it); along the bottom it floats over the page (the page
 	 * keeps `--dock` of room at its end, see +page.svelte).
 	 */
-	let { store, active = 'lobby', onselect, noHelp = false, noNews = false, noPeople = false, side = false, edge = 'left' } = $props();
+	let { store, active = 'lobby', onselect, noHelp = false, noNews = false, noPeople = false, side = false, edge = 'left', locked = false } = $props();
 	const guest = $derived(store.net.guest);
 	let more = $state(false);
 	const tabs = $derived(
@@ -60,6 +62,7 @@
 	const tipSide = $derived(edge === 'right' ? 'left' : 'right'); // beside the rail, on the page's side (the arrow points at the tab)
 	function pick(id) {
 		if (held) return void (held = false);
+		if (locked && id !== 'settings') return void toast(t('play.league.queue.locked'), { kind: 'info' });
 		haptic();
 		more = false;
 		if (id === 'help') closeNudge('tutorial');
@@ -69,7 +72,7 @@
 
 {#snippet tabButton(m)}
 	{@const on = m.id === active}
-	<button type="button" data-tour={m.id === 'people' ? 'side' : m.id === 'help' ? 'help' : undefined} aria-current={on ? 'page' : undefined} aria-label={side ? label(m.id) : undefined} onpointerdown={() => (held = false)} onclick={() => pick(m.id)} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'h-10' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {on ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
+	<button type="button" data-tour={m.id === 'people' ? 'side' : m.id === 'help' ? 'help' : undefined} aria-current={on ? 'page' : undefined} aria-label={side ? label(m.id) : undefined} onpointerdown={() => (held = false)} onclick={() => pick(m.id)} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'h-10' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {on ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'} {locked ? 'opacity-40' : ''}">
 		<span class="grid {side ? 'size-10' : 'h-7 w-14'} place-items-center"><Icon name={m.icon} size={side ? 20 : 22} fill={on} /></span>
 		{#if !side}{label(m.id)}{/if}
 		{#if m.badge}<span class="absolute top-1.5 left-1/2 ml-2 inline-grid h-4 min-w-4 place-items-center rounded-full bg-(--kk-danger) px-1 text-[10px] font-extrabold text-white">{m.badge}</span>
@@ -93,7 +96,7 @@
 				{@render tab(m)}
 			</Nudge>
 		{:else if m.id === 'news'}
-			<Nudge id="news" onclose={() => store.dismissNewsNudge()} above={!side} beside={side ? tipSide : null} enabled={ready && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
+			<Nudge id="news" onclose={() => store.dismissNewsNudge()} above={!side} beside={side ? tipSide : null} enabled={ready && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge && !league.lobbyOpen}>
 				{#snippet content()}
 					<span class="flex min-w-0 flex-col gap-1.5">
 						<span class="flex flex-col px-1"><b class="text-sm font-extrabold">{t('play.news.nudge')}</b><span class="truncate text-xs font-bold text-(color:--kk-muted)">{store.newsNudge?.name}</span></span>

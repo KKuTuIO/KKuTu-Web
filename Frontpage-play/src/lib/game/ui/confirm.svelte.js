@@ -20,7 +20,11 @@ export const confirm = ({ message, ok, cancel, title } = {}) => ask({ message, o
  * every `{name}` in it is replaced by `slots.name` as plain text, so what a player typed can never become markup.
  */
 export const notify = ({ message, slots, ok, title } = {}) => ask({ message, slots, ok, title, notice: true });
-export const choose = ({ message, options, cancel } = {}) => ask({ message, options, cancel });
+/**
+ * `preview` (optional): `{equip, shop, parts}` - the dialog draws that avatar above the buttons, and while the pointer or the keyboard is on an
+ * option that has its own `equip` (the map the avatar would wear after that choice) it draws that one instead.
+ */
+export const choose = ({ message, options, cancel, preview } = {}) => ask({ message, options, cancel, preview });
 export const prompt = ({ message, value = '', max = 50, ok, cancel } = {}) => ask({ message, ok, cancel, input: true, value, max });
 
 /** `value` is the typed text for a prompt, the chosen value for a choice; for a confirm, a plain yes/no. */

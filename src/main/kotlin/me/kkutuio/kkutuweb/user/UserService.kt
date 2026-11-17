@@ -88,7 +88,8 @@ class UserService(
         unless = "#result.contains('\\\"error\\\"')"
     )
     fun getUserData(id: String): String {
-        val user = userDao.getUser(id) ?: return objectMapper.writeValueAsString(mapOf("error" to 405))
+        // The game names a player by the id it was given at login, which may be the profile's or the account's id or an old one rather than users._id
+        val user = userDao.getUser(id) ?: userDao.getUserByIdentifier(id) ?: return objectMapper.writeValueAsString(mapOf("error" to 405))
         return objectMapper.writeValueAsString(mapOf(
             "result" to 200,
             "id" to user.id,

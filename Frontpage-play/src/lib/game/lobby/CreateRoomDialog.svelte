@@ -185,7 +185,7 @@
 				</div>
 				<div data-tour="create-password" class="flex flex-col gap-1">
 					<label for="{uid}-pw" class="text-xs font-bold text-(color:--kk-muted)">{t('play.create.password')}</label>
-					<input id="{uid}-pw" bind:value={password} type="password" autocomplete="off" maxlength="20" disabled={clearPassword} placeholder={editing?.locked ? t('play.create.pwKeep') : ''} class="h-11 kk-input rounded-xl px-3" />
+					<input id="{uid}-pw" bind:value={password} type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" maxlength="20" disabled={clearPassword} placeholder={editing?.locked ? t('play.create.pwKeep') : ''} class="kk-secret h-11 kk-input rounded-xl px-3" />
 					{#if editing?.locked}<Checkbox bind:checked={clearPassword}>{t('play.create.pwClear')}</Checkbox>{/if}
 				</div>
 				<div data-tour="create-limit" class="flex flex-col gap-1">

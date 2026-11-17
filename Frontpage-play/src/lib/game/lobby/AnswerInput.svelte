@@ -14,6 +14,15 @@
 	function ready(node) {
 		return attach?.(node);
 	}
+
+	// EXPERIMENT (iOS Safari's contact autofill bar): read-only until the field has the focus, unlocked in the focus handler and locked again
+	// when it is left; and an autocomplete value Safari does not know instead of "off".
+	let locked = $state(true);
+	const unlock = () => (locked = false);
+	const lock = (e) => {
+		locked = true;
+		onblur?.(e);
+	}
 </script>
 
 <input
@@ -25,8 +34,11 @@
 	{onkeydown}
 	{oninput}
 	{oncompositionend}
-	{onblur}
-	autocomplete="off"
+	onblur={lock}
+	onfocus={unlock}
+	readonly={locked}
+	enterkeyhint="send"
+	autocomplete="nope"
 	autocorrect="off"
 	autocapitalize="off"
 	spellcheck="false"

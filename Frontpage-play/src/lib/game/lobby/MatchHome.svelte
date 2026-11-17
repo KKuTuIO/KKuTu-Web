@@ -169,7 +169,7 @@
 		</section>
 	</div>
 {:else}
-<div class="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-3 pt-3 pb-16 max-md:justify-end md:pb-6">
+<div class="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center gap-5 overflow-y-auto px-3 pt-3 pb-[calc(var(--dock,0px)+1rem)] max-md:justify-end md:pb-6">
 	<div data-stage-moremi style:transform="translate3d(calc(var(--px, 0) * 12px), calc(var(--py, 0) * 6px), 0)" style:opacity={sub ? 0 : 1} style:left="var(--mx, 50%)" style:top="calc(var(--my, 60%) - var(--mshift, 0) * 220px)" style:translate="-50% -100%" style:scale="clamp(0.7, calc(var(--ms, 0.63) / 0.63), 1.25)" style:transition="top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)" class="absolute flex h-52 w-72 origin-bottom flex-col items-center justify-end pb-1">
 		{@render remi(132)}
 	</div>

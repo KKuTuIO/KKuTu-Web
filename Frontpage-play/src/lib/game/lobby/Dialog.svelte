@@ -99,10 +99,10 @@
 		onclose?.();
 	}}
 	onclick={(e) => e.target === el && (open = false)}
-	style={sheet ? `translate:0 ${pull}px;${pulling ? '' : 'transition:translate 0.2s ease-out'}` : undefined}
+	style={sheet ? `margin-bottom:var(--kb,0px);translate:0 ${pull}px;${pulling ? '' : 'transition:translate 0.2s ease-out'}` : undefined}
 	class="kk-card max-w-none p-0 outline-none backdrop:bg-black/40 {sheet ? 'kk-sheet m-0 mt-auto w-full overflow-x-hidden rounded-b-none border-b-0 pb-[env(safe-area-inset-bottom)]' : `m-auto ${size === 'lg' ? 'w-[min(56rem,calc(100vw-2rem))]' : 'w-[min(32rem,calc(100vw-2rem))]'} ${bouncy ? 'kk-bouncy' : ''}`} {ghost ? 'kk-ghost' : ''}"
 >
-	<div class="flex {sheet ? 'max-h-[90dvh] min-w-0' : 'max-h-[85dvh]'} flex-col">
+	<div class="flex {sheet ? 'max-h-[calc(90dvh-var(--kb,0px))] min-w-0' : 'max-h-[85dvh]'} flex-col">
 		<!-- On a phone the title bar is the handle: pull it down to close the sheet. -->
 		<div
 			onpointerdown={sheet ? pullStart : undefined}

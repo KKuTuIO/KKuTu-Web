@@ -842,7 +842,8 @@
 
 {#snippet jjo()}
 <!-- On the desktop the frog is kept centred as the mouth opens; on a phone he stays where he is and the mouth opens downwards inside his box. -->
-<div class="jjoriping" style:transform={phoneStage ? undefined : `translateY(${(BAR_OPEN - barH) / 2}px)`}>
+<!-- the mouth opens and closes about its middle (the phone too: its frame is scaled as a whole, so the shift scales with it) -->
+<div class="jjoriping" style:transform={`translateY(${(BAR_OPEN - barH) / 2}px)`}>
 	<img class="jjoObj jjoEyeL" src="{IMAGE_CDN}jjoeyeL.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoNose" src="{IMAGE_CDN}jjonose.svg{IMAGE_VERSION}" alt="" /><img class="jjoObj jjoEyeR" src="{IMAGE_CDN}jjoeyeR.svg{IMAGE_VERSION}" alt="" />
 	<div class="jjoDisplayBar" bind:offsetHeight={barH}>
 		<div class="graph jjo-turn-time" role="progressbar" aria-label={t('kkutu.js.second')} aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(Math.max(0, turnPct))}>

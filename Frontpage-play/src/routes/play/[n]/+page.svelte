@@ -45,7 +45,7 @@
 	import YellBanner from '$lib/game/ui/YellBanner.svelte';
 	import { confirm } from '$lib/game/ui/confirm.svelte.js';
 	import { prefs } from '$lib/game/prefs.svelte.js';
-	import { SPLIT, twoColumns } from '$lib/game/foldable.svelte.js';
+	import { SPLIT, twoColumns, railWide } from '$lib/game/foldable.svelte.js';
 	import { isShut } from '$lib/game/blocks.svelte.js';
 	import SettingsDialog from '$lib/game/lobby/SettingsDialog.svelte';
 	import ExpiredDialog from '$lib/game/lobby/ExpiredDialog.svelte';
@@ -83,17 +83,35 @@
 	const phone = $derived(winW < 768);
 	// The soft keyboard takes the lower part of the screen; the page is as tall as what is left, so the answer field (at the bottom of the board) stays in view.
 	let vvh = $state(0);
+	// The keyboard is up: a text field has the focus and the visible part of the page is clearly shorter than the page was without it.
+	// Then the chrome that only takes room (the phone's tab bar, my card under the people list) steps aside for the content.
+	let kbd = $state(false);
+	let fullH = 0;
+	const typing = () => {
+		const a = document.activeElement;
+		return !!a && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|range|file|color)$/.test(a.type)) || a.isContentEditable);
+	};
 	onMount(() => {
 		const vv = window.visualViewport;
 		if (!vv) return;
 		const sync = () => {
 			vvh = Math.round(vv.height);
+			if (!typing()) fullH = Math.max(vvh, window.innerHeight); // the height without a keyboard (also after a rotation)
+			kbd = typing() && fullH - vvh > 120;
+			// How much of the page's bottom the keyboard covers: iOS (and Chrome on Android) keep the layout viewport as it was and only shrink the visual one,
+			// so a sheet fixed to the bottom of the page would sit behind the keyboard. The bottom sheets lift themselves by this much.
+			document.documentElement.style.setProperty('--kb', `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`);
 			if (vv.offsetTop) window.scrollTo(0, 0); // iOS slides the page up under the keyboard: put it back
 		};
 		sync();
 		vv.addEventListener('resize', sync);
 		vv.addEventListener('scroll', sync);
+		document.addEventListener('focusin', sync);
+		document.addEventListener('focusout', sync);
 		return () => {
+			document.documentElement.style.removeProperty('--kb');
+			document.removeEventListener('focusin', sync);
+			document.removeEventListener('focusout', sync);
 			vv.removeEventListener('resize', sync);
 			vv.removeEventListener('scroll', sync);
 		};
@@ -107,6 +125,11 @@
 		if (store.net.myRoom) roomsOpen = false;
 	});
 	const tabBar = $derived(phone && !store.net.myRoom);
+	const showTabBar = $derived(tabBar && !kbd);
+	// An open folding phone that is wider than tall (and too narrow for the two columns): the tab bar stands at the side as a rail, on the dominant hand's edge.
+	const rail = $derived(tabBar && railWide(winW, winH));
+	// The bottom capsule floats over the page: the page runs to the screen's edge, and what scrolls keeps this much room at its end (`--dock`).
+	const dockOn = $derived(showTabBar && !rail);
 	// The desktop's two columns (side bar beside the room list, chat under it): from 1024 px, and on an unfolded folding phone from 768 px (foldable.svelte.js).
 	const desk = $derived(twoColumns(winW));
 	// The phone's home scrolls to the edges of the page (its scrollbar too): the page's own padding would clip the cards short of the tab bar and push the scrollbar in.
@@ -549,16 +572,17 @@
 <svelte:window bind:innerWidth={winW} bind:innerHeight={winH} />
 
 <!-- overflow-x-clip: the tab slide moves the whole page sideways; without the clip the document grows wider for a moment and the fixed chat button is pushed off its corner -->
-<div style:height={phone && vvh ? `${vvh}px` : undefined} class="flex h-dvh min-h-[600px] max-md:min-h-0 flex-col overflow-x-clip bg-(--kk-bg) text-sm text-(color:--kk-text)">
+<div style:height={phone && vvh ? `${vvh}px` : undefined} style:--dock={dockOn && !store.ui.arcade ? 'calc(4.75rem + env(safe-area-inset-bottom))' : '0px'} class="relative flex h-dvh min-h-[600px] max-md:min-h-0 flex-col overflow-x-clip bg-(--kk-bg) text-sm text-(color:--kk-text)">
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
 		<TopBar {store} {phone} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
-	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : ''}">
+	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (prefs.hand === 'left' ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
+	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : 'max-md:pb-[calc(0.75rem+var(--dock,0px))]'}">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
 		<div style:--side-w="{sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
-			<SidePanel {store} profile={peopleShown || desk} noAvatar={newLobby && desk && !store.net.myRoom && !peopleShown} />
+			<SidePanel {store} profile={(peopleShown || desk) && !kbd} noAvatar={newLobby && desk && !store.net.myRoom && !peopleShown} />
 			<ResizeHandle class="-right-4 h-full w-4 {desk && !leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 			<ResizeHandle class="-left-4 h-full w-4 {desk && leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 		</div>
@@ -599,13 +623,14 @@
 			{/if}
 		</main>
 	</div>
-	{#if tabBar && !store.ui.arcade}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} />{/if}
+	{#if showTabBar && !store.ui.arcade}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
+	</div>
 </div>
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->
 <!-- Mobile/tablet: a button opening a docked sheet; in the 아카데미 and the shop the chat is that button on desktop too, so the screen gets the room. -->
 {#if !(phone && shopOpen)}
-<div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} fab={chatFab} hideFab={store.ui.phoneStage || store.ui.hideFab} lift={tabBar ? true : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
+<div class={chatFab || !desk ? 'contents' : 'hidden'}><ChatPanel {store} rail={rail ? (prefs.hand === 'left' ? 'left' : 'right') : null} fab={chatFab} hideFab={store.ui.phoneStage || store.ui.hideFab} lift={tabBar ? !rail : phone && store.inGame ? 'top' : phone && store.net.myRoom ? 'room' : false} /></div>
 {/if}
 <!-- phone: full screen is a faint icon in the top right corner (the bars have no room for a button) -->
 {#if phone}<FullscreenButton watermark />{/if}

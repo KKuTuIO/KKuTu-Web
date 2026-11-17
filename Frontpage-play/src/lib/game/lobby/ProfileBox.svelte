@@ -105,7 +105,13 @@
 		}
 		let hand;
 		if (item.group === 'Mhand') {
-			hand = await choose({ message: plainText(t('kkutu.js.dressWhichHand')), options: [{ value: 'left', label: t('kkutu.dialog.message.left') }, { value: 'right', label: t('kkutu.dialog.message.right') }] });
+			// the avatar shows what each hand would look like while the pointer is on its button
+			const after = (h) => ({ ...equip, [equipSlot(item, h)]: item._id });
+			hand = await choose({
+				message: plainText(t('kkutu.js.dressWhichHand')),
+				options: [{ value: 'left', label: t('kkutu.dialog.message.left'), equip: after('left') }, { value: 'right', label: t('kkutu.dialog.message.right'), equip: after('right') }],
+				preview: { equip, shop: store.shop, parts: store.net.meta.moremiParts }
+			});
 			if (!hand) return;
 		}
 		const slot = equipSlot(item, hand);

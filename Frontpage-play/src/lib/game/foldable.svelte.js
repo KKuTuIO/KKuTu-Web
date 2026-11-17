@@ -6,31 +6,41 @@
  * Two questions, answered separately:
  *  - IS IT A FOLDABLE: the device model (`userAgentData.model`, as Chrome on Android hides it from the plain user agent string; or `SM-F9xx`,
  *    `Pixel ... Fold` in the string, as Samsung Internet sends it), or the screen is split by a fold (`viewport-segments`), or, as a fallback,
- *    an Android touch device whose screen is nearly square.
+ *    an Android or iPhone touch device whose screen is nearly square (no iPhone is, but a folding one is; an iPad says "Macintosh", not "iPhone").
  *  - IS THE INNER DISPLAY OPEN: the shape of the *screen* (`screen.width / height`), never the window: the address bar and the system bars
  *    take height from the window and would make the ratio depend on the browser. The inner displays are 0.75 (Z Fold 8) to 0.96 (Pixel Fold
  *    series) wide to tall; the cover displays are 0.43..0.63, so the model alone does not decide.
  */
 const MODEL = /SM-F9\d\d|Pixel (?:\d+ Pro )?Fold|Galaxy Z Fold/i;
 
-export const fold = $state({ model: false, segments: false, android: false, coarse: false, ratio: 0 });
+export const fold = $state({ model: false, segments: false, android: false, iphone: false, coarse: false, ratio: 0 });
 
 /** The shape of the inner display of the folding phones (short side / long side). */
-export const squareish = (ratio) => ratio >= 0.7 && ratio <= 1;
+export const squareish = (ratio, min = 0.7) => ratio >= min && ratio <= 1;
 
 /** A foldable, and its screen is the nearly square inner one. */
-export const innerOpen = (f = fold) => squareish(f.ratio) && (f.model || f.segments || (f.android && f.coarse));
+// A folding iPhone's inner screen measured 466 x 678 (0.687) in the simulator: below the Android folds' 0.75, so an iPhone gets a wider range
+// (no other iPhone is anywhere near it: 0.46..0.49).
+export const innerOpen = (f = fold) => (f.iphone ? squareish(f.ratio, 0.65) && f.coarse : squareish(f.ratio) && (f.model || f.segments || (f.android && f.coarse)));
 
 /** The desktop's two columns: from 1024 px on for everyone, and from 768 px on an open fold (below that the phone layout takes over). */
 export const SPLIT = 1024;
 export const FOLD_SPLIT = 768;
 export const twoColumns = (width, f = fold) => width >= SPLIT || (width >= FOLD_SPLIT && innerOpen(f));
 
+/**
+ * The folding phone's own layout (Apple's guidance for folding phones: navigation moves to the side): an open inner screen that is too narrow for the two
+ * columns (under 768 px) and wider than tall keeps the phone layout, but its tab bar stands at the edge as a rail (see `MobileTabBar`).
+ * Portrait keeps the bottom bar.
+ */
+export const railWide = (w, h, f = fold) => w < FOLD_SPLIT && w >= h && innerOpen(f);
+
 if (typeof window !== 'undefined') {
 	try {
 		const ua = navigator.userAgent ?? '';
 		fold.model = MODEL.test(ua);
 		fold.android = /Android/i.test(ua);
+		fold.iphone = /iPhone/i.test(ua);
 		fold.coarse = matchMedia('(pointer: coarse)').matches;
 		navigator.userAgentData?.getHighEntropyValues?.(['model']).then((v) => (fold.model ||= MODEL.test(v?.model ?? ''))).catch(() => {});
 		const segments = () => (fold.segments = matchMedia('(horizontal-viewport-segments: 2)').matches || matchMedia('(vertical-viewport-segments: 2)').matches);

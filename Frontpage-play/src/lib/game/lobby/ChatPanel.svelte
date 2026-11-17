@@ -24,7 +24,12 @@
 	 */
 	/** The panel draws this many of the latest lines; older ones are in the 대화 기록 (/f). */
 	const PANEL_LINES = 200;
-	let { store, inline = false, fab = false, lift = false, hideFab = false, height = null, idSuffix = '' } = $props();
+	/**
+	 * `rail`: the edge ('left' | 'right') the folding phone's tab rail stands on. The button is then a round glass icon under the rail, and the sheet opens from
+	 * the other edge.
+	 */
+	let { store, inline = false, fab = false, lift = false, hideFab = false, height = null, idSuffix = '', rail = null } = $props();
+	const onLeft = $derived(rail ? rail === 'right' : prefs.hand === 'left');
 	const uid = $derived(`chat-${inline ? 'inline' : 'sheet'}${idSuffix}`); // two instances can coexist in the DOM, so ids must differ
 	// While a replay plays the chat has one more tab: the chat of that game (read only)
 	const rnet = $derived(store.replayView?.net);
@@ -179,8 +184,10 @@
 	}
 	// the chat box doubles as the answer box: guarded and traced like the answer field
 	const watch = (node) => store.watchField(node, 'chat');
+	const locked = $derived(store.chatLock);
 	function send(e) {
 		e.preventDefault();
+		if (locked) return;
 		store.sendChat(text);
 		toBottom(); // my own line always takes me back to the bottom
 		text = '';
@@ -196,7 +203,7 @@
 		transition:sheet
 		onkeydown={(e) => !inline && e.key === 'Escape' && (openSheet = false)}
 		style:height={inline && height ? `${height}px` : undefined}
-		class="kk-card flex overflow-hidden {inline ? '' : 'flex-col'} {inline ? 'h-60 shrink-0' : `fixed bottom-0 z-20 h-[min(36rem,calc(100dvh-5rem))] w-full rounded-b-none border-b-0 shadow-none sm:w-[24rem] ${prefs.hand === 'left' ? 'left-0 border-l-0 sm:rounded-tl-none' : 'right-0 border-r-0 sm:rounded-tr-none'}`}"
+		class="kk-card flex overflow-hidden {inline ? '' : 'flex-col'} {inline ? 'h-60 shrink-0' : `fixed bottom-(--kb,0px) z-20 h-[min(36rem,calc(100dvh-5rem-var(--kb,0px)))] w-full rounded-b-none border-b-0 shadow-none sm:w-[24rem] ${onLeft ? 'left-0 border-l-0 sm:rounded-tl-none' : 'right-0 border-r-0 sm:rounded-tr-none'}`}"
 	>
 		{#if inline}
 			<!-- Beside the lobby the tabs run down the left edge: chat lines need the width more than the height. -->
@@ -267,8 +274,8 @@
 			</div>
 		{/if}
 		<form onsubmit={send} class="flex items-center gap-2 border-t border-(color:--kk-line) bg-(--kk-panel) p-2.5">
-			<input use:watch bind:this={input} bind:value={text} aria-label={t('play.chat.input')} placeholder={store.inGame ? t(mobileInput ? 'kkutu.product.chat.warningMobile' : 'kkutu.product.chat.warning') : t('play.chat.placeholder')} maxlength="200" autocomplete="off" role={suggest.length ? 'combobox' : undefined} aria-expanded={suggest.length ? true : undefined} aria-controls={suggest.length ? `${uid}-sugg` : undefined} aria-activedescendant={suggest.length ? `${uid}-sugg-${sIdx}` : undefined} onkeydown={(e) => suggestKey(e) || store.spaceSubmits(e, text, () => (text = ''))} oninput={(e) => store.myTurn && store.setTyped(text, e.isComposing)} oncompositionend={() => store.myTurn && store.setTyped(text)} class="h-11 min-w-0 flex-1 kk-input px-3" />
-			<button class="kk-btn kk-btn-primary grid size-11 shrink-0 place-items-center p-0" aria-label={t('play.chat.send')} disabled={!text.trim()}><Icon name="send" size={20} fill /></button>
+			<input use:watch bind:this={input} bind:value={text} aria-label={t('play.chat.input')} disabled={!!locked} placeholder={locked ? t(`play.chat.lock.${locked}`) : store.inGame ? t(mobileInput ? 'kkutu.product.chat.warningMobile' : 'kkutu.product.chat.warning') : t('play.chat.placeholder')} maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" role={suggest.length ? 'combobox' : undefined} aria-expanded={suggest.length ? true : undefined} aria-controls={suggest.length ? `${uid}-sugg` : undefined} aria-activedescendant={suggest.length ? `${uid}-sugg-${sIdx}` : undefined} onkeydown={(e) => suggestKey(e) || store.spaceSubmits(e, text, () => (text = ''))} oninput={(e) => store.myTurn && store.setTyped(text, e.isComposing)} oncompositionend={() => store.myTurn && store.setTyped(text)} class="h-11 min-w-0 flex-1 kk-input px-3" />
+			<button class="kk-btn kk-btn-primary grid size-11 shrink-0 place-items-center p-0" aria-label={t('play.chat.send')} disabled={!!locked || !text.trim()}><Icon name="send" size={20} fill /></button>
 		</form>
 		</div>
 		{/if}
@@ -277,8 +284,8 @@
 	</section>
 {:else if !hideFab}
 	<!-- Secondary look on purpose: the chat is never the main action. -->
-	<button type="button" data-tour="chat" aria-label={unread ? `${t('play.chat.toggle')} (${t('play.chat.unread', { count: unread })})` : t('play.chat.toggle')} aria-expanded="false" onclick={show} style:bottom={typeof lift === 'string' && lift !== 'top' && lift !== 'room' ? `calc(${lift} + env(safe-area-inset-bottom))` : undefined} class="kk-btn fixed {lift === 'top' ? 'top-14 size-11' : lift === 'room' ? 'top-[5.1rem] right-5! left-auto! size-11' : typeof lift === 'string' ? 'size-14' : lift ? 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))] size-14' : 'bottom-4 size-14'} z-20 grid place-items-center p-0 {prefs.hand === 'left' ? 'left-4' : 'right-4'}">
-		<Icon name="chat" size={26} />
-		{#if unread}<span class="absolute -top-1.5 grid {prefs.hand === 'left' ? '-left-1.5' : '-right-1.5'} h-5 min-w-5 place-items-center rounded-full bg-(--kk-danger) px-1 text-[11px] font-extrabold text-white">{unread > 99 ? '99+' : unread}</span>{/if}
+	<button type="button" data-tour="chat" aria-label={unread ? `${t('play.chat.toggle')} (${t('play.chat.unread', { count: unread })})` : t('play.chat.toggle')} aria-expanded="false" onclick={show} style:bottom={rail ? 'max(0.5rem, env(safe-area-inset-bottom))' : typeof lift === 'string' && lift !== 'top' && lift !== 'room' ? `calc(${lift} + env(safe-area-inset-bottom))` : undefined} style:left={rail === 'left' ? 'calc(max(0.5rem, env(safe-area-inset-left)) / 2 + 1rem)' : undefined} style:right={rail === 'right' ? 'calc(max(0.5rem, env(safe-area-inset-right)) / 2 + 1rem)' : undefined} class="{rail ? 'kk-glass fixed size-12 rounded-full active:scale-95' : 'kk-btn fixed'} {rail ? '' : lift === 'top' ? 'top-14 size-11' : lift === 'room' ? 'top-[5.1rem] right-5! left-auto! size-11' : typeof lift === 'string' ? 'size-14' : lift ? 'bottom-[calc(var(--dock,4.75rem)+0.5rem)] size-14' : 'bottom-4 size-14'} z-20 grid place-items-center p-0 {rail ? '' : onLeft ? 'left-4' : 'right-4'}">
+		<Icon name="chat" size={rail ? 24 : 26} />
+		{#if unread}<span class="absolute -top-1.5 grid {onLeft ? '-left-1.5' : '-right-1.5'} h-5 min-w-5 place-items-center rounded-full bg-(--kk-danger) px-1 text-[11px] font-extrabold text-white">{unread > 99 ? '99+' : unread}</span>{/if}
 	</button>
 {/if}

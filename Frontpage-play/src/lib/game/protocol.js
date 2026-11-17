@@ -86,6 +86,8 @@ export const initialState = () => ({
 	id: null,
 	guest: true,
 	admin: false,
+	chatBlocked: false, // my chat is restricted (server flag at login, or the server refused a line with 443)
+	lobbyChatClosed: false, // an operator closed the lobby chat (#lobbychat); operators can still talk
 	users: {},
 	rooms: {},
 	friendsOnline: {},
@@ -267,6 +269,8 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			state.id = pkt.id;
 			state.guest = !!pkt.guest;
 			state.admin = !!pkt.admin;
+			state.chatBlocked = !!pkt.chatBlocked;
+			state.lobbyChatClosed = pkt.lobbyChat === false;
 			state.membership = pkt.membership ?? 0;
 			state.playTime = pkt.playTime ?? 0;
 			state.okgCount = pkt.okg ?? 0;
@@ -280,6 +284,9 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			dmLoad(state); // my whisper threads from before a reload of this page
 			// legacy: a low 평점 is said once, right after connecting
 			if ((state.users[state.id]?.rating ?? 2) < 2) notice(state, t('play.rating.info'));
+			break;
+		case 'lobbyChat':
+			state.lobbyChatClosed = pkt.open === false;
 			break;
 		case 'themePresets':
 			state.themePresets = normalizePresets(pkt.presets);
@@ -532,6 +539,7 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			break;
 		case 'chat':
 			if (pkt.notice) {
+				if (pkt.code === 443) state.chatBlocked = true; // an older server does not say so at login: the first refused line does
 				// Like the legacy client: an explicit message, or the localized text for the notice's code.
 				const text = plainText(pkt.message !== undefined ? pkt.message : (state.meta.labels[`kkutu.js.error.${pkt.code}`] ?? ''));
 				if (text) state.chat.push({ who: t('play.chat.system'), msg: text, at: Date.now(), system: true, mine: false });

@@ -217,3 +217,37 @@
 @media (hover: none) and (pointer: coarse) {
 	.kk-key { display: none; }
 }
+
+/* A secret typed in a plain text field (a room's password): masked like a password, but a browser does not offer to save it. */
+.kk-secret { -webkit-text-security: disc; text-security: disc; }
+
+@layer components {
+/* Liquid glass (iOS 26 style), the bottom/side tab capsule: a translucent tint of the theme's surface with a blur of what is behind it, a hairline, a soft lift,
+   and a 1.2px edge ring that is bright where the light hits (top left), fades through the middle and catches again at the far corner
+   (the ::before box masked down to its border). Ported from the songbook's `glass`, tinted with the theme instead of white. */
+.kk-glass {
+	position: relative;
+	background-color: color-mix(in srgb, var(--kk-surface) 66%, transparent);
+	-webkit-backdrop-filter: blur(20px) saturate(180%);
+	backdrop-filter: blur(20px) saturate(180%);
+	box-shadow: 0 4px 20px rgb(0 0 0 / 0.1), inset 0 0 0 1px color-mix(in srgb, var(--kk-line-strong) 45%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+.kk-glass::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	padding: 1.2px;
+	pointer-events: none;
+	background: linear-gradient(164deg, rgb(255 255 255 / 0.6) 0%, rgb(255 255 255 / 0.05) 40%, transparent 60%, rgb(255 255 255 / 0.2) 100%);
+	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+}
+/* the focus under the current tab: it slides to the tab that is chosen, with a little overshoot */
+.kk-glass-pill { transition: transform 380ms cubic-bezier(0.34, 1.4, 0.64, 1); }
+@media (prefers-reduced-motion: reduce) {
+	.kk-glass-pill { transition: none; }
+}
+}

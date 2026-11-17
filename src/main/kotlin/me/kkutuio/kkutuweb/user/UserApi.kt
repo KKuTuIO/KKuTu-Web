@@ -65,9 +65,15 @@ import jakarta.servlet.http.HttpServletResponse
          session: HttpSession,
          response: HttpServletResponse
      ): String {
-         response.setHeader("Cache-Control", "public, max-age=60, s-maxage=600, stale-while-revalidate=600")
-         response.setHeader("CDN-Cache-Control", "max-age=600, stale-while-revalidate=600")
-         return userService.getUserData(id)
+         val body = userService.getUserData(id)
+         // a "not found" must not stay in the CDN: the player may have just been created
+         if (body.contains("\"error\"")) {
+             response.setHeader("Cache-Control", "no-store")
+         } else {
+             response.setHeader("Cache-Control", "public, max-age=60, s-maxage=600, stale-while-revalidate=600")
+             response.setHeader("CDN-Cache-Control", "max-age=600, stale-while-revalidate=600")
+         }
+         return body
      }
  
     @GetMapping("/user/oauth", produces = [MediaType.APPLICATION_JSON_VALUE])

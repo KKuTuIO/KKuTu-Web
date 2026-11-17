@@ -4,6 +4,7 @@
 	import Dialog from './Dialog.svelte';
 	import Nudge from './Nudge.svelte';
 	import Mascot from './Mascot.svelte';
+	import Tooltip from '../ui/Tooltip.svelte';
 	import { closeNudge, nudgeOpen } from '../nudges.svelte.js';
 	import { haptic } from '../haptics.js';
 
@@ -13,7 +14,12 @@
 	 * The mailbox lives in the header. Desktop keeps TopBar's menu.
 	 */
 	/** `noHelp`: the new lobby carries the tutorial itself, so there is no 도움말 tab or entry and no nudge on 더보기 */
-	let { store, active = 'lobby', onselect, noHelp = false, noNews = false } = $props();
+	/**
+	 * A floating glass capsule (iOS 26). `side`: on an open folding phone that is wider than tall (Apple's iPhone Duo guidance) the navigation moves to the
+	 * edge: the capsule stands upright there, its tabs one under the other, on the `edge` of the dominant hand (where the thumb is). Upright, its slot is part of the layout (the page ends beside it); along the bottom it floats over the page (the page
+	 * keeps `--dock` of room at its end, see +page.svelte).
+	 */
+	let { store, active = 'lobby', onselect, noHelp = false, noNews = false, side = false, edge = 'left' } = $props();
 	const guest = $derived(store.net.guest);
 	let more = $state(false);
 	const tabs = $derived(
@@ -34,9 +40,25 @@
 		].filter((m) => !(noHelp && m.id === 'help'))
 	);
 	const moreActive = $derived(['rank', 'dict', 'replay'].includes(active));
+	const count = $derived(tabs.length + 1);
+	// which slot the focus sits on: a tab, or 더보기 for the pages in its sheet (or while it is open); -1 for a place with none
+	const index = $derived(more || moreActive ? tabs.length : tabs.findIndex((m) => m.id === active));
+	const pill = $derived(
+		side
+			? `left:.375rem;right:.375rem;top:.375rem;height:calc((100% - .75rem)/${count});transform:translateY(${index * 100}%)`
+			: `top:.375rem;bottom:.375rem;left:.375rem;width:calc((100% - .75rem)/${count});transform:translateX(${index * 100}%)`
+	);
 	const ready = $derived(store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom);
 	const label = (id) => t(`play.nav.${id}`);
+	// The rail has no labels (as in Apple's iPhone Duo guidance): pressing and holding a tab shows its name in the shared tooltip.
+	let held = false; // the press that showed the tooltip must not also open the tab
+	const onhold = () => {
+		held = true;
+		haptic(6);
+	};
+	const tipSide = $derived(edge === 'right' ? 'left' : 'right'); // beside the rail, on the page's side (the arrow points at the tab)
 	function pick(id) {
+		if (held) return void (held = false);
 		haptic();
 		more = false;
 		if (id === 'help') closeNudge('tutorial');
@@ -44,17 +66,24 @@
 	}
 </script>
 
-{#snippet tab(m)}
+{#snippet tabButton(m)}
 	{@const on = m.id === active}
-	<button type="button" data-tour={m.id === 'people' ? 'side' : m.id === 'help' ? 'help' : undefined} aria-current={on ? 'page' : undefined} onclick={() => pick(m.id)} class="relative flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {on ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
-		<span class="grid h-7 w-14 place-items-center rounded-full transition-colors {on ? 'bg-(--kk-accent-soft)' : ''}"><Icon name={m.icon} size={22} fill={on} /></span>
-		{label(m.id)}
+	<button type="button" data-tour={m.id === 'people' ? 'side' : m.id === 'help' ? 'help' : undefined} aria-current={on ? 'page' : undefined} aria-label={side ? label(m.id) : undefined} onpointerdown={() => (held = false)} onclick={() => pick(m.id)} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'min-h-12' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {on ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
+		<span class="grid h-7 w-14 place-items-center"><Icon name={m.icon} size={22} fill={on} /></span>
+		{#if !side}{label(m.id)}{/if}
 		{#if m.badge}<span class="absolute top-1.5 left-1/2 ml-2 inline-grid h-4 min-w-4 place-items-center rounded-full bg-(--kk-danger) px-1 text-[10px] font-extrabold text-white">{m.badge}</span>
 		{:else if m.dot}<span class="absolute top-2 left-1/2 ml-3 size-2 rounded-full bg-(--kk-danger)" aria-hidden="true"></span>{/if}
 	</button>
 {/snippet}
 
-<nav data-tour="nav" aria-label={t('play.nav.label')} style:grid-template-columns="repeat({tabs.length + 1}, minmax(0, 1fr))" class="grid shrink-0 border-t border-(color:--kk-line) bg-(--kk-surface) pb-[env(safe-area-inset-bottom)]">
+{#snippet tab(m)}
+	{#if side}<Tooltip text={label(m.id)} placement={tipSide} hold {onhold}>{@render tabButton(m)}</Tooltip>{:else}{@render tabButton(m)}{/if}
+{/snippet}
+
+<!-- the slot in the layout; the capsule floats in it -->
+<div class={side ? `flex w-[5.25rem] shrink-0 flex-col justify-end pt-2 pb-[calc(4rem+env(safe-area-inset-bottom))] ${edge === 'right' ? 'pr-[max(0.5rem,env(safe-area-inset-right))] pl-1' : 'pl-[max(0.5rem,env(safe-area-inset-left))] pr-1'}` : 'pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]'}>
+<nav data-tour="nav" aria-label={t('play.nav.label')} style={side ? `grid-template-rows:repeat(${count}, minmax(0, 1fr))` : `grid-template-columns:repeat(${count}, minmax(0, 1fr))`} class="kk-glass pointer-events-auto mx-auto grid p-1.5 {side ? 'w-full rounded-[2rem]' : 'w-full max-w-md rounded-full'}">
+	{#if index >= 0}<span class="kk-glass-pill pointer-events-none absolute rounded-full bg-(--kk-accent-soft)" style={pill} aria-hidden="true"></span>{/if}
 	{#each tabs as m (m.id)}
 		{#if m.id === 'help'}
 			<!-- 학사모레미 points at 도움말 until it is opened -->
@@ -78,12 +107,16 @@
 	<!-- a member's 도움말 is in the sheet, so the tutorial's nudge points at the tab that holds it -->
 	<Nudge id="tutorial" above enabled={ready && !guest && !noHelp}>
 		{#snippet content()}<Mascot {store} size={44} /><span>{t('play.nudge.tutorial')}</span>{/snippet}
-		<button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} onclick={() => (haptic(), (more = !more))} class="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
-			<span class="grid h-7 w-14 place-items-center rounded-full transition-colors {moreActive || more ? 'bg-(--kk-accent-soft)' : ''}"><Icon name="more_horiz" size={22} /></span>
-			{t('play.nav.more')}
-		</button>
+		{#if side}<Tooltip text={t('play.nav.more')} placement={tipSide} hold {onhold}><button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} aria-label={side ? t('play.nav.more') : undefined} onpointerdown={() => (held = false)} onclick={() => { if (held) return void (held = false); haptic(); more = !more; }} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'min-h-12' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
+			<span class="grid h-7 w-14 place-items-center"><Icon name="more_horiz" size={22} /></span>
+			{#if !side}{t('play.nav.more')}{/if}
+		</button></Tooltip>{:else}<button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} aria-label={side ? t('play.nav.more') : undefined} onpointerdown={() => (held = false)} onclick={() => { if (held) return void (held = false); haptic(); more = !more; }} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'min-h-12' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
+			<span class="grid h-7 w-14 place-items-center"><Icon name="more_horiz" size={22} /></span>
+			{#if !side}{t('play.nav.more')}{/if}
+		</button>{/if}
 	</Nudge>
 </nav>
+</div>
 
 <Dialog bind:open={more} title={t('play.nav.more')}>
 	<div role="menu" class="-m-2 flex flex-col">

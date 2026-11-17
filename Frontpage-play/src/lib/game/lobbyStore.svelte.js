@@ -366,6 +366,15 @@ export function createLobbyStore(server) {
 			const r = this.currentRoom;
 			return !!r && (r.playing || !!net.game?.result);
 		},
+		/**
+		 * Why the lobby chat box is shut for me: 'guest' (손님 채팅 불가) or 'blocked' (제재, or the operators closed it); '' when I can write.
+		 * Operators are never locked out, and a room's chat (and the answer box in a game) is not the lobby's.
+		 */
+		get chatLock() {
+			if (net.admin || net.myRoom) return '';
+			if (net.guest) return 'guest';
+			return net.chatBlocked || net.lobbyChatClosed ? 'blocked' : '';
+		},
 		/** Putting on / taking off / opening things (프로필 관리, 옷장) is refused while I play a running game (legacy 438; watching and practice are fine). */
 		get dressLocked() {
 			const mine = net.users[net.id];

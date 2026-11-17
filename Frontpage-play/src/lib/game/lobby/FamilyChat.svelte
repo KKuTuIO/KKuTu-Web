@@ -62,7 +62,7 @@
 		{/each}
 	</div>
 	<form onsubmit={send} class="flex items-center gap-2 border-t border-(color:--kk-line) bg-(--kk-panel) p-2.5">
-		<input bind:value={text} aria-label={t('play.family.chat.input')} placeholder={t('play.family.chat.placeholder')} maxlength="200" autocomplete="off" class="h-11 min-w-0 flex-1 kk-input px-3" />
+		<input bind:value={text} aria-label={t('play.family.chat.input')} placeholder={t('play.family.chat.placeholder')} maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="h-11 min-w-0 flex-1 kk-input px-3" />
 		<button class="kk-btn kk-btn-primary grid size-11 shrink-0 place-items-center p-0" aria-label={t('play.chat.send')} disabled={!text.trim()}><Icon name="send" size={20} fill /></button>
 	</form>
 {/if}

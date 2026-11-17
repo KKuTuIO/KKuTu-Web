@@ -98,7 +98,8 @@
 		<!-- a conversation -->
 		<div class="flex items-center gap-2 border-b border-(color:--kk-line) p-2">
 			<button type="button" aria-label={t('play.dm.back')} onclick={() => (store.dm.active = null)} class="grid size-9 shrink-0 place-items-center rounded-lg text-(color:--kk-muted) hover:bg-(--kk-surface-2) hover:text-(color:--kk-text)"><Icon name="arrow_back" size={20} /></button>
-			<button type="button" onclick={() => user && store.hooks.openProfile?.(peer)} disabled={!user} class="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+			<!-- Also for someone who has left: the profile window looks them up by id (their record, "마지막 접속") -->
+			<button type="button" onclick={() => store.hooks.openProfile?.(peer)} class="flex min-w-0 flex-1 items-center gap-2.5 text-left">
 				<DmAvatar {store} {user} size={36} status={presence} />
 				<span class="min-w-0 flex-1">
 					<b class="block truncate text-sm leading-tight">{#if user}<NickName {user} />{:else}{th?.name}{/if}</b>
@@ -125,7 +126,7 @@
 			{/each}
 		</div>
 		<form onsubmit={send} class="flex items-center gap-2 border-t border-(color:--kk-line) bg-(--kk-panel) p-2.5">
-			<input bind:this={field} bind:value={text} disabled={!user} aria-label={t('play.dm.input')} placeholder={user ? t('play.dm.placeholder', { name: user.name }) : t('play.dm.offline')} maxlength="200" autocomplete="off" class="h-11 min-w-0 flex-1 kk-input px-3" />
+			<input bind:this={field} bind:value={text} disabled={!user} aria-label={t('play.dm.input')} placeholder={user ? t('play.dm.placeholder', { name: user.name }) : t('play.dm.offline')} maxlength="200" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" class="h-11 min-w-0 flex-1 kk-input px-3" />
 			<button class="kk-btn kk-btn-primary grid size-11 shrink-0 place-items-center p-0" aria-label={t('play.chat.send')} disabled={!user || !text.trim()}><Icon name="send" size={20} fill /></button>
 		</form>
 	{:else}

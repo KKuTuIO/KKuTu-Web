@@ -7,13 +7,15 @@
 	 *   <Tooltip placement="bottom">{#snippet content()}<b>Rich</b> content{/snippet}<span>…</span></Tooltip>
 	 *
 	 * - Wraps without adding a box (display: contents); it attaches to the first child element.
-	 * - Shows immediately on mouse hover (optionally after `delay` ms) and on keyboard focus; never on touch. Hides on leave, blur,
+	 * - Shows immediately on mouse hover (optionally after `delay` ms) and on keyboard focus; never on touch, unless `hold`: then pressing and
+	 *   holding the target (touch or mouse, about 0.4 s) shows it until the press ends, and `onhold` is called when it appears (so the press that
+	 *   showed it can be told from a tap). Hides on leave, blur,
 	 *   press, Escape, scroll and resize. The target gets aria-describedby while it is visible.
 	 * - Lives in the browser top layer (popover), so dialogs and overflow can't clip or offset it, and it
 	 *   flips to the other side when there is no room.
-	 * @type {{text?:string, content?:import('svelte').Snippet, placement?:'top'|'bottom'|'left'|'right', delay?:number, children:import('svelte').Snippet}}
+	 * @type {{text?:string, content?:import('svelte').Snippet, placement?:'top'|'bottom'|'left'|'right', delay?:number, hold?:boolean, onhold?:() => void, children:import('svelte').Snippet}}
 	 */
-	let { text = '', content, placement = 'top', delay = 0, children } = $props();
+	let { text = '', content, placement = 'top', delay = 0, hold = false, onhold, children } = $props();
 
 	// Short slide-and-scale from the target's side; leaving is faster than arriving.
 	function pop(node, { side = 'top', duration = 140 } = {}) {
@@ -29,6 +31,8 @@
 	let open = $state(false);
 	let pos = $state({ left: 0, top: 0, side: 'top', arrowX: 0, arrowY: 0 });
 	let timer;
+	let holdTimer;
+	const HOLD_MS = 380;
 	const enabled = $derived(Boolean(text) || Boolean(content));
 	const target = () => host?.firstElementChild ?? null;
 
@@ -42,6 +46,7 @@
 	// refused (state_unsafe_mutation): closing a moment later is invisible and always allowed.
 	function hide() {
 		clearTimeout(timer);
+		clearTimeout(holdTimer);
 		if (open) queueMicrotask(() => (open = false));
 	}
 
@@ -49,10 +54,20 @@
 		const el = target();
 		if (!el) return;
 		const onEnter = (e) => e.pointerType !== 'touch' && show();
+		const onDown = () => {
+			if (!hold) return hide();
+			clearTimeout(holdTimer);
+			holdTimer = setTimeout(() => {
+				show();
+				onhold?.();
+			}, HOLD_MS);
+		};
 		const events = [
 			['pointerenter', onEnter],
 			['pointerleave', hide],
-			['pointerdown', hide],
+			['pointerdown', onDown],
+			['pointerup', hide],
+			['pointercancel', hide],
 			['focusin', () => el.matches(':focus-visible') && show()],
 			['focusout', hide]
 		];

@@ -29,11 +29,11 @@ export const FOLD_SPLIT = 768;
 export const twoColumns = (width, f = fold) => width >= SPLIT || (width >= FOLD_SPLIT && innerOpen(f));
 
 /**
- * The folding phone's own layout (Apple's guidance for folding phones: navigation moves to the side): an open inner screen that is too narrow for the two
- * columns (under 768 px) and wider than tall keeps the phone layout, but its tab bar stands at the edge as a rail (see `MobileTabBar`).
- * Portrait keeps the bottom bar.
+ * The folding iPhone's own layout (Apple's guidance for iPhone Duo: toolbars, tab bars and navigation controls move to the side, except on the inner display in
+ * portrait): an open inner screen that is wider than tall keeps the phone layout (stacked pages), but its tab bar stands at the edge as a rail (see `MobileTabBar`),
+ * whatever its width. Portrait keeps the bottom bar. Android folds are not changed: they take the two columns from 768 px.
  */
-export const railWide = (w, h, f = fold) => w < FOLD_SPLIT && w >= h && innerOpen(f);
+export const railWide = (w, h, f = fold) => f.iphone && w >= h && innerOpen(f);
 
 if (typeof window !== 'undefined') {
 	try {

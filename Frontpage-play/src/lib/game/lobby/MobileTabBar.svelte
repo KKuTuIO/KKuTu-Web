@@ -13,13 +13,14 @@
 	 * A guest has no announcements, so 도움말 takes that tab (with 학사모레미's nudge) and 이어하기 moves into the sheet.
 	 * The mailbox lives in the header. Desktop keeps TopBar's menu.
 	 */
+	/** `noPeople`: the two columns already show the people panel, so there is no tab for it */
 	/** `noHelp`: the new lobby carries the tutorial itself, so there is no 도움말 tab or entry and no nudge on 더보기 */
 	/**
 	 * A floating glass capsule (iOS 26). `side`: on an open folding phone that is wider than tall (Apple's iPhone Duo guidance) the navigation moves to the
 	 * edge: the capsule stands upright there, its tabs one under the other, on the `edge` of the dominant hand (where the thumb is). Upright, its slot is part of the layout (the page ends beside it); along the bottom it floats over the page (the page
 	 * keeps `--dock` of room at its end, see +page.svelte).
 	 */
-	let { store, active = 'lobby', onselect, noHelp = false, noNews = false, side = false, edge = 'left' } = $props();
+	let { store, active = 'lobby', onselect, noHelp = false, noNews = false, noPeople = false, side = false, edge = 'left' } = $props();
 	const guest = $derived(store.net.guest);
 	let more = $state(false);
 	const tabs = $derived(
@@ -28,7 +29,7 @@
 			{ id: 'people', icon: 'group', badge: store.pendingFriends.incoming.length },
 			{ id: 'shop', icon: 'storefront' },
 			guest ? { id: 'help', icon: 'help' } : { id: 'news', icon: 'campaign', dot: store.newsAlerts.length > 0 }
-		].filter((m) => !(noHelp && m.id === 'help') && !(noNews && m.id === 'news'))
+		].filter((m) => !(noHelp && m.id === 'help') && !(noNews && m.id === 'news') && !(noPeople && m.id === 'people'))
 	);
 	const extra = $derived(
 		[
@@ -45,7 +46,7 @@
 	const index = $derived(more || moreActive ? tabs.length : tabs.findIndex((m) => m.id === active));
 	const pill = $derived(
 		side
-			? `left:.375rem;right:.375rem;top:.375rem;height:calc((100% - .75rem)/${count});transform:translateY(${index * 100}%)`
+			? `left:.125rem;right:.125rem;top:.125rem;height:calc((100% - .25rem)/${count});transform:translateY(${index * 100}%)`
 			: `top:.375rem;bottom:.375rem;left:.375rem;width:calc((100% - .75rem)/${count});transform:translateX(${index * 100}%)`
 	);
 	const ready = $derived(store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom);
@@ -68,8 +69,8 @@
 
 {#snippet tabButton(m)}
 	{@const on = m.id === active}
-	<button type="button" data-tour={m.id === 'people' ? 'side' : m.id === 'help' ? 'help' : undefined} aria-current={on ? 'page' : undefined} aria-label={side ? label(m.id) : undefined} onpointerdown={() => (held = false)} onclick={() => pick(m.id)} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'min-h-12' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {on ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
-		<span class="grid h-7 w-14 place-items-center"><Icon name={m.icon} size={22} fill={on} /></span>
+	<button type="button" data-tour={m.id === 'people' ? 'side' : m.id === 'help' ? 'help' : undefined} aria-current={on ? 'page' : undefined} aria-label={side ? label(m.id) : undefined} onpointerdown={() => (held = false)} onclick={() => pick(m.id)} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'h-10' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {on ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
+		<span class="grid {side ? 'size-10' : 'h-7 w-14'} place-items-center"><Icon name={m.icon} size={side ? 20 : 22} fill={on} /></span>
 		{#if !side}{label(m.id)}{/if}
 		{#if m.badge}<span class="absolute top-1.5 left-1/2 ml-2 inline-grid h-4 min-w-4 place-items-center rounded-full bg-(--kk-danger) px-1 text-[10px] font-extrabold text-white">{m.badge}</span>
 		{:else if m.dot}<span class="absolute top-2 left-1/2 ml-3 size-2 rounded-full bg-(--kk-danger)" aria-hidden="true"></span>{/if}
@@ -81,18 +82,18 @@
 {/snippet}
 
 <!-- the slot in the layout; the capsule floats in it -->
-<div class={side ? `flex w-[5.25rem] shrink-0 flex-col justify-end pt-2 pb-[calc(4rem+env(safe-area-inset-bottom))] ${edge === 'right' ? 'pr-[max(0.5rem,env(safe-area-inset-right))] pl-1' : 'pl-[max(0.5rem,env(safe-area-inset-left))] pr-1'}` : 'pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]'}>
-<nav data-tour="nav" aria-label={t('play.nav.label')} style={side ? `grid-template-rows:repeat(${count}, minmax(0, 1fr))` : `grid-template-columns:repeat(${count}, minmax(0, 1fr))`} class="kk-glass pointer-events-auto mx-auto grid p-1.5 {side ? 'w-full rounded-[2rem]' : 'w-full max-w-md rounded-full'}">
+<div class={side ? `flex shrink-0 flex-col justify-end pt-2 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+3.25rem)] ${edge === 'right' ? 'w-[calc(3.125rem+max(1rem,env(safe-area-inset-right)))] pr-[max(1rem,env(safe-area-inset-right))] pl-1.5' : 'w-[calc(3.125rem+max(1rem,env(safe-area-inset-left)))] pl-[max(1rem,env(safe-area-inset-left))] pr-1.5'}` : 'pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]'}>
+<nav data-tour="nav" aria-label={t('play.nav.label')} style={side ? `grid-template-rows:repeat(${count}, minmax(0, 1fr))` : `grid-template-columns:repeat(${count}, minmax(0, 1fr))`} class="kk-glass pointer-events-auto mx-auto grid {side ? 'w-full rounded-full p-0.5' : 'w-full max-w-md rounded-full p-1.5'}">
 	{#if index >= 0}<span class="kk-glass-pill pointer-events-none absolute rounded-full bg-(--kk-accent-soft)" style={pill} aria-hidden="true"></span>{/if}
 	{#each tabs as m (m.id)}
 		{#if m.id === 'help'}
 			<!-- 학사모레미 points at 도움말 until it is opened -->
-			<Nudge id="tutorial" above enabled={ready}>
+			<Nudge id="tutorial" above={!side} beside={side ? tipSide : null} enabled={ready}>
 				{#snippet content()}<Mascot {store} size={44} /><span>{t('play.nudge.tutorial')}</span>{/snippet}
 				{@render tab(m)}
 			</Nudge>
 		{:else if m.id === 'news'}
-			<Nudge id="news" above enabled={ready && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
+			<Nudge id="news" onclose={() => store.dismissNewsNudge()} above={!side} beside={side ? tipSide : null} enabled={ready && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
 				{#snippet content()}
 					<span class="flex min-w-0 flex-col gap-1.5">
 						<span class="flex flex-col px-1"><b class="text-sm font-extrabold">{t('play.news.nudge')}</b><span class="truncate text-xs font-bold text-(color:--kk-muted)">{store.newsNudge?.name}</span></span>
@@ -105,13 +106,13 @@
 		{/if}
 	{/each}
 	<!-- a member's 도움말 is in the sheet, so the tutorial's nudge points at the tab that holds it -->
-	<Nudge id="tutorial" above enabled={ready && !guest && !noHelp}>
+	<Nudge id="tutorial" above={!side} beside={side ? tipSide : null} enabled={ready && !guest && !noHelp}>
 		{#snippet content()}<Mascot {store} size={44} /><span>{t('play.nudge.tutorial')}</span>{/snippet}
-		{#if side}<Tooltip text={t('play.nav.more')} placement={tipSide} hold {onhold}><button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} aria-label={side ? t('play.nav.more') : undefined} onpointerdown={() => (held = false)} onclick={() => { if (held) return void (held = false); haptic(); more = !more; }} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'min-h-12' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
-			<span class="grid h-7 w-14 place-items-center"><Icon name="more_horiz" size={22} /></span>
+		{#if side}<Tooltip text={t('play.nav.more')} placement={tipSide} hold {onhold}><button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} aria-label={side ? t('play.nav.more') : undefined} onpointerdown={() => (held = false)} onclick={() => { if (held) return void (held = false); haptic(); more = !more; }} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'h-10' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
+			<span class="grid {side ? 'size-10' : 'h-7 w-14'} place-items-center"><Icon name="more_horiz" size={side ? 20 : 22} /></span>
 			{#if !side}{t('play.nav.more')}{/if}
-		</button></Tooltip>{:else}<button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} aria-label={side ? t('play.nav.more') : undefined} onpointerdown={() => (held = false)} onclick={() => { if (held) return void (held = false); haptic(); more = !more; }} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'min-h-12' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
-			<span class="grid h-7 w-14 place-items-center"><Icon name="more_horiz" size={22} /></span>
+		</button></Tooltip>{:else}<button type="button" data-tour={guest ? undefined : 'help'} aria-expanded={more} aria-label={side ? t('play.nav.more') : undefined} onpointerdown={() => (held = false)} onclick={() => { if (held) return void (held = false); haptic(); more = !more; }} oncontextmenu={side ? (e) => e.preventDefault() : undefined} class="relative z-10 flex {side ? 'h-10' : 'min-h-14'} w-full flex-col items-center justify-center gap-0.5 text-[11px] leading-none font-bold {moreActive || more ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">
+			<span class="grid {side ? 'size-10' : 'h-7 w-14'} place-items-center"><Icon name="more_horiz" size={side ? 20 : 22} /></span>
 			{#if !side}{t('play.nav.more')}{/if}
 		</button>{/if}
 	</Nudge>

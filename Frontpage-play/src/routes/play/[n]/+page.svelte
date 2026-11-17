@@ -81,6 +81,7 @@
 	let winW = $state(1280);
 	// Phone: the menu is a tab bar at the bottom (outside a room), and 사람 (friends, family, who is online) is a page of its own.
 	const phone = $derived(winW < 768);
+	const duoRail = $derived(railWide(winW, winH)); // the open folding iPhone, wider than tall: navigation moves to a rail at the side (HIG)
 	// The soft keyboard takes the lower part of the screen; the page is as tall as what is left, so the answer field (at the bottom of the board) stays in view.
 	let vvh = $state(0);
 	// The keyboard is up: a text field has the focus and the visible part of the page is clearly shorter than the page was without it.
@@ -127,7 +128,10 @@
 	const tabBar = $derived(phone && !store.net.myRoom);
 	const showTabBar = $derived(tabBar && !kbd);
 	// An open folding phone that is wider than tall (and too narrow for the two columns): the tab bar stands at the side as a rail, on the dominant hand's edge.
-	const rail = $derived(tabBar && railWide(winW, winH));
+	// Under 768 px it is the phone layout's tab bar standing up; from 768 px (the two columns) it is the header's menu that moves to the side (not in a game: its own header).
+	const railPhone = $derived(tabBar && duoRail);
+	const railDesk = $derived(!phone && duoRail && !(store.inGame && store.ui.gameCovered));
+	const rail = $derived(railPhone || railDesk);
 	// The bottom capsule floats over the page: the page runs to the screen's edge, and what scrolls keeps this much room at its end (`--dock`).
 	const dockOn = $derived(showTabBar && !rail);
 	// The desktop's two columns (side bar beside the room list, chat under it): from 1024 px, and on an unfolded folding phone from 768 px (foldable.svelte.js).
@@ -576,7 +580,7 @@
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
-		<TopBar {store} {phone} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
+		<TopBar {store} {phone} rail={duoRail} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
 	{/if}
 	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (prefs.hand === 'left' ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
 	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : 'max-md:pb-[calc(0.75rem+var(--dock,0px))]'}">
@@ -623,7 +627,7 @@
 			{/if}
 		</main>
 	</div>
-	{#if showTabBar && !store.ui.arcade}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
+	{#if railDesk}<MobileTabBar {store} noHelp={newLobby} noPeople active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} side edge={prefs.hand === 'left' ? 'left' : 'right'} />{:else if showTabBar && !store.ui.arcade}<MobileTabBar {store} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
 	</div>
 </div>
 

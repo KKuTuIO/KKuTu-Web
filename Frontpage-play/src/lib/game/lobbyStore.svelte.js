@@ -56,6 +56,7 @@ export function createLobbyStore(server) {
 		return (g.chain + typed.ahead) % length;
 	}
 	let newsSeen = $state(loadSeen()); // the event ids whose page I have opened since they began
+	let newsNudged = $state(new Set()); // the events whose bubble I closed (on this page only: the red dot stays until I open the page)
 	const net = conn.state;
 	const live = $state({ value: '', composing: false }); // what I am typing right now, from the board's field or the chat box
 	const ui = $state({ query: '', ...loadRoomFilter(), gameCovered: false, exitReserved: false, chatNonce: 0, phoneStage: false, hideFab: false, arcade: false, dictRequest: '' });
@@ -258,13 +259,17 @@ export function createLobbyStore(server) {
 		},
 		/** The new event the bubble at the menu announces (null when there is none). */
 		get newsNudge() {
-			return net.guest ? null : newsNudge(net.events.list, newsSeen);
+			return net.guest ? null : newsNudge(net.events.list, new Set([...newsSeen, ...newsNudged]));
 		},
 		/** The ids already seen (read before `markNewsSeen`, so the page can keep marking what was new when it opened). */
 		get newsSeenIds() {
 			return [...newsSeen];
 		},
 		/** The page was opened: everything going now counts as seen. */
+		/** The × of the announcement bubble: the bubbles of every event that is new now stay away until the page is loaded again (the next one must not pop up in its place). */
+		dismissNewsNudge() {
+			newsNudged = new Set([...newsNudged, ...unseenNews(net.events.list, newsSeen).map((e) => e.id)]);
+		},
 		markNewsSeen() {
 			const next = new Set(newsSeen);
 			for (const e of net.events.list) next.add(e.id);

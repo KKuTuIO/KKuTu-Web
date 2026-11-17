@@ -12,7 +12,8 @@
 	import Mascot from './Mascot.svelte';
 	import { closeNudge, nudgeOpen } from '../nudges.svelte.js';
 	/** `noHelp`: the new lobby carries the tutorial itself (a 튜토리얼 button and the nudge), so the bar has no 도움말 */
-	let { store, active = 'lobby', onselect, phone = false, noHelp = false, noNews = false } = $props();
+	/** `rail`: the tab bar stands at the side (the open folding iPhone), so the header keeps no menu of its own */
+	let { store, active = 'lobby', onselect, phone = false, noHelp = false, noNews = false, rail = false } = $props();
 	// `noNews`: the new lobby has 공지·행사 as an icon on its stage, so the bar leaves it out while the lobby is showing
 	const me = $derived(store.me);
 	const guest = $derived(store.net.guest);
@@ -58,7 +59,7 @@
 		</Nudge>
 	{:else if m.id === 'news'}
 		<!-- a new event the player has not seen: its picture under the menu. It waits for the tutorial's nudge, so two bubbles never compete; pressing it opens the page, which counts the event as seen. -->
-		<Nudge id="news" enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !store.ui.arcade && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
+		<Nudge id="news" onclose={() => store.dismissNewsNudge()} enabled={store.net.status === 'ready' && store.net.assetsReady && !store.currentRoom && !store.ui.arcade && !nudgeOpen('tutorial') && active !== 'news' && !!store.newsNudge}>
 			{#snippet content()}
 				<span class="flex min-w-0 flex-col gap-1.5">
 					<span class="flex flex-col px-1"><b class="text-sm font-extrabold">{t('play.news.nudge')}</b><span class="truncate text-xs font-bold text-(color:--kk-muted)">{store.newsNudge?.name}</span></span>
@@ -112,7 +113,7 @@
 		<!-- Symbol only, at every size. -->
 		<Logo class="h-8" />
 	</a>
-	<nav data-tour="nav" aria-label={t('play.nav.label')} class="hidden min-w-0 items-center gap-1 md:ml-4 md:flex">
+	<nav data-tour="nav" aria-label={t('play.nav.label')} class="hidden min-w-0 items-center gap-1 {rail ? '' : 'md:ml-4 md:flex'}">
 		{#each items as m (m.id)}{@render item(m)}{/each}
 	</nav>
 	<div class="ml-auto flex shrink-0 items-center gap-2">
@@ -122,7 +123,7 @@
 		{/if}
 		<FullscreenButton class="max-md:hidden" />
 		{#if phone && !guest}<MailMenu {store} />{/if}
-		<div class="hidden items-center gap-1 md:flex">
+		<div class="hidden items-center gap-1 {rail ? '' : 'md:flex'}">
 			{#each utilities as m (m.id)}{#if m.id === 'mail'}<MailMenu {store} />{:else}{@render item(m, { utility: true })}{/if}{/each}
 		</div>
 		{#if guest && store.net.id}

@@ -153,7 +153,8 @@ export function maskLeagueUsers(state) {
 	for (const id of room.players ?? []) {
 		const u = state.users[id];
 		if (!u || id === state.id) continue;
-		state.users[id] = { ...u, name: LEAGUE_ANON_NAME, tag: '', fixed: false, equip: {}, robot: false, level: null, record: {}, exordial: '', statusMessage: '', guest: false };
+		// leagueSeat: 접속자 패널에서만 숨기는 표시(봇도 robot: false로 와서 걸러지지 않는다)
+		state.users[id] = { ...u, name: LEAGUE_ANON_NAME, tag: '', fixed: false, equip: {}, robot: false, level: null, record: {}, exordial: '', statusMessage: '', guest: false, leagueSeat: true };
 	}
 }
 

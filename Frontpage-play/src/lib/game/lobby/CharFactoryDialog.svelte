@@ -5,12 +5,13 @@
 	import { dynItem } from '../shop.js';
 	import { lookupWord } from '../dictionary.js';
 	import { formMean } from '../wordMean.js';
-	import { analyzeTray, addError, ownedPieces, fetchPreview, composeTray, boxGains, rewardCount, pieceKind, pieceChar, MAX_TRAY } from '../charFactory.js';
+	import { analyzeTray, addError, ownedPieces, fetchPreview, fetchAutoTray, composeTray, boxGains, rewardCount, pieceKind, pieceChar, MAX_TRAY } from '../charFactory.js';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
 	import { playSound } from '../audio.svelte.js';
 	import Select from '../ui/Select.svelte';
 	import Dialog from './Dialog.svelte';
+	import Icon from './Icon.svelte';
 	import PriceChip from './PriceChip.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
 	import ShopThumb from './ShopThumb.svelte';
@@ -38,12 +39,66 @@
 
 	$effect(() => {
 		if (open) reset();
+		else stopping = true; // closed while it runs: finish the step in flight and stop
 	});
 
 	function reset() {
 		tray = [];
 		preview = { status: 'idle' };
 		run++;
+	}
+
+	// 자동 조합: the longest word my Hangul pieces make is combined again and again, the rewards are collected and shown once, when it is over, until I stop it or nothing is left to make.
+	let autoRun = $state(false);
+	let autoCount = $state(0);
+	let stopping = $state(false);
+	const sleep = (n) => new Promise((r) => setTimeout(r, n));
+	const AUTO_MAX = 500;
+
+	async function auto() {
+		if (autoRun || busy) return;
+		if (!(await confirm({ message: plainText(t('play.lab.auto.confirm')) }))) return;
+		autoRun = true;
+		stopping = false;
+		autoCount = 0;
+		const total = {};
+		while (!stopping && open && autoCount < AUTO_MAX) {
+			const found = await fetchAutoTray();
+			if (found.error) {
+				toast(t('play.error.request', { code: found.error }), { kind: 'error' });
+				break;
+			}
+			if (!found.tray?.length) {
+				if (!autoCount) toast(t('play.lab.auto.none'), { kind: 'error' });
+				break;
+			}
+			tray = found.tray;
+			const before = store.net.box;
+			const res = await composeTray(found.tray);
+			if (res.error) {
+				toast(plainText(store.net.meta.labels[`kkutu.js.error.${res.error}`] ?? '') || t('play.error.request', { code: res.error }), { kind: 'error' });
+				break;
+			}
+			const mine = store.net.users[store.net.id];
+			if (mine) mine.money = res.money;
+			store.net.box = cleanBox(res.box);
+			store.net.boxSeq++;
+			autoCount++;
+			const gained = boxGains(before, store.net.box);
+			for (const g of gained) total[g.key] = (total[g.key] ?? 0) + g.q;
+		}
+		store.conn.send('refresh');
+		const n = autoCount;
+		autoRun = false;
+		stopping = false;
+		tray = [];
+		if (!open || !n) return;
+		prizes = Object.entries(total).map(([key, q]) => ({ key, q }));
+		toast(t('play.lab.auto.done', { n }), { kind: 'success' });
+		if (prizes.length) {
+			await sleep(200);
+			resultOpen = true;
+		}
 	}
 
 	function pick(e) {
@@ -123,6 +178,7 @@
 </script>
 
 <Dialog bind:open title={t('play.lab.name')} size="lg">
+	<div class="relative">
 	<div class="grid gap-x-6 gap-y-5 lg:grid-cols-2">
 		<!-- the pieces I own -->
 		<section class="flex min-w-0 flex-col gap-2">
@@ -194,12 +250,13 @@
 		<!-- the cost, the buttons and the lab assistant -->
 		<section class="flex min-w-0 flex-col gap-3">
 			<h3 class="text-base font-extrabold">{t('play.lab.cost')}</h3>
-			<div class="grid grid-cols-[1fr_auto] gap-2">
+			<div class="grid grid-cols-[1fr_auto_auto] gap-2">
 				<button type="button" class="kk-btn kk-btn-primary inline-flex min-h-12 items-center justify-center gap-2.5 px-6" disabled={!ok || busy || preview.cost > money} onclick={compose}>
 					{t('play.lab.compose')}
 					<PriceChip price={ok ? preview.cost : '–'} />
 				</button>
-				<button type="button" class="kk-btn min-h-12 px-5" disabled={!tray.length || busy} onclick={reset}>{t('play.lab.reset')}</button>
+				<button type="button" class="kk-btn min-h-12 px-5" disabled={autoRun || busy} onclick={auto}>{t('play.lab.auto')}</button>
+				<button type="button" class="kk-btn min-h-12 px-5" disabled={!tray.length || busy || autoRun} onclick={reset}>{t('play.lab.reset')}</button>
 			</div>
 			{#if ok && preview.cost > money}<p class="-mt-1 text-xs font-bold text-red-500" role="status">{t('play.lab.short')}</p>{/if}
 			<div class="mt-auto flex items-end gap-2">
@@ -207,6 +264,15 @@
 				<p class="relative mb-3 rounded-2xl rounded-bl-sm bg-(--kk-surface-2) px-3.5 py-2 text-[13px] leading-snug font-bold shadow-[0_2px_0_var(--kk-line)]">{tip}</p>
 			</div>
 		</section>
+	</div>
+	{#if autoRun}
+		<!-- while it runs: the lab is dimmed and untouchable, a sync icon turns, the stop button is the only way out -->
+		<div class="auto-dim absolute -inset-4 z-10 flex flex-col items-center justify-center gap-4 bg-black/55 text-white" role="status" aria-live="polite">
+			<span class="auto-spin" aria-hidden="true"><Icon name="sync" size={56} weight={500} /></span>
+			<p class="text-base font-extrabold">{t('play.lab.auto.running', { n: autoCount + 1 })}</p>
+			<button type="button" class="kk-btn min-h-11 px-8" disabled={stopping} onclick={() => (stopping = true)}>{stopping ? t('play.lab.auto.stopping') : t('play.lab.auto.stop')}</button>
+		</div>
+	{/if}
 	</div>
 </Dialog>
 
@@ -219,7 +285,19 @@
 	.lab-reward {
 		animation: kk-pop-in 0.3s cubic-bezier(0.34, 1.7, 0.64, 1) both;
 	}
+	.auto-spin {
+		display: inline-flex;
+		animation: auto-spin 1s linear infinite;
+	}
+	@keyframes auto-spin {
+		to {
+			transform: rotate(-360deg);
+		}
+	}
 	@media (prefers-reduced-motion: reduce) {
+		.auto-spin {
+			animation-duration: 3s;
+		}
 		.lab-piece,
 		.lab-reward {
 			animation: none;

@@ -44,6 +44,14 @@ class WordDao(
         return jdbcTemplate.query(sql, wordMapper, *ids.toTypedArray())
     }
 
+    /** 주어진 글자(한글 음절)로만 이뤄진 단어를 긴 순서·조회수 순서로 가져온다. 글자는 호출하는 쪽이 음절로 걸러서 넘긴다. */
+    fun getComposableIds(tableName: String, chars: Collection<Char>, maxLength: Int, limit: Int, offset: Int): List<String> {
+        if (chars.isEmpty() || maxLength < 1) return emptyList()
+        val pattern = "^[" + chars.joinToString("") + "]{1,$maxLength}$"
+        val sql = "SELECT _id FROM $tableName WHERE _id ~ ? ORDER BY char_length(_id) DESC, hit DESC, _id ASC LIMIT ? OFFSET ?"
+        return jdbcTemplate.query(sql, { rs, _ -> rs.getString("_id") }, pattern, limit, offset)
+    }
+
     fun getWordsFromChar(tableName: String, startChar: String, mission: String?): List<Word> {
         val baseSql = "SELECT * FROM $tableName WHERE _id LIKE ?"
         val startCharParam = "$startChar%"

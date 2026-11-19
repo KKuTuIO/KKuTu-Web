@@ -152,6 +152,55 @@ class CharFactoryService(
         }}"
     }
 
+    /**
+     * 자동 조합: 보유한 한글 조각(일반 조각만, 한 글자짜리, 만료 전)으로 만들 수 있는 가장 긴 단어(최대 6글자)의 쟁반을 돌려준다.
+     * 같은 길이면 조회수가 높은 단어. 같은 글자의 조각이 여러 등급이면 낮은 등급부터 쓴다(귀한 조각을 아낀다).
+     * 여기서는 아무것도 소비하지 않는다. 실제 조합은 `/cf`가 다시 검증한다.
+     */
+    fun autoTray(session: HttpSession): String {
+        if (session.isGuest()) return "{\"error\":400}"
+        val userId = loginService.gameUserId(session) ?: return "{\"error\":400}"
+        val user = userDao.getUser(userId) ?: return "{\"error\":400}"
+
+        val nowSec = System.currentTimeMillis() / 1000
+        // 글자 -> (등급 낮은 순으로 [키, 개수])
+        val have = HashMap<Char, MutableList<Pair<String, Int>>>()
+        for (key in user.box.propertyNames()) {
+            if (key.length != 5 || !key.startsWith("\$WP") || key[3] !in "ABC") continue
+            val ch = key[4]
+            if (ch !in '가'..'힣') continue
+            val node = user.box.get(key)
+            val count = node.get("value")?.intValue() ?: 0
+            if (count <= 0) continue
+            val expire = node.get("expire")?.longValue()
+            if (expire != null && expire in 1..nowSec) continue
+            have.getOrPut(ch) { ArrayList() }.add(key to count)
+        }
+        for (list in have.values) list.sortByDescending { it.first[3] } // C(낮음) -> B -> A
+        val total = have.values.sumOf { l -> l.sumOf { it.second } }
+        if (total == 0) return "{\"tray\":[]}"
+
+        val maxLength = min(6, total)
+        val chars = have.keys.sorted()
+        val pageSize = 2000
+        for (page in 0 until 5) {
+            val ids = wordDao.getComposableIds("kkutu_ko", chars, maxLength, pageSize, page * pageSize)
+            for (id in ids) {
+                val need = id.groupingBy { it }.eachCount()
+                if (need.any { (c, n) -> (have[c]?.sumOf { it.second } ?: 0) < n }) continue
+                val tray = ArrayList<String>()
+                for (c in id) {
+                    // 이미 쟁반에 담은 만큼을 빼고 남은 가장 낮은 등급
+                    val used = tray.groupingBy { it }.eachCount()
+                    tray.add(have.getValue(c).first { (k, n) -> n > (used[k] ?: 0) }.first)
+                }
+                return "{\"tray\":${objectMapper.writeValueAsString(tray)},\"word\":${objectMapper.writeValueAsString(id)}}"
+            }
+            if (ids.size < pageSize) break
+        }
+        return "{\"tray\":[]}"
+    }
+
     fun blendWord(word: String): String {
         val lang = findLanguage(word)
         // val choseongList = HashSet<Int>()

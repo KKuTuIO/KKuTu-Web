@@ -68,7 +68,7 @@ export function createLobbyStore(server) {
 	// 접속자: everyone on this server (also those inside rooms), AI seats excluded. Order is the legacy one: by arrival,
 	// or by score / name when asked.
 	const serverUsers = $derived.by(() => {
-		const all = Object.values(net.users).filter((u) => !u.robot);
+		const all = Object.values(net.users).filter((u) => !u.robot && !u.leagueSeat);
 		if (prefs.userSort === 'score') return all.sort((a, b) => b.score - a.score);
 		if (prefs.userSort === 'name') return all.sort((a, b) => a.name.toUpperCase().localeCompare(b.name.toUpperCase()));
 		return all;

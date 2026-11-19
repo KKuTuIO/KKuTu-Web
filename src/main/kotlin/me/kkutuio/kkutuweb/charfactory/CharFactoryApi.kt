@@ -43,4 +43,10 @@ class CharFactoryApi(
     ): String {
         return charFactoryService.charFactory(tray.split("|"), session)
     }
+
+    /** 보유한 한글 조각으로 만들 수 있는 가장 긴 단어의 쟁반(조합은 하지 않는다). */
+    @PostMapping("/cf/auto", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun autoCharFactory(session: HttpSession): String {
+        return charFactoryService.autoTray(session)
+    }
 }

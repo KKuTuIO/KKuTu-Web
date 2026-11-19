@@ -59,6 +59,16 @@ export async function fetchPreview(word, level, blend, fetchFn = fetch) {
 	}
 }
 
+/** The longest word my Hangul pieces make, as a tray to put on the table (nothing is spent): `{tray, word?}` or `{error}`. */
+export async function fetchAutoTray(fetchFn = fetch) {
+	try {
+		const res = await fetchFn('/cf/auto', { method: 'POST' });
+		return await res.json();
+	} catch {
+		return { error: 400 };
+	}
+}
+
 /** Does the combination: `{result, box, money, gain}` or `{error}`. */
 export async function composeTray(tray, fetchFn = fetch) {
 	try {

@@ -92,7 +92,10 @@
 	async function cancelMatching() {
 		if (league.found) return false; // 매칭이 잡힌 뒤에는 취소할 수 없다
 		if (!league.queued) return true;
-		if (!(await confirm({ message: t('play.league.cancelConfirm'), ok: t('play.league.queue.cancelYes'), cancel: t('play.league.queue.cancelNo') }))) return false;
+		// 평점이 깎이지 않는 경우에는 경고 없이 바로 취소한다: 들어간 직후(서버의 유예 5초보다 짧게 4초)와 5분 넘게 기다린 뒤(서버 기준 5분보다 5초 더 지나서)
+		const waitedMs = Date.now() - league.queue.localAt;
+		const free = waitedMs < 4000 || waitedMs >= 305_000;
+		if (!free && !(await confirm({ message: t('play.league.cancelConfirm'), ok: t('play.league.queue.cancelYes'), cancel: t('play.league.queue.cancelNo') }))) return false;
 		league.cancel();
 		return true;
 	}

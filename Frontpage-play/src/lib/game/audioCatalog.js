@@ -10,15 +10,17 @@ export const LOBBY_BGMS = [
   "LobbyBGM",
   "LobbySeolBGM",
   "LobbyBGM_2017",
+  "LobbyBGM_KKuTuIO_Seol",
   "LobbyBGM_2020_Summer",
   "LobbyBGM_2020_Fall",
   "LobbyBGM_2020_Winter",
   "LobbyBGM_NEW",
-  "LobbyBGM_KKuTuIO_Seol",
   "LobbyBGM_2022_Fall",
   "LobbyBGM_2023_Winter",
   "LobbyBGM_2023_6th",
   "LobbyBGM_2023_Summer",
+  "LobbyBGM_Plus_S1",
+  "LobbyBGM_Plus_S2",
   "LobbyBGM_2024_Spring",
   "LobbyBGM_2024_Fall",
   "LobbyBGM_2024_Winter",
@@ -27,8 +29,6 @@ export const LOBBY_BGMS = [
   "LobbyBGM_2026_Spring",
   "LobbyBGM_2026_10th",
   "LobbyBGM_2027_10th",
-  "LobbyBGM_Plus_S1",
-  "LobbyBGM_Plus_S2",
 ];
 /** Sound-effect sets: each is a folder with the same file names. */
 export const SOUND_SETS = ["kkutu", "kkutuio", "new_start", "acoustic"];
@@ -46,9 +46,11 @@ export const DEFAULT_AUDIO = {
 export const soundUrl = (name, set = DEFAULT_AUDIO.set) =>
   `${AUDIO_CDN}${set}/${name}.mp3${MEDIA_VERSION}`;
 /** 소리 묶음과 무관한 고정 효과음(`media/league/<name>.mp3`): 트로피 리그의 규칙 릴. */
-export const leagueSoundUrl = (name) => `${PENDING_CDN}/media/league/${name}.mp3${MEDIA_VERSION}`;
+export const leagueSoundUrl = (name) =>
+  `${PENDING_CDN}/media/league/${name}.mp3${MEDIA_VERSION}`;
 /** 모든 버튼이 같이 쓰는 인터페이스 소리(`media/ui/<name>.mp3`): 'click', 'hover'. 소리 묶음과 무관한 고정 파일. */
-export const uiSoundUrl = (name) => `${PENDING_CDN}/media/ui/${name}.mp3${MEDIA_VERSION}`;
+export const uiSoundUrl = (name) =>
+  `${PENDING_CDN}/media/ui/${name}.mp3${MEDIA_VERSION}`;
 export const lobbyBgmUrl = (lobby = DEFAULT_AUDIO.lobby) =>
   `${AUDIO_CDN}${lobby}.mp3${MEDIA_VERSION}`;
 /** The shop's music (`ShopBGM.mp3`). */
@@ -56,7 +58,8 @@ export const shopBgmUrl = () => `${AUDIO_CDN}ShopBGM.mp3${MEDIA_VERSION}`;
 /** The result screen's music (`ResultBGM.mp3`). */
 export const resultBgmUrl = () => `${AUDIO_CDN}ResultBGM.mp3${MEDIA_VERSION}`;
 /** The tutorial's music (`TutorialBGM.mp3`): a calm 90 bpm loop of piano, light guitar and pizzicato strings. */
-export const tutorialBgmUrl = () => `${AUDIO_CDN}TutorialBGM.mp3${MEDIA_VERSION}`;
+export const tutorialBgmUrl = () =>
+  `${AUDIO_CDN}TutorialBGM.mp3${MEDIA_VERSION}`;
 
 const clamp01 = (v) =>
   Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : null;

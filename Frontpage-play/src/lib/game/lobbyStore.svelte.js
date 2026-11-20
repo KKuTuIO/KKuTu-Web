@@ -194,7 +194,7 @@ export function createLobbyStore(server) {
 			return net.users[net.id]?.game ?? null;
 		},
 		/** Invite a lobby user (their id) or an AI of the given level (invite target "AI"). */
-		invite: (target, level) => conn.send('invite', level === undefined ? { target } : { target, level }),
+		invite: (target, level, style) => conn.send('invite', { target, ...(level === undefined ? {} : { level }), ...(style ? { style } : {}) }),
 		answerKickVote(agree) {
 			conn.send('kickVote', { agree });
 			net.kickVote = null;

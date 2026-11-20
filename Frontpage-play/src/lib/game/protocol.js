@@ -140,7 +140,7 @@ export function normalizeUser(raw) {
 	};
 }
 
-/** 트로피 리그 판에서 보여 줄 익명 이름. 서버(service.ts의 ANON_NAME)와 같다. */
+/** 트로피 리그 판에서 별명을 알 수 없을 때 보여 줄 이름(보통은 서버가 판마다 만든 임시 별명을 쓴다). */
 export const LEAGUE_ANON_NAME = '끄투리오';
 
 /**
@@ -154,7 +154,8 @@ export function maskLeagueUsers(state) {
 		const u = state.users[id];
 		if (!u || id === state.id) continue;
 		// leagueSeat: 접속자 패널에서만 숨기는 표시(봇도 robot: false로 와서 걸러지지 않는다)
-		state.users[id] = { ...u, name: LEAGUE_ANON_NAME, tag: '', fixed: false, equip: {}, robot: false, level: null, record: {}, exordial: '', statusMessage: '', guest: false, leagueSeat: true };
+		// 이름은 서버가 방 데이터로 보내 준 이 판의 임시 별명(room 패킷에서 기억해 둔다). 로비 방송이 실제 이름으로 덮어써도 되돌린다.
+		state.users[id] = { ...u, name: state.leagueAliases?.[id] ?? LEAGUE_ANON_NAME, tag: '', fixed: false, equip: {}, robot: false, level: null, record: {}, exordial: '', statusMessage: '', guest: false, leagueSeat: true };
 	}
 }
 
@@ -328,13 +329,26 @@ export function applyPacket(state, pkt, now = Date.now()) {
 			if (!room.players?.length) delete state.rooms[room.id];
 			else state.rooms[room.id] = normalizeRoom(room, state.meta);
 			// The room packet carries every player's full data (profile, equipment, ready state). AI seats too.
-			for (const p of room.players ?? []) if (p?.id) state.users[p.id] = normalizeUser(p);
+			for (const p of room.players ?? []) {
+				if (!p?.id) continue;
+				state.users[p.id] = normalizeUser(p);
+				// 리그 판의 방 데이터는 서버가 익명으로 보낸다: 거기 실린 임시 별명을 기억해 둔다(내 칸은 실제 닉네임이라 기억하지 않는다)
+				if (room.league && p.id !== state.id && p.profile?.name) (state.leagueAliases ??= {})[p.id] = String(p.profile.name);
+			}
 			const mine = !!room.players?.some((p) => p.id === state.id);
 			// Anyone who was in this room and isn't any more is back in the lobby (their disconnect would arrive as `disconn`).
 			for (const id of prev?.players ?? []) if (!room.players?.some((p) => p.id === id) && state.users[id]) state.users[id].place = 0;
 			if (mine) state.myRoom = room.id;
 			else if (wasMine) state.myRoom = null;
 			maskLeagueUsers(state);
+			// 리그 판을 떠났다: 그 판에서만 있던 자리(봇은 접속자가 아니라 연결 끊김 알림도 오지 않는다)와 임시 별명을 지운다.
+			// 같은 판의 사람이 로비에 있으면 그 사람의 다음 방송으로 다시 나타난다.
+			if (wasMine && !mine && prev?.league) {
+				for (const id of prev.players ?? []) {
+					if (state.users[id]?.leagueSeat) delete state.users[id];
+					if (state.leagueAliases) delete state.leagueAliases[id];
+				}
+			}
 			// A game that stopped without a result (everyone left, the room broke) leaves nothing to show.
 			if (state.game && (mine || wasMine) && (!mine || (!room.gaming && !state.game.result))) state.game = null;
 			if (mine || wasMine) {

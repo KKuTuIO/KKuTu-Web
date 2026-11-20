@@ -774,7 +774,7 @@
 		<div id="game-user-{p.id}" data-player={p.id} role="button" tabindex="0" onclick={() => store.hooks.openProfile?.(p.id)} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), store.hooks.openProfile?.(p.id))} class="game-user {bombs[p.id] || g?.gaveUp?.[p.id] ? 'game-user-bomb' : ''} {family === 'Drawing' && g?.painter === p.id ? 'game-user-drawing' : ''} {family === 'Drawing' && g?.winner === p.id ? 'game-user-current' : ''}">
 			{#if leaders.has(p.id)}<span class="game-user-lead" data-leader>{t('play.game.leader')}</span>{/if}
 			<div class="game-user-level"><LevelIcon level={p.robot ? 1 : p.lv} equip={p.equip} size={18} maskable={hidden} /></div>
-			<div class="game-user-name ellipse"><NickName user={p} showCheck maskable={hidden} /></div>
+			<div class="game-user-name ellipse" class:league-name={store.currentRoom?.league}><NickName user={p} showCheck maskable={hidden} /></div>
 			<div class="game-user-score {p.game.team ? `team-${p.game.team}` : ''}" data-score data-value={Math.round(p.game.score ?? 0)}>
 				{#each scoreChars(shown[p.id] ?? 0) as c, i (i)}<div class="game-user-score-char">{c}</div>{/each}
 			</div>
@@ -794,7 +794,7 @@
 									<Tooltip content={who} placement="bottom">
 										<div class="game-user-title">
 											<div class="game-user-level"><LevelIcon level={p.robot ? 1 : p.lv} equip={p.equip} size={18} maskable={hidden} /></div>
-											<div class="game-user-name ellipse"><NickName user={p} showCheck maskable={hidden} /></div>
+											<div class="game-user-name ellipse" class:league-name={store.currentRoom?.league}><NickName user={p} showCheck maskable={hidden} /></div>
 										</div>
 									</Tooltip>
 									<div class="game-user-score {team ? `team-${team}` : ''}" data-score data-value={Math.round(p.game.score ?? 0)}>

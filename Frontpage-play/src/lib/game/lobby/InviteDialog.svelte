@@ -8,17 +8,25 @@
 	import { confirm } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
 	import Icon from './Icon.svelte';
+	import { familyOf } from '../gameModel.js';
 	import { shareRoomOnKakao } from '../kakao.js';
 	import ShareButtons from './ShareButtons.svelte';
 
 	/** Invite someone from the lobby to this room, or add an AI. */
 	let { store, open = $bindable(false) } = $props();
 	let aiLevel = $state(3);
+	let aiStyle = $state('');
 	$effect(() => {
-		if (open) aiLevel = 3; // every opening starts from the defaults
+		if (open) {
+			aiLevel = 3; // every opening starts from the defaults
+			aiStyle = '';
+		}
 	});
+	// 전략은 끝말잇기 계열에서만 고른다(다른 게임의 AI는 예전 그대로).
+	const styled = $derived(familyOf(store.net) === 'Classic');
+	const styles = $derived(['', 'long', 'attack', 'stack'].map((value) => ({ value, label: t(`play.invite.style.${value || 'normal'}`) })));
 	// People standing in the lobby (not in a room), other than me. AI seats never appear here.
-	const candidates = $derived(Object.values(store.net.users).filter((u) => u.place === 0 && u.id !== store.net.id && !u.robot).sort((a, b) => b.lv - a.lv));
+	const candidates = $derived(Object.values(store.net.users).filter((u) => u.place === 0 && u.id !== store.net.id && !u.robot && !u.leagueSeat).sort((a, b) => b.lv - a.lv));
 	const levels = $derived([0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: `${t(`play.ai.level.${n}`)} ${t('play.ai.robot')}` })));
 
 	// Share options: anyone (guests included) can pass the room's address on.
@@ -51,7 +59,8 @@
 		</ul>
 		<div class="flex items-end gap-2">
 			<div class="flex min-w-0 flex-1 flex-col gap-1"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.invite.aiLevel')}</span><Select label={t('play.invite.aiLevel')} bind:value={aiLevel} options={levels} /></div>
-			<button type="button" class="kk-btn kk-btn-primary min-h-11 shrink-0 px-5" onclick={() => { store.invite('AI', aiLevel); open = false; }}>{t('play.invite.ai')}</button>
+			{#if styled}<div class="flex min-w-0 flex-1 flex-col gap-1"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.invite.aiStyle')}</span><Select label={t('play.invite.aiStyle')} bind:value={aiStyle} options={styles} /></div>{/if}
+			<button type="button" class="kk-btn kk-btn-primary min-h-11 shrink-0 px-5" onclick={() => { store.invite('AI', aiLevel, styled ? aiStyle : ''); open = false; }}>{t('play.invite.ai')}</button>
 		</div>
 	</div>
 </Dialog>

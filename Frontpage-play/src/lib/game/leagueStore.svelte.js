@@ -24,6 +24,8 @@ class LeagueStore {
 	found = $state(false);
 	/** 방금 끝난 판의 결과 { placement, delta, before, trophies, tierBefore, tier, size }. 결과 띠가 보여 주고 지운다. */
 	result = $state(null);
+	/** 방금 끝난 판에서 신고할 수 있는 상대: [{placement, level, name(판 안에서 쓴 임시 닉네임), token}] */
+	rivals = $state([]);
 	_foundTimer = 0;
 	_send = null;
 
@@ -39,6 +41,7 @@ class LeagueStore {
 		this.reelOpen = false;
 		this.found = false;
 		this.result = null;
+		this.rivals = [];
 		clearTimeout(this._foundTimer);
 	}
 
@@ -57,6 +60,7 @@ class LeagueStore {
 	enqueue(modes = []) {
 		this.matched = null;
 		this.result = null;
+		this.rivals = [];
 		this.endMatch();
 		this._send?.('league', { op: 'queue', modes });
 	}
@@ -91,6 +95,11 @@ class LeagueStore {
 			this._foundTimer = setTimeout(() => (this.found = false), 120_000); // 방이 끝내 안 만들어졌을 때의 안전장치
 			this.reelOpen = true;
 			soundMatched(); // 매칭 효과음과 mission 효과음이 동시에
+		} else if (pkt?.type === 'leagueNormal') {
+			// 일반 경기가 끝나고 트로피가 조금 움직였다(−3 ~ +4). 값은 서버가 정했고 여기서는 알리고 내 정보만 새로 받는다.
+			const d = Math.trunc(Number(pkt.delta)) || 0;
+			if (d) toast(t(d > 0 ? 'play.league.normal.up' : 'play.league.normal.down', { n: Math.abs(d) }), { kind: 'info' });
+			this.fetch();
 		} else if (pkt?.type === 'leagueResult') {
 			this.result = {
 				placement: Number(pkt.placement) || 0,
@@ -101,6 +110,8 @@ class LeagueStore {
 				tier: Number(pkt.tier),
 				size: Number(pkt.size) || 0
 			};
+			// 신고할 수 있는 상대(이름·ID 없이 등수·레벨과, 서버만 읽는 토큰). 사람인지 봇인지는 알 수 없다. 결과 띠가 사라져도 남고, 다음 매칭을 잡을 때 비운다.
+			this.rivals = (Array.isArray(pkt.rivals) ? pkt.rivals : []).filter((x) => x && typeof x.token === 'string').map((x) => ({ placement: Number(x.placement) || 0, level: Number(x.level) || 1, name: String(x.name ?? ''), token: x.token }));
 		}
 	}
 }

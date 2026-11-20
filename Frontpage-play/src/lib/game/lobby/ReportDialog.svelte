@@ -13,7 +13,7 @@
 	 * A report to the operators (the legacy 신고): the reason is picked in two steps like the legacy list's groups, a section on the left and
 	 * that section's reasons on the right; then what happened in the reporter's words, then a warning about false reports before it is sent.
 	 * The same target cannot be reported again for five minutes, and after one report the button waits 30 seconds. Opened by
-	 * `store.hooks.openReport({type: 'user', id} | {type: 'room', no} | {type: 'chat', id, name, chat})`; a report of someone in the running game I am in (or of that room)
+	 * `store.hooks.openReport({type: 'user', id} | {type: 'room', no} | {type: 'chat', id, name, chat} | {type: 'league', token, placement, level, name})`; a report of someone in the running game I am in (or of that room)
 	 * carries the game's id, so the operators can look at the game. A chat report carries the lines picked in the 대화 기록 (`chat`), shown quoted above the reasons.
 	 */
 	let { store } = $props();
@@ -56,6 +56,9 @@
 			const room = net.rooms[t0.no];
 			if (!room) return toast(L('kkutu.js.error.466'), { kind: 'error' });
 			target = { type: 'room', id: String(room.no), title: `${L('kkutu.dialog.roomInfo.reportBtn')}: ${maskBad(room.title)}(${room.no})`, ...(net.myRoom === room.no ? gameOf(null) : {}) };
+		} else if (t0.type === 'league') {
+			// 리그의 상대는 이름도 ID도 알 수 없다: 결과에 실려 온 토큰이 그 사람이고, 서버만 읽는다.
+			target = { type: 'league', id: t0.token, title: t('play.league.report.target', { n: t0.placement + 1, name: t0.name, level: t0.level }) };
 		} else if (t0.type === 'chat') {
 			target = { type: 'chat', id: t0.id, chat: t0.chat, title: `${t('play.chatLog.report')}: ${net.users[t0.id]?.name ?? t0.name ?? t0.id}`, ...gameOf(t0.id) };
 		} else {
@@ -78,8 +81,8 @@
 		const banned = detail.match(NO_REPORT);
 		if (banned) return error(L('kkutu.dialog.report.bannedWords').replace('${matched}', banned[0]));
 		if (!(await confirm({ message: L('kkutu.dialog.report.falseReportWarning') }))) return;
-		store.conn.send(target.type === 'room' ? 'reportRoom' : target.type === 'chat' ? 'reportChat' : 'report', {
-			id: target.id,
+		store.conn.send(target.type === 'room' ? 'reportRoom' : target.type === 'chat' ? 'reportChat' : target.type === 'league' ? 'reportLeague' : 'report', {
+			[target.type === 'league' ? 'token' : 'id']: target.id,
 			...(target.type === 'chat' ? { chat: target.chat } : {}),
 			reason: split(picked).name,
 			categoryCode: picked,

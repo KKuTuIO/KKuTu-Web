@@ -109,15 +109,18 @@
 			document.documentElement.style.setProperty('--kb', `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`);
 			if (vv.offsetTop) window.scrollTo(0, 0); // iOS slides the page up under the keyboard: put it back
 		};
+		// A dialog that unmounts while it holds the focus fires focusout in the middle of Svelte's teardown, where writing state is refused
+		// (state_unsafe_mutation); so the focus events run `sync` right after that teardown, not inside it.
+		const onFocus = () => queueMicrotask(sync);
 		sync();
 		vv.addEventListener('resize', sync);
 		vv.addEventListener('scroll', sync);
-		document.addEventListener('focusin', sync);
-		document.addEventListener('focusout', sync);
+		document.addEventListener('focusin', onFocus);
+		document.addEventListener('focusout', onFocus);
 		return () => {
 			document.documentElement.style.removeProperty('--kb');
-			document.removeEventListener('focusin', sync);
-			document.removeEventListener('focusout', sync);
+			document.removeEventListener('focusin', onFocus);
+			document.removeEventListener('focusout', onFocus);
 			vv.removeEventListener('resize', sync);
 			vv.removeEventListener('scroll', sync);
 		};

@@ -239,7 +239,7 @@
 	<button type="button" disabled={m.off} data-tour={m.tour} onclick={m.act} style:--i={i} style:--c1={m.c[0]} style:--c2={m.c[1]} style:--ink={m.c[2]} class="hw mcard {big ? 'mcard-big' : 'mcard-sm'} {span ? 'col-span-2' : ''} {m.nudge ? 'nudge' : ''}">
 		<span class="mcard-check" aria-hidden="true"><span class="kk-checker"></span></span>
 		<Icon name={m.icon} size={big ? 52 : 34} fill class={big ? 'max-md:!text-[42px]' : 'max-md:!text-[28px]'} />
-		<span class="mlabel {big ? 'text-[1.85rem] max-md:text-[1.45rem]' : 'text-[1.45rem] max-md:text-[1.1rem]'}"><HoverWave text={m.label} /></span>
+		<span class="mlabel {big ? 'mlabel-big' : 'mlabel-sm'}"><HoverWave text={m.label} /></span>
 	</button>
 {/snippet}
 
@@ -500,6 +500,25 @@
 		-webkit-text-stroke: 0;
 		text-shadow: none;
 		letter-spacing: 0.01em;
+	}
+	/* The card is a container of its own and its lettering and icon follow its width, on one line: the column of the mode cards is narrower on an open fold
+	   (a card is about 120 px there) than anywhere else, and fixed sizes broke the labels into pieces ("방 만들/기"). */
+	.mcard {
+		container-type: inline-size;
+	}
+	.mcard .mlabel-big {
+		font-size: clamp(1rem, 15cqw, 1.85rem);
+		white-space: nowrap;
+	}
+	.mcard .mlabel-sm {
+		font-size: clamp(0.85rem, 11cqw, 1.45rem);
+		white-space: nowrap;
+	}
+	.mcard.mcard-big :global(.material-symbols-outlined) {
+		font-size: clamp(34px, 30cqw, 52px) !important;
+	}
+	.mcard.mcard-sm :global(.material-symbols-outlined) {
+		font-size: clamp(20px, 15cqw, 34px) !important;
 	}
 	/* the lower-ranked buttons are one line: the icon beside the label */
 	.mcard.mcard-sm {

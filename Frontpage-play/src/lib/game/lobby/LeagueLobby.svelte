@@ -7,6 +7,7 @@
 	import Icon from './Icon.svelte';
 	import TierBadge from './TierBadge.svelte';
 	import LeagueRewardDialog from './LeagueRewardDialog.svelte';
+	import LeagueGuideDialog from './LeagueGuideDialog.svelte';
 
 	/**
 	 * 트로피 리그 전용 로비. 로비 무대 위에 그대로 올라온다(내 모레미는 무대 가운데에 서 있다).
@@ -20,6 +21,7 @@
 	const guest = $derived(store.net.guest);
 	const phone = $derived(variant === 'phone');
 	let rewardOpen = $state(false);
+	let guideOpen = $state(false);
 
 	// 남은 시간은 서버가 알려 준 시각에 맞춰(이 기기의 시계가 어긋나 있어도) 1초마다 센다
 	let tick = $state(Date.now());
@@ -60,6 +62,7 @@
 			<div class="ml-auto flex items-center gap-2">
 				<button type="button" onclick={onranking} aria-label={t('play.league.rankingShort')} class="kk-btn kk-hdr"><Icon name="trophy" size={16} /><span class="max-md:sr-only">{t('play.league.rankingShort')}</span></button>
 				<button type="button" onclick={() => (rewardOpen = true)} aria-label={t('play.league.reward')} class="kk-btn kk-hdr"><Icon name="redeem" size={16} /><span class="max-md:sr-only">{t('play.league.reward')}</span></button>
+				<button type="button" onclick={() => (guideOpen = true)} aria-label={t('play.league.guide.button')} class="kk-btn kk-hdr"><Icon name="help" size={16} /><span class="max-md:sr-only">{t('play.league.guide.button')}</span></button>
 				<span class="kk-hdr kk-hdr-time max-md:!w-auto" role="timer" aria-label={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')} title={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')}><Icon name="schedule" size={18} fill />{clock.text}</span>
 			</div>
 		{/if}
@@ -88,6 +91,7 @@
 </div>
 
 {#if s}<LeagueRewardDialog bind:open={rewardOpen} rewards={s.rewards ?? []} preseason={s.season.preseason} />{/if}
+{#if s}<LeagueGuideDialog bind:open={guideOpen} {s} />{/if}
 
 <style>
 	.league {

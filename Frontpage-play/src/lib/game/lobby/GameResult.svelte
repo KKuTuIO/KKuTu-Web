@@ -8,8 +8,10 @@
 	import { levelUp } from '../levelUp.svelte.js';
 	import { buildResultView } from '../resultModel.js';
 	import DataTable from '../ui/DataTable.svelte';
+	import Tooltip from '../ui/Tooltip.svelte';
 	import ChatPanel from './ChatPanel.svelte';
 	import GameIcon from './GameIcon.svelte';
+	import LeagueReportButton from './LeagueReportButton.svelte';
 	import Icon from './Icon.svelte';
 	import LevelIcon from './LevelIcon.svelte';
 	import Moremi from './Moremi.svelte';
@@ -399,7 +401,8 @@
 				</div>
 				<div class="mine-actions">
 					<div class="mine-buttons">
-						{#if store.replayReady && !net.guest}<button type="button" class="kk-btn log" onclick={() => store.saveReplay()}><Icon name="download" size={22} />{t('kkutu.dialog.result.saveReplay')}</button>{/if}
+						{#if store.replayReady && !net.guest}<Tooltip text={t('kkutu.dialog.result.saveReplay')}><button type="button" class="kk-btn log icon" aria-label={t('kkutu.dialog.result.saveReplay')} onclick={() => store.saveReplay()}><Icon name="download" size={22} /></button></Tooltip>{/if}
+						<LeagueReportButton {store} players={view.players} />
 						<button type="button" class="kk-btn kk-btn-primary ok" onclick={() => (open = false)}>{t('kkutu.dialog.result.ok')}<kbd class="kk-key" aria-hidden="true">Enter</kbd></button>
 					</div>
 				</div>
@@ -877,7 +880,13 @@
 		min-height: 52px;
 		font-size: 1.15rem;
 	}
-	.mine-buttons .log {
+	.mine-buttons :global(.log.icon) {
+		flex: none;
+		min-width: 52px;
+		justify-content: center;
+		padding-inline: 0;
+	}
+	.mine-buttons :global(.log) {
 		min-height: 52px;
 		display: inline-flex;
 		align-items: center;
@@ -1471,7 +1480,7 @@
 			border-top: 1px solid rgb(255 255 255 / 0.14);
 		}
 		.mine-buttons .ok,
-		.mine-buttons .log {
+		.mine-buttons :global(.log) {
 			min-height: 48px;
 		}
 	}

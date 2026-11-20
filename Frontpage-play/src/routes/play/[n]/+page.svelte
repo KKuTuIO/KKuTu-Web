@@ -72,7 +72,7 @@
 	import ProfileWindow from '$lib/game/lobby/ProfileWindow.svelte';
 	import RatingDialog from '$lib/game/lobby/RatingDialog.svelte';
 	import { installUiSounds } from '$lib/game/uiSounds.js';
-	import { installUnlock, playLeagueBgm, playLobbyBgm, playShopBgm, stopBgm } from '$lib/game/audio.svelte.js';
+	import { installUnlock, playLeagueBgm, playLobbyBgm, playShopBgm, stopBgm, wantedBgm } from '$lib/game/audio.svelte.js';
 	import RoomScreen from '$lib/game/lobby/RoomScreen.svelte';
 	import GameScreen from '$lib/game/lobby/GameScreen.svelte';
 	import GameHeader from '$lib/game/lobby/GameHeader.svelte';
@@ -541,8 +541,12 @@
 	// Lobby music plays in the lobby and in waiting rooms (the shop has its own, crossfaded); the game will bring its own.
 	$effect(() => {
 		// 리그: 매칭이 잡힌 때부터(규칙 룰렛, 판 시작 전) 메인 BGM을 끈다. 판이 끝난 뒤에는 결과 화면의 음악이 이어받는다.
-		if (store.net.status !== 'ready' || store.currentRoom?.playing || store.replayView || league.reelOpen) stopBgm();
-		else if (store.game?.result) {
+		if (store.net.status !== 'ready' || store.replayView || league.reelOpen) stopBgm();
+		else if (store.currentRoom?.playing) {
+			// This runs again whenever the room changes (someone leaves, a setting changes): it must only silence the lobby's music when the game starts,
+			// not cut the game's own music (a quiz mode's loop) each time.
+			if (!wantedBgm()?.startsWith('game:')) stopBgm();
+		} else if (store.game?.result) {
 			// between the end of a game and its result screen: silence, then the result's own music (not the lobby's, which waits for the result to be closed)
 		} else if (inLeague || league.found) stopBgm();
 		else if (league.lobbyOpen) playLeagueBgm(); // 트로피 리그 로비에서는 로비와 다른 음악(인트로 한 번, 그다음 루프)

@@ -134,6 +134,17 @@ class GameClientManager(
         return null
     }
 
+    /** 연결된 모든 채널의 제출 진단 원문(JSON). 응답이 없는 채널은 빠진다. */
+    fun requestGameplayDiagnostics(): List<Pair<Short, String>> {
+        val results = ArrayList<Pair<Short, String>>()
+        for (client in gameClientList) {
+            if (!client.isConnected()) continue
+            val response = client.requestGameplayDiagnostics() ?: continue
+            results.add(client.channelId() to response)
+        }
+        return results
+    }
+
     override fun requestReplayUserModeStats(userId: String, canViewAll: Boolean): String? {
         for (client in gameClientList) {
             if (!client.isConnected()) continue

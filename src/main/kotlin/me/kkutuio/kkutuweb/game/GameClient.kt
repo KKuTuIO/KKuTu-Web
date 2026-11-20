@@ -149,7 +149,8 @@ class GameClient(
 
         if (type == "record-find-game-result" ||
             type == "record-find-user-history-result" ||
-            type == "record-find-user-mode-stats-result"
+            type == "record-find-user-mode-stats-result" ||
+            type == "record-gameplay-diagnostics-result"
         ) {
             val requestId = jsonNode["requestId"]?.stringValue() ?: return
             val future = pendingRequests.remove(requestId) ?: return
@@ -207,6 +208,15 @@ class GameClient(
         payload.put("canViewAll", canViewAll)
         return requestReply(payload)
     }
+
+    /** 이 게임 서버 채널이 제출 처리에 대해 모은 진단(읽기 전용). */
+    fun requestGameplayDiagnostics(): String? {
+        val payload = objectMapper.createObjectNode()
+        payload.put("type", "record-gameplay-diagnostics")
+        return requestReply(payload)
+    }
+
+    fun channelId(): Short = id
 
     fun requestReplayUserModeStats(userId: String, canViewAll: Boolean): String? {
         val payload = objectMapper.createObjectNode()

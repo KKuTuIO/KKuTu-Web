@@ -54,14 +54,14 @@
 <svelte:window onbeforeunload={(e) => league.queued && (e.preventDefault(), (e.returnValue = ''))} />
 
 <div role="dialog" aria-modal="true" aria-label={t('play.lobby.trophyLeague')} class="league absolute inset-0 z-30 flex flex-col p-4 max-md:p-3 max-md:pb-[calc(var(--dock,0px)+6rem)]">
-	<!-- 맨 위 줄: 나가기 · 제목 ········ 랭킹 · 보상 · 오늘 남은 시간 (행사 탭의 머리줄처럼 각자 따로) -->
+	<!-- 맨 위 줄: 나가기 · 제목 ········ 랭킹 · 등급 · 안내 · 오늘 남은 시간 (행사 탭의 머리줄처럼 각자 따로) -->
 	<header class="flex shrink-0 items-center gap-3">
 		<button type="button" aria-label={t('play.dialog.back')} onclick={onback} class="grid size-11 shrink-0 place-items-center rounded-full bg-white/90 text-slate-700 shadow-md transition-transform hover:scale-105 hover:bg-white"><Icon name="arrow_back" size={24} /></button>
 		<h2 class="text-2xl font-black tracking-tight whitespace-nowrap text-white max-md:sr-only">{t('play.lobby.trophyLeague')}</h2>
 		{#if !guest && s}
 			<div class="ml-auto flex items-center gap-2">
 				<button type="button" onclick={onranking} aria-label={t('play.league.rankingShort')} class="kk-btn kk-hdr"><Icon name="trophy" size={16} /><span class="max-md:sr-only">{t('play.league.rankingShort')}</span></button>
-				<button type="button" onclick={() => (rewardOpen = true)} aria-label={t('play.league.reward')} class="kk-btn kk-hdr"><Icon name="redeem" size={16} /><span class="max-md:sr-only">{t('play.league.reward')}</span></button>
+				<button type="button" onclick={() => (rewardOpen = true)} aria-label={t('play.league.tiers')} class="kk-btn kk-hdr"><Icon name="military_tech" size={16} /><span class="max-md:sr-only">{t('play.league.tiers')}</span></button>
 				<button type="button" onclick={() => (guideOpen = true)} aria-label={t('play.league.guide.button')} class="kk-btn kk-hdr"><Icon name="help" size={16} /><span class="max-md:sr-only">{t('play.league.guide.button')}</span></button>
 				<span class="kk-hdr kk-hdr-time max-md:!w-auto" role="timer" aria-label={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')} title={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')}><Icon name="schedule" size={18} fill />{clock.text}</span>
 			</div>
@@ -73,8 +73,8 @@
 	{:else if !s}
 		<p class="ltop absolute top-4 left-1/2 -translate-x-1/2 text-sm font-bold text-white/80" aria-busy="true">{t('play.league.loading')}</p>
 	{:else}
-		<!-- 최상단 가운데: 시즌 이름과 기간 -->
-		<div class="ltop absolute left-1/2 flex -translate-x-1/2 flex-col items-center text-center {phone ? 'top-[4.1rem]' : 'top-4'}" style="--c:#3553a0">
+		<!-- 머리줄 바로 밑 왼쪽: 시즌 이름과 기간(머리줄의 버튼들과 겹치지 않게 아래로 내린다) -->
+		<div class="ltop absolute left-4 flex flex-col items-start text-left max-md:left-3 {phone ? 'top-[4.1rem]' : 'top-[4.9rem]'}" style="--c:#3553a0">
 			<span class="kk-fire-text text-2xl leading-none max-md:text-xl" style="-webkit-text-stroke-width:6px">{s.season.preseason ? t('play.league.preseason') : s.season.name}</span>
 			<span class="mt-1.5 text-xs font-extrabold text-white/90 [text-shadow:0_1px_3px_rgb(0_0_0/0.6)]">{t('play.league.period', { from: s.season.period.from, to: s.season.period.to })}</span>
 		</div>
@@ -90,7 +90,7 @@
 	{/if}
 </div>
 
-{#if s}<LeagueRewardDialog bind:open={rewardOpen} rewards={s.rewards ?? []} preseason={s.season.preseason} />{/if}
+{#if s}<LeagueRewardDialog bind:open={rewardOpen} rewards={s.rewards ?? []} preseason={s.season.preseason} current={s.mine.tierId} />{/if}
 {#if s}<LeagueGuideDialog bind:open={guideOpen} {s} />{/if}
 
 <style>

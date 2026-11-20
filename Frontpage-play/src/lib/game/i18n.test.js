@@ -50,7 +50,18 @@ describe("locale files", () => {
   const dynamic = [
     ...[
       "LobbyBGM",
+      "LobbySeolBGM",
+      "LobbyBGM_2017",
+      "LobbyBGM_2020_Summer",
+      "LobbyBGM_2020_Fall",
+      "LobbyBGM_2020_Winter",
       "LobbyBGM_NEW",
+      "LobbyBGM_KKuTuIO_Seol",
+      "LobbyBGM_2022_Fall",
+      "LobbyBGM_2023_Winter",
+      "LobbyBGM_2023_6th",
+      "LobbyBGM_2023_Summer",
+      "LobbyBGM_2024_Spring",
       "LobbyBGM_2024_Fall",
       "LobbyBGM_2024_Winter",
       "LobbyBGM_2025_8th",
@@ -58,6 +69,8 @@ describe("locale files", () => {
       "LobbyBGM_2026_Spring",
       "LobbyBGM_2026_10th",
       "LobbyBGM_2027_10th",
+      "LobbyBGM_Plus_S1",
+      "LobbyBGM_Plus_S2",
     ].map((k) => `play.audio.lobby.${k}`),
     ...["kkutu", "kkutuio", "new_start", "acoustic"].map(
       (k) => `play.audio.set.${k}`,

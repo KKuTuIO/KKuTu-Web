@@ -16,7 +16,7 @@
 	 * - Drag it by the title bar (mouse, touch, pen), or focus the title bar and use the arrow keys
 	 *   (Shift = bigger steps). It can't be dragged out of reach: the title bar always stays on screen.
 	 * - No dimmed backdrop and nothing behind it is blocked, so the game keeps running.
-	 * - It fades to 50% while the pointer is away (`ghost`), and is fully opaque on hover, while it has
+	 * - It fades to 50% while the pointer is away (`ghost`, only on devices that can hover; touch-only ones stay solid), and is fully opaque on hover, while it has
 	 *   keyboard focus (so typing in it stays readable) and while being dragged.
 	 * - It opens in its default place every time and comes to the front when pressed.
 	 * @type {{open?:boolean, title:string, id:string, width?:string, ghost?:boolean, children?:import('svelte').Snippet, onclose?:()=>void}}

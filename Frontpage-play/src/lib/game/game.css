@@ -98,10 +98,14 @@
 
 }
 
-/* Floating tool windows (FloatWindow): translucent until pointed at, focused or dragged. */
+/* Floating tool windows (FloatWindow): translucent until pointed at, focused or dragged.
+   Only where something can hover (a mouse or trackpad, even a plugged-in one): on touch-only devices (phones, tablets, foldables) there is no pointer to
+   bring them back, so they stay solid. */
 .kk-float { transition: opacity 0.15s ease; }
-.kk-float[data-ghost='true'] { opacity: 0.5; }
-.kk-float[data-ghost='true']:hover, .kk-float[data-ghost='true']:focus-within, .kk-float[data-dragging='true'] { opacity: 1; }
+@media (any-hover: hover) {
+	.kk-float[data-ghost='true'] { opacity: 0.5; }
+	.kk-float[data-ghost='true']:hover, .kk-float[data-ghost='true']:focus-within, .kk-float[data-dragging='true'] { opacity: 1; }
+}
 
 /* Dialog motion: overshooting spring in, quick anticipation-and-shrink out. */
 .kk-bouncy[open] { animation: kk-pop-in 0.26s cubic-bezier(0.34, 1.7, 0.64, 1) both; }

@@ -986,7 +986,7 @@
 	{/if}
 	{@render phoneRoster()}
 	<div class="kkp-grow"></div>
-	{#if !painting && !store.currentRoom?.league}<GameChatBar {store} />{/if}
+	{#if !painting}<GameChatBar {store} league={!!store.currentRoom?.league} />{/if}
 </div>
 <Dialog bind:open={palOpen} title={t('kkutu.js.drawingColor')}>
 	<DrawingPalette onpick={() => (palOpen = false)} />
@@ -1020,7 +1020,7 @@
 	{@render phoneRoster()}
 	<div class="kkp-grow"></div>
 	{#if itemOn}<div class="kkp-items"><ItemBar {store} layout="badge" onuse={useItem} ongrip={gripDown} onmove={(d) => setPref('itemDock', d)} dragging={itemDrag} /></div>{/if}
-	{#if !store.currentRoom?.league}<GameChatBar {store} />{/if}
+	<GameChatBar {store} league={!!store.currentRoom?.league} />
 </div>
 <!-- The sheet is beside the stage, not in it: the stage's rules (floats, content-box) are for the legacy board and would be applied to the sheet's own frame. -->
 <Dialog bind:open={histOpen} title={t('play.game.history')}>

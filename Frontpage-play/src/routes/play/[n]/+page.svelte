@@ -649,9 +649,9 @@
 	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (prefs.hand === 'left' ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
 	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : 'max-md:pb-[calc(0.75rem+var(--dock,0px))]'}">
 		<!-- Right hand: the side bar is on the left (default). Left hand: it moves to the right of the room list. -->
-		<div style:--side-w="{sideFolded ? 56 : sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen || inLeague ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
-			{#if sideFolded}
-				<!-- folded: a slim strip with the one button that opens it (and a mark while friend requests wait) -->
+		<div style:--side-w="{canFold ? 56 : sideW}px" class="relative flex {desk ? `w-(--side-w) shrink-0 ${leftHanded ? 'order-3' : 'order-1'}` : 'order-2 max-h-72'} {store.inGame && store.ui.gameCovered ? 'max-xl:hidden!' : ''} {shopOpen || inLeague ? 'hidden!' : ''} {tabBar ? (peopleShown ? 'max-md:max-h-none! max-md:min-h-0 max-md:flex-1' : 'max-md:hidden!') : ''} {phone && store.net.myRoom ? 'hidden!' : ''}">
+			{#if canFold}
+				<!-- where it can be folded the column is always this slim strip, with the one button that opens it (and a mark while friend requests wait); opened, the side bar floats over the room list instead of taking its width -->
 				<div class="kk-card flex h-full w-full flex-col items-center py-2">
 					<Tooltip text={t('play.side.open')} placement={leftHanded ? 'left' : 'right'}>
 						<button type="button" aria-label={t('play.side.open')} aria-expanded="false" onclick={() => setSideOpen(true)} class="kk-btn relative grid size-10 min-h-0 place-items-center p-0">
@@ -660,7 +660,9 @@
 						</button>
 					</Tooltip>
 				</div>
-			{:else}
+			{/if}
+			{#if !sideFolded}
+				<div style:width={canFold ? `${sideW}px` : undefined} class={canFold ? `absolute inset-y-0 z-30 flex rounded-2xl shadow-2xl ${leftHanded ? 'right-0' : 'left-0'}` : 'contents'}>
 				<SidePanel {store} profile={(peopleShown || desk) && !kbd} noAvatar={newLobby && desk && !store.net.myRoom && !peopleShown} />
 				{#if canFold}
 					<Tooltip text={t('play.side.fold')} placement={leftHanded ? 'right' : 'left'}>
@@ -669,6 +671,7 @@
 				{/if}
 				<ResizeHandle class="-right-4 h-full w-4 {desk && !leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
 				<ResizeHandle class="-left-4 h-full w-4 {desk && leftHanded ? 'block' : 'hidden'}" orientation="vertical" grow={-1} value={sideW} min={SIDE.min} max={sideMax} def={SIDE.def} label={t('play.layout.resizeSide')} onchange={(v) => setLayout('side', v)} />
+				</div>
 			{/if}
 		</div>
 		<!-- overflow-hidden clips the room while it slides in; the bottom padding keeps the cards' hard shadow visible -->

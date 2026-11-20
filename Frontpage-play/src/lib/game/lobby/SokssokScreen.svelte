@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { onAction } from "../keys.svelte.js";
     import { fade, fly } from "svelte/transition";
     import Icon from "./Icon.svelte";
     import Dialog from "./Dialog.svelte";
@@ -207,6 +208,20 @@
             erase();
         }
     }
+
+    // 솎솎 입력 (Space) and 솎솎 취소 (Esc: drop the tiles picked so far), the player's own keys in the 단축키 settings. A focused button keeps its Space.
+    $effect(() =>
+        onAction("soksokSubmit", () =>
+            helpOpen || document.activeElement?.tagName === "BUTTON"
+                ? false
+                : send(),
+        ),
+    );
+    $effect(() =>
+        onAction("soksokCancel", () =>
+            helpOpen || !picks.length ? false : ((picks = []), haptic(4)),
+        ),
+    );
 
     const recent = $derived([...found].reverse());
     const goal = $derived(found.length >= minWords);

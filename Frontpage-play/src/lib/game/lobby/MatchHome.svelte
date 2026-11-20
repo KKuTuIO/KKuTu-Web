@@ -4,6 +4,7 @@
 	import { haptic } from '../haptics.js';
 	import { reducedMotion } from '../motion.js';
 	import { prefs } from '../prefs.svelte.js';
+	import { onAction } from '../keys.svelte.js';
 	import { maskBad } from '../badwords.js';
 	import { nudgeOpen, closeNudge } from '../nudges.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
@@ -110,6 +111,9 @@
 		haptic(10);
 		phase = 'select';
 	}
+	// 게임 시작!: Enter (only with no field focused and no dialog open, which the key listener sees to) or F2. A focused button takes its own Enter.
+	$effect(() => onAction('lobbyStart', () => (phase !== 'idle' || !ready || document.activeElement?.closest?.('button, a, [role=button]') ? false : start())));
+	$effect(() => onAction('quickStart', () => (phase !== 'idle' || !ready ? false : start())));
 	// The room list and the arcade replace the mode screen at once (it is not animated out); the blurred stage stays behind them.
 	const sub = $derived(phase === 'rooms' || phase === 'arcade' || phase === 'page');
 	// 공지·행사, 사전 and 리플레이 are pages of the top bar: the page says which one is open, and the stage shows it on the blurred picture

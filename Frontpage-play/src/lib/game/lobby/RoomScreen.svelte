@@ -9,6 +9,7 @@
 	import { toast } from '../ui/toast.svelte.js';
 	import Rich from '../ui/Rich.svelte';
 	import { prefs } from '../prefs.svelte.js';
+	import { onAction } from '../keys.svelte.js';
 	import { notice } from '../protocol.js';
 	import InviteDialog from './InviteDialog.svelte';
 	import AiDialog from './AiDialog.svelte';
@@ -35,6 +36,15 @@
 	const empty = $derived(Math.max(0, (room?.limit ?? 0) - players.length));
 	const spectating = $derived(me?.form === 'S');
 	const ready = $derived(!!me?.ready);
+	// 친선전 준비/시작: the room's one big button (the master starts, the others get ready), the same as pressing it
+	$effect(() =>
+		onAction('roomCTA', () => {
+			if (!room || room.playing) return false;
+			if (store.isMaster) store.start();
+			else if (!spectating) store.toggleReady();
+			else return false;
+		})
+	);
 	const teamOptions = $derived([
 		{ value: 0, label: t('play.room.team.solo'), color: 'var(--kk-team-0)' },
 		...[1, 2, 3, 4].map((n) => ({ value: n, label: 'ABCD'[n - 1], color: `var(--kk-team-${n})` }))

@@ -1,5 +1,6 @@
 <script>
 	import { t } from '../i18n.svelte.js';
+	import { bindings, label } from '../keys.svelte.js';
 	import { ITEMS, DOCK_KEYS, PER_ROUND, itemReady, itemLeft } from '../items.js';
 	import Tooltip from '../ui/Tooltip.svelte';
 	import Icon from './Icon.svelte';
@@ -39,14 +40,14 @@
 			<span class="block max-w-56 text-[11px] leading-snug opacity-90">{t(`game.item.${it.id}.expl`)}</span>
 		{/snippet}
 		<Tooltip content={tip} placement={layout === 'row' ? 'top' : rail ? 'right' : 'bottom'}>
-			<button type="button" style:--c={it.color} class="pill {ready ? '' : 'off'} {left <= 0 ? 'none' : ''}" aria-disabled={!ready} aria-label="{t(`game.item.${it.id}.name`)} x{left}" aria-keyshortcuts="Shift+{it.id + 1}" onclick={() => ready && onuse(it.id)}>
+			<button type="button" style:--c={it.color} class="pill {ready ? '' : 'off'} {left <= 0 ? 'none' : ''}" aria-disabled={!ready} aria-label="{t(`game.item.${it.id}.name`)} x{left}" aria-keyshortcuts={bindings[`item${it.id + 1}`]} onclick={() => ready && onuse(it.id)}>
 				<span class="orb"><Icon name={it.icon} size={rail ? 20 : 18} weight={600} /></span>
 				{#if rail || badge}
 					<span class="n">{badge ? left : `x${left}`}</span>
 				{:else}
 					<span class="txt"><span class="nm">{t(`game.item.${it.id}.name`)}</span><b class="cnt">x{left}</b></span>
 				{/if}
-				{#if !badge}<span class="key">{rail ? '⇧' : 'Shift+'}{it.id + 1}</span>{/if}
+				{#if !badge}<span class="key">{rail ? label(bindings[`item${it.id + 1}`]).replace('Shift+', '⇧') : label(bindings[`item${it.id + 1}`])}</span>{/if}
 			</button>
 		</Tooltip>
 	{/each}

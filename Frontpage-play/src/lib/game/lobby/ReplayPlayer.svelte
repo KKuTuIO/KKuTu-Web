@@ -1,6 +1,7 @@
 <script>
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { t } from '../i18n.svelte.js';
+	import { onAction } from '../keys.svelte.js';
 	import { createReplay, SPEEDS } from '../replayPlayer.svelte.js';
 	import { createGameAudio } from '../gameAudio.js';
 	import { clock } from '../replayPayload.js';
@@ -42,11 +43,12 @@
 		if (view.playing) replay.pause();
 		else replay.play();
 	}
+	// the keys are the player's own (단축키 settings); K stays as the video players' second play/pause key
+	$effect(() => onAction('replayToggle', toggle));
+	$effect(() => onAction('replaySeekForward', () => replay.seek(replay.position() + 5000)));
+	$effect(() => onAction('replaySeekBackward', () => replay.seek(replay.position() - 5000)));
 	function key(e) {
-		if (e.target instanceof HTMLInputElement && e.target.type !== 'range') return;
-		if (e.key === ' ' || e.key === 'k') (e.preventDefault(), toggle());
-		else if (e.key === 'ArrowRight') (e.preventDefault(), replay.seek(replay.position() + 5000));
-		else if (e.key === 'ArrowLeft') (e.preventDefault(), replay.seek(replay.position() - 5000));
+		if (e.key === 'k' && !(e.target instanceof HTMLInputElement && e.target.type !== 'range') && !e.ctrlKey && !e.metaKey && !e.altKey) (e.preventDefault(), toggle());
 	}
 	const pct = (ms) => (duration ? (ms / duration) * 100 : 0);
 </script>

@@ -13,6 +13,7 @@
 	import Tooltip from '../ui/Tooltip.svelte';
 	import { toast } from '../ui/toast.svelte.js';
 	import { DEFAULTS, prefs, setPref } from '../prefs.svelte.js';
+	import { ACTIONS, GROUPS, bindings, comboOf, label as keyLabel, resetBinding, resetBindings, setBinding, setCapturing } from '../keys.svelte.js';
 	import { blockedList } from '../blocks.svelte.js';
 	import { MAX_NOTE, notes, setNote } from '../notes.svelte.js';
 	import { confirm, prompt } from '../ui/confirm.svelte.js';
@@ -26,13 +27,39 @@
 
 	let { store, open = $bindable(false), start = 'sound' } = $props();
 	let tab = $state('sound');
-	const tabs = $derived(['sound', 'chat', 'game', 'block', 'account'].map((id) => ({ id, label: t(`play.settings.tab.${id}`) })));
+	const tabs = $derived(['sound', 'chat', 'game', 'keys', 'block', 'account'].map((id) => ({ id, label: t(`play.settings.tab.${id}`) })));
 
 	// Changes are collected here and only applied by 저장; closing the dialog drops them.
 	const AUDIO_KEYS = ['vb', 've', 'vu', 'muted', 'set', 'lobby'];
 	const FORM_PREFS = Object.keys(DEFAULTS).filter((k) => k !== 'userSort');
 	const snapshot = () => ({ ...Object.fromEntries(FORM_PREFS.map((k) => [k, prefs[k]])), ...Object.fromEntries(AUDIO_KEYS.map((k) => [k, audio[k]])) });
 	let draft = $state(snapshot());
+
+	// 단축키 tab: the action waiting for its new key
+	let capturing = $state('');
+	$effect(() => {
+		if (!open || tab !== 'keys') capturing = '';
+	});
+	$effect(() => {
+		if (!capturing) return;
+		setCapturing(true);
+		const id = capturing;
+		const take = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (e.code === 'Escape') return void (capturing = '');
+			const combo = comboOf(e);
+			if (!combo) return; // a modifier on its own: wait for the key that goes with it
+			const other = setBinding(id, combo);
+			if (other) toast(t('play.keys.conflict', { name: t(`play.keys.${other.id}`) }), { kind: 'error' });
+			else capturing = '';
+		};
+		window.addEventListener('keydown', take, true);
+		return () => {
+			window.removeEventListener('keydown', take, true);
+			setCapturing(false);
+		};
+	});
 	$effect(() => {
 		if (open) {
 			draft = snapshot();
@@ -123,6 +150,19 @@
 	const goTo = async (i) => (await confirmLeave()) && (location.href = `/play/${i}`);
 </script>
 
+<!-- 단축키: each change is kept at once (it is not part of the draft below); the key pressed next is the new one, Esc gives up -->
+{#snippet keyRow(a)}
+	{@const changed = bindings[a.id] !== a.key}
+	<div class="flex items-center gap-2">
+		<span class="min-w-0 flex-1 truncate text-sm">{t(`play.keys.${a.id}`)}</span>
+		{#if changed && !a.fixed}
+			<Tooltip text={t('play.keys.resetOne')} placement="top"><button type="button" aria-label={t('play.keys.resetOne')} onclick={() => resetBinding(a.id)} class="kk-btn grid size-8 min-h-0 place-items-center p-0"><Icon name="undo" size={16} /></button></Tooltip>
+		{/if}
+		<button type="button" disabled={a.fixed} title={a.fixed ? t('play.keys.fixed') : undefined} onclick={() => (capturing = capturing === a.id ? '' : a.id)} class="kk-btn min-h-9 w-44 px-2 text-sm font-bold tabular-nums {capturing === a.id ? 'ring-2 ring-(--kk-accent-strong)' : ''} {a.fixed ? 'opacity-40' : ''}">
+			{capturing === a.id ? t('play.keys.press') : keyLabel(bindings[a.id])}
+		</button>
+	</div>
+{/snippet}
 {#snippet toggle(name, label, expl)}
 	<!-- An option with an explanation shows it as a tooltip instead of a line of text. -->
 	<Tooltip text={expl} placement="top"><Checkbox checked={draft[name]} onchange={(v) => (draft[name] = v)}>{label}</Checkbox></Tooltip>
@@ -146,7 +186,7 @@
 						{#each channels as c (c.key)}
 							<div class="flex flex-col">
 								<span class="flex items-center gap-1.5 text-xs font-bold text-(color:--kk-muted)"><Icon name={c.icon} size={18} />{c.label}</span>
-								<Seekbar value={Math.round(draft[c.key] * 100)} min={0} max={100} step={5} tickStep={25} label={c.label} format={(v) => `${v}%`} tickLabel={(v) => v} disabled={draft.muted} onchange={(v) => (draft[c.key] = v / 100)} />
+								<Seekbar value={Math.round(draft[c.key] * 100)} min={0} max={100} step={1} tickStep={25} label={c.label} format={(v) => `${v}%`} tickLabel={(v) => v} disabled={draft.muted} onchange={(v) => (draft[c.key] = v / 100)} />
 							</div>
 						{/each}
 					</div>
@@ -220,6 +260,15 @@
 						</ul>
 					{/if}
 				</div>
+			{:else if tab === 'keys'}
+				<p class="text-xs text-(color:--kk-muted)">{t('play.keys.hint')}</p>
+				{#each GROUPS as g (g)}
+					<div class="flex flex-col gap-1.5">
+						{@render heading('keyboard', t(`play.keys.group.${g}`))}
+						{#each ACTIONS.filter((a) => a.group === g) as a (a.id)}{@render keyRow(a)}{/each}
+					</div>
+				{/each}
+				<button type="button" onclick={resetBindings} class="kk-btn min-h-10 self-start px-4 text-sm">{t('play.keys.reset')}</button>
 			{:else if tab === 'block'}
 				<div class="flex items-center justify-between gap-2">
 					{@render heading('block', `${t('play.block.title')} (${t('play.block.count', { n: blocks.length })})`)}

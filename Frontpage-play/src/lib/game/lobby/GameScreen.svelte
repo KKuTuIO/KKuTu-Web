@@ -1,5 +1,6 @@
 <script>
 	import { tick, untrack } from 'svelte';
+	import { onAction } from '../keys.svelte.js';
 		import { quintOut } from 'svelte/easing';
 	import { t } from '../i18n.svelte.js';
 	import { charText, QUIZ, BOARD } from '../gameModel.js';
@@ -510,16 +511,36 @@
 		window.addEventListener('pointerup', up);
 		window.addEventListener('pointercancel', up);
 	}
-	function itemKey(e) {
-		// Shift+1 .. Shift+6 (laptops need Fn for the F keys). `code`, not `key`: with Shift the key is '!', '@', ...
-		if (!itemOn || !e.shiftKey || e.altKey || e.ctrlKey || e.metaKey || !/^Digit[1-6]$/.test(e.code)) return;
-		const el = e.target;
-		// typing '!' in the chat or any other text field stays typing; the answer field is the one place the keys work from
-		if (el instanceof HTMLElement && el !== answerHost && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
-		e.preventDefault();
-		const id = Number(e.code.slice(5)) - 1;
-		if (itemReady(g, id, store.myTurn)) useItem(id);
+	// Shift+1 .. Shift+6 by default (laptops need Fn for the F keys), the player's own keys in the 단축키 settings.
+	for (let n = 1; n <= 6; n++) {
+		$effect(() =>
+			onAction(`item${n}`, (e) => {
+				if (!itemOn) return false;
+				const el = e.target;
+				// typing '!' in the chat or any other text field stays typing; the answer field is the one place the keys work from
+				if (el instanceof HTMLElement && el !== answerHost && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return false;
+				if (itemReady(g, n - 1, store.myTurn)) useItem(n - 1);
+			})
+		);
 	}
+	// 포기 (Shift+` by default): the server takes "gg" (or ㅈㅈ) as giving up the round in 초성 퀴즈 and 그림 퀴즈; this sends it
+	$effect(() =>
+		onAction('waive', (e) => {
+			const el = e.target;
+			if (el instanceof HTMLElement && el !== answerHost && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return false;
+			if (!['Jaqwi', 'Drawing'].includes(family) || spectating || !g || g.phase === 'loading' || g.result || g.gaveUp?.[store.net.id] || g.painter === store.net.id) return false;
+			store.submitWord('gg');
+		})
+	);
+	// 입력 창에서 채팅 (Ctrl+Enter by default): what is typed in the answer field goes to the chat, not in as the answer
+	$effect(() =>
+		onAction('inputChatSubmit', (e) => {
+			const line = value.trim();
+			if (e.target !== answerHost || !line) return false;
+			store.sendChat(line, { chatOnly: true });
+			value = '';
+		})
+	);
 	// what was used shows in the mouth for a moment (legacy)
 	let itemNote = $state(null);
 	let itemFx = $state(null); // the hack animation over the stage: {item, target, at}
@@ -1153,7 +1174,7 @@
 	<GameResult {store} />
 {/if}
 
-<svelte:window onkeydown={itemKey} bind:innerWidth={winW} />
+<svelte:window bind:innerWidth={winW} />
 
 <style>
 	:global(.kkg .kkg-item-anchor) { position: relative; top: -220px; left: 244px; width: 100%; height: 0; }

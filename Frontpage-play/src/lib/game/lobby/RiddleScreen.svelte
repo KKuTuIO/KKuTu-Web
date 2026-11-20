@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { onAction } from "../keys.svelte.js";
     import Icon from "./Icon.svelte";
     import GameIcon from "./GameIcon.svelte";
     import PriceChip from "./PriceChip.svelte";
@@ -236,6 +237,8 @@
         haptic(10);
         store.riddleHint(mode);
     }
+    // the hint key (1 by default): the free hint, as the button does
+    $effect(() => onAction("hint1", () => (canHint && !board?.hint && !hintOpen ? hint() : false)));
     function buyHint() {
         if (!canHint || board.paid || money < cost) return;
         hintOpen = false;

@@ -1,4 +1,5 @@
 <script>
+	import { onAction } from '../keys.svelte.js';
 	import { tick, untrack } from 'svelte';
 	import { backOut, cubicOut } from 'svelte/easing';
 	import { ms, reducedMotion } from '../motion.js';
@@ -175,6 +176,32 @@
 		appliedNonce = n;
 		if (!inline) show();
 	});
+	// 단축키: only the instance that answers the chat's own button does (the desktop panel on desktop, the sheet elsewhere, as for the draft above)
+	const answers = () => (inline ? twoColumns(innerWidth) : !twoColumns(innerWidth) || fab);
+	$effect(() =>
+		onAction('chatPanelExpand', async () => {
+			if (!answers()) return false;
+			if (!inline) await show();
+			input?.focus();
+		})
+	);
+	for (let n = 1; n <= 10; n++) {
+		$effect(() =>
+			onAction(`chatRoom${n}`, async () => {
+				if (!answers() || !tabs[n - 1]) return false;
+				tab = tabs[n - 1].id;
+				if (!inline) await show();
+			})
+		);
+	}
+	$effect(() =>
+		onAction('chatRoomHide', () => {
+			if (!answers()) return false;
+			if (!inline && openSheet) openSheet = false;
+			else if (inline && document.activeElement === input) input.blur();
+			else return false;
+		})
+	);
 	async function show() {
 		openSheet = true;
 		stick = true;

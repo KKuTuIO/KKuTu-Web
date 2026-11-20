@@ -689,7 +689,7 @@ export function createLobbyStore(server) {
 			dmAdd(net, id, { name: who.name.replace(/\s/g, ''), msg: value, mine: true });
 			return true;
 		},
-		sendChat(msg) {
+		sendChat(msg, opts) {
 			const value = msg.trim();
 			if (!value) return;
 			// 그림퀴즈: the one who draws cannot send anything while the game runs (legacy)
@@ -698,7 +698,7 @@ export function createLobbyStore(server) {
 			// An administrator's "#…" line is a command for the server: not my answer on my turn, and not subject to the chat spam guard.
 			if (net.admin && isAdminCommand(value)) return (telemetry.cleared(), conn.send('talk', { value }));
 			// On my turn a line typed in the chat is my answer, just like one typed in the game's own field.
-			if (this.myTurn) return this.submitWord(msg);
+			if (this.myTurn && !opts?.chatOnly) return this.submitWord(msg); // `chatOnly`: the 입력 창에서 채팅 key, a line that is only chat
 			telemetry.cleared(); // a chat line is not an answer: the chat box is emptied by the page, not by typing
 			const verdict = spam(value);
 			if (!verdict.allow) {

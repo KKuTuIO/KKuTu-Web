@@ -21,9 +21,9 @@ export const LOBBY_BGMS = [
 export const SOUND_SETS = ["kkutu", "kkutuio", "new_start", "acoustic"];
 
 export const DEFAULT_AUDIO = {
-  vb: 1,
-  ve: 1,
-  vu: 1,
+  vb: 0.5,
+  ve: 0.5,
+  vu: 0.5,
   set: "kkutuio",
   lobby: "LobbyBGM_2026_Spring",
   muted: false,

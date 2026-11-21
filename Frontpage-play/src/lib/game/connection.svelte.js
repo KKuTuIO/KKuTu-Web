@@ -1,7 +1,7 @@
 import { setNudgeState } from './nudges.svelte.js';
 import { setProgress } from './tutorial/progress.svelte.js';
 import { showInjeongHint } from './injeongHint.js';
-import { applyPacket, errorText, initialState, plainText } from './protocol.js';
+import { applyPacket, errorText, initialState, plainText, pruneLeagueSeats } from './protocol.js';
 import { loadShop } from './images.js';
 import { itemName, loadGoodDetails } from './shop.js';
 import { OKG_MINUTES } from './lobbyModel.js';
@@ -194,6 +194,7 @@ export function createConnection(server) {
 			const reconnectable = shouldReconnect(e.code, state.error?.code);
 			state.status = 'closed';
 			state.myRoom = null; // the room is gone with the session
+			pruneLeagueSeats(state);
 			state.preRoom = null;
 			state.error = reconnectable ? { code: e.code, message: '' } : (state.error ?? { code: e.code, message: '' });
 			if (reconnectable) {
@@ -382,6 +383,7 @@ export function createConnection(server) {
 			security.debug('slave-close', { code: e.code, reason: e.reason || '', wasClean: !!e.wasClean, channel: Number(channel), targetRoomId: Number(id) });
 			if (rws === sock) rws = undefined;
 			state.myRoom = null;
+			pruneLeagueSeats(state);
 			if (state.game) {
 				state.game = null;
 				stopTurnSound();

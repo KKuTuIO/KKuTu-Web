@@ -155,8 +155,26 @@ export function maskLeagueUsers(state) {
 		if (!u || id === state.id) continue;
 		// leagueSeat: 접속자 패널에서만 숨기는 표시(봇도 robot: false로 와서 걸러지지 않는다)
 		// 이름은 서버가 방 데이터로 보내 준 이 판의 임시 별명(room 패킷에서 기억해 둔다). 로비 방송이 실제 이름으로 덮어써도 되돌린다.
+		(state.leagueSeats ??= {})[id] = true;
 		state.users[id] = { ...u, name: state.leagueAliases?.[id] ?? LEAGUE_ANON_NAME, tag: '', fixed: false, equip: {}, robot: false, level: null, record: {}, exordial: '', statusMessage: '', guest: false, leagueSeat: true };
 	}
+}
+
+/**
+ * 내가 리그 판 안에 있지 않으면, 그 판에서 생긴 자리(상대 사람과 봇)와 임시 별명을 사용자 목록에서 지운다. 봇은 접속자가 아니라서 연결 끊김 알림이
+ * 오지 않고, 방을 떠난 사람에게는 마지막 방 패킷도 오지 않으므로, 패킷을 처리한 뒤와 방 연결이 끊긴 뒤에 이 함수로 한 번에 정리한다
+ * (접속자, 초대, 귓속말 검색처럼 사용자 목록을 쓰는 모든 화면이 따로 거르지 않아도 되게 한다).
+ */
+export function pruneLeagueSeats(state) {
+	const seats = state.leagueSeats;
+	if (!seats) return;
+	const room = state.myRoom ? state.rooms[state.myRoom] : null;
+	if (room?.league) return;
+	for (const id of Object.keys(seats)) {
+		if (state.users[id]?.leagueSeat) delete state.users[id];
+		if (state.leagueAliases) delete state.leagueAliases[id];
+	}
+	state.leagueSeats = {};
 }
 
 export function normalizeRoom(raw, meta) {
@@ -278,6 +296,12 @@ export function normalizeEvents(raw) {
 
 /** @param {number} [now] the time the packet is applied at (the live connection: now; a replay: its own clock) */
 export function applyPacket(state, pkt, now = Date.now()) {
+	const result = applyPacketInner(state, pkt, now);
+	pruneLeagueSeats(state);
+	return result;
+}
+
+function applyPacketInner(state, pkt, now) {
 	switch (pkt.type) {
 		case 'captcha':
 			state.status = 'captcha';

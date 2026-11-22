@@ -443,6 +443,7 @@ export function createLobbyStore(server) {
 					case 'Classic':
 					case 'Daneo':
 					case 'Hunmin':
+					case 'Mathrelay':
 						return {};
 					case 'Jaqwi':
 					case 'Drawing':
@@ -461,7 +462,7 @@ export function createLobbyStore(server) {
 				}
 			}
 			const playing = net.users[net.id]?.game.form === 'J';
-			if (source === 'chat' && playing && ['Classic', 'Daneo', 'Hunmin'].includes(fam) && ['turn', 'between'].includes(g.phase)) return { pending: true };
+			if (source === 'chat' && playing && ['Classic', 'Daneo', 'Hunmin', 'Mathrelay'].includes(fam) && ['turn', 'between'].includes(g.phase)) return { pending: true };
 			return null;
 		},
 		/**

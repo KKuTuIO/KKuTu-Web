@@ -90,6 +90,7 @@ export function createGameAudio(state, { onTurnStart } = {}) {
 			else if (pkt.type === 'turnEnd') {
 				stopTurnSound();
 				if (!pkt.ok) playSound('timeout');
+				else if (fam === 'Mathrelay') playSound('mission');
 				else if (pkt.baby) playSound('success');
 			}
 		}

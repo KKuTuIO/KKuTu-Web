@@ -51,6 +51,7 @@ export function newGame(room) {
 		rounds: room?.rounds ?? 0,
 		char: '',
 		subChar: '',
+		problem: '', // 수학 릴레이: the problem on show ("7 × 3 = ?"; after the turn, with its answer)
 		mission: '',
 		chain: 0,
 		seq: seatIds(room?.game?.seq),
@@ -124,7 +125,7 @@ export function checkFailCombo(state, g, failId) {
 	const room = state.rooms[state.myRoom];
 	const family = state.meta.rules[room?.modeKey]?.rule;
 	if (family === 'Hunmin') return null; // legacy: 훈민정음 does not count failed turns in a row
-	const classic = family === 'Classic';
+	const classic = family === 'Classic' || family === 'Mathrelay';
 	const seqLength = g.seq.length;
 	let action = null;
 	if (!classic || (seqLength > 0 && seqLength < 3)) {
@@ -369,6 +370,7 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 			g.itemLock = false;
 			g.char = pkt.char ?? '';
 			g.subChar = pkt.subChar ?? '';
+			g.problem = typeof pkt.value === 'string' ? pkt.value : ''; // 수학 릴레이: the number the round starts from
 			g.theme = pkt.theme ?? ''; // 훈민정음 / 단어 대결 / 자음퀴즈: the round's theme
 			g.hints = [];
 			g.history = [];
@@ -419,6 +421,7 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 			g.current = QUIZ.includes(familyOf(state)) ? null : (g.seq[pkt.turn] ?? null); // the quiz modes have no turn order
 			g.char = pkt.char ?? g.char;
 			g.subChar = pkt.subChar ?? '';
+			if (typeof pkt.problem === 'string') g.problem = pkt.problem;
 			g.speed = pkt.speed ?? 0;
 			g.turnTime = pkt.turnTime ?? 0;
 			g.roundTime = pkt.roundTime ?? 0;
@@ -501,10 +504,13 @@ export function applyGamePacket(state, pkt, now = Date.now()) {
 			const hint = data.hint && typeof data.hint === 'object' ? data.hint._id : data.hint;
 			// 한방: the server says which letters of the word the next player cannot continue from ([start, end) in the word)
 			const hb = Array.isArray(data.hanbang) && data.hanbang.length === 2 && data.hanbang.every(Number.isInteger) ? data.hanbang : null;
-			g.last = { ok: !!data.ok, id, value: data.value ?? '', mean: data.mean ?? '', theme: data.theme ?? '', wc: data.wc ?? '', score, bonus, hint: hint ?? '', hanbang: data.ok ? hb : null };
+			const solved = typeof data.problem === 'string' ? data.problem : '';
+			// 수학 릴레이: the problem stays on show with the answer in place of the question mark
+			if (familyOf(state) === 'Mathrelay' && solved) g.problem = solved.replace('?', String(data.ok ? data.value : (data.answer ?? '?')));
+			g.last = { ok: !!data.ok, id, value: data.value ?? '', problem: solved, answer: data.answer ?? '', mean: data.mean ?? '', theme: data.theme ?? '', wc: data.wc ?? '', score, bonus, hint: hint ?? '', hanbang: data.ok ? hb : null };
 			if (data.ok) {
 				g.chain += 1;
-				g.words.push({ id, word: data.value, mean: data.mean ?? '', theme: data.theme ?? '', score, bonus });
+				g.words.push({ id, word: data.value, mean: data.mean ?? (familyOf(state) === 'Mathrelay' ? solved.replace('?', String(data.value)) : ''), theme: data.theme ?? '', score, bonus });
 				if (g.played.length < 5000) g.played.push({ id, word: data.value, score, bonus, round: g.round, hanbang: hb });
 				if (g.words.length > 60) g.words.shift();
 			}

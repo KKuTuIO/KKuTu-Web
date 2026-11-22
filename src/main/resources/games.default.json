@@ -282,6 +282,15 @@
       "ai": false,
       "big": true,
       "ewq": false
+    },
+    "KMR": {
+      "lang": "ko",
+      "rule": "Mathrelay",
+      "opts": ["etq", "nob"],
+      "time": 1,
+      "ai": false,
+      "big": false,
+      "ewq": false
     }
   }
 }

@@ -88,7 +88,7 @@
 		store.ui.phoneStage = phoneStage || phoneDrawing;
 		return () => (store.ui.phoneStage = false);
 	});
-	const supported = $derived(['Classic', 'Hunmin', 'Daneo', 'Jaqwi', 'Typing', 'Mathquiz', 'Wordstack', 'Sock', 'Linkland', 'Crossword', 'Drawing'].includes(family));
+	const supported = $derived(['Classic', 'Hunmin', 'Daneo', 'Mathrelay', 'Jaqwi', 'Typing', 'Mathquiz', 'Wordstack', 'Sock', 'Linkland', 'Crossword', 'Drawing'].includes(family));
 	const reverse = $derived(['KAP', 'EAP'].includes(room?.modeKey));
 	const kkt = $derived(room?.modeKey === 'KKT');
 	const parts = $derived(net.meta.moremiParts);
@@ -322,6 +322,11 @@
 		if (!last) return;
 		untrack(() => {
 			clearTimers();
+			// 수학 릴레이: no word to spell out and no hint; the problem stays on show with its answer (the model sets it)
+			if (family === 'Mathrelay') {
+				if (!last.ok) bombs[last.id] = true;
+				return;
+			}
 			if (!last.ok) {
 				bombs[last.id] = true;
 				hint = splitHint(last.hint, [g.char, g.subChar], reverse);
@@ -401,6 +406,7 @@
 		// 훈민정음 and 단어 대결 show the round's theme where the word chain shows its letter
 		if (family === 'Hunmin') return { kind: 'text', text: `<${g.theme}>`, length: 0 };
 		if (family === 'Daneo') return { kind: 'text', text: `<${labels[`word.theme.${g.theme}`] ?? g.theme}>`, length: 0 };
+		if (family === 'Mathrelay') return { kind: 'text', text: g.problem, length: 0 };
 		return { kind: 'text', text: charText(g.char, g.subChar), length: g.phase === 'turn' ? g.wordLength : 0 };
 	});
 

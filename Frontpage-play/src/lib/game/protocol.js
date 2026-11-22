@@ -113,7 +113,7 @@ export function splitNick(full = '') {
 export function normalizeUser(raw) {
 	const score = raw.data?.score ?? 0;
 	const robot = !!raw.robot;
-	const aiLevel = Math.min(5, Math.max(0, Number(raw.level) || 0)); // a practice partner of a mode without AI levels has none
+	const aiLevel = Math.min(5, Math.max(-1, Number.isFinite(Number(raw.level)) ? Number(raw.level) : 0)); // -1: the practice partner of a mode without AI levels (구경꾼)
 	const full = robot ? `${t(`play.ai.level.${aiLevel}`)} ${t('play.ai.robot')}` : (raw.profile?.title ?? raw.profile?.name ?? raw.id ?? '');
 	const { name, tag } = splitNick(full);
 	return {

@@ -13,7 +13,7 @@
 
 	$effect(() => {
 		if (open) {
-			level = target?.level ?? 3;
+			level = Math.max(0, target?.level ?? 3);
 			team = target?.game?.team ?? 0;
 		}
 	});

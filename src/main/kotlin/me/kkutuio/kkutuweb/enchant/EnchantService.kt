@@ -1,5 +1,6 @@
 package me.kkutuio.kkutuweb.enchant
 
+import me.kkutuio.kkutuweb.achievement.AchievementFlags
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.shop.ShopDao
@@ -50,7 +51,8 @@ class EnchantService(
     @Autowired private val userDao: UserDao,
     @Autowired private val shopDao: ShopDao,
     @Autowired private val shopService: ShopService,
-    @Autowired private val loginService: LoginService
+    @Autowired private val loginService: LoginService,
+    @Autowired private val achievementFlags: AchievementFlags
 ) {
     private val random = Random.Default
 
@@ -164,6 +166,13 @@ class EnchantService(
             (shopDao.getGood(ticketId)?.cost?.toLong() ?: 0L) + if (protectNow) EnchantRules.PROTECT_COST.toLong() else 0L, line
         )
         val money = if (protectNow) enchantDao.moneyOf(userId) else null
+        // 업적: 시도, 성공, 실패, 가장 높이 올린 단계
+        val account = loginService.accountUuid(session)
+        achievementFlags.add(account, "enchantTries", 1)
+        if (success) {
+            achievementFlags.add(account, "enchantSuccess", 1)
+            achievementFlags.max(account, "enchantMaxLevel", next.level.toLong())
+        } else achievementFlags.add(account, "enchantFail", 1)
         return EnchantReply(item = itemId, success = success, line = line, state = stateOf(next, nextPity), box = box, money = money, hit = hit, protectedTry = if (protectNow) true else null)
     }
 

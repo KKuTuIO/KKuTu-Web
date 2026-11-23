@@ -22,6 +22,12 @@
 	const sum = $derived(summarize(list));
 	const bar = $derived(ready ? gradeProgress(data.points, data.grade, data.next) : 0);
 	const commify = (n) => Number(n).toLocaleString('ko-KR');
+	// 회원 중 이 단계를 달성한 비율(%): 서버가 집계할 만큼 회원이 모인 뒤에만 오고, 그 전에는 아무것도 보여 주지 않는다
+	const rateOf = (key, tier) => {
+		const v = data?.rates?.[key]?.[tier - 1];
+		return typeof v === 'number' ? v : null;
+	};
+	const rateText = (p) => (p < 0.1 ? t('play.achievement.rateLow') : t('play.achievement.rate', { n: p.toLocaleString('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }));
 </script>
 
 {#if !ready}
@@ -87,6 +93,9 @@
 							<div class="h-1.5 overflow-hidden rounded-full bg-(--kk-line)" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={v.pct} aria-label={v.title}>
 								<div class="h-full rounded-full bg-(--kk-accent)" style:width="{v.pct}%"></div>
 							</div>
+							{#if rateOf(item.k, v.tier) !== null}
+								<p class="text-right text-[11px] text-(color:--kk-muted) tabular-nums">{rateText(rateOf(item.k, v.tier))}</p>
+							{/if}
 						</div>
 					</li>
 				{/each}

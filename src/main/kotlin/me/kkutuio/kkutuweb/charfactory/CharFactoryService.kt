@@ -19,6 +19,7 @@
 package me.kkutuio.kkutuweb.charfactory
 
 import tools.jackson.databind.ObjectMapper
+import me.kkutuio.kkutuweb.achievement.AchievementFlags
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
 import me.kkutuio.kkutuweb.event.EventMetricService
@@ -43,7 +44,8 @@ class CharFactoryService(
     @Autowired private val wordDao: WordDao,
     @Autowired private val shopService: ShopService,
     @Autowired private val loginService: LoginService,
-    @Autowired private val eventMetricService: EventMetricService
+    @Autowired private val eventMetricService: EventMetricService,
+    @Autowired private val achievementFlags: AchievementFlags
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -145,6 +147,7 @@ class CharFactoryService(
         } catch (error: Exception) {
             logger.warn("글자 조합 행사 미션 기록 실패: {}", error.message)
         }
+        achievementFlags.add(loginService.accountUuid(session), "wordCombines", 1) // 업적 `글자 공방 단골`
         return "{\"result\":200,\"box\":${user.box.toJson()},\"money\":$afterMoney,\"gain\":${
             objectMapper.writeValueAsString(
                 gained

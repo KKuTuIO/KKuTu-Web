@@ -22,6 +22,7 @@ import tools.jackson.databind.JsonNode
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.databind.node.IntNode
 import tools.jackson.databind.node.ObjectNode
+import me.kkutuio.kkutuweb.achievement.AchievementFlags
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
 import me.kkutuio.kkutuweb.login.LoginService
@@ -42,7 +43,8 @@ class ShopService(
     @Autowired private val shopDao: ShopDao,
     @Autowired private val shopDetailDao: ShopDetailDao,
     @Autowired private val userDao: UserDao,
-    @Autowired private val loginService: LoginService
+    @Autowired private val loginService: LoginService,
+    @Autowired private val achievementFlags: AchievementFlags
 ) {
     private val logger = LoggerFactory.getLogger(ShopService::class.java)
 
@@ -84,6 +86,7 @@ class ShopService(
             )
         )
         shopDao.increaseHit(id, count)
+        achievementFlags.add(loginService.accountUuid(session), "shopSpent", good.cost.toLong() * count) // 업적 `누적 구매액`
 
         val userName = if (user.nickname == null) userId else "${user.nickname} ($userId)"
         logger.info("$userName 님이 $id 상품을 ${count}개 구매했습니다.")

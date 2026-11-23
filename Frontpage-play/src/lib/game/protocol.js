@@ -499,7 +499,7 @@ function applyPacketInner(state, pkt, now) {
 		case 'achievements':
 			state.achievements = pkt.off
 				? { off: true }
-				: { off: false, points: Number(pkt.points) || 0, grade: pkt.grade ?? null, next: pkt.next ?? null, list: Array.isArray(pkt.list) ? pkt.list : [] };
+				: { off: false, points: Number(pkt.points) || 0, grade: pkt.grade ?? null, next: pkt.next ?? null, list: Array.isArray(pkt.list) ? pkt.list : [], rates: pkt.rates && typeof pkt.rates === 'object' ? pkt.rates : null };
 			break;
 		case 'mailBox':
 			state.mails = pkt.mails ?? [];

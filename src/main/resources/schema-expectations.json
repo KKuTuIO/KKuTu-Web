@@ -1503,5 +1503,26 @@
 "kind": "index",
 "object": "item_enchant_log_user",
 "want": true
+},
+{
+"ord": 215,
+"migration": "20261124_achievement.sql",
+"kind": "table",
+"object": "game_achievement_stat",
+"want": true
+},
+{
+"ord": 216,
+"migration": "20261124_achievement.sql",
+"kind": "table",
+"object": "game_achievement_unlock",
+"want": true
+},
+{
+"ord": 217,
+"migration": "20261124_achievement.sql",
+"kind": "index",
+"object": "game_achievement_unlock_account_idx",
+"want": true
 }
 ]

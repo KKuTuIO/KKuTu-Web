@@ -25,6 +25,7 @@
 	import PasswordDialog from '$lib/game/lobby/PasswordDialog.svelte';
 	import LoadingScreen from '$lib/game/lobby/LoadingScreen.svelte';
 	import ToastHost from '$lib/game/ui/ToastHost.svelte';
+	import AchievementToastHost from '$lib/game/ui/AchievementToastHost.svelte';
 	import { t } from '$lib/game/i18n.svelte.js';
 	import { plainText } from '$lib/game/protocol.js';
 	import { toast } from '$lib/game/ui/toast.svelte.js';
@@ -776,5 +777,6 @@
 <GiftHost {store} />
 {#if tutorialReward.details}<ObtainScreen bind:open={tutorialReward.open} title={t('play.obtain.acquired')} notice={t('play.tutorial.reward.notice')} items={[{ key: 'ping', q: store.net.tutorial?.ping || 100 }]} shop={store.shop} details={tutorialReward.details} ribbon ambient="shine" palette="teal" />{/if}
 <ToastHost />
+<AchievementToastHost />
 <YellBanner />
 <ConfirmHost />

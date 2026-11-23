@@ -22,6 +22,7 @@
 	import DataTable from '../ui/DataTable.svelte';
 	import PlacementMedal from './PlacementMedal.svelte';
 	import ProfileBox from './ProfileBox.svelte';
+	import AchievementPanel from './AchievementPanel.svelte';
 	import BioCard from './BioCard.svelte';
 	import NicknameDialog from './NicknameDialog.svelte';
 	import { fullNick } from './nickTip.js';
@@ -72,6 +73,10 @@
 	const isMe = $derived(!!user && user.id === net.id);
 	const member = $derived(!!user && !user.robot && !user.guest);
 	const social = $derived(member && !isMe && !net.guest); // friends and notes are for members, among members
+	// 업적 탭은 본인에게만: 창을 열면 목록을 한 번 묻고, 서버가 꺼 두었으면(off) 탭이 나타나지 않는다
+	$effect(() => {
+		if (open && isMe && member && !net.achievements) store.requestAchievements();
+	});
 	const friend = $derived(!!user && store.isFriend(user.id));
 	const bestFriend = $derived(!!user && store.isBestFriend(user.id));
 	const PAGE = 10;
@@ -86,7 +91,7 @@
 		if (store.dressLocked && tab === 'box') tab = 'profile';
 		if (store.dressLocked) nickOpen = false;
 	});
-	const tabs = $derived([{ id: 'profile', label: t('play.profile.windowTitle') }, { id: 'stats', label: t('play.profile.tab.stats') }, { id: 'history', label: t('play.profile.tab.history') }, ...(isMe ? [{ id: 'box', label: t('kkutu.dialog.profile.dress'), disabled: store.dressLocked, hint: lockText }] : [])]);
+	const tabs = $derived([{ id: 'profile', label: t('play.profile.windowTitle') }, { id: 'stats', label: t('play.profile.tab.stats') }, { id: 'history', label: t('play.profile.tab.history') }, ...(isMe ? [{ id: 'box', label: phone && net.achievements && !net.achievements.off ? t('play.profile.tab.dressShort') : t('kkutu.dialog.profile.dress'), disabled: store.dressLocked, hint: lockText }] : []), ...(isMe && net.achievements && !net.achievements.off ? [{ id: 'achievements', label: t('play.achievement.tab') }] : [])]);
 	const canManage = $derived(!!user && store.isMaster && user.id !== net.id);
 	const hidden = $derived(prefs.hideUsers && !isMe && !!user && !user.robot);
 	// The profile banner they equipped; without one (or when its picture is missing) the default banner, as legacy. It fills the stage.
@@ -337,6 +342,8 @@
 				{/if}
 				{#if isMe && tab === 'box'}
 					<div role="tabpanel" id="profile-panel-box" aria-labelledby="profile-tab-box"><ProfileBox {store} /></div>
+				{:else if isMe && tab === 'achievements'}
+					<div role="tabpanel" id="profile-panel-achievements" aria-labelledby="profile-tab-achievements"><AchievementPanel {store} /></div>
 				{:else if user.robot}
 					<EmptyState compact size={110} title={t('play.profile.robot')} />
 				{:else if user.guest}

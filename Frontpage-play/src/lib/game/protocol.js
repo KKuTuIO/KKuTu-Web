@@ -6,7 +6,7 @@ import { createSplitFilter } from './badwords.js';
 import { isAdminCommand } from './commands.js';
 import { getLevel } from './level.js';
 import { staffIdOf } from './staffTag.js';
-import { applyGamePacket } from './gameModel.js';
+import { applyGamePacket, seatIds } from './gameModel.js';
 import { t } from './i18n.svelte.js';
 import { newDm, dmReceive, dmLoad } from './dm.js';
 
@@ -37,6 +37,7 @@ export const initialState = () => ({
 	server: 0, // the channel I'm on
 	levelGifts: {}, // level -> what reaching it gave ({level, ping, items, mail}), from the `obtain` packets that took me through levels
 	levelTable: null, // every level's gift, as the server sent it: {level: [ping, [[item, q]], [[ticket, q]]]} (asked for when the level table opens)
+	achievements: null, // 내 업적: null(아직 안 물었다) | {off: true}(서버가 꺼 둠) | {off: false, points, grade, next, list} (프로필의 업적 탭이 요청할 때 온다)
 	mails: [], // the mailbox: [{_id, name, content, hasRewards, claimable, claimEndAt}]
 	notifications: [], // notices the server keeps until I confirm them: [{id, message, createdAt}]
 	mailLoaded: false,
@@ -360,6 +361,9 @@ function applyPacketInner(state, pkt, now) {
 				if (room.league && p.id !== state.id && p.profile?.name) (state.leagueAliases ??= {})[p.id] = String(p.profile.name);
 			}
 			const mine = !!room.players?.some((p) => p.id === state.id);
+			// 누가 도중에 나가면(중퇴) 서버가 순서 목록에서 빼고 방을 다시 알린다: 인게임 카드가 그 목록을 따라가야 나간 사람이 사라진다
+			// (순서 목록은 라운드와 턴이 시작할 때만 오므로, 이 패킷에서도 맞춘다).
+			if (mine && room.gaming && state.game && !state.game.result && Array.isArray(room.game?.seq) && room.game.seq.length) state.game.seq = seatIds(room.game.seq);
 			// Anyone who was in this room and isn't any more is back in the lobby (their disconnect would arrive as `disconn`).
 			for (const id of prev?.players ?? []) if (!room.players?.some((p) => p.id === id) && state.users[id]) state.users[id].place = 0;
 			if (mine) state.myRoom = room.id;
@@ -491,6 +495,11 @@ function applyPacketInner(state, pkt, now) {
 			break;
 		case 'levelRewards':
 			state.levelTable = pkt.table && typeof pkt.table === 'object' ? pkt.table : null;
+			break;
+		case 'achievements':
+			state.achievements = pkt.off
+				? { off: true }
+				: { off: false, points: Number(pkt.points) || 0, grade: pkt.grade ?? null, next: pkt.next ?? null, list: Array.isArray(pkt.list) ? pkt.list : [] };
 			break;
 		case 'mailBox':
 			state.mails = pkt.mails ?? [];

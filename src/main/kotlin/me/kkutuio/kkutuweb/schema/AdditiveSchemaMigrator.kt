@@ -97,7 +97,8 @@ class AdditiveSchemaMigrator(
             "20261108_event_invite.sql",
             "20261109_family.sql",
             "20261111_wiki_binding.sql",
-            "20261112_item_enchant.sql"
+            "20261112_item_enchant.sql",
+            "20261124_achievement.sql"
         )
 
         /** Arbitrary constant: the advisory lock the instances take to run this step one at a time. */

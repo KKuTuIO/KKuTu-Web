@@ -68,6 +68,19 @@ describe('protocol', () => {
 		applyPacket(s, { type: 'room', room: { id: 7, players: [] } });
 		expect(s.myRoom).toBeNull();
 	});
+	it('drops a player who quit mid-game from the in-game seats (the room packet carries the new order)', () => {
+		const s = initialState();
+		s.meta = meta;
+		applyPacket(s, { type: 'welcome', id: 'me', users: { me: { id: 'me' } }, rooms: {}, friends: {} });
+		const room = (players, seq) => ({ type: 'room', room: { id: 7, gaming: true, limit: 4, mode: 0, opts: {}, players: players.map((id) => ({ id })), game: { seq, turn: 0, round: 1, title: [] } } });
+		applyPacket(s, room(['me', 'a', 'b'], ['me', 'a', 'b']));
+		s.game = { seq: ['me', 'a', 'b'], result: null };
+		applyPacket(s, room(['me', 'b'], ['me', 'b'])); // a quit
+		expect(s.game.seq).toEqual(['me', 'b']);
+		s.game.result = { rows: [] }; // once the result is up the seats stay as they were
+		applyPacket(s, room(['me'], ['me']));
+		expect(s.game.seq).toEqual(['me', 'b']);
+	});
 	it('tracks play time and the 오끄감 stack from welcome and okg packets', () => {
 		const s = initialState();
 		applyPacket(s, { type: 'welcome', id: 'me', playTime: 3_600_000, okg: 2, users: {}, rooms: {}, friends: {} });

@@ -6,6 +6,7 @@ import { loadShop } from './images.js';
 import { itemName, loadGoodDetails } from './shop.js';
 import { OKG_MINUTES } from './lobbyModel.js';
 import { toast } from './ui/toast.svelte.js';
+import { showAchievements } from './ui/achievementToast.svelte.js';
 import { confirm, notify } from './ui/confirm.svelte.js';
 import { yell } from './ui/yell.svelte.js';
 import { playSound, playGameBgm, stopBgm, playLobbyBgm, isResultBgm, preloadGameSounds, preloadUiSounds, preloadBgms } from './audio.svelte.js';
@@ -285,6 +286,11 @@ export function createConnection(server) {
 			});
 		}
 		if (before) okgNotice(before, pkt);
+		// 업적(명성): 게임이 끝났을 때 새로 달성한 것을 알리고, 업적 탭을 한 번이라도 열었다면 목록을 다시 받는다
+		if (pkt.type === 'achievement.unlock' && Array.isArray(pkt.items) && pkt.items.length) {
+			showAchievements(pkt.items);
+			if (state.achievements && !state.achievements.off) send('achievements');
+		}
 		if (pkt.type === 'error' && Number(pkt.code) === 416 && state.status === 'ready') {
 			// The room is in a game: the legacy client asks whether to go in and watch, then enters again as a spectator.
 			confirm({ message: plainText(state.meta.labels['kkutu.js.error.416'] ?? '') }).then((yes) => yes && send('enter', { id: Number(pkt.target), password: enterPassword, spectate: true }));
@@ -348,7 +354,7 @@ export function createConnection(server) {
 
 	// Which socket a message goes to, same rule as the legacy client: lobby-level messages to master, room
 	// actions to the room worker, and everything else (chat, room settings) to the worker while in a room.
-	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'levelRewards', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'reportLeague', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry', 'family', 'league']);
+	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'levelRewards', 'achievements', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'reportLeague', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry', 'family', 'league']);
 	const ROOM_ONLY = new Set(['leave', 'ready', 'start', 'practice', 'invite', 'form', 'team', 'kick', 'kickVote', 'handover', 'setAI', 'useItem', 'wp']);
 	/** 22-char url-safe id (16 random bytes), required by the server on durable requests so a retry can't apply twice. */
 	function newRequestId() {

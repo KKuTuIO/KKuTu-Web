@@ -46,7 +46,11 @@
         const { group, step } = tierParts(id);
         return group ? `${t(`play.league.tier.${group}`)} ${step}` : id;
     };
-    let crystal2MinTrophies = 0;
+    // 비율 등급(크리스탈 1 이상)은 "트로피로 오를 수 있는 가장 높은 등급(크리스탈 2)" 이상인 참가자 가운데 상위 몇 %다.
+    // 그 등급의 필요 트로피는 등급표에서 직접 구한다(목록이 높은 등급부터 그려지므로 그리는 순서에 기대지 않는다).
+    const crystal2MinTrophies = $derived(
+        Math.max(0, ...rewards.filter((r) => r.minTrophies != null).map((r) => r.minTrophies)),
+    );
     const condition = (r) => {
         if (r.topRatio != null)
             return t("play.league.tiers.cond.top", {
@@ -54,7 +58,6 @@
                 n: crystal2MinTrophies.toLocaleString(),
             });
         if (!r.minTrophies) return t("play.league.tiers.cond.start");
-        if (r.id === "CRYSTAL_2") crystal2MinTrophies = r.minTrophies;
         return t("play.league.tiers.cond.min", {
             n: r.minTrophies.toLocaleString(),
         });

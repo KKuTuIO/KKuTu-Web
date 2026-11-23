@@ -48,6 +48,7 @@ class AdditiveSchemaMigratorTest {
     fun `table names are read from the file`() {
         assertEquals(listOf("family_group", "family_group_member", "family_group_application"), AdditiveSchemaMigrator.tablesOf(file("20261109_family.sql")))
         assertEquals(listOf("item_enchant", "item_enchant_log", "item_enchant_instance"), AdditiveSchemaMigrator.tablesOf(file("20261112_item_enchant.sql")))
+        assertEquals(listOf("game_achievement_stat", "game_achievement_unlock"), AdditiveSchemaMigrator.tablesOf(file("20261124_achievement.sql")))
     }
 
     private fun migrator(jdbc: JdbcTemplate, enabled: Boolean = true) = AdditiveSchemaMigrator(jdbc, mock(PlatformTransactionManager::class.java), enabled)

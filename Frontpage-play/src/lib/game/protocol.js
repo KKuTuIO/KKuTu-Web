@@ -133,6 +133,7 @@ export function normalizeUser(raw) {
 		exordial: raw.exordial ?? '', // the "소개 한마디"
 		status: raw.status ?? 'online', // what they show: online | idle | dnd
 		statusMessage: typeof raw.statusMessage === 'string' ? raw.statusMessage : '', // the line pinned on their profile
+		showcase: Array.isArray(raw.achShowcase) ? raw.achShowcase.filter((e) => e && typeof e.k === 'string' && typeof e.n === 'string').slice(0, 2).map((e) => ({ k: e.k, n: e.n })) : null, // achievements pinned on the profile; null when not known
 		rating: Number.isInteger(raw.rating) && raw.rating >= 0 && raw.rating <= 4 ? raw.rating : null, // 평점: 0 very low .. 4 very high; null when not known (offline)
 		guest: !!raw.guest,
 		robot,
@@ -499,7 +500,7 @@ function applyPacketInner(state, pkt, now) {
 		case 'achievements':
 			state.achievements = pkt.off
 				? { off: true }
-				: { off: false, points: Number(pkt.points) || 0, grade: pkt.grade ?? null, next: pkt.next ?? null, list: Array.isArray(pkt.list) ? pkt.list : [], rates: pkt.rates && typeof pkt.rates === 'object' ? pkt.rates : null };
+				: { off: false, points: Number(pkt.points) || 0, grade: pkt.grade ?? null, next: pkt.next ?? null, list: Array.isArray(pkt.list) ? pkt.list : [], grades: Array.isArray(pkt.grades) ? pkt.grades : [], rates: pkt.rates && typeof pkt.rates === 'object' ? pkt.rates : null };
 			break;
 		case 'mailBox':
 			state.mails = pkt.mails ?? [];

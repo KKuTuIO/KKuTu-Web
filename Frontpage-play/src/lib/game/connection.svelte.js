@@ -354,7 +354,7 @@ export function createConnection(server) {
 
 	// Which socket a message goes to, same rule as the legacy client: lobby-level messages to master, room
 	// actions to the room worker, and everything else (chat, room settings) to the worker while in a room.
-	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'levelRewards', 'achievements', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'reportLeague', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry', 'family', 'league']);
+	const MASTER_ONLY = new Set(['captcha', 'identity', 'enter', 'ping', 'refresh', 'refreshRoom', 'inviteRes', 'togglePrivacy', 'uid', 'newUid', 'friendAdd', 'friendAddRes', 'friendEdit', 'friendRemove', 'toggleBF', 'setStatus', 'setStatusMessage', 'mailBox', 'obtainMail', 'levelRewards', 'achievements', 'achievementShowcase', 'drawGacha', 'consume', 'notifications', 'notificationAck', 'report', 'reportRoom', 'reportChat', 'reportLeague', 'saveProgress', 'import', 'listSurvey', 'getSurveyToken', 'useCoupon', 'securityTelemetry', 'family', 'league']);
 	const ROOM_ONLY = new Set(['leave', 'ready', 'start', 'practice', 'invite', 'form', 'team', 'kick', 'kickVote', 'handover', 'setAI', 'useItem', 'wp']);
 	/** 22-char url-safe id (16 random bytes), required by the server on durable requests so a retry can't apply twice. */
 	function newRequestId() {

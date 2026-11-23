@@ -592,15 +592,22 @@
 	});
 
 	// An invitation from another player: ask, or turn it down automatically if the player chose "초대 거부".
+	// The question is asked once per invitation and outside of tracking: confirm() reads and writes the dialog state, and the inviter's
+	// user entry is replaced by every packet about them, so a tracked read here re-asked (and looped) while the dialog sat open.
+	const askedInvite = new WeakSet();
 	$effect(() => {
 		const inv = store.net.invite;
 		if (!inv) return;
 		if (prefs.denyInvite || isShut(inv.by)) return store.answerInvite(inv.from, false);
-		const by = store.net.users[inv.by];
-		const message = by ? t('play.confirm.invited', { nick: by.name, room: inv.from }) : t('play.confirm.invitedAnon', { room: inv.from });
-		confirm({ message }).then((yes) => {
-			if (yes) store.answerInvite(inv.from, true);
-			else store.net.invite = null;
+		untrack(() => {
+			if (askedInvite.has(inv)) return;
+			askedInvite.add(inv);
+			const by = store.net.users[inv.by];
+			const message = by ? t('play.confirm.invited', { nick: by.name, room: inv.from }) : t('play.confirm.invitedAnon', { room: inv.from });
+			confirm({ message }).then((yes) => {
+				if (yes) store.answerInvite(inv.from, true);
+				else if (store.net.invite === inv) store.net.invite = null; // not a newer invitation that replaced this one
+			});
 		});
 	});
 

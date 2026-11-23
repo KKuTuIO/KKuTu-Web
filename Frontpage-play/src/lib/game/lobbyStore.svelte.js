@@ -338,6 +338,8 @@ export function createLobbyStore(server) {
 		claimMail: (id) => conn.send('obtainMail', { id }),
 		requestLevelRewards: () => conn.send('levelRewards'),
 		requestAchievements: () => conn.send('achievements'),
+		/** Pin (`on`) or unpin an achievement on my profile (at most two). */
+		setShowcase: (key, on) => conn.send('achievementShowcase', { key, on }),
 		ackNotification: (id) => conn.send('notificationAck', { id: String(id) }),
 		/** What is waiting for me: unread mail, unconfirmed notices and friend requests. */
 		/** Friend requests in either direction that are still open. */

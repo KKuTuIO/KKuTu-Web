@@ -98,6 +98,13 @@ class UserService(
             "equip" to objectMapper.readTree(user.equip.toJson()),
             "exordial" to (user.exordial ?: ""),
             "statusMessage" to user.flags.path("statusMsg").path("value").asText(""),
+            // the achievements pinned on the profile (at most two): name as it was when pinned
+            "achShowcase" to user.flags.path("achShow").path("value").let { arr ->
+                if (arr.isArray) arr.take(2).mapNotNull { e ->
+                    val k = e.path("k").asText(""); val n = e.path("n").asText("")
+                    if (k.isEmpty() || n.isEmpty()) null else mapOf("k" to k, "n" to n)
+                } else emptyList()
+            },
             "profile" to mapOf(
                 "authtype" to "offline",
                 "id" to user.id,

@@ -69,7 +69,7 @@ class ModerationService(
             loaded.digest,
             loaded.document.source.url,
             loaded.document.categories.map {
-                ModerationCategorySummary(it.code, it.name, it.requiresOverride)
+                ModerationCategorySummary(it.code, it.name, it.requiresOverride, it.retired)
             }
         )
     }

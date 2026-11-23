@@ -1,13 +1,13 @@
 {
   "$schema": "moderation-policy.schema.json",
-  "policyId": "kkutu-operation-r10-2024-02-01",
+  "policyId": "kkutu-operation-r10-2026-11-30",
   "revision": 10,
   "source": {
     "title": "끄투리오 운영정책",
     "url": "https://static.kkutu.io/operation",
-    "publishedAt": "2024-01-20",
-    "effectiveFrom": "2024-02-01T00:00:00+09:00",
-    "retrievedAt": "2026-07-26"
+    "publishedAt": "2026-11-21",
+    "effectiveFrom": "2026-11-30T00:00:00+09:00",
+    "retrievedAt": "2026-11-23"
   },
   "timeZone": "Asia/Seoul",
   "noticePeriodDays": 7,
@@ -116,20 +116,20 @@
       "requiresOverride": false,
       "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
       "steps": [
-        {"offense": 1, "effects": [{"type": "CHAT_RESTRICTION", "duration": "P7D"}]},
-        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
-        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
-        {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
-        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P180D"}]},
-        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P360D"}]}
+        {"offense": 1, "effects": [{"type": "CHAT_RESTRICTION", "duration": "P3D"}]},
+        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]}
       ]
     },
     {
       "code": "03",
-      "name": "미풍양속을 해치는 행위",
+      "name": "미풍양속을 해치는 행위 (폐지, 02에 통합)",
       "sourceSection": "7. 게임 이용 시 주의사항",
       "requiresOverride": false,
       "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "retired": true,
       "steps": [
         {"offense": 1, "effects": [{"type": "CHAT_RESTRICTION", "duration": "P3D"}]},
         {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
@@ -150,8 +150,7 @@
         {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
         {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
         {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
-        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
-        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]}
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]}
       ]
     },
     {
@@ -168,38 +167,22 @@
     },
     {
       "code": "06",
-      "name": "현금거래",
+      "name": "현금거래 및 상업광고",
       "sourceSection": "7. 게임 이용 시 주의사항",
       "requiresOverride": false,
       "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
       "steps": [
-        {
-          "offense": 1,
-          "requiresApproval": true,
-          "effects": [
-            {
-              "type": "RESOURCE_ADJUSTMENT",
-              "parameters": {
-                "mode": "DEDUCT_PERCENT",
-                "targets": ["EXPERIENCE", "CYBER_POINT"],
-                "percent": 100
-              }
-            },
-            {
-              "type": "GAME_RESTRICTION",
-              "duration": "P90D"
-            }
-          ]
-        },
+        {"offense": 1, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 100}}, {"type": "GAME_RESTRICTION", "duration": "P90D"}]},
         {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
       ]
     },
     {
       "code": "07",
-      "name": "상업광고",
+      "name": "상업광고 (폐지, 06에 통합)",
       "sourceSection": "7. 게임 이용 시 주의사항",
       "requiresOverride": false,
       "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "retired": true,
       "steps": [
         {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
         {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]},
@@ -229,8 +212,7 @@
         {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
         {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
         {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
-        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
-        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]}
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]}
       ]
     },
     {
@@ -240,12 +222,11 @@
       "requiresOverride": false,
       "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
       "steps": [
-        {"offense": 1, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 10}}, {"type": "GAME_RESTRICTION", "duration": "P7D"}]},
-        {"offense": 2, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 30}}, {"type": "GAME_RESTRICTION", "duration": "P14D"}]},
-        {"offense": 3, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 50}}, {"type": "GAME_RESTRICTION", "duration": "P30D"}]},
-        {"offense": 4, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 70}}, {"type": "GAME_RESTRICTION", "duration": "P60D"}]},
-        {"offense": 5, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 90}}, {"type": "GAME_RESTRICTION", "duration": "P90D"}]},
-        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+        {"offense": 1, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 5}}, {"type": "GAME_RESTRICTION", "duration": "P7D"}]},
+        {"offense": 2, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 20}}, {"type": "GAME_RESTRICTION", "duration": "P14D"}]},
+        {"offense": 3, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 40}}, {"type": "GAME_RESTRICTION", "duration": "P30D"}]},
+        {"offense": 4, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 60}}, {"type": "GAME_RESTRICTION", "duration": "P60D"}]},
+        {"offense": 5, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 80}}, {"type": "GAME_RESTRICTION", "duration": "P90D"}]}
       ]
     },
     {
@@ -265,25 +246,7 @@
       "requiresOverride": false,
       "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
       "steps": [
-        {
-          "offense": 1,
-          "requiresApproval": true,
-          "effects": [
-            {
-              "type": "RESOURCE_ADJUSTMENT",
-              "parameters": {
-                "mode": "DEDUCT_PERCENT",
-                "targets": ["EXPERIENCE", "CYBER_POINT"],
-                "percent": 100
-              }
-            },
-            {
-              "type": "GAME_RESTRICTION",
-              "duration": "P90D"
-            }
-          ]
-        },
-        {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
+        {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "permanent": true}]}
       ],
       "allowedOverrides": [
         {
@@ -361,8 +324,7 @@
         {"offense": 2, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
         {"offense": 3, "effects": [{"type": "GAME_RESTRICTION", "duration": "P7D"}]},
         {"offense": 4, "effects": [{"type": "GAME_RESTRICTION", "duration": "P14D"}]},
-        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]},
-        {"offense": 6, "effects": [{"type": "GAME_RESTRICTION", "duration": "P90D"}]}
+        {"offense": 5, "effects": [{"type": "GAME_RESTRICTION", "duration": "P30D"}]}
       ]
     },
     {
@@ -379,10 +341,11 @@
     },
     {
       "code": "18",
-      "name": "건전한 게임 문화 형성을 방해하는 행위",
+      "name": "건전한 게임 문화 형성을 방해하는 행위 (폐지, 10에 통합)",
       "sourceSection": "7. 게임 이용 시 주의사항",
       "requiresOverride": false,
       "overflowMode": "USE_DEFAULT_SECTION7_OVERFLOW",
+      "retired": true,
       "steps": [
         {"offense": 1, "effects": [{"type": "GAME_RESTRICTION", "duration": "P3D"}]},
         {"offense": 2, "requiresApproval": true, "effects": [{"type": "RESOURCE_ADJUSTMENT", "parameters": {"mode": "DEDUCT_PERCENT", "targets": ["EXPERIENCE", "CYBER_POINT"], "percent": 10}}, {"type": "GAME_RESTRICTION", "duration": "P7D"}]},

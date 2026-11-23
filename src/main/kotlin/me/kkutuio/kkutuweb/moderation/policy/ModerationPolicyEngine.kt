@@ -23,6 +23,7 @@ class ModerationPolicyEngine(
         val candidates = categoryCodes.map { code ->
             val category = policy.category(code)
             require(!category.requiresOverride) { "Category $code requires an explicit override" }
+            require(!category.retired) { "Category $code was retired and cannot be used for a new sanction" }
             val offenseNo = (currentCounters[code] ?: 0) + 1
             val step = resolveStep(policy, category, offenseNo)
             Candidate(

@@ -71,7 +71,9 @@ data class PolicyCategory(
     val requiresOverride: Boolean,
     val overflowMode: String,
     val steps: List<PolicyStep>,
-    val allowedOverrides: List<PolicyEffectBundle> = emptyList()
+    val allowedOverrides: List<PolicyEffectBundle> = emptyList(),
+    // 운영정책 개정으로 다른 항목에 통합된 코드. 과거 기록·카운터 해석용으로만 남기고 새 제재·신고에는 쓰지 않는다.
+    val retired: Boolean = false
 )
 
 data class PolicyStep(

@@ -370,7 +370,8 @@ data class ModerationPolicySummary(
 data class ModerationCategorySummary(
     val code: String,
     val name: String,
-    val requiresOverride: Boolean
+    val requiresOverride: Boolean,
+    val retired: Boolean = false
 )
 
 data class ModerationAuditEntry(

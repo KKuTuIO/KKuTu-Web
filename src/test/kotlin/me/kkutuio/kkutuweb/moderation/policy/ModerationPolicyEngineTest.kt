@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.boot.DefaultApplicationArguments
 import java.time.Instant
+import org.junit.jupiter.api.assertThrows
 
 class ModerationPolicyEngineTest {
     private lateinit var engine: ModerationPolicyEngine
@@ -28,7 +29,7 @@ class ModerationPolicyEngineTest {
         val policy = loader.current().document
 
         assertEquals((0..18).map { it.toString().padStart(2, '0') }, policy.categories.map { it.code })
-        assertEquals(67, policy.categories.sumOf { it.steps.size })
+        assertEquals(61, policy.categories.sumOf { it.steps.size })
         assertEquals("https://static.kkutu.io/operation", policy.source.url)
     }
 
@@ -46,11 +47,11 @@ class ModerationPolicyEngineTest {
     fun `all selected categories increment while strongest effect of the same type is applied`() {
         val preview = engine.preview(
             listOf("02", "04"),
-            mapOf("02" to 1, "04" to 2),
+            mapOf("02" to 2, "04" to 2),
             Instant.parse("2026-07-26T00:00:00Z")
         )
 
-        assertEquals(mapOf("02" to 2, "04" to 3), preview.violations.associate {
+        assertEquals(mapOf("02" to 3, "04" to 3), preview.violations.associate {
             it.categoryCode to it.offenseNo
         })
         assertEquals("02", preview.primaryCategoryCode)
@@ -63,7 +64,7 @@ class ModerationPolicyEngineTest {
     @Test
     fun `different effect types are merged and chat restriction follows game restriction`() {
         val startsAt = Instant.parse("2026-07-26T00:00:00Z")
-        val preview = engine.preview(listOf("01", "03", "10"), emptyMap(), startsAt)
+        val preview = engine.preview(listOf("01", "02", "10"), emptyMap(), startsAt)
 
         assertEquals("10", preview.primaryCategoryCode)
         assertEquals(
@@ -88,6 +89,14 @@ class ModerationPolicyEngineTest {
                 .parameters["durationStackedAfter"]
         )
         assertFalse(preview.requiresApproval)
+    }
+
+    @Test
+    fun `retired categories cannot be used for a new sanction`() {
+        listOf("03", "07", "18").forEach { code ->
+            assertTrue(loader.current().document.category(code).retired)
+            assertThrows<IllegalArgumentException> { engine.preview(listOf(code), emptyMap()) }
+        }
     }
 
     @Test

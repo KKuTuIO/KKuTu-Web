@@ -282,6 +282,9 @@
         "requiresOverride": {
           "type": "boolean"
         },
+        "retired": {
+          "type": "boolean"
+        },
         "overflowMode": {
           "enum": [
             "REPEAT_LAST",

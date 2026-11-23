@@ -27,14 +27,14 @@
 	// words that may not be in a report (they are how a false report is usually written)
 	const NO_REPORT = /(중퇴|강퇴|퇴장|추방|시작|손님|토닉슨)/g;
 	const SECTIONS = [
-		['01', ['01', '02', '03']],
+		['01', ['01', '02']],
 		['02', ['04', '05']],
-		['03', ['06', '07', '08', '09', '10', '15']],
+		['03', ['06', '08', '09', '10', '15']],
 		['04', ['11', '12']],
-		['05', ['13', '14', '16', '17', '18', '00']]
+		['05', ['13', '14', '16', '17', '00']]
 	];
 	const SECTION_ICON = { '01': 'forum', '02': 'do_not_disturb_on', '03': 'gavel', '04': 'bug_report', '05': 'more_horiz' };
-	const ICON = { '01': 'badge', '02': 'sentiment_very_dissatisfied', '03': 'campaign', '04': 'front_hand', '05': 'admin_panel_settings', '06': 'payments', '07': 'ads_click', '08': 'masks', '09': 'groups', '10': 'rule', '11': 'smart_toy', '12': 'bug_report', '13': 'key', '14': 'privacy_tip', '15': 'gavel', '16': 'report', '17': 'person_off', '18': 'sentiment_neutral', '00': 'more_horiz' };
+	const ICON = { '01': 'badge', '02': 'sentiment_very_dissatisfied', '03': 'campaign', '04': 'front_hand', '05': 'admin_panel_settings', '06': 'payments', '08': 'masks', '09': 'groups', '10': 'rule', '11': 'smart_toy', '12': 'bug_report', '13': 'key', '14': 'privacy_tip', '15': 'gavel', '16': 'report', '17': 'person_off', '00': 'more_horiz' };
 	// "name (examples)": the name reads first, the examples after it in a quieter line
 	const split = (c) => {
 		const m = L(`kkutu.dialog.report.category.${c}`).match(/^(.*)\s\(([^()]*)\)\s*$/);

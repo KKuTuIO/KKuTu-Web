@@ -23,12 +23,21 @@ import jakarta.servlet.Filter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 
 class MinifyFilter : Filter {
     private var htmlCompressor = HtmlCompressor()
 
     override fun doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain) {
+        val httpRequest = request as? HttpServletRequest
+        if (httpRequest != null) {
+            val path = httpRequest.requestURI.removePrefix(httpRequest.contextPath)
+            if (path == "/api/security/obfuscated_font.woff2") {
+                chain.doFilter(request, response)
+                return
+            }
+        }
         try {
             val responseWrapper = CharResponseWrapper(response as HttpServletResponse)
             chain.doFilter(request, responseWrapper)

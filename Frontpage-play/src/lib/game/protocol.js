@@ -133,6 +133,7 @@ export function normalizeUser(raw) {
 		place: raw.place ?? 0,
 		exordial: raw.exordial ?? '', // the "소개 한마디"
 		status: raw.status ?? 'online', // what they show: online | idle | dnd
+		hidden: !!raw.hidden, // chose to look offline: never in the lobby's user lists, invitations or whisper searches (the server only lets them through inside a room's data)
 		statusMessage: typeof raw.statusMessage === 'string' ? raw.statusMessage : '', // the line pinned on their profile
 		showcase: Array.isArray(raw.achShowcase) ? raw.achShowcase.filter((e) => e && typeof e.k === 'string' && typeof e.n === 'string').slice(0, 2).map((e) => ({ k: e.k, n: e.n })) : null, // achievements pinned on the profile; null when not known
 		rating: Number.isInteger(raw.rating) && raw.rating >= 0 && raw.rating <= 4 ? raw.rating : null, // 평점: 0 very low .. 4 very high; null when not known (offline)
@@ -178,6 +179,16 @@ export function pruneLeagueSeats(state) {
 		if (state.leagueAliases) delete state.leagueAliases[id];
 	}
 	state.leagueSeats = {};
+}
+
+/**
+ * 오프라인으로 표시한 사람(`hidden`)은 로비 방송으로는 오지 않고 방 데이터로만 들어온다. 방을 나간 알림이 따로 오지 않으므로,
+ * 어느 방에도 없는 숨김 사용자는 여기서 지운다(나 자신은 남긴다).
+ */
+export function pruneHiddenUsers(state) {
+	const inRoom = new Set();
+	for (const room of Object.values(state.rooms)) for (const id of room.players ?? []) inRoom.add(id);
+	for (const [id, u] of Object.entries(state.users)) if (u.hidden && id !== state.id && !inRoom.has(id)) delete state.users[id];
 }
 
 export function normalizeRoom(raw, meta) {
@@ -301,6 +312,7 @@ export function normalizeEvents(raw) {
 export function applyPacket(state, pkt, now = Date.now()) {
 	const result = applyPacketInner(state, pkt, now);
 	pruneLeagueSeats(state);
+	if (pkt.type === 'room' || pkt.type === 'user' || pkt.type === 'conn' || pkt.type === 'connRoom') pruneHiddenUsers(state);
 	return result;
 }
 

@@ -96,7 +96,7 @@ export function dmList(state) {
 export function dmMembers(state, query = '', limit = 60) {
 	const q = compact(query).toLowerCase().replace(/^@/, '');
 	const rows = Object.values(state.users)
-		.filter((u) => u.id !== state.id && !u.robot && u.name)
+		.filter((u) => u.id !== state.id && !u.robot && !u.hidden && u.name)
 		.map((u) => ({ id: u.id, name: u.name, tag: u.tag ?? '', handle: peerName(u), friend: u.id in (state.friendsData ?? {}), talked: !!state.dm.threads[u.id]?.messages.length, user: u }))
 		.filter((r) => !q || r.handle.toLowerCase().includes(q));
 	const rank = (r) => (r.friend ? 0 : r.talked ? 1 : 2);

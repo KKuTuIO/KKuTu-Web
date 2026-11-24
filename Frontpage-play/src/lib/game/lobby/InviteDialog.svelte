@@ -26,7 +26,7 @@
 	const styled = $derived(familyOf(store.net) === 'Classic');
 	const styles = $derived(['', 'long', 'attack', 'stack'].map((value) => ({ value, label: t(`play.invite.style.${value || 'normal'}`) })));
 	// People standing in the lobby (not in a room), other than me. AI seats never appear here.
-	const candidates = $derived(Object.values(store.net.users).filter((u) => u.place === 0 && u.id !== store.net.id && !u.robot && !u.leagueSeat).sort((a, b) => b.lv - a.lv));
+	const candidates = $derived(Object.values(store.net.users).filter((u) => u.place === 0 && u.id !== store.net.id && !u.robot && !u.leagueSeat && !u.hidden).sort((a, b) => b.lv - a.lv));
 	const levels = $derived([0, 1, 2, 3, 4, 5].map((n) => ({ value: n, label: `${t(`play.ai.level.${n}`)} ${t('play.ai.robot')}` })));
 
 	// Share options: anyone (guests included) can pass the room's address on.

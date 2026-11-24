@@ -51,7 +51,21 @@
 </script>
 
 {#if !ready}
-	<p class="py-8 text-center text-sm text-(color:--kk-muted)">{t('play.achievement.loading')}</p>
+	<!-- 목록이 올 때까지 같은 자리에 같은 모양의 뼈대를 둔다(깜박임 없이 그대로 채워진다) -->
+	<div class="flex flex-col gap-3" role="status" aria-label={t('play.achievement.loading')}>
+		<div class="flex items-center gap-4 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) p-3">
+			<div class="size-24 shrink-0 animate-pulse rounded-full border-[9px] border-(color:--kk-line)"></div>
+			<div class="flex flex-1 flex-col gap-2.5">
+				<div class="h-6 w-2/5 animate-pulse rounded-md bg-(--kk-line)"></div>
+				<div class="h-3.5 w-1/4 animate-pulse rounded-md bg-(--kk-line)"></div>
+				<div class="h-4 w-1/3 animate-pulse rounded-md bg-(--kk-line)"></div>
+			</div>
+		</div>
+		<div class="flex gap-2"><div class="h-10 flex-1 animate-pulse rounded-lg bg-(--kk-line)"></div><div class="h-10 w-44 animate-pulse rounded-lg bg-(--kk-line)"></div></div>
+		<div class="grid gap-2.5 md:grid-cols-2">
+			{#each [0, 1, 2, 3] as i (i)}<div class="h-32 animate-pulse rounded-xl border border-(color:--kk-line) bg-(--kk-surface-2)"></div>{/each}
+		</div>
+	</div>
 {:else}
 	<div class="flex flex-col gap-3">
 		<div class="flex items-center gap-4 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) p-3">

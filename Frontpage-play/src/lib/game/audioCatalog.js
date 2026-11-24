@@ -51,6 +51,9 @@ export const leagueSoundUrl = (name) =>
 /** 모든 버튼이 같이 쓰는 인터페이스 소리(`media/ui/<name>.mp3`): 'click', 'hover'. 소리 묶음과 무관한 고정 파일. */
 export const uiSoundUrl = (name) =>
   `${PENDING_CDN}/media/ui/${name}.mp3${MEDIA_VERSION}`;
+/** 확률형 아이템 개봉 연출의 소리(`media/pack/<name>.mp3`): 음악 'bgm'(대기), 'rare'(희귀 공개), 효과음 'tear' 'burst' 'flip' 'riser' 'hit'. 소리 묶음과 무관한 고정 파일. */
+export const packSoundUrl = (name) =>
+  `${PENDING_CDN}/media/pack/${name}.mp3${MEDIA_VERSION}`;
 export const lobbyBgmUrl = (lobby = DEFAULT_AUDIO.lobby) =>
   `${AUDIO_CDN}${lobby}.mp3${MEDIA_VERSION}`;
 /** The shop's music (`ShopBGM.mp3`). */

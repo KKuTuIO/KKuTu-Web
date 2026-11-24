@@ -3,7 +3,7 @@
  * Browsers keep audio locked until the user interacts, so playback requests made earlier are remembered and start on the
  * first click or key press. Every call is a harmless no-op when Web Audio is unavailable.
  */
-import { DEFAULT_AUDIO, effectiveVolume, leagueSoundUrl, uiSoundUrl, lobbyBgmUrl, resultBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl, tutorialBgmUrl } from './audioCatalog.js';
+import { DEFAULT_AUDIO, effectiveVolume, leagueSoundUrl, uiSoundUrl, lobbyBgmUrl, packSoundUrl, resultBgmUrl, sanitizeAudio, shopBgmUrl, soundUrl, tutorialBgmUrl } from './audioCatalog.js';
 
 const STORAGE_KEY = 'kkutu-play-audio';
 
@@ -165,7 +165,7 @@ async function startBgm() {
 	if (!wanted || !ensure()) return stopCurrent();
 	if (wanted === 'league') return startLeagueBgm(mine);
 	// 'lobby' is the waiting-room music, 'shop' the shop's; 'game:<name>' is a track of the sound set that plays in a game (the quiz modes loop one)
-	const url = wanted === 'lobby' ? lobbyBgmUrl(audio.lobby) : wanted === 'shop' ? shopBgmUrl() : wanted === 'result' ? resultBgmUrl() : wanted === 'tutorial' ? tutorialBgmUrl() : soundUrl(wanted.slice(5), audio.set);
+	const url = wanted === 'lobby' ? lobbyBgmUrl(audio.lobby) : wanted === 'shop' ? shopBgmUrl() : wanted === 'result' ? resultBgmUrl() : wanted === 'tutorial' ? tutorialBgmUrl() : wanted.startsWith('pack:') ? packSoundUrl(wanted.slice(5)) : soundUrl(wanted.slice(5), audio.set);
 	// The track that is playing goes on until the new one has arrived, then they are crossfaded.
 	const buf = await buffer(url);
 	if (!buf || mine !== token || !wanted) return; // missing, or superseded while loading
@@ -279,6 +279,7 @@ export function installUnlock() {
 
 /** Background music for the lobby and waiting rooms. */
 export function playLobbyBgm({ fromResult = false, fromTutorial = false } = {}) {
+	if (packHold('lobby')) return; // a pack is being opened: the lobby's music comes back with the end of it
 	if (wanted === 'result' && !fromResult) return; // the result screen's music goes on until it is closed
 	if (wanted === 'tutorial' && !fromTutorial) return; // and so does the tutorial's, until the tutorial ends (the page asks for the lobby's whenever its state changes)
 	if (wanted === 'result') wanted = null; // closed: the lobby music takes over from it by a crossfade
@@ -359,6 +360,7 @@ export function playLeagueBgm() {
 
 /** The shop's music; crossfades with whatever is playing. */
 export function playShopBgm() {
+	if (packHold('shop')) return;
 	if (wanted === 'shop' && current) return;
 	wanted = 'shop';
 	if (unlocked) startBgm();
@@ -383,6 +385,36 @@ export function stopBgm({ fade = false } = {}) {
 	}
 	stopCurrent();
 }
+/**
+ * 확률형 아이템 개봉의 음악('bgm' 대기, 'rare' 희귀 공개): 재생 중인 곡과 교차하고, `endPackBgm`이 부르면 원래 곡으로 돌아간다.
+ * 그동안 로비나 상점이 자기 음악을 달라고 해도(화면이 바뀔 때마다 부른다) 돌아갈 곡만 바꿔 두고 개봉 음악은 끊지 않는다.
+ * 파일이 아직 CDN에 없으면 (`buffer`가 비어 돌아오므로) 원래 음악이 그대로 이어진다.
+ */
+let packReturn; // undefined: no pack is open; otherwise the track to go back to (null: none)
+const packHold = (name) => packReturn !== undefined && ((packReturn = name), true);
+export function playPackBgm(name) {
+	if (packReturn === undefined) packReturn = wanted?.startsWith('pack:') ? 'lobby' : wanted;
+	const key = `pack:${name}`;
+	if (wanted === key && current) return;
+	wanted = key;
+	if (unlocked) startBgm();
+}
+export function endPackBgm() {
+	if (packReturn === undefined) return;
+	const back = packReturn;
+	packReturn = undefined;
+	if (!back) return stopBgm({ fade: true });
+	wanted = back;
+	if (unlocked) startBgm();
+}
+/** One of the pack's sounds (`tear`, `burst`, `flip`, `riser`, `hit`): a file that is not on the CDN yet is simply silent. */
+export const playPackSfx = (name, gain = 1) => playFile(packSoundUrl(name), { gain });
+/** Loads the pack's music and sounds ahead, so the opening is not late. */
+export function preloadPackSounds() {
+	if (!unlocked || !ensure()) return Promise.resolve();
+	return loadAll(['bgm', 'rare', 'idle', 'tear', 'burst', 'flip', 'riser', 'hit'].map(packSoundUrl), 2);
+}
+
 /** Which track is wanted now: 'lobby' | 'shop' | 'league' | 'result' | 'tutorial' | 'game:<name>' | null. */
 export const wantedBgm = () => wanted;
 

@@ -26,6 +26,7 @@
 	import ShopBonus from './ShopBonus.svelte';
 	import ShopPickup from './ShopPickup.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
+	import PackOpening from './PackOpening.svelte';
 
 	/**
 	 * 상점: 메인 (season, banners), 픽업 (gachas), 기능성, 모레미 and 장식 shelves (계정 is not open yet), with an avatar that tries on
@@ -93,6 +94,8 @@
 	let prizes = $state([]);
 	let rare = $state(new Set()); // prizes of a draw that are rare (under 1%): they come last
 	let lastGacha = null;
+	// a draw is shown as a pack to tear (the money goes down and the request goes out when it is torn)
+	let pack = $state({ open: false, id: '', count: 1, price: 0, prizes: null, rare: new Set() });
 	let resultNote = $state(''); // the note under the items: the legacy draw note, or the legacy purchase message
 	// The shelf has hundreds of cards: the first screenful appears with the page, the rest follows in small batches so the
 	// entrance animation never waits for them.
@@ -201,11 +204,17 @@
 		if (!(await confirm({ message: plainText(t('kkutu.js.surePurchase')), ok: t('kkutu.dialog.purchase.ok'), cancel: t('kkutu.dialog.purchase.cancel') }))) return;
 		store.net.gained.length = 0;
 		lastGacha = gacha;
+		pack = { open: true, id: gacha._id, count, price, prizes: null, rare: new Set() };
+	}
+
+	/** The pack was torn: now the draw is asked for. */
+	function sendDraw() {
+		if (drawing) return;
 		drawing = true;
-		store.conn.send('drawGacha', { item: gacha._id, count });
-		store.net.users[store.net.id].money -= price;
+		store.conn.send('drawGacha', { item: pack.id, count: pack.count });
+		store.net.users[store.net.id].money -= pack.price;
 		// If nothing comes back (the server refused: its error is shown by the connection) the shop stops waiting.
-		setTimeout(() => drawing && ((drawing = false), (store.net.gained.length = 0)), 5000);
+		setTimeout(() => drawing && ((drawing = false), (pack.open = false), (store.net.gained.length = 0)), 5000);
 	}
 
 	// The last packet of a draw carries the whole box: then the prizes are all here.
@@ -222,6 +231,12 @@
 		prizes = tally(store.net.gained.splice(0)).sort((a, b) => (chance[b.key] ?? 100) - (chance[a.key] ?? 100));
 		rare = new Set(pool.filter((e) => e.p < 1).map((e) => e.key));
 		if (!prizes.length) return;
+		if (pack.open) {
+			// the pack shows them itself
+			pack.rare = rare;
+			pack.prizes = prizes;
+			return;
+		}
 		resultNote = t('kkutu.js.drawObtain');
 		resultOpen = true;
 		playSound('success');
@@ -387,6 +402,7 @@
 	<ShopCart list equip={preview} user={me} parts={meta.moremiParts} shop={store.shop} {details} {cart} {owned} {money} {total} {buying} onremove={(id) => (cart = cart.filter((c) => c.id !== id))} {bare} onbare={() => (bare = true)} onreset={() => ((cart = []), (bare = false))} onbuy={buyAll} />
 </Dialog>
 
+<PackOpening bind:open={pack.open} itemId={pack.id} shop={store.shop} nameOf={gachaName} prizes={pack.prizes} rare={pack.rare} note={t('kkutu.js.drawObtain')} onrequest={sendDraw} />
 <ObtainScreen bind:open={resultOpen} title={t('play.obtain.acquired')} notice={resultNote} items={prizes} {rare} ribbon ambient="shine" palette="teal" shop={store.shop} {details} />
 
 <style>

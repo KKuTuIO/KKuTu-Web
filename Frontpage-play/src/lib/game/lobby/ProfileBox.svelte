@@ -2,7 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { t } from '../i18n.svelte.js';
 	import { plainText, cleanBox } from '../protocol.js';
-	import { loadGoodDetails, INVENTORY_FILTERS, matchesInventory, isConsumable, isEquippable, equipSlot, isEquipped, itemName, ownedItems, tally } from '../shop.js';
+	import { loadGoodDetails, INVENTORY_FILTERS, matchesInventory, isConsumable, isEquippable, equipSlot, isEquipped, itemName, ownedItems, tally, gachaPool } from '../shop.js';
 	import { playSound } from '../audio.svelte.js';
 	import { confirm, prompt, choose } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
@@ -18,6 +18,7 @@
 	import ItemTile from './ItemTile.svelte';
 	import Icon from './Icon.svelte';
 	import ObtainScreen from './ObtainScreen.svelte';
+	import PackOpening from './PackOpening.svelte';
 	import { cdnImg } from '../../cdn.js';
 
 	/**
@@ -40,6 +41,8 @@
 	let using = $state(false); // a box is being opened: its prizes are on their way
 	let resultOpen = $state(false);
 	let prizes = $state([]);
+	// a random box (it has a prize pool) is opened by tearing its pack: the pack asks how many, sends the request when it is torn and shows the prizes itself
+	let pack = $state({ open: false, id: '', owned: 0, prizes: null, rare: new Set() });
 	const me = $derived(store.me);
 	const equip = $derived(me?.equip ?? {});
 	const equips = $derived(store.net.meta.moremiEquips);
@@ -77,6 +80,11 @@
 		const { item, count } = e;
 		// 단어 토큰: nothing to open, it is spent on 어인정 조회 in the 사전
 		if (item._id === 'wordToken') return store.hooks.openInjeong?.();
+		if (isConsumable(item) && gachaPool(item).length) {
+			if (using) return;
+			pack = { open: true, id: item._id, owned: count, prizes: null, rare: new Set() };
+			return;
+		}
 		if (isConsumable(item)) {
 			let n = 1;
 			if (count > 1) {
@@ -121,6 +129,16 @@
 		if (!already) wearCopy(item._id, copyNo).then(loadEnchants); // and which copy of it counts
 	}
 
+	/** The pack was torn: ask for `n` boxes (their prizes arrive as `obtain` packets and then `boxSeq`). */
+	function openPack(n) {
+		if (using) return;
+		store.net.gained.length = 0;
+		using = true;
+		store.conn.send('consume', { item: pack.id, count: n });
+		// nothing came back (the server refused: the connection shows why): the pack is closed, nothing was opened
+		setTimeout(() => using && ((using = false), (pack.open = false), (store.net.gained.length = 0)), 5000);
+	}
+
 	async function remove(item) {
 		if (!(await confirm({ message: plainText(t('kkutu.js.surePayback')) }))) return;
 		const res = await fetch(`/payback/${encodeURIComponent(item._id)}`, { method: 'POST' })
@@ -142,6 +160,14 @@
 		using = false;
 		prizes = tally(store.net.gained.splice(0));
 		if (!prizes.length) return;
+		if (pack.open) {
+			// the common prizes first, the rarest last (and with the holo foil): the reveal builds up
+			const pool = gachaPool(store.shop[pack.id] ?? {});
+			const chance = Object.fromEntries(pool.map((e) => [e.key, e.p]));
+			pack.rare = new Set(pool.filter((e) => e.p < 1).map((e) => e.key));
+			pack.prizes = prizes.sort((a, b) => (chance[b.key] ?? 100) - (chance[a.key] ?? 100));
+			return;
+		}
 		resultOpen = true;
 		playSound('success');
 	});
@@ -196,6 +222,7 @@
 <CharFactoryDialog bind:open={labOpen} {store} {entries} {details} {nameOf} />
 <HackerDialog bind:open={hackerOpen} {store} {entries} {details} {nameOf} onshop={() => ((hackerOpen = false), store.hooks.openShop?.('func', 'bonus'))} />
 
+<PackOpening bind:open={pack.open} choose itemId={pack.id} shop={store.shop} {nameOf} owned={pack.owned} prizes={pack.prizes} rare={pack.rare} note={t('kkutu.js.drawObtain')} onrequest={openPack} />
 <ObtainScreen bind:open={resultOpen} title={t('play.obtain.acquired')} notice={t('kkutu.js.drawObtain')} items={prizes} ribbon ambient="shine" palette="teal" shop={store.shop} {details} />
 
 <style>

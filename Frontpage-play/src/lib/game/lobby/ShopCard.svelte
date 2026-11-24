@@ -27,7 +27,7 @@
 		<span class="relative flex aspect-square items-center justify-center rounded-lg bg-(--kk-surface-2)">
 			<ShopThumb id={item._id} {shop} class="size-4/5" />
 			{#if !plain && isNew(item)}<span class="absolute top-1.5 left-1.5 rounded-md bg-(--kk-blue) px-1.5 text-[10px] leading-4 font-extrabold text-white">N</span>{/if}
-			{#if owned && !picked}<span class="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-(--kk-surface) text-(color:--kk-muted) shadow-[0_1px_0_var(--kk-line)]" title="{plainText(t('kkutu.js.alreadyGot'))}"><Icon name="inventory_2" size={13} /></span>{/if}
+			{#if owned && !picked}<Tooltip text={plainText(t('kkutu.js.alreadyGot'))}><span class="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-(--kk-surface) text-(color:--kk-muted) shadow-[0_1px_0_var(--kk-line)]"><Icon name="inventory_2" size={13} /></span></Tooltip>{/if}
 			{#if picked}<span class="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-(--shop-accent,var(--kk-accent)) text-white"><Icon name="check" size={14} /></span>{/if}
 		</span>
 		<span class="{compact ? 'line-clamp-2 min-h-8 text-xs' : 'min-h-9 text-sm'} flex-1 leading-tight font-extrabold break-keep [overflow-wrap:anywhere]">{name}</span>

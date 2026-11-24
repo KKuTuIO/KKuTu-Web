@@ -1,4 +1,5 @@
 <script>
+	import Tooltip from '../ui/Tooltip.svelte';
 	import { t } from '../i18n.svelte.js';
 	import { confirm } from '../ui/confirm.svelte.js';
 	import Icon from './Icon.svelte';
@@ -18,10 +19,10 @@
 	<div class="grid grid-cols-2 gap-2.5">
 		{#each items as item (item.k)}
 			{#if isMe}
-				<button type="button" onclick={() => remove(item)} class="flex min-w-0 items-center gap-2 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) p-2.5 text-left hover:bg-(--kk-surface-2)" title={t('play.achievement.showcase.removeHint')}>
+				<Tooltip text={t('play.achievement.showcase.removeHint')}><button type="button" onclick={() => remove(item)} class="flex min-w-0 items-center gap-2 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) p-2.5 text-left hover:bg-(--kk-surface-2)">
 					<Icon name="emoji_events" size={22} fill class="shrink-0 text-(color:--kk-accent)" />
 					<b class="line-clamp-2 min-w-0 text-sm leading-snug break-keep">{item.n}</b>
-				</button>
+				</button></Tooltip>
 			{:else}
 				<div class="flex min-w-0 items-center gap-2 rounded-xl border border-(color:--kk-line) bg-(--kk-surface) p-2.5">
 					<Icon name="emoji_events" size={22} fill class="shrink-0 text-(color:--kk-accent)" />

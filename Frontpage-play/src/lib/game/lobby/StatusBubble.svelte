@@ -1,4 +1,5 @@
 <script>
+	import Tooltip from '../ui/Tooltip.svelte';
 	import { tick } from 'svelte';
 	import { t, tList } from '../i18n.svelte.js';
 	import { backOut } from 'svelte/easing';
@@ -117,8 +118,8 @@
 		<span class={tail}></span>
 		{#if isMe}
 			<div class="absolute -top-3.5 -right-2 flex items-center rounded-full bg-neutral-800/95 p-0.5 text-white opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-				<button type="button" class={pillBtn} aria-label={t('play.statusMessage.edit')} title={t('play.statusMessage.edit')} onclick={() => edit()}><Icon name="edit" size={16} /></button>
-				<button type="button" class={pillBtn} aria-label={t('play.statusMessage.remove')} title={t('play.statusMessage.remove')} onclick={remove}><Icon name="delete" size={16} /></button>
+				<Tooltip text={t('play.statusMessage.edit')}><button type="button" class={pillBtn} aria-label={t('play.statusMessage.edit')} onclick={() => edit()}><Icon name="edit" size={16} /></button></Tooltip>
+				<Tooltip text={t('play.statusMessage.remove')}><button type="button" class={pillBtn} aria-label={t('play.statusMessage.remove')} onclick={remove}><Icon name="delete" size={16} /></button></Tooltip>
 			</div>
 		{/if}
 	</div>

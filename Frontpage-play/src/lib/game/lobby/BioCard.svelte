@@ -1,4 +1,5 @@
 <script>
+	import Tooltip from '../ui/Tooltip.svelte';
 	import { t, tList } from '../i18n.svelte.js';
 	import { tick } from 'svelte';
 	import { MAX_BIO, saveBio, applyFormat } from '../bio.js';
@@ -98,7 +99,7 @@
 	<section class="flex flex-col gap-2 rounded-2xl bg-(--kk-surface-2) p-3" aria-label={t('play.bio.title')}>
 		<div class="flex items-center gap-0.5" role="toolbar" aria-label={t('play.bio.format')}>
 			{#each TOOLS as [kind, icon, key] (kind)}
-				<button type="button" onmousedown={(e) => e.preventDefault()} onclick={() => format(kind)} aria-label={t(`play.bio.fmt.${kind}`)} title="{t(`play.bio.fmt.${kind}`)}{key ? ` (Ctrl+${key})` : ''}" class="grid size-8 place-items-center rounded-lg text-(color:--kk-muted) hover:bg-(--kk-surface) hover:text-(color:--kk-text)"><Icon name={icon} size={19} /></button>
+				<Tooltip text={`${t(`play.bio.fmt.${kind}`)}${key ? ` (Ctrl+${key})` : ''}`}><button type="button" onmousedown={(e) => e.preventDefault()} onclick={() => format(kind)} aria-label={t(`play.bio.fmt.${kind}`)} class="grid size-8 place-items-center rounded-lg text-(color:--kk-muted) hover:bg-(--kk-surface) hover:text-(color:--kk-text)"><Icon name={icon} size={19} /></button></Tooltip>
 			{/each}
 		</div>
 		<!-- svelte-ignore a11y_autofocus -->
@@ -129,8 +130,8 @@
 		{/if}
 		{#if isMe && bio}
 			<div class="absolute -top-4 right-4 flex items-center gap-0.5 rounded-full bg-neutral-800/95 p-1 text-white opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-				<button type="button" class={pillBtn} aria-label={t('play.bio.edit')} title={t('play.bio.edit')} onclick={edit}><Icon name="edit" size={18} /></button>
-				{#if bio}<button type="button" class={pillBtn} aria-label={t('play.bio.remove')} title={t('play.bio.remove')} onclick={remove}><Icon name="delete" size={18} /></button>{/if}
+				<Tooltip text={t('play.bio.edit')}><button type="button" class={pillBtn} aria-label={t('play.bio.edit')} onclick={edit}><Icon name="edit" size={18} /></button></Tooltip>
+				{#if bio}<Tooltip text={t('play.bio.remove')}><button type="button" class={pillBtn} aria-label={t('play.bio.remove')} onclick={remove}><Icon name="delete" size={18} /></button></Tooltip>{/if}
 			</div>
 		{/if}
 	</section>

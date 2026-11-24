@@ -84,31 +84,35 @@ export function paletteFromHue(h) {
 	};
 }
 
-/** The palette of an item picture, read once (and remembered). Never rejects. */
+/**
+ * The palette of an item picture, read once (and remembered). Never rejects.
+ *
+ * The picture is fetched for its pixels with `cache: 'no-store'`, not drawn from an `<img crossorigin>`: the host sends its CORS headers only to
+ * requests that carry an `Origin`, so the copy that a plain `<img>` put in the browser's cache earlier (the same icon in the inventory or the
+ * shop) has none, and a CORS-mode request that is answered from that copy fails. `no-store` neither reads that copy nor replaces it. A host
+ * that does not allow this page (a local server on http) just gives the id's hue.
+ */
 export function themeFromImage(key, url) {
 	if (cache.has(key)) return cache.get(key);
 	const fallback = paletteFromHue(hashHue(String(key)));
-	const job = new Promise((resolve) => {
-		if (!url || typeof document === 'undefined') return resolve(fallback);
-		const img = new Image();
-		img.crossOrigin = 'anonymous';
-		img.decoding = 'async';
-		img.onload = () => {
-			try {
-				const N = 40;
-				const canvas = document.createElement('canvas');
-				canvas.width = canvas.height = N;
-				const ctx = canvas.getContext('2d', { willReadFrequently: true });
-				ctx.drawImage(img, 0, 0, N, N);
-				const hue = dominantHue(ctx.getImageData(0, 0, N, N).data);
-				resolve(hue == null ? fallback : paletteFromHue(hue));
-			} catch {
-				resolve(fallback); // a tainted canvas (the picture's host did not allow this page)
-			}
-		};
-		img.onerror = () => resolve(fallback);
-		img.src = url;
-	});
+	const job = (async () => {
+		if (!url || typeof document === 'undefined') return fallback;
+		try {
+			const res = await fetch(url, { mode: 'cors', cache: 'no-store', credentials: 'omit' });
+			if (!res.ok) return fallback;
+			const bitmap = await createImageBitmap(await res.blob());
+			const N = 40;
+			const canvas = document.createElement('canvas');
+			canvas.width = canvas.height = N;
+			const ctx = canvas.getContext('2d', { willReadFrequently: true });
+			ctx.drawImage(bitmap, 0, 0, N, N);
+			bitmap.close?.();
+			const hue = dominantHue(ctx.getImageData(0, 0, N, N).data);
+			return hue == null ? fallback : paletteFromHue(hue);
+		} catch {
+			return fallback; // not allowed (CORS), offline, or a picture the browser cannot decode
+		}
+	})();
 	cache.set(key, job);
 	return job;
 }

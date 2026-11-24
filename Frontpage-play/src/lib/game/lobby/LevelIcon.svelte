@@ -8,8 +8,9 @@
 	/**
 	 * Level badge from the sprite sheet. Pass `score` (preferred) or `level`. Pass the player's `equip` where it is known: a worn staff
 	 * staff badge (any team's) swaps the number for the one staff level badge. It only changes the picture, nothing the server decides.
+	 * `tip={false}` for a badge inside something that has its own tooltip (two at once would pile up).
 	 */
-	let { score = 0, level = 0, size = 24, maskable = false, equip = null } = $props();
+	let { score = 0, level = 0, size = 24, maskable = false, equip = null, tip = true } = $props();
 	const lv = $derived(level || getLevel(score));
 	// 751+: the animated badge, unless the player asked for less motion (then the same picture stands still, from the plain sheet)
 	const staff = $derived(staffIdOf(equip));
@@ -20,9 +21,9 @@
 	<!-- 참여자 숨기기: the level is shown as a blank badge -->
 	<span class="inline-block shrink-0" role="img" aria-label={t('play.level.hidden')} style="background:url({IMAGE_CDN}kkutu/lv/hidelv.png{IMAGE_VERSION}) 0 0 / 100% 100%;width:{size}px;height:{size}px"></span>
 {:else if staff}
-	<Tooltip text={t(`play.staff.${staff}`)}><span class="inline-block shrink-0" role="img" aria-label={t(`play.staff.${staff}`)} style="background:url({staffLevelImage(STAFF_LEVEL_BADGE)}) 0 0 / 100% 100%;width:{size}px;height:{size}px"></span></Tooltip>
+	<Tooltip text={tip ? t(`play.staff.${staff}`) : ''}><span class="inline-block shrink-0" role="img" aria-label={t(`play.staff.${staff}`)} style="background:url({staffLevelImage(STAFF_LEVEL_BADGE)}) 0 0 / 100% 100%;width:{size}px;height:{size}px"></span></Tooltip>
 {:else}
-	<Tooltip text="Lv.{lv}"><span class="inline-block shrink-0" class:lv-fx={fx} role="img" aria-label={t('play.level', { level: lv })} style="{fx ? levelFxStyle(lv, size) : levelSpriteStyle(lv)};width:{size}px;height:{size}px"></span></Tooltip>
+	<Tooltip text={tip ? `Lv.${lv}` : ''}><span class="inline-block shrink-0" class:lv-fx={fx} role="img" aria-label={t('play.level', { level: lv })} style="{fx ? levelFxStyle(lv, size) : levelSpriteStyle(lv)};width:{size}px;height:{size}px"></span></Tooltip>
 {/if}
 
 <style>

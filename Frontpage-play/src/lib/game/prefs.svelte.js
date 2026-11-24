@@ -57,12 +57,47 @@ function load() {
 
 export const prefs = $state(load());
 
-export function setPref(name, value) {
-	if (!(name in DEFAULTS)) return;
-	prefs[name] = clean(name, value);
+// 움직임 감소 is first decided by a quick test of the device (`deviceBench.js`); `auto` stays true until the player changes the option themselves,
+// and only then does a test result stop touching it. It is not part of the settings form (`DEFAULTS`), so saving or resetting the form cannot erase it.
+const AUTO_KEY = 'kkutu-play-motion-auto';
+export const motion = $state({
+	auto: (() => {
+		try {
+			return localStorage.getItem(AUTO_KEY) !== '0';
+		} catch {
+			return true;
+		}
+	})()
+});
+function setMotionAuto(auto) {
+	motion.auto = auto;
+	try {
+		localStorage.setItem(AUTO_KEY, auto ? '1' : '0');
+	} catch {
+		/* private mode */
+	}
+}
+
+function persist() {
 	try {
 		localStorage.setItem(KEY, JSON.stringify({ ...prefs }));
 	} catch {
 		/* private mode */
 	}
+}
+
+export function setPref(name, value) {
+	if (!(name in DEFAULTS)) return;
+	const next = clean(name, value);
+	if (name === 'reduceMotion' && next !== prefs.reduceMotion) setMotionAuto(false); // the player's own choice from now on
+	prefs[name] = next;
+	persist();
+}
+
+/** The result of the device test: sets 움직임 감소 unless the player has chosen. Returns whether the option changed. */
+export function applyAutoMotion(slow) {
+	if (!motion.auto || prefs.reduceMotion === slow) return false;
+	prefs.reduceMotion = slow;
+	persist();
+	return true;
 }

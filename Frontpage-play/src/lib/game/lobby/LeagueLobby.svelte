@@ -1,4 +1,5 @@
 <script>
+	import Tooltip from '../ui/Tooltip.svelte';
 	import { onMount } from 'svelte';
 	import { t } from '../i18n.svelte.js';
 	import { league } from '../leagueStore.svelte.js';
@@ -63,7 +64,7 @@
 				<button type="button" onclick={onranking} aria-label={t('play.league.rankingShort')} class="kk-btn kk-hdr"><Icon name="trophy" size={16} /><span class="max-md:sr-only">{t('play.league.rankingShort')}</span></button>
 				<button type="button" onclick={() => (rewardOpen = true)} aria-label={t('play.league.tiers')} class="kk-btn kk-hdr"><Icon name="military_tech" size={16} /><span class="max-md:sr-only">{t('play.league.tiers')}</span></button>
 				<button type="button" onclick={() => (guideOpen = true)} aria-label={t('play.league.guide.button')} class="kk-btn kk-hdr"><Icon name="help" size={16} /><span class="max-md:sr-only">{t('play.league.guide.button')}</span></button>
-				<span class="kk-hdr kk-hdr-time max-md:!w-auto" role="timer" aria-label={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')} title={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')}><Icon name="schedule" size={18} fill />{clock.text}</span>
+				<Tooltip text={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')}><span class="kk-hdr kk-hdr-time max-md:!w-auto" role="timer" aria-label={t(clock.open ? 'play.league.clock.leftLabel' : 'play.league.clock.openLabel')}><Icon name="schedule" size={18} fill />{clock.text}</span></Tooltip>
 			</div>
 		{/if}
 	</header>

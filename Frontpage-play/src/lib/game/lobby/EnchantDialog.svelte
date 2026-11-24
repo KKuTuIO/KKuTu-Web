@@ -299,10 +299,10 @@
 									{#each slots as line, i (i)}
 										<li class="flex min-h-9 items-center gap-2 rounded-xl bg-(--kk-surface) px-3 py-1.5 text-sm {line ? 'font-bold' : 'text-(color:--kk-muted)'}">
 											{#if line}
-												{#if line.premium}<span class="text-amber-500" title={t('play.enchant.premiumLine')} aria-label={t('play.enchant.premiumLine')}>★</span>{/if}
+												{#if line.premium}<Tooltip text={t('play.enchant.premiumLine')}><span class="text-amber-500" aria-label={t('play.enchant.premiumLine')}>★</span></Tooltip>{/if}
 												<span class="min-w-0 flex-1">{text(line)}{#if line.damage}<b class="ml-1 text-xs text-red-500 tabular-nums">−{damagePercent(line)}%</b>{/if}</span>
 												{#if line.damage && !state.pending}
-													<button type="button" class="kk-btn inline-flex min-h-7 items-center gap-1 px-2 text-xs" disabled={busy || money < repairPrice(line)} onclick={() => askRepair(i)} title={t('play.enchant.repairInfo')} aria-label="{t('play.enchant.repair')} {fmt(repairPrice(line))}"><span>{t('play.enchant.repair')}</span><GameIcon name="ping" size={14} />{fmt(repairPrice(line))}</button>
+													<Tooltip text={t('play.enchant.repairInfo')}><button type="button" class="kk-btn inline-flex min-h-7 items-center gap-1 px-2 text-xs" disabled={busy || money < repairPrice(line)} onclick={() => askRepair(i)} aria-label="{t('play.enchant.repair')} {fmt(repairPrice(line))}"><span>{t('play.enchant.repair')}</span><GameIcon name="ping" size={14} />{fmt(repairPrice(line))}</button></Tooltip>
 												{/if}
 												{#if state.pending}<button type="button" class="kk-btn min-h-7 px-2.5 text-xs" disabled={busy} onclick={() => settle(i)}>{t('play.enchant.replace')}</button>{/if}
 											{:else}
@@ -370,7 +370,7 @@
 								</button>
 								<!-- 자동: keeps trying up to the target level; a damage, a full copy or the end of the tickets stops it -->
 								<div class="w-24 shrink-0"><Select options={AUTO_TARGETS} bind:value={autoTarget} label={t('play.enchant.autoTarget')} /></div>
-								<button type="button" class="kk-btn min-h-12 shrink-0 px-3 text-sm font-extrabold" disabled={(busy && !auto) || !ticket || (!auto && (state.level >= autoTarget || owned(ticket.id) < 1))} onclick={autoUse} aria-pressed={auto} title={t('play.enchant.autoInfo')}>{auto ? t('play.enchant.autoStop') : t('play.enchant.auto')}</button>
+								<Tooltip text={t('play.enchant.autoInfo')}><button type="button" class="kk-btn min-h-12 shrink-0 px-3 text-sm font-extrabold" disabled={(busy && !auto) || !ticket || (!auto && (state.level >= autoTarget || owned(ticket.id) < 1))} onclick={autoUse} aria-pressed={auto}>{auto ? t('play.enchant.autoStop') : t('play.enchant.auto')}</button></Tooltip>
 							</div>
 						{/if}
 					{/if}

@@ -1,4 +1,5 @@
 <script>
+	import Tooltip from '../ui/Tooltip.svelte';
 	import { onAction } from '../keys.svelte.js';
 	import { tick, untrack } from 'svelte';
 	import { backOut, cubicOut } from 'svelte/easing';
@@ -261,7 +262,7 @@
 						{#if m.system}
 							<b class="truncate pr-1 text-center text-(color:--kk-accent-strong)">{m.who}</b>
 						{:else}
-							<button type="button" title={m.who} onclick={() => m.uid && store.hooks.openProfile?.(m.uid)} class="truncate rounded-sm pr-1 text-center font-bold hover:bg-(--kk-surface-2) {prefs.spectatorTag && m.spectator ? 'text-(color:--kk-muted)' : ''}">{#if prefs.spectatorTag && m.spectator}[{t('play.room.status.spectate')}] {/if}<StaffTag staff={m.staff} />{m.who}</button>
+							<Tooltip text={m.who}><button type="button" onclick={() => m.uid && store.hooks.openProfile?.(m.uid)} class="truncate rounded-sm pr-1 text-center font-bold hover:bg-(--kk-surface-2) {prefs.spectatorTag && m.spectator ? 'text-(color:--kk-muted)' : ''}">{#if prefs.spectatorTag && m.spectator}[{t('play.room.status.spectate')}] {/if}<StaffTag staff={m.staff} />{m.who}</button></Tooltip>
 						{/if}
 						<span class="min-w-0 break-words whitespace-pre-wrap">{#if m.whisper}<b class="text-(color:--kk-whisper)">{t('play.chat.whisperLabel')}</b> {/if}{m.system ? m.msg : words(m)}</span>
 						<span class="pt-0.5 text-right text-[11px] text-(color:--kk-muted) tabular-nums">{fullTime(m.at)}</span>

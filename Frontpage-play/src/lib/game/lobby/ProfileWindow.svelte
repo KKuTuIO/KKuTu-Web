@@ -497,6 +497,7 @@
                                                 level={user.lv}
                                                 size={26}
                                                 maskable={!isMe}
+                                                tip={false}
                                             /><span
                                                 class="absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full bg-(--kk-surface-2) text-(color:--kk-muted) shadow-[0_1px_0_var(--kk-line)]"
                                             >

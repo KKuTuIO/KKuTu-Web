@@ -12,7 +12,7 @@
 	import Tabs from '../ui/Tabs.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
 	import { toast } from '../ui/toast.svelte.js';
-	import { DEFAULTS, prefs, setPref } from '../prefs.svelte.js';
+	import { DEFAULTS, motion, prefs, setPref } from '../prefs.svelte.js';
 	import { ACTIONS, GROUPS, bindings, comboOf, label as keyLabel, resetBinding, resetBindings, setBinding, setCapturing } from '../keys.svelte.js';
 	import { blockedList } from '../blocks.svelte.js';
 	import { MAX_NOTE, notes, setNote } from '../notes.svelte.js';
@@ -158,9 +158,9 @@
 		{#if changed && !a.fixed}
 			<Tooltip text={t('play.keys.resetOne')} placement="top"><button type="button" aria-label={t('play.keys.resetOne')} onclick={() => resetBinding(a.id)} class="kk-btn grid size-8 min-h-0 place-items-center p-0"><Icon name="undo" size={16} /></button></Tooltip>
 		{/if}
-		<button type="button" disabled={a.fixed} title={a.fixed ? t('play.keys.fixed') : undefined} onclick={() => (capturing = capturing === a.id ? '' : a.id)} class="kk-btn min-h-9 w-44 px-2 text-sm font-bold tabular-nums {capturing === a.id ? 'ring-2 ring-(--kk-accent-strong)' : ''} {a.fixed ? 'opacity-40' : ''}">
+		<Tooltip text={a.fixed ? t('play.keys.fixed') : ''}><button type="button" disabled={a.fixed} onclick={() => (capturing = capturing === a.id ? '' : a.id)} class="kk-btn min-h-9 w-44 px-2 text-sm font-bold tabular-nums {capturing === a.id ? 'ring-2 ring-(--kk-accent-strong)' : ''} {a.fixed ? 'opacity-40' : ''}">
 			{capturing === a.id ? t('play.keys.press') : keyLabel(bindings[a.id])}
-		</button>
+		</button></Tooltip>
 	</div>
 {/snippet}
 {#snippet toggle(name, label, expl)}
@@ -225,7 +225,7 @@
 					{@render toggle('vibration', t('play.settings.vibration'))}
 					{@render toggle('spectatorTag', t('play.settings.spectatorTag'))}
 					{@render toggle('chatFloating', t('play.settings.chatFloating'), t('play.settings.chatFloatingExpl'))}
-					{@render toggle('reduceMotion', t('play.settings.reduceMotion'), t('play.settings.reduceMotionExpl'))}
+					{@render toggle('reduceMotion', t('play.settings.reduceMotion'), t(motion.auto && prefs.reduceMotion ? 'play.settings.reduceMotionAuto' : 'play.settings.reduceMotionExpl'))}
 					<div class="mt-1 flex flex-col gap-1">
 						<Tooltip text={t('play.settings.lobbyStyleExpl')} placement="top"><span class="text-xs font-bold text-(color:--kk-muted)">{t('play.settings.lobbyStyle.title')}</span></Tooltip>
 						<Select label={t('play.settings.lobbyStyle.title')} value={draft.lobbyStyle} options={lobbyStyleOptions} onchange={(v) => (draft.lobbyStyle = v)} />

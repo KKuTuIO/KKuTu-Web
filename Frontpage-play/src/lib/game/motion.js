@@ -1,7 +1,10 @@
 import { quintOut } from 'svelte/easing';
+import { prefs } from './prefs.svelte.js';
 
 /** Motion helpers: every animation duration goes through `ms`, so "reduce motion" turns them all off. */
-export const reducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+export const systemReducedMotion = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** Motion is reduced by the system setting or by the player's 움직임 감소 (which the device test may have turned on). */
+export const reducedMotion = () => systemReducedMotion() || prefs.reduceMotion;
 export const ms = (n) => (reducedMotion() ? 0 : n);
 
 /** A page that comes up from under the chat (the shop, the 사전 page, the waiting room): rises a little while it fades in. */

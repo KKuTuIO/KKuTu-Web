@@ -213,9 +213,11 @@
 
 <!-- The bar at the foot of the list: its backdrop is solid at the bottom and clear at the top, so the list fades into it instead of being cut off; 분해 is not built yet (a disabled secondary button), 강화 opens the enchant dialog. 글자 조합소 and 해커레미의 조합 keep their characters hidden behind the button until it is hovered or focused. -->
 <div class="pointer-events-none sticky bottom-0 z-10 mt-3 grid grid-cols-2 gap-2 bg-gradient-to-t from-(--kk-surface) from-30% to-transparent pt-8 pb-1 sm:flex sm:items-end sm:justify-end sm:gap-3 sm:pt-14">
-	<span class="pointer-events-auto max-sm:block" title={t('play.lab.tbd')}>
-		<button type="button" disabled aria-label="{t('play.lab.dismantle')} – {t('play.lab.tbd')}" class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base whitespace-nowrap max-sm:w-full max-sm:justify-center">{t('play.lab.dismantle')}</button>
-	</span>
+	<Tooltip text={t('play.lab.tbd')}>
+		<span class="pointer-events-auto max-sm:block">
+			<button type="button" disabled aria-label="{t('play.lab.dismantle')} – {t('play.lab.tbd')}" class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base whitespace-nowrap max-sm:w-full max-sm:justify-center">{t('play.lab.dismantle')}</button>
+		</span>
+	</Tooltip>
 	<span class="pointer-events-auto max-sm:block">
 		<button type="button" onclick={() => (enchantOpen = true)} class="kk-btn inline-flex h-12 min-h-12 items-center px-5 text-base whitespace-nowrap max-sm:w-full max-sm:justify-center">{t('play.lab.enhance')}</button>
 	</span>

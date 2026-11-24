@@ -1,4 +1,5 @@
 <script>
+	import { reducedMotion } from '../motion.js';
 	/**
 	 * An event's title as text art: the stage lettering (ONE Mobile POP) filled with a gradient, every letter bobbing a little behind the one before
 	 * it, so a wave runs through the name. Each letter is two layers: a dark outline (a thick stroke, behind) and the gradient fill (on top, no stroke),
@@ -10,11 +11,12 @@
 	let { text, accent = '', fill = '', outline = '', outlineWidth = '', class: cls = '' } = $props();
 	const letters = $derived([...text]);
 	const uid = $props.id();
+	const still = $derived(reducedMotion()); // the system's or the player's 움직임 감소: the letters stand still
 </script>
 
 <!-- Closes the holes of the outline layer (the inside of ㅇ, ㅂ, ㅁ, where the stroke leaves a gap): the shape is grown, then shrunk by the same amount, so
      whatever is open and narrower than twice that is filled and the outer edge stays. In fractions of each letter's box, so it follows the font size. -->
-<h2 class="kk-fire-text leading-tight {cls}" style:--fh="url(#nwt-{uid})" style:--c={accent || 'var(--ac, #7c3aed)'} style:--fill={fill || undefined} style:--o={outline || undefined} style:--ow={outlineWidth || undefined}>
+<h2 class="kk-fire-text leading-tight {cls}" class:still style:--fh="url(#nwt-{uid})" style:--c={accent || 'var(--ac, #7c3aed)'} style:--fill={fill || undefined} style:--o={outline || undefined} style:--ow={outlineWidth || undefined}>
 	<svg width="0" height="0" class="absolute" aria-hidden="true" focusable="false" style="color: var(--o, color-mix(in srgb, var(--c) 55%, #1e0538))">
 		<filter id="nwt-{uid}" x="-30%" y="-30%" width="160%" height="160%" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
 			<feMorphology in="SourceAlpha" operator="dilate" radius="0.16 0.14" result="grown" />
@@ -79,9 +81,7 @@
 			transform: translateY(-0.14em);
 		}
 	}
-	@media (prefers-reduced-motion: reduce) {
-		.wave {
-			animation: none;
-		}
+	.still .wave {
+		animation: none;
 	}
 </style>

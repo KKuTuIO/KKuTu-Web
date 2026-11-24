@@ -1,4 +1,5 @@
 <script>
+	import Tooltip from '../ui/Tooltip.svelte';
 	import { t } from '../i18n.svelte.js';
 	import { prefs } from '../prefs.svelte.js';
 	import { badgeUrl, badgeName, tierParts, BADGE_RATIO } from '../leagueModel.js';
@@ -18,5 +19,5 @@
 </script>
 
 {#if src}
-	<img {src} alt={label} title={label} height={size} width={Math.round(size * BADGE_RATIO)} draggable="false" class="inline-block shrink-0 select-none" />
+	<Tooltip text={label}><img {src} alt={label} height={size} width={Math.round(size * BADGE_RATIO)} draggable="false" class="inline-block shrink-0 select-none" /></Tooltip>
 {/if}

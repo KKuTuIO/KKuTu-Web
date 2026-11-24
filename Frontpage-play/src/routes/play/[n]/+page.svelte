@@ -73,6 +73,7 @@
 	import ProfileWindow from '$lib/game/lobby/ProfileWindow.svelte';
 	import RatingDialog from '$lib/game/lobby/RatingDialog.svelte';
 	import { installUiSounds } from '$lib/game/uiSounds.js';
+	import { scheduleMotionBench } from '$lib/game/deviceBench.js';
 	import { installUnlock, playLeagueBgm, playLobbyBgm, playShopBgm, stopBgm, wantedBgm } from '$lib/game/audio.svelte.js';
 	import RoomScreen from '$lib/game/lobby/RoomScreen.svelte';
 	import GameScreen from '$lib/game/lobby/GameScreen.svelte';
@@ -513,6 +514,7 @@
 		document.addEventListener('click', linkGuard, true);
 		window.addEventListener('beforeunload', unloadGuard);
 		const unlock = installUnlock(); // browsers keep audio locked until the first click or key press
+		scheduleMotionBench({ onEnabled: () => toast(t('play.motion.autoOn'), { kind: 'info' }) }); // 움직임 감소 is on by default on a device that cannot keep up
 		const offUiSounds = installUiSounds(); // 모든 버튼: 누르면 click, 마우스를 올리면 hover 소리
 		const stopIdle = watchIdle({ status: () => store.net.myStatus, set: (s, auto) => store.setStatus(s, auto) }); // 자리 비움 by itself after a quiet spell
 		store.conn.open();

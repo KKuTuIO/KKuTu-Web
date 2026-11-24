@@ -1,7 +1,7 @@
 <script>
     import { onMount, untrack } from "svelte";
     import { t } from "../i18n.svelte.js";
-    import { ms } from "../motion.js";
+    import { ms, reducedMotion } from "../motion.js";
     import { itemImage } from "../images.js";
     import { themeOf } from "../theme.js";
     import { titleOf } from "../title.js";
@@ -101,6 +101,9 @@
 
     const sleep = (t) => new Promise((r) => setTimeout(r, t));
     const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+    // Calm: the system's or the player's 움직임 감소 (which the device test turns on for a device that cannot keep up): no particles, nothing floats, glows or
+    // runs on its own, and the reveal does not wait between cards (`ms` is 0). The tear and the cards stay as they are.
+    const calm = $derived(reducedMotion());
     const boxName = $derived(nameOf(itemId));
     const odds = $derived(boxOdds(shop[itemId]));
     const oddsColumns = $derived([
@@ -404,7 +407,6 @@
             src={shop[itemId] ? itemImage(itemId, shop) : ""}
             alt=""
             draggable="false"
-            crossorigin="anonymous"
         />
         <span class="label">{boxName}</span>
         <span class="cut"></span>
@@ -415,6 +417,7 @@
     bind:this={el}
     aria-label={boxName}
     class="pack"
+    class:calm
     style={themeStyle(theme)}
     oncancel={(e) => e.preventDefault()}
 >
@@ -426,11 +429,11 @@
             onpointermove={light}
             style="--mx:0.5;--my:0.4;--cw:{cardSize}"
         >
-            {#key theme.hue}<PackParticles
+            {#if !calm}{#key theme.hue}<PackParticles
                     bind:this={fx}
                     colors={[theme.a, theme.b, theme.c, theme.d]}
                     active={open}
-                />{/key}
+                />{/key}{/if}
             <span class="glow" aria-hidden="true"></span>
             {#if phase === "idle" || phase === "armed"}
                 <div class="corner">
@@ -1385,28 +1388,30 @@
             opacity: 0.25;
         }
     }
-    @media (prefers-reduced-motion: reduce) {
-        .floater,
-        .floater.burst,
-        .foil,
-        .holo,
-        .glitter,
-        .star,
-        .knob,
-        .glow,
-        .orb,
-        .flash,
-        .slot,
-        .title {
-            animation: none;
-        }
-        .floater.burst {
-            opacity: 0;
-        }
-        .inner,
-        .side,
-        .slot {
-            transition: none;
-        }
+    /* calm: see `calm` above */
+    .calm .floater,
+    .calm .floater.burst,
+    .calm .foil,
+    .calm .holo,
+    .calm .glitter,
+    .calm .star,
+    .calm .knob,
+    .calm .glow,
+    .calm .orb,
+    .calm .flash,
+    .calm .slot,
+    .calm .title {
+        animation: none;
+    }
+    .calm .floater {
+        filter: none; /* a blur-and-shadow filter on a moving layer is the dearest single thing here on a weak GPU */
+    }
+    .calm .floater.burst {
+        opacity: 0;
+    }
+    .calm .inner,
+    .calm .side,
+    .calm .slot {
+        transition: none;
     }
 </style>

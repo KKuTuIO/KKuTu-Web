@@ -122,7 +122,7 @@
 							<div class="flex min-w-0 flex-1 flex-col gap-1">
 								<div class="flex min-w-0 items-center gap-1.5">
 									{#if v.hidden}<Icon name="lock_open" size={15} class="shrink-0 text-(color:--kk-muted)" />{/if}
-									<b class="line-clamp-2 min-w-0 text-sm leading-snug break-keep" title={v.title}>{v.title}</b>
+									<Tooltip text={v.title}><b class="line-clamp-2 min-w-0 text-sm leading-snug break-keep">{v.title}</b></Tooltip>
 									{#if v.rare}<span class="shrink-0 rounded-md bg-(--kk-accent-soft) px-1 text-[10px] font-bold text-(color:--kk-accent)">{t('play.achievement.rare')}</span>{/if}
 								</div>
 								{#if v.count > 1}

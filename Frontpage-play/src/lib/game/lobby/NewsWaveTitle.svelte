@@ -24,22 +24,38 @@
 		</filter>
 	</svg>
 	<span class="sr-only">{text}</span>
-	<span aria-hidden="true">{#each letters as ch, i (i)}<span class="wave" style:animation-delay="{i * 0.09}s"><span class="o">{ch === ' ' ? '\u00a0' : ch}</span><span class="f">{ch === ' ' ? '\u00a0' : ch}</span></span>{/each}</span>
+	<!-- two layers of the same letters, bobbing in step: every outline lies under every fill (with an outline and a fill in each letter, a letter's outline was drawn over the fill of the one before it) -->
+	<span aria-hidden="true" class="letters">
+		<span class="under">{@render row('o')}</span>
+		<span class="over">{@render row('f')}</span>
+	</span>
 </h2>
 
+{#snippet row(kind)}{#each letters as ch, i (i)}<span class="wave" style:animation-delay="{i * 0.09}s"><span class={kind}>{ch === ' ' ? '\u00a0' : ch}</span></span>{/each}{/snippet}
+
 <style>
+	.letters {
+		display: block;
+		position: relative;
+	}
+	/* the shadow is cast by the outlines as one shape: one per letter would be drawn over the neighbouring letter's outline */
+	.under {
+		display: block;
+		filter: drop-shadow(0 3px 0 color-mix(in srgb, var(--c) 40%, #1e0538));
+	}
+	.over {
+		position: absolute;
+		inset: 0;
+		display: block;
+	}
 	.wave {
 		display: inline-block;
 		position: relative;
 		isolation: isolate;
-		filter: drop-shadow(0 3px 0 color-mix(in srgb, var(--c) 40%, #1e0538));
 		animation: kk-wave 1.7s ease-in-out infinite;
 	}
-	/* the outline: behind the fill, as thick as the lettering wants */
+	/* the outline: the lower layer, as thick as the lettering wants */
 	.o {
-		position: absolute;
-		inset: 0;
-		z-index: 0;
 		color: var(--o, color-mix(in srgb, var(--c) 55%, #1e0538));
 		-webkit-text-stroke: var(--ow, 0.18em) var(--o, color-mix(in srgb, var(--c) 55%, #1e0538));
 		text-shadow: none;
@@ -47,8 +63,6 @@
 	}
 	/* the fill: a gradient clipped to the letter, no stroke of its own */
 	.f {
-		position: relative;
-		z-index: 1;
 		color: transparent;
 		background-image: var(--fill, linear-gradient(180deg, #fff 15%, #fde047 100%));
 		-webkit-background-clip: text;

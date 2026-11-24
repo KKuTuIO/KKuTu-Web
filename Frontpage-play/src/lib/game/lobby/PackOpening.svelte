@@ -1118,7 +1118,6 @@
         padding: 2.2rem;
         overflow-y: auto;
         list-style: none;
-        perspective: 900px;
     }
     .slot {
         transition:
@@ -1139,18 +1138,13 @@
         border: 0;
         background: none;
         cursor: pointer;
-        perspective: 700px;
     }
     .inner {
         position: relative;
         display: block;
         width: 100%;
         height: 100%;
-        transform-style: preserve-3d;
-        transition: transform 0.6s cubic-bezier(0.3, 1.3, 0.5, 1);
-    }
-    .card.flipped .inner {
-        transform: rotateY(180deg);
+        transition: transform 0.3s ease-out;
     }
     .side {
         position: absolute;
@@ -1158,21 +1152,32 @@
         display: grid;
         place-items: center;
         border-radius: 0.7rem;
-        backface-visibility: hidden;
         overflow: hidden;
         box-shadow:
             0 3px 0 rgb(0 0 0 / 0.14),
             0 8px 18px color-mix(in srgb, var(--pdeep) 30%, transparent);
     }
+    /* The flip: no 3D context and no backface-visibility (Safari drops `preserve-3d` inside a button, and then shows only the back). Each face is turned
+       by its own transform; the back turns edge-on, is hidden at that moment, and the front turns in from the other edge. */
     .back {
         border: 2px solid rgb(255 255 255 / 0.85);
+        transform: perspective(700px) rotateY(0deg);
+        visibility: visible;
+    }
+    .card.flipped .back {
+        transform: perspective(700px) rotateY(90deg);
+        visibility: hidden;
+        transition:
+            transform 0.28s ease-in,
+            visibility 0s linear 0.28s;
     }
     .back :global(.mark) {
         color: #fff;
         filter: drop-shadow(0 0 8px rgb(255 255 255 / 0.95));
     }
     .front {
-        transform: rotateY(180deg);
+        transform: perspective(700px) rotateY(-90deg);
+        visibility: hidden;
         grid-template-rows: 1fr auto;
         padding: 0.55rem 0.4rem 0.45rem;
         background:
@@ -1260,6 +1265,13 @@
         animation: pk-glit 1.6s ease-in-out infinite;
         pointer-events: none;
     }
+    .card.flipped .front {
+        transform: perspective(700px) rotateY(0deg);
+        visibility: visible;
+        transition:
+            transform 0.45s cubic-bezier(0.3, 1.45, 0.5, 1) 0.28s,
+            visibility 0s linear 0.28s;
+    }
     .card.rare.flipped .front {
         box-shadow:
             0 0 0 3px #fff,
@@ -1267,10 +1279,7 @@
             0 8px 18px color-mix(in srgb, var(--pdeep) 30%, transparent);
     }
     .card.lit .inner {
-        transform: scale(1.12) rotateY(0deg);
-    }
-    .card.lit.flipped .inner {
-        transform: scale(1.12) rotateY(180deg);
+        transform: scale(1.12);
     }
     .spot {
         position: absolute;
@@ -1395,6 +1404,7 @@
             opacity: 0;
         }
         .inner,
+        .side,
         .slot {
             transition: none;
         }

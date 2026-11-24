@@ -267,13 +267,15 @@ describe('an event shown as one stage', () => {
 		expect(items[1].className).toContain('kk-hdr-count');
 	});
 
-	it('draws the title as a gradient fill over a separate outline, so the outline stays whole', async () => {
+	it('draws the title as a gradient fill over a separate outline, so every outline lies under every fill', async () => {
 		await setup();
 		const title = screen.getByRole('heading', { level: 2, name: '타일 룰렛' });
-		const letter = title.querySelector('.wave');
-		expect(letter.querySelector('.o')).toBeTruthy(); // the outline layer
-		expect(letter.querySelector('.f')).toBeTruthy(); // the fill layer
-		expect(title.querySelectorAll('.wave')).toHaveLength([...'타일 룰렛'].length);
+		const letters = [...'타일 룰렛'].length;
+		// two layers of the same letters: all the outlines below, all the fills above (an outline never lands on the neighbouring letter's fill)
+		expect(title.querySelectorAll('.under .wave .o')).toHaveLength(letters);
+		expect(title.querySelectorAll('.over .wave .f')).toHaveLength(letters);
+		expect(title.querySelector('.under .f')).toBeNull();
+		expect(title.querySelector('.over .o')).toBeNull();
 	});
 
 	it('is one page: no sub-tabs of its own, only the tabs of the list', async () => {

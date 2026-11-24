@@ -108,6 +108,7 @@
 }
 
 /* Dialog motion: overshooting spring in, quick anticipation-and-shrink out. */
+.kk-bouncy { transform-origin: 50% 50%; }
 .kk-bouncy[open] { animation: kk-pop-in 0.26s cubic-bezier(0.34, 1.7, 0.64, 1) both; }
 .kk-bouncy[open]::backdrop { animation: kk-fade-in 0.15s ease-out both; }
 .kk-bouncy.kk-closing { animation: kk-pop-out 0.18s ease-in both; }
@@ -118,8 +119,9 @@
 .kk-sheet.kk-closing::backdrop { animation: kk-fade-out 0.2s ease-in both; }
 @keyframes kk-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes kk-sheet-out { to { transform: translateY(100%); } }
-@keyframes kk-pop-in { from { opacity: 0; transform: translateY(28px) scale(0.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
-@keyframes kk-pop-out { 0% { transform: none; opacity: 1; } 30% { transform: scale(1.04); opacity: 1; } 100% { transform: translateY(20px) scale(0.6); opacity: 0; } }
+/* a pop-up grows out of its own middle (no travel: it used to rise from below, which read as coming out of the bottom edge) */
+@keyframes kk-pop-in { from { opacity: 0; transform: scale(0.6); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes kk-pop-out { 0% { transform: none; opacity: 1; } 30% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(0.6); opacity: 0; } }
 /* The headline face of the big screen effects (the result, 아이템 발동!, the obtain ribbon, 해커레미): ONE Mobile POP, rounder and bouncier than NanumSquare Neo. */
 /* ONE Mobile POP is hosted on the static host (https://cdn.kkutu.io/css/one-mobile-pop.css, linked from app.html). */
 .kk-pop-font {

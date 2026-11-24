@@ -299,6 +299,30 @@ export function gachaPool(item) {
 	return [...weights].map(([key, w]) => ({ key, p: (w / total) * 100 })).sort((a, b) => a.p - b.p || a.key.localeCompare(b.key));
 }
 
+/**
+ * What an item box can give and how likely, for the odds table: every `item` give of the box, however the server draws it (`wei` weighted, `full`
+ * evenly from a list, `all` everything). `p` is a percentage, `q` how many come at a time. Rarest first.
+ */
+export function boxOdds(item) {
+	const rows = new Map();
+	const add = (key, p, q) => {
+		const row = rows.get(key);
+		if (row) ((row.p = Math.min(100, row.p + p)), (row.q = Math.max(row.q, q)));
+		else rows.set(key, { key, p, q });
+	};
+	for (const g of item?.options?.gives ?? []) {
+		if (g.type !== 'item' || !g.pool) continue;
+		const q = Number(g.value) || 1;
+		if (g.from === 'wei') {
+			const entries = Array.isArray(g.pool) ? g.pool.map((key, i) => [key, g.weight?.[i]]) : Object.entries(g.pool);
+			const total = entries.reduce((a, [, w]) => a + (Number(w) || 0), 0);
+			if (total) for (const [key, w] of entries) add(key, ((Number(w) || 0) / total) * 100, q);
+		} else if (g.from === 'full' && Array.isArray(g.pool) && g.pool.length) for (const key of g.pool) add(key, 100 / g.pool.length, q);
+		else if (g.from === 'all' && Array.isArray(g.pool)) for (const key of g.pool) add(key, 100, q);
+	}
+	return [...rows.values()].sort((a, b) => a.p - b.p || a.key.localeCompare(b.key));
+}
+
 /** Legacy price of a draw: ten at once are 10% cheaper per draw. */
 export const drawPrice = (cost, count) => Math.floor(cost * (count >= 10 ? 0.9 : 1)) * count;
 

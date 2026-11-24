@@ -3,14 +3,14 @@
 	 * An event's title as text art: the stage lettering (ONE Mobile POP) filled with a gradient, every letter bobbing a little behind the one before
 	 * it, so a wave runs through the name. Each letter is two layers: a dark outline (a thick stroke, behind) and the gradient fill (on top, no stroke),
 	 * so the outline stays whole however the fill is clipped. Screen readers get the plain name; with motion reduced the letters stand still.
-	 * `accent` colours the outline (`--c`).
-	 * @type {{text:string, accent?:string, class?:string}}
+	 * `accent` colours the outline (`--c`); `fill` (a CSS gradient) replaces the white-to-yellow fill.
+	 * @type {{text:string, accent?:string, fill?:string, class?:string}}
 	 */
-	let { text, accent = '', class: cls = '' } = $props();
+	let { text, accent = '', fill = '', class: cls = '' } = $props();
 	const letters = $derived([...text]);
 </script>
 
-<h2 class="kk-fire-text leading-tight {cls}" style:--c={accent || 'var(--ac, #7c3aed)'}>
+<h2 class="kk-fire-text leading-tight {cls}" style:--c={accent || 'var(--ac, #7c3aed)'} style:--fill={fill || undefined}>
 	<span class="sr-only">{text}</span>
 	<span aria-hidden="true">{#each letters as ch, i (i)}<span class="wave" style:animation-delay="{i * 0.09}s"><span class="o">{ch === ' ' ? '\u00a0' : ch}</span><span class="f">{ch === ' ' ? '\u00a0' : ch}</span></span>{/each}</span>
 </h2>
@@ -37,7 +37,7 @@
 		position: relative;
 		z-index: 1;
 		color: transparent;
-		background-image: linear-gradient(180deg, #fff 15%, #fde047 100%);
+		background-image: var(--fill, linear-gradient(180deg, #fff 15%, #fde047 100%));
 		-webkit-background-clip: text;
 		background-clip: text;
 		-webkit-text-stroke: 0;

@@ -2,9 +2,9 @@
 	import { onMount, untrack } from 'svelte';
 	import { t } from '../i18n.svelte.js';
 	import { plainText, cleanBox } from '../protocol.js';
-	import { loadGoodDetails, INVENTORY_FILTERS, matchesInventory, isConsumable, isEquippable, equipSlot, isEquipped, itemName, ownedItems, tally, gachaPool } from '../shop.js';
+	import { loadGoodDetails, INVENTORY_FILTERS, matchesInventory, isConsumable, isEquippable, equipSlot, isEquipped, itemName, ownedItems, tally, boxOdds } from '../shop.js';
 	import { playSound } from '../audio.svelte.js';
-	import { confirm, prompt, choose } from '../ui/confirm.svelte.js';
+	import { confirm, choose } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
 	import ChipRow from './ChipRow.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
@@ -80,27 +80,10 @@
 		const { item, count } = e;
 		// 단어 토큰: nothing to open, it is spent on 어인정 조회 in the 사전
 		if (item._id === 'wordToken') return store.hooks.openInjeong?.();
-		if (isConsumable(item) && gachaPool(item).length) {
+		// every consumable (the legacy client opens all of them with its box screen) is opened as a pack: the pack asks how many, and the request goes out when it is torn
+		if (isConsumable(item)) {
 			if (using) return;
 			pack = { open: true, id: item._id, owned: count, prizes: null, rare: new Set() };
-			return;
-		}
-		if (isConsumable(item)) {
-			let n = 1;
-			if (count > 1) {
-				const v = await prompt({ message: t('kkutu.js.consume', { count }), value: '1', max: 4 });
-				if (v === null) return;
-				n = parseInt(v, 10);
-				if (isNaN(n)) return void toast(plainText(t('kkutu.js.invalidConsume')), { kind: 'error' });
-				if (n < 1) return;
-				if (n > count) return void toast(plainText(t('kkutu.js.notEnoughConsume')), { kind: 'error' });
-			}
-			if (!(await confirm({ message: plainText(t('kkutu.js.sureConsume')) }))) return;
-			if (using) return;
-			store.net.gained.length = 0;
-			using = true;
-			store.conn.send('consume', { item: item._id, count: n }); // its prizes arrive as `obtain` packets
-			setTimeout(() => using && ((using = false), (store.net.gained.length = 0)), 5000);
 			return;
 		}
 		if (!isEquippable(item, equips)) return;
@@ -159,10 +142,11 @@
 		if (!using) return;
 		using = false;
 		prizes = tally(store.net.gained.splice(0));
-		if (!prizes.length) return;
+		// a box that gave no item (only ping or exp, which the server says in notices): an empty list lets the pack close itself
+		if (!prizes.length) return void (pack.open && (pack.prizes = []));
 		if (pack.open) {
 			// the common prizes first, the rarest last (and with the holo foil): the reveal builds up
-			const pool = gachaPool(store.shop[pack.id] ?? {});
+			const pool = boxOdds(store.shop[pack.id]);
 			const chance = Object.fromEntries(pool.map((e) => [e.key, e.p]));
 			pack.rare = new Set(pool.filter((e) => e.p < 1).map((e) => e.key));
 			pack.prizes = prizes.sort((a, b) => (chance[b.key] ?? 100) - (chance[a.key] ?? 100));

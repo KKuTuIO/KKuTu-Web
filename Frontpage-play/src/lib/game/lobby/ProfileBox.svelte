@@ -4,7 +4,7 @@
 	import { plainText, cleanBox } from '../protocol.js';
 	import { loadGoodDetails, INVENTORY_FILTERS, matchesInventory, isConsumable, isEquippable, equipSlot, isEquipped, itemName, ownedItems, tally, boxOdds } from '../shop.js';
 	import { playSound } from '../audio.svelte.js';
-	import { confirm, choose } from '../ui/confirm.svelte.js';
+	import { confirm, prompt, choose } from '../ui/confirm.svelte.js';
 	import { toast } from '../ui/toast.svelte.js';
 	import ChipRow from './ChipRow.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
@@ -39,6 +39,7 @@
 	let labTip = $state(1); // which of the lab assistant's lines the tooltip shows
 	let tipLine = $state(1); // which of 해커레미's lines the tooltip shows (drawn anew whenever the pointer comes)
 	let using = $state(false); // a box is being opened: its prizes are on their way
+	let direct = false; // what is being opened is not a pack (a 백과사전 낱장): the experience it gave is told in a toast
 	let resultOpen = $state(false);
 	let prizes = $state([]);
 	// a random box (it has a prize pool) is opened by tearing its pack: the pack asks how many, sends the request when it is torn and shows the prizes itself
@@ -80,7 +81,9 @@
 		const { item, count } = e;
 		// 단어 토큰: nothing to open, it is spent on 어인정 조회 in the 사전
 		if (item._id === 'wordToken') return store.hooks.openInjeong?.();
-		// every consumable (the legacy client opens all of them with its box screen) is opened as a pack: the pack asks how many, and the request goes out when it is torn
+		// 백과사전 낱장 only gives experience: no pack, it is used as before (how many, sure?) and the experience is told in a toast
+		if (item._id === 'dictPage') return useDirect(item, count);
+		// every other consumable (the legacy client opens all of them with its box screen) is opened as a pack: the pack asks how many, and the request goes out when it is torn
 		if (isConsumable(item)) {
 			if (using) return;
 			pack = { open: true, id: item._id, owned: count, prizes: null, rare: new Set() };
@@ -112,6 +115,26 @@
 		if (!already) wearCopy(item._id, copyNo).then(loadEnchants); // and which copy of it counts
 	}
 
+	async function useDirect(item, count) {
+		let n = 1;
+		if (count > 1) {
+			const v = await prompt({ message: t('kkutu.js.consume', { count }), value: '1', max: 4 });
+			if (v === null) return;
+			n = parseInt(v, 10);
+			if (isNaN(n)) return void toast(plainText(t('kkutu.js.invalidConsume')), { kind: 'error' });
+			if (n < 1) return;
+			if (n > count) return void toast(plainText(t('kkutu.js.notEnoughConsume')), { kind: 'error' });
+		}
+		if (!(await confirm({ message: plainText(t('kkutu.js.sureConsume')) }))) return;
+		if (using) return;
+		store.net.gained.length = 0;
+		store.net.gainedExp = 0;
+		using = true;
+		direct = true;
+		store.conn.send('consume', { item: item._id, count: n });
+		setTimeout(() => using && ((using = false), (direct = false), (store.net.gained.length = 0)), 5000);
+	}
+
 	/** The pack was torn: ask for `n` boxes (their prizes arrive as `obtain` packets and then `boxSeq`). */
 	function openPack(n) {
 		if (using) return;
@@ -141,6 +164,14 @@
 		lastSeq = seq;
 		if (!using) return;
 		using = false;
+		if (direct) {
+			direct = false;
+			const exp = store.net.gainedExp;
+			store.net.gainedExp = 0;
+			store.net.gained.length = 0;
+			if (exp > 0) toast(`${plainText(t('kkutu.js.obtainExp'))}: ${exp.toLocaleString()}`, { kind: 'success' });
+			return;
+		}
 		prizes = tally(store.net.gained.splice(0));
 		// a box that gave no item (only ping or exp, which the server says in notices): an empty list lets the pack close itself
 		if (!prizes.length) return void (pack.open && (pack.prizes = []));

@@ -656,7 +656,9 @@
                             <NewsWaveTitle
                                 text={t("play.pack.hint")}
                                 accent="#5d54d6"
-                                fill="linear-gradient(180deg, #00e0f5 0%, #9a5cff 55%, #ff1fc4 100%)"
+                                outline="#fff"
+                                outlineWidth="0.3em"
+                                fill="linear-gradient(180deg, #00d2ee 0%, #8f5bff 52%, #ff1fbd 100%)"
                                 class="gtext"
                             />
                             <Icon
@@ -790,9 +792,7 @@
         position: relative;
         width: var(--w);
         aspect-ratio: 3 / 5;
-        transform: rotate(
-            -5deg
-        ); /* the resting tilt: the floating itself only goes up and down */
+        transform: rotate(5deg); /* the resting tilt, to the right: the floating itself only goes up and down */
     }
     .face {
         position: absolute;
@@ -1000,18 +1000,9 @@
     }
     /* 밀어서 포장 열기!: big lettering, a deep cyan to magenta fill running down it, a thick white outline under it (a copy of the text behind) */
     .guide {
-        --c: #5d54d6;
-        position: relative;
         display: flex;
         align-items: center;
-        /* a plate behind the lettering, in the outline's own colour: the lettering's outline has holes (the inside of ㅇ, ㅂ, ㅁ) that the pastel sky would show through */
-        padding: 0.15em 0.9em 0.3em;
-        border: 3px solid rgb(255 255 255 / 0.85);
-        border-radius: 1.1rem;
-        background: color-mix(in srgb, var(--c) 55%, #1e0538);
-        box-shadow:
-            0 5px 0 rgb(40 30 130 / 0.38),
-            0 0 22px rgb(0 255 255 / 0.3);
+        gap: 0.6rem;
         transition: opacity 0.2s;
     }
     .gone {
@@ -1024,19 +1015,13 @@
         white-space: nowrap;
     }
     .guide :global(.gs) {
-        position: absolute;
         color: #fff;
         filter: drop-shadow(0 0 6px #00ffff) drop-shadow(0 0 10px #ff00ff);
         animation: pk-twinkle 1.6s ease-in-out infinite;
     }
-    .guide :global(.gs1) {
-        left: -0.9rem;
-        top: -1rem;
-    }
     .guide :global(.gs2) {
-        right: -0.7rem;
-        bottom: -0.8rem;
         animation-delay: 0.7s;
+        align-self: flex-start;
     }
     .owned {
         display: inline-flex;

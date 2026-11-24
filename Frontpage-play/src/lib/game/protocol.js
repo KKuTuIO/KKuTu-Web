@@ -59,6 +59,7 @@ export const initialState = () => ({
 	boxSeq: 0, // counts the packets that carried my whole box: the last one of a gacha draw ends it
 	box: null, // what I own: {item id: {value, expire?}} (flag items, keys starting with #, are left out)
 	expired: [], // item ids that ran out while I was away (the server lists them on connect): shown once, then cleared
+	gainedExp: 0, // experience the server gave with my last `obtain`s (a 백과사전 낱장 gives only this), taken by whoever shows it
 	gained: [], // items the server gave (a gacha draw sends one packet per prize): [{key, q}], taken by whoever shows them
 	gifts: [], // what an admin gave me (`#give`): [{key, q}], taken by GiftHost, which shows them on the obtain screen
 	obtained: null, // {rewards, at} what the last claimed mail gave
@@ -520,6 +521,7 @@ function applyPacketInner(state, pkt, now) {
 			if (pkt.money && state.users[state.id]) state.users[state.id].money += Number(pkt.money);
 			if (Array.isArray(pkt.gift)) state.gifts.push(...pkt.gift.map((g) => ({ key: String(g.key), q: Number(g.q) || 1 })));
 			if (pkt.gain) state.gained.push(...pkt.gain.map((g) => ({ key: g.key, q: g.q })));
+			if (pkt.exp) state.gainedExp += Math.round(Number(pkt.exp)) || 0;
 			// What the server says I now have: my equipment and my box (legacy sets both from every `obtain`).
 			if (pkt.equip && state.users[state.id]) state.users[state.id].equip = pkt.equip;
 			if (pkt.data && state.users[state.id] && typeof pkt.data.score === 'number') state.users[state.id].score = pkt.data.score;

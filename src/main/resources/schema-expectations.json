@@ -1524,5 +1524,68 @@
 "kind": "index",
 "object": "game_achievement_unlock_account_idx",
 "want": true
+},
+{
+"ord": 218,
+"migration": "20261125_support_ticket.sql",
+"kind": "table",
+"object": "support_staff",
+"want": true
+},
+{
+"ord": 219,
+"migration": "20261125_support_ticket.sql",
+"kind": "table",
+"object": "support_ticket",
+"want": true
+},
+{
+"ord": 220,
+"migration": "20261125_support_ticket.sql",
+"kind": "index",
+"object": "support_ticket_account_idx",
+"want": true
+},
+{
+"ord": 221,
+"migration": "20261125_support_ticket.sql",
+"kind": "index",
+"object": "support_ticket_queue_idx",
+"want": true
+},
+{
+"ord": 222,
+"migration": "20261125_support_ticket.sql",
+"kind": "table",
+"object": "support_message",
+"want": true
+},
+{
+"ord": 223,
+"migration": "20261125_support_ticket.sql",
+"kind": "index",
+"object": "support_message_ticket_idx",
+"want": true
+},
+{
+"ord": 224,
+"migration": "20261125_support_ticket.sql",
+"kind": "table",
+"object": "support_attachment",
+"want": true
+},
+{
+"ord": 225,
+"migration": "20261125_support_ticket.sql",
+"kind": "index",
+"object": "support_attachment_message_idx",
+"want": true
+},
+{
+"ord": 226,
+"migration": "20261125_support_ticket.sql",
+"kind": "table",
+"object": "support_setting",
+"want": true
 }
 ]

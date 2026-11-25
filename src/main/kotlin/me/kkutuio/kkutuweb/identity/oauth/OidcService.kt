@@ -17,7 +17,7 @@ class OidcService(
     private val userDao: UserDao,
     private val objectMapper: ObjectMapper
 ) {
-    val supportedScopes = setOf("openid", "profile", "email", "account", "offline", "game:kkutu", "admin:access")
+    val supportedScopes = setOf("openid", "profile", "email", "account", "offline", "game:kkutu", "admin:access", "support")
 
     fun validateAuthorization(clientId: String, redirectUri: String, scopes: Set<String>, codeChallenge: String, method: String): RegisteredClient {
         val client = dao.findClient(clientId) ?: throw IdpException("unauthorized_client", "등록되지 않은 클라이언트입니다.", 400)

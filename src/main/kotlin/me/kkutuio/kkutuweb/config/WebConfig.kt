@@ -19,6 +19,7 @@
 package me.kkutuio.kkutuweb.config
 
 import me.kkutuio.kkutuweb.moderation.ModerationMutationInterceptor
+import me.kkutuio.kkutuweb.support.SupportSettings
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -34,7 +35,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 @Configuration
 class WebConfig(
     @Value("#{'\${spring.cors.allowed-origins}'.split(',')}") private val corsAllowedOrigins: Array<String>,
-    private val moderationMutationInterceptor: ModerationMutationInterceptor
+    private val moderationMutationInterceptor: ModerationMutationInterceptor,
+    private val supportSettings: SupportSettings
 ) : WebMvcConfigurer {
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
@@ -50,14 +52,28 @@ class WebConfig(
             }
         )
 
+        // 고객센터는 쿠키를 쓰지 않는 공개 OAuth 앱이다(Bearer 토큰만).
+        val publicClientOrigins = (corsAllowedOrigins.toList() + supportSettings.allowedOrigins).distinct()
+
         source.registerCorsConfiguration(
-            "/oauth/token",
+            "/api/support/**",
             CorsConfiguration().apply {
-                allowedMethods = listOf("POST")
-                allowedOrigins = corsAllowedOrigins.toList()
-                allowedHeaders = listOf("*")
+                allowedMethods = listOf("GET", "POST")
+                allowedOrigins = publicClientOrigins
+                allowedHeaders = listOf("Authorization", "Content-Type", "Idempotency-Key")
             }
         )
+
+        listOf("/oauth/token", "/oauth/revoke").forEach { path ->
+            source.registerCorsConfiguration(
+                path,
+                CorsConfiguration().apply {
+                    allowedMethods = listOf("POST")
+                    allowedOrigins = publicClientOrigins
+                    allowedHeaders = listOf("*")
+                }
+            )
+        }
 
         return source
     }

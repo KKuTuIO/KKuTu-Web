@@ -1,0 +1,154 @@
+{
+  "consent": {
+    "version": "2026-11",
+    "title": "개인정보 수집·이용 동의",
+    "items": [
+      "수집 항목: 계정 식별 번호, 별명, 문의 제목과 내용, 분류별 입력 항목, 답변 알림을 받는 경우 인증된 전자 메일 주소",
+      "이용 목적: 문의 접수, 확인, 답변과 분쟁 대응",
+      "보유 기간: 상담 종료일로부터 3년",
+      "동의하지 않을 수 있으며, 이 경우 문의를 접수할 수 없습니다."
+    ]
+  },
+  "groups": [
+    {
+      "code": "account",
+      "label": "계정",
+      "items": [
+        {
+          "code": "account.transfer",
+          "label": "계정 이전",
+          "template": "옮기려는 계정(이전 대상)과 상황을 적어 주세요.\n\n- 이전을 원하는 이유:\n- 이전 대상 계정에 마지막으로 접속한 시기:\n",
+          "fields": [
+            { "key": "targetUserId", "label": "이전 대상 계정의 식별 번호", "type": "text", "required": true, "maxLength": 128, "hint": "게임에서 /id 를 입력하면 확인할 수 있습니다." },
+            { "key": "targetSecurityCode", "label": "이전 대상 계정의 보안 코드", "type": "securityCode", "required": false, "maxLength": 64, "hint": "일치 여부만 확인하고 코드는 저장하지 않습니다." }
+          ]
+        },
+        {
+          "code": "account.login",
+          "label": "로그인",
+          "template": "- 로그인에 사용하는 서비스(네이버, 구글 등):\n- 발생한 시각:\n- 화면에 나온 안내:\n",
+          "fields": []
+        },
+        {
+          "code": "account.delete",
+          "label": "탈퇴",
+          "template": "탈퇴와 관련해 궁금한 점을 적어 주세요.\n",
+          "fields": []
+        },
+        { "code": "account.etc", "label": "기타 계정 문의", "template": "", "fields": [] }
+      ]
+    },
+    {
+      "code": "payment",
+      "label": "결제·멤버십",
+      "items": [
+        {
+          "code": "payment.error",
+          "label": "결제 오류",
+          "template": "- 결제한 날짜와 시각:\n- 결제 수단:\n- 상품과 금액:\n- 발생한 현상:\n",
+          "fields": []
+        },
+        {
+          "code": "payment.missing",
+          "label": "지급 누락",
+          "template": "- 결제한 날짜와 시각:\n- 상품과 금액:\n- 지급되지 않은 항목:\n",
+          "fields": []
+        },
+        {
+          "code": "payment.refund",
+          "label": "환불",
+          "template": "- 결제한 날짜와 시각:\n- 상품과 금액:\n- 환불을 원하는 이유:\n",
+          "fields": []
+        },
+        {
+          "code": "payment.minor",
+          "label": "미성년자 결제",
+          "template": "보호자께서 작성해 주세요. 확인 서류가 필요하면 답변으로 안내합니다.\n\n- 결제한 날짜와 시각:\n- 상품과 금액:\n- 상황 설명:\n",
+          "fields": []
+        }
+      ]
+    },
+    {
+      "code": "sanction",
+      "label": "이용제한",
+      "items": [
+        {
+          "code": "sanction.appeal",
+          "label": "이의신청",
+          "appeal": true,
+          "template": "이용제한 조치에 불복하는 이유를 적어 주세요.\n\n- 통보를 받은 날짜:\n- 이의신청 사유:\n",
+          "fields": [
+            { "key": "inquiryId", "label": "문의번호", "type": "inquiryId", "required": false, "maxLength": 13, "hint": "이용제한 안내에 표시된 BLK-XXXX-XXXX 번호입니다." }
+          ]
+        },
+        {
+          "code": "sanction.question",
+          "label": "이용제한 문의",
+          "template": "궁금한 점을 적어 주세요.\n",
+          "fields": [
+            { "key": "inquiryId", "label": "문의번호", "type": "inquiryId", "required": false, "maxLength": 13, "hint": "이용제한 안내에 표시된 BLK-XXXX-XXXX 번호입니다." }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "report",
+      "label": "신고",
+      "items": [
+        {
+          "code": "report.user",
+          "label": "사용자 신고",
+          "template": "- 발생한 날짜와 시각:\n- 채널과 방 번호:\n- 상황 설명:\n",
+          "fields": [
+            { "key": "targetNickname", "label": "신고 대상 별명", "type": "text", "required": true, "maxLength": 64 }
+          ]
+        },
+        {
+          "code": "report.nickname",
+          "label": "별명·소개글",
+          "template": "문제가 되는 내용을 적어 주세요.\n",
+          "fields": [
+            { "key": "targetNickname", "label": "대상 별명", "type": "text", "required": true, "maxLength": 64 }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "game",
+      "label": "게임 이용",
+      "items": [
+        {
+          "code": "game.bug",
+          "label": "버그",
+          "template": "- 발생한 날짜와 시각:\n- 사용 기기와 브라우저:\n- 다시 일어나게 하는 순서:\n- 기대한 동작과 실제 동작:\n",
+          "fields": []
+        },
+        {
+          "code": "game.connect",
+          "label": "접속",
+          "template": "- 발생한 날짜와 시각:\n- 사용 기기와 브라우저:\n- 인터넷 환경(Wi-Fi, 모바일 데이터, VPN):\n- 화면에 나온 안내:\n",
+          "fields": []
+        },
+        {
+          "code": "game.item",
+          "label": "아이템·보상",
+          "template": "- 발생한 날짜와 시각:\n- 관련 아이템이나 행사:\n- 상황 설명:\n",
+          "fields": []
+        }
+      ]
+    },
+    {
+      "code": "etc",
+      "label": "기타",
+      "items": [
+        {
+          "code": "etc.privacy",
+          "label": "개인정보",
+          "template": "요청하는 내용(열람, 정정, 삭제 등)을 적어 주세요.\n",
+          "fields": []
+        },
+        { "code": "etc.other", "label": "제안·기타", "template": "", "fields": [] }
+      ]
+    }
+  ]
+}

@@ -22,7 +22,7 @@ data class ConfigSaveResult(val hash: String, val backup: String, val changed: L
 
 /**
  * 설정 파일 보기·수정. 저장은 파일만 바꾸고 서버는 재시작하지 않는다(재시작은 서버 관리 화면에서 따로).
- * 비밀 값은 화면에 나가지 않고 바꿀 수도 없으며, 웹 kkutu.json 의 관리자·게임 서버 접속 항목도 바꿀 수 없다.
+ * 비밀 값은 화면에 나가지 않고 웹 배포 토큰 말고는 바꿀 수도 없으며, 웹 kkutu.json 의 관리자·게임 서버 접속 항목도 바꿀 수 없다.
  */
 @Service
 class ConfigManagementService(

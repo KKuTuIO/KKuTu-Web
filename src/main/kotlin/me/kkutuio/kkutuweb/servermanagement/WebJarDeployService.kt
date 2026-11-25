@@ -272,6 +272,12 @@ class WebJarDeployService(
         if (expectedStartClass != null && expectedStartClass != newStartClass) {
             throw ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "현재 애플리케이션과 다른 jar입니다.")
         }
+        if (attributes.getValue(TOKEN_CAPABLE_ATTRIBUTE) == null && source.requiresTokenCapableJar()) {
+            throw ResponseStatusException(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "저장소가 비공개라 배포 토큰을 지원하지 않는 이전 버전은 배포할 수 없습니다. 배포하면 그 뒤로 새 버전을 받을 수 없습니다."
+            )
+        }
     }
 
     @Synchronized
@@ -325,6 +331,8 @@ class WebJarDeployService(
     }
 
     companion object {
+        /** 배포 토큰으로 릴리스를 받을 수 있는 jar 의 매니페스트 표시(build.gradle.kts 에서 넣는다). */
+        internal const val TOKEN_CAPABLE_ATTRIBUTE = "KKuTu-Web-Deploy-Token"
         private val TAG_PATTERN = Regex("^kkutu-web-v\\d{1,9}$")
         private const val MAX_JAR_BYTES = 400L * 1024 * 1024
         private const val FREE_SPACE_MARGIN = 64L * 1024 * 1024

@@ -55,6 +55,8 @@ tasks.withType<KotlinCompile> {
 tasks.withType<BootJar> {
     manifest {
         attributes["Enable-Native-Access"] = "ALL-UNNAMED"
+        // 배포 토큰으로 릴리스를 받을 수 있는 버전이라는 표시. 비공개 저장소에서는 이 표시가 없는 jar 의 배포를 막는다.
+        attributes["KKuTu-Web-Deploy-Token"] = "supported"
     }
 }
 

@@ -144,8 +144,13 @@
 		{ id: 'uid', icon: 'key', label: L('kkutu.dialog.accountOptions.checkUid'), expl: L('kkutu.dialog.accountOptions.checkUid.expl'), run: () => (store.net.guest ? needMember() : store.conn.send('uid')) },
 		{ id: 'survey', icon: 'assignment', label: L('kkutu.dialog.accountOptions.checkSurvey'), expl: L('kkutu.dialog.accountOptions.checkSurvey.expl'), run: () => (store.net.guest ? needLogin() : (surveyOpen = true)) },
 		{ id: 'wiki', icon: 'menu_book', label: t('play.wiki.bind.row'), expl: t('play.wiki.bind.rowExpl'), run: () => (store.net.guest ? needLogin() : (wikiBindOpen = true)) },
-		{ id: 'membership', icon: 'star', label: L('kkutu.dialog.accountOptions.checkMembershipInfo'), expl: L('kkutu.dialog.accountOptions.checkMembershipInfo.expl'), run: () => (store.net.guest ? needLogin() : membership()) }
+		{ id: 'membership', icon: 'star', label: L('kkutu.dialog.accountOptions.checkMembershipInfo'), expl: L('kkutu.dialog.accountOptions.checkMembershipInfo.expl'), run: () => (store.net.guest ? needLogin() : membership()) },
+		// game administrators, in a build that has both bundles; the server checks the account again
+		...(store.net.admin && bundle !== 'local' ? [{ id: 'bundle', icon: 'code', label: t(`play.settings.bundle.${otherBundle}`), expl: t(`play.settings.bundle.${otherBundle}Expl`), run: switchBundle }] : [])
 	]);
+	const bundle = typeof __PLAY_BUNDLE__ === 'undefined' ? 'local' : __PLAY_BUNDLE__;
+	const otherBundle = bundle === 'dev' ? 'release' : 'dev';
+	const switchBundle = async () => (await confirmLeave()) && location.assign(`/play/${store.server}?bundle=${otherBundle}`);
 	const channelName = (i) => i18n.messages[`server.${i}`] ?? `#${i}`;
 	const goTo = async (i) => (await confirmLeave()) && (location.href = `/play/${i}`);
 </script>

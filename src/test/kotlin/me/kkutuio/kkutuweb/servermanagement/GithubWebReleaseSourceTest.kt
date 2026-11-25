@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 import tools.jackson.databind.json.JsonMapper
 
 class GithubWebReleaseSourceTest {
-    private val source = GithubWebReleaseSource(JsonMapper.builder().build(), "KKuTuIO/KKuTu-Web", 0)
+    private val source = GithubWebReleaseSource(JsonMapper.builder().build(), { null }, "KKuTuIO/KKuTu-Web", 0)
     private val digest = "a".repeat(64)
 
     @Test

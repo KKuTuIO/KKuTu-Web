@@ -15,7 +15,7 @@ object ConfigCatalog {
 
     /** 웹 서버가 시작할 때 읽는 설정. OAuth·DB 접속 정보 같은 비밀 설정은 이 폴더가 아니라 배포 환경에서 주입하므로 여기에 없다. */
     val webFiles = listOf(
-        ConfigFileSpec("kkutu.json", true, "웹 서버 기본 설정. 관리자 계정·게임 서버 접속 정보·비밀 값은 보호되어 수정할 수 없습니다."),
+        ConfigFileSpec("kkutu.json", true, "웹 서버 기본 설정. 관리자 계정·게임 서버 접속 정보·비밀 값은 보호되어 수정할 수 없습니다. 웹 배포 토큰(webDeploy.githubToken)만 새로 넣거나 바꿀 수 있습니다."),
         ConfigFileSpec("games.json", true, "게임 규칙과 옵션 정의"),
         ConfigFileSpec("moremi.json", true, "모레미 부위·분류·장착 구성"),
         ConfigFileSpec("themes.json", true, "단어 주제 목록"),

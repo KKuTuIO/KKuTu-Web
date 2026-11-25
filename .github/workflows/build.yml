@@ -33,7 +33,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: "[Frontend] Verify and build with Vite"
+        env:
+          OBFUSCATE_SECURITY: "1"
         run: pnpm verify
+
+      - name: "[Frontend] Build the administrators' development bundle"
+        run: pnpm --dir Frontpage-play build:dev-bundle
 
       - name: "[WAS] Set up JDK 25"
         uses: actions/setup-java@v5

@@ -24,7 +24,9 @@ data class WebRelease(
     val size: Long,
     /** 소문자 hex SHA-256. GitHub가 digest를 제공하지 않으면 null이며, 이 경우 배포는 거부된다. */
     val sha256: String?,
-    val downloadUrl: String
+    val downloadUrl: String,
+    /** GitHub API 의 자산 주소. 비공개 저장소의 자산은 토큰을 붙여 이 주소로만 받을 수 있다. */
+    val apiUrl: String? = null
 )
 
 /** 웹 서버 jar 릴리스의 조회와 다운로드. 네트워크 계층을 분리해 배포 로직을 오프라인으로 테스트한다. */
@@ -33,11 +35,15 @@ interface WebReleaseSource {
 
     /** [release]의 jar를 [target]에 저장한다. [maxBytes]를 넘으면 중단하고 예외를 던진다. */
     fun download(release: WebRelease, target: Path, maxBytes: Long)
+
+    /** 지금 배포하는 jar 가 토큰으로 릴리스를 받을 수 있어야 하는가. 아닌 jar 를 올리면 그 뒤로는 새 버전을 받을 수 없을 때 참이다. */
+    fun requiresTokenCapableJar(): Boolean = false
 }
 
 @Component
 class GithubWebReleaseSource(
     private val objectMapper: ObjectMapper,
+    private val tokenSource: WebDeployTokenSource,
     @Value("\${server-management.web-deploy.repository:KKuTuIO/KKuTu-Web}") private val repository: String,
     @Value("\${server-management.web-deploy.release-cache-seconds:120}") cacheSeconds: Long
 ) : WebReleaseSource {
@@ -49,16 +55,31 @@ class GithubWebReleaseSource(
     private val cacheMillis = cacheSeconds.coerceIn(0, 3600) * 1000
     private var cached: List<WebRelease> = emptyList()
     private var cachedAt = 0L
+    private var cachedToken: String? = null
 
     @Synchronized
     override fun listReleases(): List<WebRelease> {
         val now = System.currentTimeMillis()
-        if (cachedAt != 0L && now - cachedAt < cacheMillis) return cached
-        val body = fetchText("https://api.github.com/repos/$repository/releases?per_page=$PAGE_SIZE")
+        val token = tokenSource.token()
+        if (cachedAt != 0L && token == cachedToken && now - cachedAt < cacheMillis) return cached
+        val body = fetchText("https://api.github.com/repos/$repository/releases?per_page=$PAGE_SIZE", token)
         val parsed = parseReleases(body)
         cached = parsed
         cachedAt = now
+        cachedToken = token
         return parsed
+    }
+
+    override fun requiresTokenCapableJar(): Boolean {
+        // 공개 저장소라면 토큰을 모르는 이전 버전으로 되돌려도 새 버전을 계속 받을 수 있다.
+        val token = tokenSource.token() ?: return false
+        val body = fetchText("https://api.github.com/repos/$repository", token)
+        val isPrivate = try {
+            objectMapper.readTree(body)?.get("private")?.takeIf { it.isBoolean }?.booleanValue()
+        } catch (error: Exception) {
+            null
+        }
+        return isPrivate ?: throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "저장소의 공개 여부를 확인하지 못했습니다.")
     }
 
     internal fun parseReleases(body: String): List<WebRelease> {
@@ -90,21 +111,27 @@ class GithubWebReleaseSource(
                 assetName = asset["name"].stringValue(),
                 size = asset["size"]?.longValue() ?: 0L,
                 sha256 = asset["digest"]?.stringValue()?.let(::parseDigest),
-                downloadUrl = url
+                downloadUrl = url,
+                apiUrl = asset["url"]?.stringValue()?.takeIf { isAssetApiUrl(it, repository) }
             )
         }
     }
 
     override fun download(release: WebRelease, target: Path, maxBytes: Long) {
-        var url = release.downloadUrl
+        val token = tokenSource.token()
+        val assetApiUrl = release.apiUrl?.takeIf { token != null && isAssetApiUrl(it, repository) }
+        var url = assetApiUrl ?: release.downloadUrl
         repeat(MAX_REDIRECTS + 1) {
-            requireAllowed(url)
-            val request = HttpRequest.newBuilder(URI.create(url))
+            // 토큰은 자산 API 주소에만 붙인다. 리다이렉트된 다운로드 주소에는 보내지 않는다.
+            val authorized = url == assetApiUrl
+            if (!authorized) requireAllowed(url)
+            val builder = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofMinutes(10))
                 .header("User-Agent", USER_AGENT)
                 .header("Accept", "application/octet-stream")
                 .GET()
-                .build()
+            if (authorized) builder.header("Authorization", "Bearer $token")
+            val request = builder.build()
             val response = send(request) { HttpResponse.BodyHandlers.ofInputStream() }
             when (val status = response.statusCode()) {
                 200 -> {
@@ -122,27 +149,34 @@ class GithubWebReleaseSource(
                 }
                 else -> {
                     response.body().close()
-                    throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "릴리스 다운로드에 실패했습니다. (HTTP $status)")
+                    throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "릴리스 다운로드에 실패했습니다. HTTP $status${hint(status, token)}")
                 }
             }
         }
         throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "다운로드 리다이렉트가 너무 많습니다.")
     }
 
-    private fun fetchText(url: String): String {
+    private fun fetchText(url: String, token: String?): String {
         requireAllowed(url, api = true)
-        val request = HttpRequest.newBuilder(URI.create(url))
+        val builder = HttpRequest.newBuilder(URI.create(url))
             .timeout(Duration.ofSeconds(20))
             .header("User-Agent", USER_AGENT)
             .header("Accept", "application/vnd.github+json")
             .GET()
-            .build()
-        val response = send(request) { HttpResponse.BodyHandlers.ofString() }
-        if (response.statusCode() != 200) {
-            val hint = if (response.statusCode() == 403 || response.statusCode() == 429) " (GitHub API 호출 한도일 수 있습니다)" else ""
-            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "릴리스 목록을 가져오지 못했습니다. HTTP ${response.statusCode()}$hint")
+        if (token != null) builder.header("Authorization", "Bearer $token")
+        val response = send(builder.build()) { HttpResponse.BodyHandlers.ofString() }
+        val status = response.statusCode()
+        if (status != 200) {
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "GitHub에서 릴리스 정보를 가져오지 못했습니다. HTTP $status${hint(status, token)}")
         }
         return response.body()
+    }
+
+    private fun hint(status: Int, token: String?): String = when (status) {
+        401 -> " (배포 토큰이 만료됐거나 올바르지 않습니다. kkutu.json 의 webDeploy.githubToken 을 확인하세요)"
+        403, 429 -> " (GitHub API 호출 한도이거나 배포 토큰의 권한이 부족할 수 있습니다)"
+        404 -> if (token == null) " (비공개 저장소라면 배포 토큰이 필요합니다)" else " (배포 토큰의 대상 저장소와 Contents 읽기 권한을 확인하세요)"
+        else -> ""
     }
 
     private fun <T> send(request: HttpRequest, handler: () -> HttpResponse.BodyHandler<T>): HttpResponse<T> = try {
@@ -189,6 +223,14 @@ class GithubWebReleaseSource(
         internal fun parseDigest(value: String): String? {
             val hex = value.removePrefix("sha256:").lowercase()
             return hex.takeIf { value.startsWith("sha256:") && it.matches(Regex("^[0-9a-f]{64}$")) }
+        }
+
+        /** [repository] 의 릴리스 자산을 가리키는 GitHub API 주소인가. */
+        internal fun isAssetApiUrl(url: String, repository: String): Boolean {
+            val prefix = "https://api.github.com/repos/$repository/releases/assets/"
+            if (!url.startsWith(prefix, ignoreCase = true)) return false
+            val id = url.substring(prefix.length)
+            return id.isNotEmpty() && id.all { it in '0'..'9' }
         }
 
         /** https이며 github.com 또는 GitHub 자산 CDN(*.githubusercontent.com)만 허용한다. */

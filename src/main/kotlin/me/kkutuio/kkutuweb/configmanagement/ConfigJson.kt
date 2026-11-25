@@ -22,10 +22,16 @@ data class LockedPath(val kind: LockKind, val segments: List<String>) {
 
 /**
  * 설정 JSON 을 읽고, 비밀 값을 가리고, 가려진·보호된 항목이 바뀌지 않았는지 확인하고, 다시 JSON 으로 쓴다.
- * 화면에는 비밀 값 대신 [SECRET_SENTINEL] 이 나가고, 저장할 때 그 자리를 원래 값으로 되돌린다. 비밀 값은 이 경로로 수정할 수 없다.
+ * 화면에는 비밀 값 대신 [SECRET_SENTINEL] 이 나가고, 저장할 때 그 자리를 원래 값으로 되돌린다. 비밀 값은 웹 배포 토큰 하나를 빼고 이 경로로 수정할 수 없다.
  */
 object ConfigJson {
     const val SECRET_SENTINEL = "[비밀 값 - 수정 불가]"
+
+    /** 웹 배포용 GitHub 토큰 자리(웹 kkutu.json). 만료되면 갈아 끼워야 해서, 비밀 값 중 유일하게 이 화면에서 새로 넣고 바꿀 수 있다(지우기는 불가). */
+    private const val WEB_DEPLOY_TOKEN_POINTER = "/webDeploy/githubToken"
+
+    /** 저장소와 권한을 좁혀 발급하는 fine-grained 토큰만 받는다. 값이 가려져 눈으로 확인할 수 없어 형식이 틀린 값은 저장 전에 막는다. */
+    private val webDeployToken = Regex("^github_pat_[A-Za-z0-9_]{20,255}$")
 
     private val mapper: JsonMapper = JsonMapper.builder()
         .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
@@ -72,6 +78,14 @@ object ConfigJson {
         return found
     }
 
+    private fun isWritableSecret(file: String, pointer: String): Boolean = file == "kkutu.json" && pointer == WEB_DEPLOY_TOKEN_POINTER
+
+    private fun isSentinel(node: JsonNode?): Boolean = node != null && node.isString && node.stringValue() == SECRET_SENTINEL
+
+    private fun webDeployTokenProblem(node: JsonNode?): String? =
+        if (node != null && node.isString && webDeployToken.matches(node.stringValue())) null
+        else "$WEB_DEPLOY_TOKEN_POINTER 에는 github_pat_ 로 시작하는 GitHub fine-grained 토큰을 공백 없이 넣어야 합니다."
+
     private fun at(root: JsonNode, segments: List<String>): JsonNode? {
         var node: JsonNode = root
         for (segment in segments) {
@@ -106,23 +120,32 @@ object ConfigJson {
     /**
      * 사용자가 제출한 JSON 이 가려진·보호된 항목을 그대로 두었는지 확인하고, 비밀 값 자리에 원래 값을 되돌린 JSON 을 돌려준다.
      * 비밀 값을 바꾸거나 지우거나 새로 넣으면(키 이름이 비밀처럼 보이는 새 항목 포함) 거절한다.
+     * 예외는 [WEB_DEPLOY_TOKEN_POINTER] 하나로, 형식에 맞는 토큰이면 새로 넣거나 바꿀 수 있다.
      */
     fun verifyAndRestore(file: String, original: JsonNode, submitted: JsonNode): JsonNode {
         val problems = mutableListOf<String>()
         val lockedOriginal = collectLocked(file, original)
         val lockedSubmitted = collectLocked(file, submitted)
-        lockedSubmitted.keys.filterNot(lockedOriginal::containsKey).forEach { problems += "새 비밀·보호 항목은 추가할 수 없습니다: $it" }
+        for ((pointer, locked) in lockedSubmitted) {
+            if (pointer in lockedOriginal) continue
+            if (isWritableSecret(file, pointer)) webDeployTokenProblem(at(submitted, locked.segments))?.let { problems += it }
+            else problems += "새 비밀·보호 항목은 추가할 수 없습니다: $pointer"
+        }
         for ((pointer, locked) in lockedOriginal) {
             val value = at(submitted, locked.segments)
             if (value == null) { problems += "비밀·보호 항목은 지울 수 없습니다: $pointer"; continue }
             when (locked.kind) {
-                LockKind.SECRET -> if (!(value.isString && value.stringValue() == SECRET_SENTINEL)) problems += "비밀 값은 수정할 수 없습니다: $pointer"
+                LockKind.SECRET -> when {
+                    isSentinel(value) -> Unit
+                    isWritableSecret(file, pointer) -> webDeployTokenProblem(value)?.let { problems += it }
+                    else -> problems += "비밀 값은 수정할 수 없습니다: $pointer"
+                }
                 LockKind.PROTECTED -> if (value != at(original, locked.segments)) problems += "보호된 항목은 수정할 수 없습니다: $pointer"
             }
         }
         if (problems.isNotEmpty()) throw ConfigRejectedException(problems)
         val merged = submitted.deepCopy()
-        lockedOriginal.values.filter { it.kind == LockKind.SECRET }.forEach { locked ->
+        lockedOriginal.values.filter { it.kind == LockKind.SECRET && isSentinel(at(submitted, it.segments)) }.forEach { locked ->
             replaceAt(merged, locked.segments, at(original, locked.segments)!!.deepCopy())
         }
         return merged

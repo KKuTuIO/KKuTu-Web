@@ -36,12 +36,17 @@ import me.kkutuio.kkutuweb.setup.SetupService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.MediaTypeFactory
+import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.servlet.support.RequestContextUtils
 import java.security.SecureRandom
@@ -84,10 +89,39 @@ class PlayController(
     fun entry(session: HttpSession): Any =
         if (isPreviewAllowed(session)) "redirect:/play/0" else notFound()
 
+    /**
+     * Who may get the unobfuscated development bundle. Checked on its own, not through [isPreviewAllowed]: it must stay limited to game
+     * administrators after the preview gate is lifted.
+     */
+    private fun isDevBundleAllowed(session: HttpSession): Boolean {
+        val account = loginService.accountUuid(session) ?: return false
+        return account in kKuTuSetting.getGameAdminIds()
+    }
+
+    /** `?bundle=dev|release`: remembers the choice for this browser session and reloads without the query. */
+    private fun switchBundle(server: String, session: HttpSession, bundle: String): ResponseEntity<Any> {
+        val dev = bundle == "dev" && isDevBundleAllowed(session)
+        val cookie = ResponseCookie.from(DEV_BUNDLE_COOKIE, if (dev) "dev" else "").path("/play").httpOnly(true).sameSite("Lax")
+        if (!dev) cookie.maxAge(0)
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .header(HttpHeaders.LOCATION, "/play/$server")
+            .header(HttpHeaders.SET_COOKIE, cookie.build().toString())
+            .header(HttpHeaders.CACHE_CONTROL, "no-store")
+            .build()
+    }
+
     @GetMapping("/play/{server:[0-9]+}")
-    fun shell(@PathVariable server: String, session: HttpSession): ResponseEntity<Any> {
+    fun shell(
+        @PathVariable server: String,
+        session: HttpSession,
+        @RequestParam(name = "bundle", required = false) bundle: String? = null,
+        @CookieValue(name = DEV_BUNDLE_COOKIE, required = false) chosenBundle: String? = null
+    ): ResponseEntity<Any> {
         if (!isPreviewAllowed(session)) return notFound()
-        val page = ClassPathResource("play/200.html")
+        if (bundle != null) return switchBundle(server, session, bundle)
+        // A jar built without the development bundle serves the normal one whatever the cookie says.
+        val devPage = if (chosenBundle == "dev" && isDevBundleAllowed(session)) ClassPathResource("play-dev/200.html") else null
+        val page = devPage?.takeIf { it.exists() } ?: ClassPathResource("play/200.html")
         if (!page.exists()) return notFound()
         return ResponseEntity.ok()
             .contentType(MediaType.TEXT_HTML)
@@ -98,11 +132,19 @@ class PlayController(
 
     /** The client's own build output (`/_play/...`, hashed file names), served from the jar behind the same gate. Fonts and art come from cdn.kkutu.io. */
     @GetMapping("/_play/**")
-    fun asset(request: HttpServletRequest, session: HttpSession): ResponseEntity<Any> {
-        if (!isPreviewAllowed(session)) return notFound()
-        val path = request.requestURI.removePrefix("/_play/")
+    fun asset(request: HttpServletRequest, session: HttpSession): ResponseEntity<Any> =
+        if (!isPreviewAllowed(session)) notFound() else buildFile(request, "/_play/", "play/_play/")
+
+    /** The development bundle's files, for game administrators only. */
+    @GetMapping("/_play-dev/**")
+    fun devAsset(request: HttpServletRequest, session: HttpSession): ResponseEntity<Any> =
+        if (!isPreviewAllowed(session) || !isDevBundleAllowed(session)) notFound()
+        else buildFile(request, "/_play-dev/", "play-dev/_play-dev/")
+
+    private fun buildFile(request: HttpServletRequest, prefix: String, directory: String): ResponseEntity<Any> {
+        val path = request.requestURI.removePrefix(prefix)
         if (path.isEmpty() || path.contains("..") || path.contains('\\') || path.startsWith("/")) return notFound()
-        val file = ClassPathResource("play/_play/$path")
+        val file = ClassPathResource("$directory$path")
         if (!file.exists() || !file.isReadable) return notFound()
         return ResponseEntity.ok()
             .contentType(MediaTypeFactory.getMediaType(file).orElse(MediaType.APPLICATION_OCTET_STREAM))
@@ -244,6 +286,9 @@ class PlayController(
 }
 
 /** Legacy messages the game screen reuses word for word (the board is a port of the legacy client's). */
+/** An administrator's choice of the development bundle (`dev`), kept for the browser session. */
+private const val DEV_BUNDLE_COOKIE = "kk_play_bundle"
+
 private val GAME_SCREEN_KEYS = setOf(
     "kkutu.js.surePurchase", "kkutu.js.alreadyGot", "kkutu.js.notEnoughMoney", "kkutu.js.purchased", "kkutu.js.ping", "kkutu.js.loading",
     "kkutu.js.resultNotFound", "kkutu.js.resultNotFound.expl", "kkutu.js.day", "kkutu.js.item", "kkutu.dialog.setting.load", "kkutu.js.putCouponCode", "kkutu.js.participate", "kkutu.js.surveyNewTab", "kkutu.js.hidden", "kkutu.js.itemTerm", "kkutu.js.itemTermed",

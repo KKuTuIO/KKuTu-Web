@@ -222,10 +222,7 @@ class LoginService(
     fun cancelPendingSecondFactor(session: HttpSession) = clearPendingSecondFactor(session)
 
     fun beginPendingPasswordSecondFactor(request: HttpServletRequest, account: Account) {
-        var session = request.session
-        runCatching { session.invalidate() }
-        session = request.session
-        beginPendingSecondFactor(session, account, localOAuthUser(account))
+        beginPendingSecondFactor(renewSession(request), account, localOAuthUser(account))
     }
 
     fun completePendingSecondFactor(session: HttpSession, totpCode: String?, securityCode: String?, emailCode: String?): Boolean {
@@ -345,13 +342,28 @@ class LoginService(
 
     fun loginWithAccount(request: HttpServletRequest, account: Account) {
         accountService.requireLoginAllowed(account)
-        var session = request.session
-        runCatching { session.invalidate() }
-        session = request.session
+        val session = renewSession(request)
         session.setAttribute(SessionAttribute.IS_GUEST, false)
         session.setOAuthUser(localOAuthUser(account))
         accountService.bindSession(session, account)
     }
+
+    /** 로그인하면서 세션을 새로 만든다. 로그인 후 이어 갈 OAuth 인증 요청만 새 세션으로 넘긴다. */
+    private fun renewSession(request: HttpServletRequest): HttpSession {
+        val continuation = oauthContinuation(request.session)
+        runCatching { request.session.invalidate() }
+        return request.session.also { session ->
+            continuation?.let { session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, it) }
+        }
+    }
+
+    private fun oauthContinuation(session: HttpSession): String? =
+        (session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String)
+            ?.takeIf { it.startsWith("/oauth/authorize?") }
+
+    /** 이어 갈 OAuth 인증 요청이 있으면 한 번만 돌려준다. */
+    fun takeOAuthContinuation(session: HttpSession): String? =
+        oauthContinuation(session)?.also { session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) }
 
     /** Binds an already verified OAuth bearer to a request-scoped compatibility session. */
     fun bindOAuthBearerSession(session: HttpSession, account: Account) {

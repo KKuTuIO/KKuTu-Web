@@ -54,7 +54,7 @@
                 })
             });
             if (!response.ok) throw new Error();
-            location.href = '/';
+            location.href = '/login/continue';
         } catch (_) {
             loginReason = '패스키 로그인에 실패하였습니다. 다시 시도해 주세요.';
         }
@@ -71,7 +71,7 @@
             return;
         }
         if (response.ok) {
-            location.href = '/';
+            location.href = '/login/continue';
             return;
         }
         const error = await response.json().catch(() => ({}));

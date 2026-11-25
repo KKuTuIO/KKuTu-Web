@@ -126,4 +126,8 @@ class LoginController(
 
     @GetMapping("/mfa")
     fun mfa(): String = "forward:/login/mfa.html"
+
+    /** 비밀번호·패스키 로그인을 마친 화면이 오는 곳. 로그인 전에 하던 OAuth 인증 요청이 있으면 이어 간다. */
+    @GetMapping("/continue")
+    fun continueAfterLogin(session: HttpSession): String = "redirect:" + (loginService.takeOAuthContinuation(session) ?: "/")
 }

@@ -18,6 +18,7 @@
 
 package me.kkutuio.kkutuweb.admin.service
 
+import me.kkutuio.kkutuweb.admin.KstDateRange
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.admin.dao.ConnectionLogDAO
@@ -35,7 +36,9 @@ class ConnectionLogService(
         page: Int,
         pageSize: Int,
         sortData: String,
-        searchFilters: Map<String, String>
+        searchFilters: Map<String, String>,
+        from: String? = null,
+        to: String? = null
     ): ListResponse<ConnectionLogVO> {
         require(page >= 0) { "페이지는 0 이상이어야 합니다." }
         require(pageSize in 1..500) { "페이지 크기는 1에서 500 사이여야 합니다." }
@@ -47,10 +50,12 @@ class ConnectionLogService(
 
         val dbSearchFilters = searchFilters.filterValues { it.isNotEmpty() }
 
-        val estimated = dbSearchFilters.isEmpty()
+        val dateRange = KstDateRange.parse(from, to)
+
+        val estimated = dbSearchFilters.isEmpty() && dateRange.isEmpty
         val measuredCount = if (estimated) tableStatisticsDAO.getEstimatedRowCount("connection_log")
-            else connectionLogDAO.getDataCount(dbSearchFilters)
-        val pageData = connectionLogDAO.getPageData(page, pageSize, sortField, sortType, dbSearchFilters)
+            else connectionLogDAO.getDataCount(dbSearchFilters, dateRange)
+        val pageData = connectionLogDAO.getPageData(page, pageSize, sortField, sortType, dbSearchFilters, dateRange)
             .map { ConnectionLogVO.convertFrom(it) }
         val visibleCountFloor = page * pageSize + pageData.size +
             if (estimated && pageData.size == pageSize) 1 else 0

@@ -20,6 +20,8 @@ package me.kkutuio.kkutuweb.charfactory
 
 import tools.jackson.databind.ObjectMapper
 import me.kkutuio.kkutuweb.achievement.AchievementFlags
+import me.kkutuio.kkutuweb.analytics.EconomySource
+import me.kkutuio.kkutuweb.analytics.EconomyStatsRecorder
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
 import me.kkutuio.kkutuweb.event.EventMetricService
@@ -45,7 +47,8 @@ class CharFactoryService(
     @Autowired private val shopService: ShopService,
     @Autowired private val loginService: LoginService,
     @Autowired private val eventMetricService: EventMetricService,
-    @Autowired private val achievementFlags: AchievementFlags
+    @Autowired private val achievementFlags: AchievementFlags,
+    @Autowired private val economyStats: EconomyStatsRecorder
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -139,6 +142,7 @@ class CharFactoryService(
                 "box" to userBoxJsonObj
             )
         )
+        economyStats.record(EconomySource.OTHER, -cfRewards.cost.toLong()) // 글자 조합 비용: 전용 출처 코드가 없다
         try {
             eventMetricService.record(
                 user.id, "word.combine", 1,

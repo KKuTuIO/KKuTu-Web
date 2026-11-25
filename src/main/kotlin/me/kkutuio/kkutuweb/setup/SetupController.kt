@@ -35,7 +35,8 @@ import jakarta.servlet.http.HttpSession
 @RequestMapping("/setup")
 class SetupController(
     @Autowired private val loginService: LoginService,
-    @Autowired private val setupService: SetupService
+    @Autowired private val setupService: SetupService,
+    @Autowired private val loginRedirect: me.kkutuio.kkutuweb.login.LoginRedirect
 ) {
     private val logger = LoggerFactory.getLogger(SetupController::class.java)
 
@@ -66,4 +67,8 @@ class SetupController(
         logger.info("[${request.getIp()}] 초기 설정 화면에 접속했습니다.")
         return "forward:/setup.html"
     }
+
+    /** 신규 설정을 마친 화면이 오는 곳. 로그인 전에 가려던 곳이 있으면 거기로, 없으면 게임으로 보낸다. */
+    @GetMapping("/continue")
+    fun continueAfterSetup(session: HttpSession): String = "redirect:" + (loginRedirect.take(session) ?: "/game/server/0")
 }

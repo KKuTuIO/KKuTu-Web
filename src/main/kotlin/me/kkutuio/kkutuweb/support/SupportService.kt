@@ -28,7 +28,7 @@ data class CreateTicketCommand(
     val notifyEmail: Boolean,
     val consentVersion: String?,
     val agreed: Boolean,
-    val attachmentCount: Int
+    val attachments: List<AttachmentUpload>?
 )
 
 @Service
@@ -64,7 +64,6 @@ class SupportService(
         if (!access.canSubmit(account.uuid.toString())) {
             throw IdpException("tickets_disabled", "지금은 문의를 접수할 수 없습니다. 채널톡으로 문의해 주세요.", 403)
         }
-        rejectAttachments(command.attachmentCount)
         if (!command.agreed || command.consentVersion != catalog.consentVersion) {
             throw IdpException("consent_required", "개인정보 수집·이용에 동의해 주세요. 안내가 바뀌었다면 새로고침해 주세요.")
         }
@@ -72,6 +71,7 @@ class SupportService(
         val subject = SupportText.subject(command.subject)
         val body = SupportText.body(command.body)
         val details = catalog.readDetails(category, command.details)
+        val files = SupportFiles.read(command.attachments)
         val requester = requester(account)
         if (command.notifyEmail && requester.email == null) {
             throw IdpException("email_required", "인증된 전자 메일 주소가 없어 알림 메일을 받을 수 없습니다.")
@@ -81,6 +81,7 @@ class SupportService(
         }
         limiter.check("support:create:hour:${account.id}", SupportPolicy.CREATE_PER_HOUR, 3600)
         limiter.check("support:create:day:${account.id}", SupportPolicy.CREATE_PER_DAY, 86_400)
+        countUploads(account, files)
 
         val stored = LinkedHashMap<String, Any?>(details.stored)
         // 보안 코드는 대조 결과만 남긴다. 결과는 작성자에게 알려 주지 않는다.
@@ -96,7 +97,7 @@ class SupportService(
                 if (category.appeal) Instant.now().plus(SupportPolicy.APPEAL_DUE) else null
             )
         )
-        dao.insertMessage(id, "USER", account.uuid, body)
+        dao.insertAttachments(dao.insertMessage(id, "USER", account.uuid, body), files)
         return code
     }
 
@@ -112,15 +113,24 @@ class SupportService(
     }
 
     @Transactional
-    fun reply(account: Account, code: String, body: String?, attachmentCount: Int) {
-        rejectAttachments(attachmentCount)
+    fun reply(account: Account, code: String, body: String?, attachments: List<AttachmentUpload>?) {
         val text = SupportText.body(body)
+        val files = SupportFiles.read(attachments)
         limiter.check("support:reply:${account.id}", SupportPolicy.REPLY_PER_HOUR, 3600)
         val ticket = owned(account, code, lock = true)
         val status = SupportPolicy.afterUserReply(ticket.status, ticket.resolvedAt, Instant.now())
-        dao.insertMessage(ticket.id, "USER", account.uuid, text)
-        dao.saveProgress(ticket, status, ticket.assigneeUuid, ticket.category, ticket.dueAt)
+        countUploads(account, files)
+        dao.insertAttachments(dao.insertMessage(ticket.id, "USER", account.uuid, text), files)
+        save(ticket, status, ticket.assigneeUuid, ticket.category, ticket.dueAt)
         dao.markRead(ticket.id)
+    }
+
+    /** 작성자가 내려받는 첨부. 내부 메모에 달린 것은 없는 것과 같다. */
+    @Transactional(readOnly = true)
+    fun download(account: Account, code: String, attachmentId: UUID): StoredAttachment {
+        val ticket = owned(account, code)
+        return dao.findAttachment(ticket.id, attachmentId)?.takeIf { it.messageKind == "USER" || it.messageKind == "STAFF" }
+            ?: throw IdpException("not_found", "파일을 찾을 수 없습니다.", 404)
     }
 
     @Transactional
@@ -138,19 +148,23 @@ class SupportService(
 
     /** 운영자의 답변([internal] 이면 내부 메모). 공개 답변은 보고 있던 버전이 그대로일 때만 저장한다. */
     @Transactional
-    fun staffReply(actorUuid: String, ticketId: UUID, body: String?, internal: Boolean, expectedVersion: Int) {
+    fun staffReply(
+        actorUuid: String, ticketId: UUID, body: String?, internal: Boolean, expectedVersion: Int,
+        attachments: List<AttachmentUpload>? = null
+    ) {
         val text = SupportText.body(body)
+        val files = SupportFiles.read(attachments)
         val profile = access.identityOf(actorUuid)
         val ticket = dao.find(ticketId, lock = true) ?: throw notFound()
         val actor = UUID.fromString(actorUuid)
         if (internal) {
-            dao.insertMessage(ticket.id, "NOTE", actor, text, profile)
+            dao.insertAttachments(dao.insertMessage(ticket.id, "NOTE", actor, text, profile), files)
             return
         }
         requireVersion(ticket, expectedVersion)
         if (ticket.status == TicketStatus.CLOSED) throw IdpException("ticket_closed", "종료된 문의입니다. 상태를 바꾼 뒤 답변해 주세요.", 409)
-        dao.insertMessage(ticket.id, "STAFF", actor, text, profile)
-        dao.saveProgress(ticket, TicketStatus.ANSWERED, ticket.assigneeUuid ?: actor, ticket.category, ticket.dueAt, staffReplied = true)
+        dao.insertAttachments(dao.insertMessage(ticket.id, "STAFF", actor, text, profile), files)
+        save(ticket, TicketStatus.ANSWERED, ticket.assigneeUuid ?: actor, ticket.category, ticket.dueAt, staffReplied = true)
         notifier.replyPosted(ticket)
     }
 
@@ -186,7 +200,16 @@ class SupportService(
         if (nextStatus != ticket.status) event(ticket, actor, "status", ticket.status.name, nextStatus.name, "staff")
         if (categoryChanged) event(ticket, actor, "category", catalog.label(ticket.category), catalog.label(nextCategory.code), "staff")
         if (nextAssignee != ticket.assigneeUuid) event(ticket, actor, "assignee", ticket.assigneeUuid?.toString(), nextAssignee?.toString(), "staff")
-        dao.saveProgress(ticket, nextStatus, nextAssignee, if (categoryChanged) nextCategory.code else ticket.category, dueAt)
+        save(ticket, nextStatus, nextAssignee, if (categoryChanged) nextCategory.code else ticket.category, dueAt)
+    }
+
+    /** 처리가 끝난 문의를 보관해 처리함에서 치운다. 작성자에게 보이는 것은 바뀌지 않는다. */
+    @Transactional
+    fun setArchived(actorUuid: String, ticketId: UUID, archived: Boolean) {
+        val ticket = dao.find(ticketId, lock = true) ?: throw notFound()
+        if (!archived) return dao.unarchive(ticket.id)
+        if (ticket.status !in FINISHED) throw IdpException("not_finished", "해결되었거나 종료된 문의만 보관할 수 있습니다.", 409)
+        dao.archive(ticket.id, UUID.fromString(actorUuid))
     }
 
     /** 답변 후 응답이 없던 문의를 해결로 바꾼다. 그사이 바뀌었으면 아무것도 하지 않는다. */
@@ -218,7 +241,19 @@ class SupportService(
 
     private fun transition(ticket: Ticket, status: TicketStatus, actor: UUID?, by: String) {
         event(ticket, actor, "status", ticket.status.name, status.name, by)
-        dao.saveProgress(ticket, status, ticket.assigneeUuid, ticket.category, ticket.dueAt)
+        save(ticket, status, ticket.assigneeUuid, ticket.category, ticket.dueAt)
+    }
+
+    private fun save(
+        ticket: Ticket, status: TicketStatus, assignee: UUID?, category: String, dueAt: Instant?, staffReplied: Boolean = false
+    ) {
+        dao.saveProgress(ticket, status, assignee, category, dueAt, staffReplied)
+        // 다시 처리해야 하는 문의가 보관함에 남지 않게 한다.
+        if (ticket.status in FINISHED && status !in FINISHED) dao.unarchive(ticket.id)
+    }
+
+    private fun countUploads(account: Account, files: List<SupportFile>) = repeat(files.size) {
+        limiter.check("support:upload:day:${account.id}", SupportFiles.UPLOADS_PER_DAY, 86_400)
     }
 
     private fun event(ticket: Ticket, actor: UUID?, type: String, from: String?, to: String?, by: String) =
@@ -231,10 +266,6 @@ class SupportService(
         if (ticket.version != expected) throw IdpException("conflict", "다른 변경이 먼저 저장되었습니다. 새로 불러온 뒤 다시 시도해 주세요.", 409)
     }
 
-    private fun rejectAttachments(count: Int) {
-        if (count > 0) throw IdpException("attachments_disabled", "파일 첨부는 아직 사용할 수 없습니다.")
-    }
-
     private fun securityCodeMatches(targetUserId: String?, securityCode: String): Boolean {
         if (targetUserId.isNullOrBlank()) return false
         return dao.securityCodesOf(targetUserId).any { SecretTools.constantTimeEquals(it, securityCode) }
@@ -244,5 +275,6 @@ class SupportService(
 
     companion object {
         const val SECURITY_CODE_MATCHED = "securityCodeMatched"
+        private val FINISHED = setOf(TicketStatus.RESOLVED, TicketStatus.CLOSED)
     }
 }

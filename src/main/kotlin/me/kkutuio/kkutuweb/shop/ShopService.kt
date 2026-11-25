@@ -23,6 +23,8 @@ import tools.jackson.databind.ObjectMapper
 import tools.jackson.databind.node.IntNode
 import tools.jackson.databind.node.ObjectNode
 import me.kkutuio.kkutuweb.achievement.AchievementFlags
+import me.kkutuio.kkutuweb.analytics.EconomySource
+import me.kkutuio.kkutuweb.analytics.EconomyStatsRecorder
 import me.kkutuio.kkutuweb.extension.isGuest
 import me.kkutuio.kkutuweb.extension.toJson
 import me.kkutuio.kkutuweb.login.LoginService
@@ -44,7 +46,8 @@ class ShopService(
     @Autowired private val shopDetailDao: ShopDetailDao,
     @Autowired private val userDao: UserDao,
     @Autowired private val loginService: LoginService,
-    @Autowired private val achievementFlags: AchievementFlags
+    @Autowired private val achievementFlags: AchievementFlags,
+    @Autowired private val economyStats: EconomyStatsRecorder
 ) {
     private val logger = LoggerFactory.getLogger(ShopService::class.java)
 
@@ -85,6 +88,7 @@ class ShopService(
                 "box" to userBoxJsonObj
             )
         )
+        economyStats.record(EconomySource.SHOP_BUY, -(good.cost.toLong() * count))
         shopDao.increaseHit(id, count)
         achievementFlags.add(loginService.accountUuid(session), "shopSpent", good.cost.toLong() * count) // 업적 `누적 구매액`
 

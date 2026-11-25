@@ -119,14 +119,14 @@ class MainController(
             val blacklistType = ipCheckService.getBlacklistType(ip)
                 if (blacklistType != null) {
                     session.setAttribute("loginReason", "모바일 네트워크 이용자(3G,4G,LTE,5G)는 로그인 후 게임 이용이 가능합니다.")
-                    return "redirect:/login"
+                    return "redirect:/login?redirect=/game/server/$server"
                 }
                 try {
                     val geo = geoService.getGeoInfo(ip)
                     if (geo != null && !geo.domesticExempt && geo.countryCode != null && geo.countryCode != "KR") {
                         session.setAttribute("loginReason", "해외 이용자는 로그인 후 게임 이용이 가능합니다.")
                         logger.info("[$ip] 해외에서 접속하여 로그인 페이지로 이동합니다. 국가: ${geo.countryCode}")
-                        return "redirect:/login"
+                        return "redirect:/login?redirect=/game/server/$server"
                     }
                 } catch (e: Exception) {
                     logger.warn("[$ip] 국가 정보를 가져오는 중 문제가 발생했습니다.", e)

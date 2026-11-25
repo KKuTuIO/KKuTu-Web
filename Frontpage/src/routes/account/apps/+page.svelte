@@ -59,7 +59,7 @@
                 fetch('/api/account/connected-applications')
             ]);
             if (summaryResponse.status === 401) {
-                location.href = '/login';
+                location.href = `/login?redirect=${encodeURIComponent(location.pathname)}`;
                 return;
             }
             if (![summaryResponse, identityResponse, applicationsResponse].every(response => response.ok)) throw new Error();

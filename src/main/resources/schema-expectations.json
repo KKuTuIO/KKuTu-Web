@@ -1587,5 +1587,40 @@
 "kind": "table",
 "object": "support_setting",
 "want": true
+},
+{
+"ord": 227,
+"migration": "20261125_support_ticket_tools.sql",
+"kind": "table",
+"object": "support_ticket_archive",
+"want": true
+},
+{
+"ord": 228,
+"migration": "20261125_support_ticket_tools.sql",
+"kind": "table",
+"object": "support_reply_template",
+"want": true
+},
+{
+"ord": 229,
+"migration": "20261125_analytics_overview.sql",
+"kind": "table",
+"object": "analytics_daily_metric",
+"want": true
+},
+{
+"ord": 230,
+"migration": "20261125_analytics_overview.sql",
+"kind": "table",
+"object": "economy_daily_stat",
+"want": true
+},
+{
+"ord": 231,
+"migration": "20261125_analytics_overview.sql",
+"kind": "index",
+"object": "economy_daily_stat_date_idx",
+"want": true
 }
 ]

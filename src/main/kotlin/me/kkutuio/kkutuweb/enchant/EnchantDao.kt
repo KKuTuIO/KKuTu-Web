@@ -2,6 +2,8 @@ package me.kkutuio.kkutuweb.enchant
 
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.ObjectMapper
+import me.kkutuio.kkutuweb.analytics.EconomySource
+import me.kkutuio.kkutuweb.analytics.EconomyStatsRecorder
 import org.postgresql.util.PGobject
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
@@ -25,7 +27,8 @@ data class EnchantInstance(
 @Component
 class EnchantDao(
     @Autowired private val jdbcTemplate: JdbcTemplate,
-    @Autowired private val objectMapper: ObjectMapper
+    @Autowired private val objectMapper: ObjectMapper,
+    @Autowired private val economyStats: EconomyStatsRecorder
 ) {
     private val instanceMapper = RowMapper<EnchantInstance> { rs, _ ->
         EnchantInstance(
@@ -107,7 +110,8 @@ class EnchantDao(
     fun moneyOf(userId: String): Long = jdbcTemplate.queryForObject("SELECT money FROM users WHERE _id = ?", Long::class.java, userId) ?: 0L
 
     fun addMoney(userId: String, delta: Long) {
-        jdbcTemplate.update("UPDATE users SET money = money + ? WHERE _id = ?", delta, userId)
+        val updated = jdbcTemplate.update("UPDATE users SET money = money + ? WHERE _id = ?", delta, userId)
+        if (updated > 0) economyStats.record(EconomySource.ENCHANT, delta)
     }
 
     fun saveBox(userId: String, box: JsonNode) {

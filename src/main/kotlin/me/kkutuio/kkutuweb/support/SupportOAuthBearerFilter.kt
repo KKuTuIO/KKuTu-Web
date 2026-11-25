@@ -30,9 +30,9 @@ class SupportOAuthBearerFilter(
         request.method == "OPTIONS" || !request.requestURI.removePrefix(request.contextPath).startsWith(PREFIX)
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
-        // 첨부 파일은 아직 받지 않는다. multipart 는 본문을 읽기 전에 돌려보낸다.
+        // 첨부 파일은 JSON 본문에 실어 보낸다. multipart 는 본문을 읽기 전에 돌려보낸다.
         if (request.contentType?.trim()?.startsWith("multipart/", ignoreCase = true) == true) {
-            response.sendError(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(), "파일 첨부는 아직 사용할 수 없습니다.")
+            response.sendError(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(), "지원하지 않는 요청 형식입니다.")
             return
         }
         if (request.requestURI.removePrefix(request.contextPath) == CONFIG_PATH) {
@@ -61,8 +61,9 @@ class SupportOAuthBearerFilter(
             return
         }
         // 길이를 알리지 않는 요청(chunked)도 있으므로 실제로 읽은 크기로 제한한다. 인증한 뒤에만 읽는다.
-        val body = if (request.contentLengthLong > MAX_BODY_BYTES) null
-        else request.inputStream.readNBytes(MAX_BODY_BYTES + 1).takeIf { it.size <= MAX_BODY_BYTES }
+        val limit = if (UPLOAD_PATH.matches(request.requestURI.removePrefix(request.contextPath))) MAX_UPLOAD_BYTES else MAX_BODY_BYTES
+        val body = if (request.contentLengthLong > limit) null
+        else request.inputStream.readNBytes(limit + 1).takeIf { it.size <= limit }
         if (body == null) {
             response.sendError(HttpStatus.CONTENT_TOO_LARGE.value(), "요청이 너무 큽니다.")
             return
@@ -74,6 +75,9 @@ class SupportOAuthBearerFilter(
         private const val PREFIX = "/api/support/"
         private const val CONFIG_PATH = "/api/support/config"
         private const val MAX_BODY_BYTES = 64 * 1024
+        /** 첨부를 실을 수 있는 요청(접수·답변)의 한도: 파일들의 base64 와 본문. */
+        private const val MAX_UPLOAD_BYTES = SupportFiles.MAX_PER_MESSAGE * (SupportFiles.MAX_BYTES + 2) / 3 * 4 + MAX_BODY_BYTES
+        private val UPLOAD_PATH = Regex("/api/support/tickets(/[^/]+/messages)?")
         private const val PRINCIPAL_ATTRIBUTE = "kkutu.support.principal"
 
         fun principal(request: HttpServletRequest): AccessTokenPrincipal =

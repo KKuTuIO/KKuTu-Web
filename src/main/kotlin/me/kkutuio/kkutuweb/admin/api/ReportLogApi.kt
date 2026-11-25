@@ -55,6 +55,8 @@ class ReportLogApi(
         @RequestParam(required = false, name = "status", defaultValue = "") status: String,
         @RequestParam(required = false, name = "reason", defaultValue = "") reason: String,
         @RequestParam(required = false, name = "file_name", defaultValue = "") fileName: String,
+        @RequestParam(required = false, name = "from", defaultValue = "") from: String,
+        @RequestParam(required = false, name = "to", defaultValue = "") to: String,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<ReportLogVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -85,7 +87,7 @@ class ReportLogApi(
             "file_name" to fileName
         )
 
-        val reportLogRes = reportLogService.getReportLogRes(page, pageSize, sortData, searchFilters)
+        val reportLogRes = reportLogService.getReportLogRes(page, pageSize, sortData, searchFilters, from, to)
         logger.info("[${request.getIp()}] ${sessionProfile.id}님이 신고 내역 목록을 요청했습니다. 총 개수: ${reportLogRes.totalElements}")
 
         return reportLogRes

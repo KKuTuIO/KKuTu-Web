@@ -3,6 +3,9 @@ package me.kkutuio.kkutuweb.moderation
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.databind.JsonNode
 import tools.jackson.core.type.TypeReference
+import me.kkutuio.kkutuweb.admin.KstDateRange
+import me.kkutuio.kkutuweb.analytics.EconomySource
+import me.kkutuio.kkutuweb.analytics.EconomyStatsRecorder
 import me.kkutuio.kkutuweb.game.GameClientManager
 import me.kkutuio.kkutuweb.geo.GeoService
 import me.kkutuio.kkutuweb.moderation.policy.ModerationPolicyEngine
@@ -32,8 +35,10 @@ import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -54,7 +59,8 @@ class ModerationService(
     private val gameClientManager: GameClientManager,
     private val geoService: GeoService,
     private val ipSubjectCodec: IpSubjectCodec,
-    private val kKuTuSetting: KKuTuSetting
+    private val kKuTuSetting: KKuTuSetting,
+    private val economyStats: EconomyStatsRecorder? = null
 ) {
     private val notificationLimit = 20
     private val logger = LoggerFactory.getLogger(ModerationService::class.java)
@@ -177,12 +183,19 @@ class ModerationService(
         matchType: String,
         hours: Int,
         limit: Int,
-        offset: Int
+        offset: Int,
+        from: String? = null,
+        to: String? = null
     ): ModerationRelatedAccessPage {
         requireUser(userId)
         val normalizedType = matchType.trim().uppercase()
         require(normalizedType in RELATED_ACCESS_TYPES) { "일치 기준은 PCID 또는 IP여야 합니다." }
-        require(hours in RELATED_ACCESS_HOURS) { "조회 기간은 24시간, 48시간, 72시간 또는 7일이어야 합니다." }
+        val requestedRange = KstDateRange.parse(from, to)
+        // 날짜를 직접 지정하면 hours는 조회 범위에 쓰지 않으므로 목록에 없는 값도 받는다.
+        require(!requestedRange.isEmpty || hours in RELATED_ACCESS_HOURS) {
+            "조회 기간은 24시간, 48시간, 72시간, 7일, 14일, 30일 또는 90일이어야 합니다."
+        }
+        val dateRange = boundRelatedAccessRange(requestedRange, LocalDate.now(KstDateRange.ZONE))
         require(limit in RELATED_ACCESS_LIMITS) { "표시 개수는 10, 30, 50 또는 100이어야 합니다." }
         require(offset >= 0) { "조회 위치는 0 이상이어야 합니다." }
 
@@ -203,7 +216,16 @@ class ModerationService(
         } else {
             "cl.user_ip IN ($signalPlaceholders)"
         }
-        val parameters = mutableListOf<Any>(Timestamp.from(Instant.now().minusSeconds(hours * 3600L)), userId)
+        val timeClauses = mutableListOf<String>()
+        val parameters = mutableListOf<Any>()
+        if (dateRange.isEmpty) {
+            timeClauses.add("cl.time >= ?")
+            parameters.add(Timestamp.from(Instant.now().minusSeconds(hours * 3600L)))
+        } else {
+            dateRange.appendConditions("cl.time", timeClauses, parameters)
+        }
+        val timeCondition = timeClauses.joinToString(" AND ")
+        parameters.add(userId)
         parameters.addAll(signalValues)
         if (normalizedType == "PCID") parameters.addAll(signalValues)
         parameters.add(limit + 1)
@@ -218,7 +240,7 @@ class ModerationService(
                             THEN TRUE ELSE FALSE END AS guest,
                        cl.user_name, cl.time, cl.id
                 FROM connection_log cl
-                WHERE cl.time >= ? AND cl.user_id <> ? AND $signalCondition
+                WHERE $timeCondition AND cl.user_id <> ? AND $signalCondition
             ), grouped AS (
                 SELECT grouped_user_id, guest,
                        (ARRAY_AGG(user_name ORDER BY time DESC, id DESC))[1] AS last_user_name,
@@ -1584,7 +1606,7 @@ class ModerationService(
                     val newScore = if ("EXPERIENCE" in targets) {
                         remainingResourceAfterDeduction(before.second, percent)
                     } else before.second
-                    jdbcTemplate.update(
+                    val updated = jdbcTemplate.update(
                         """
                         UPDATE users SET money = ?,
                             kkutu = jsonb_set(
@@ -1595,6 +1617,7 @@ class ModerationService(
                         """.trimIndent(),
                         newMoney, newScore, profileId
                     )
+                    if (updated > 0) recordSanctionPing(newMoney - before.first)
                     if ("EXPERIENCE" in targets) rankingUpdates[profileId] = newScore
                     mapOf(
                         "profileId" to profileId,
@@ -1704,6 +1727,11 @@ class ModerationService(
         )
     }
 
+    /** 제재로 바뀐 핑을 통계에 남긴다. 늘면 복구, 줄면 회수다. */
+    private fun recordSanctionPing(delta: Long) {
+        economyStats?.record(if (delta > 0) EconomySource.SANCTION_REVOKE else EconomySource.SANCTION_DEDUCT, delta)
+    }
+
     private fun loadProfileScores(profileIds: Collection<String>): Map<String, Long> =
         profileIds.associateWith { profileId ->
             jdbcTemplate.query(
@@ -1739,7 +1767,8 @@ class ModerationService(
                     val profileId = entry.path("profileId").asString(null)
                         ?: profileIdsForAccountUuid(accountUuid).firstOrNull()
                         ?: return@forEach
-                    jdbcTemplate.update(
+                    val moneyDelta = entry.path("moneyDelta").asLong(0)
+                    val updated = jdbcTemplate.update(
                         """
                         UPDATE users SET money = money + ?,
                             kkutu = jsonb_set(
@@ -1748,10 +1777,11 @@ class ModerationService(
                             )::json
                         WHERE _id = ?
                         """.trimIndent(),
-                        entry.path("moneyDelta").asLong(0),
+                        moneyDelta,
                         entry.path("scoreDelta").asLong(0),
                         profileId
                     )
+                    if (updated > 0) recordSanctionPing(moneyDelta)
                     rankingProfileIds.add(profileId)
                 }
                 scheduleRankingUpdates(loadProfileScores(rankingProfileIds))
@@ -2242,6 +2272,17 @@ class ModerationService(
         userId
     ).firstOrNull()
 
+    /** 직접 지정한 기간의 길이를 제한한다. 종료일만 있으면 그날로 끝나는 최대 기간이 되도록 시작일을 채운다. */
+    private fun boundRelatedAccessRange(range: KstDateRange, today: LocalDate): KstDateRange {
+        if (range.isEmpty) return range
+        val start = range.from
+            ?: return range.copy(from = range.to!!.minusDays(RELATED_ACCESS_MAX_RANGE_DAYS - 1))
+        require(ChronoUnit.DAYS.between(start, range.to ?: today) < RELATED_ACCESS_MAX_RANGE_DAYS) {
+            "직접 지정하는 조회 기간은 최대 ${RELATED_ACCESS_MAX_RANGE_DAYS}일입니다."
+        }
+        return range
+    }
+
     private fun emptyRelatedAccessPage(
         matchType: String,
         hours: Int,
@@ -2706,7 +2747,8 @@ class ModerationService(
     companion object {
         private val RELATED_ACCESS_TYPES = setOf("PCID", "IP")
         private val RESOURCE_ADJUSTMENT_TARGETS = setOf("EXPERIENCE", "CYBER_POINT")
-        private val RELATED_ACCESS_HOURS = setOf(24, 48, 72, 168)
+        private val RELATED_ACCESS_HOURS = setOf(24, 48, 72, 168, 336, 720, 2160)
+        private const val RELATED_ACCESS_MAX_RANGE_DAYS = 366L
         private val RELATED_ACCESS_LIMITS = setOf(10, 30, 50, 100)
         private val IPV4_REGEX = Regex("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$")
         private val IPV6_CHAR_REGEX = Regex("^[0-9A-Fa-f:.]+$")

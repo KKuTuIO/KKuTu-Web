@@ -28,12 +28,14 @@ import jakarta.servlet.http.HttpServletResponse
 
 class MinifyFilter : Filter {
     private var htmlCompressor = HtmlCompressor()
+    /** 문의 첨부 파일 내려받기(바이너리). */
+    private val supportAttachment = Regex("/api(/admin)?/support/tickets/[^/]+/attachments/[^/]+")
 
     override fun doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain) {
         val httpRequest = request as? HttpServletRequest
         if (httpRequest != null) {
             val path = httpRequest.requestURI.removePrefix(httpRequest.contextPath)
-            if (path == "/api/security/obfuscated_font.woff2") {
+            if (path == "/api/security/obfuscated_font.woff2" || supportAttachment.matches(path)) {
                 chain.doFilter(request, response)
                 return
             }

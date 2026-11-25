@@ -18,6 +18,7 @@
 
 package me.kkutuio.kkutuweb.admin.dao
 
+import me.kkutuio.kkutuweb.admin.KstDateRange
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.domain.ConnectionLog
 import me.kkutuio.kkutuweb.admin.mapper.ConnectionLogMapper
@@ -31,9 +32,10 @@ class ConnectionLogDAO(
     @Autowired private val connectionLogMapper: ConnectionLogMapper
 ) {
     fun getDataCount(
-        searchFilters: Map<String, String>
+        searchFilters: Map<String, String>,
+        dateRange: KstDateRange
     ): Int {
-        val filter = filterQuery(searchFilters)
+        val filter = filterQuery(searchFilters, dateRange)
         val count = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM connection_log ${filter.sql}",
             Long::class.java,
@@ -47,9 +49,10 @@ class ConnectionLogDAO(
         pageSize: Int,
         sortField: String,
         sortType: SortType,
-        searchFilters: Map<String, String>
+        searchFilters: Map<String, String>,
+        dateRange: KstDateRange
     ): List<ConnectionLog> {
-        val filter = filterQuery(searchFilters)
+        val filter = filterQuery(searchFilters, dateRange)
         val stableOrder = if (sortField == "id") "" else ", id ${sortType.name}"
         val sql = """
             SELECT id, time, user_id, user_name, user_ip, channel, user_agent,
@@ -65,7 +68,7 @@ class ConnectionLogDAO(
         )
     }
 
-    private fun filterQuery(searchFilters: Map<String, String>): ConnectionLogFilter {
+    private fun filterQuery(searchFilters: Map<String, String>, dateRange: KstDateRange): ConnectionLogFilter {
         val clauses = mutableListOf<String>()
         val values = mutableListOf<Any>()
         searchFilters.forEach { (key, value) ->
@@ -91,6 +94,7 @@ class ConnectionLogDAO(
                 else -> throw IllegalArgumentException("검색할 수 없는 항목입니다.")
             }
         }
+        dateRange.appendConditions("time", clauses, values)
         return ConnectionLogFilter(
             if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}",
             values

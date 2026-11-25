@@ -60,7 +60,8 @@ class LoginService(
     @Autowired private val userDao: UserDao,
     @Autowired private val accountService: AccountService,
     @Autowired private val accountSecurity: AccountSecurityService,
-    @Autowired private val objectMapper: ObjectMapper
+    @Autowired private val objectMapper: ObjectMapper,
+    @Autowired private val loginRedirect: LoginRedirect
 ) {
     private val logger = LoggerFactory.getLogger(LoginService::class.java)
     private companion object {
@@ -137,13 +138,13 @@ class LoginService(
             }
 
             val pendingIdentityJson = session.getAttribute(SessionAttribute.PENDING_OAUTH_USER.attributeName) as? String
-            val continuation = session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
+            val carryRedirect = loginRedirect.carry(session)
             try {
                 session.invalidate()
                 session = request.session
             } catch (e: Exception) {
             }
-            continuation?.let { session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, it) }
+            carryRedirect(session)
 
             val oAuthUser = getOAuthService(authVendor).login(code)
 
@@ -348,22 +349,12 @@ class LoginService(
         accountService.bindSession(session, account)
     }
 
-    /** 로그인하면서 세션을 새로 만든다. 로그인 후 이어 갈 OAuth 인증 요청만 새 세션으로 넘긴다. */
+    /** 로그인하면서 세션을 새로 만든다. 로그인 후 돌아갈 곳만 새 세션으로 넘긴다. */
     private fun renewSession(request: HttpServletRequest): HttpSession {
-        val continuation = oauthContinuation(request.session)
+        val carryRedirect = loginRedirect.carry(request.session)
         runCatching { request.session.invalidate() }
-        return request.session.also { session ->
-            continuation?.let { session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, it) }
-        }
+        return request.session.also(carryRedirect)
     }
-
-    private fun oauthContinuation(session: HttpSession): String? =
-        (session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String)
-            ?.takeIf { it.startsWith("/oauth/authorize?") }
-
-    /** 이어 갈 OAuth 인증 요청이 있으면 한 번만 돌려준다. */
-    fun takeOAuthContinuation(session: HttpSession): String? =
-        oauthContinuation(session)?.also { session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) }
 
     /** Binds an already verified OAuth bearer to a request-scoped compatibility session. */
     fun bindOAuthBearerSession(session: HttpSession, account: Account) {

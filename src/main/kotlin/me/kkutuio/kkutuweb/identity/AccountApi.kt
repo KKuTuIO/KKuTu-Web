@@ -61,7 +61,8 @@ class AccountApi(
     private val blockService: BlockService,
     private val moderationRetention: ModerationRetentionService,
     private val users: UserDao,
-    private val ranks: RankDao
+    private val ranks: RankDao,
+    private val loginRedirect: me.kkutuio.kkutuweb.login.LoginRedirect
 ) {
     @GetMapping("/csrf") fun csrf(request: HttpServletRequest): Map<String, String> {
         val token = (request.getAttribute(CsrfToken::class.java.name) ?: request.getAttribute("_csrf")) as? CsrfToken
@@ -186,7 +187,7 @@ class AccountApi(
         val vendor = me.kkutuio.kkutuweb.oauth.AuthVendor.fromName(provider) ?: throw IdpException("invalid_request", "지원하지 않는 제공사입니다.")
         val linked = dao.listIdentities(account.id).any { it.type == IdentityType.OAUTH && it.revokedAt == null && it.provider.equals(vendor.name, ignoreCase = true) }
         if (!linked) throw IdpException("forbidden", "연결된 로그인 수단만 사용할 수 있습니다.", 403)
-        session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, returnUrl?.takeIf { it.startsWith("/account") && !it.startsWith("//") } ?: "/account")
+        loginRedirect.remember(session, returnUrl?.takeIf { it.startsWith("/account") && !it.startsWith("//") } ?: "/account")
         session.setAttribute(SessionAttribute.OAUTH_REAUTH_STRONG.attributeName, strong)
         val url = loginService.beginOAuthReauthentication(session, account, vendor)
             ?: throw IdpException("temporarily_unavailable", "로그인 제공사가 설정되지 않았습니다.", 503)
@@ -397,7 +398,8 @@ class AccountRecoveryApi(
     private val captcha: RecaptchaVerifier,
     private val limiter: AccountRateLimiter,
     private val webAuthn: WebAuthnService,
-    private val settings: IdentityProviderSettings
+    private val settings: IdentityProviderSettings,
+    private val loginRedirect: me.kkutuio.kkutuweb.login.LoginRedirect
 ) {
     /** Public configuration only; the reCAPTCHA secret is never exposed. */
     @GetMapping("/api/account/recovery/config") fun config(): Map<String, Any> =
@@ -424,10 +426,9 @@ class AccountRecoveryApi(
             throw error
         }
         if (!loginService.completePendingSecondFactor(request.session, body.totpCode, body.securityCode, body.emailCode)) throw IdpException("mfa_session_expired", "2단계 인증 세션이 만료되었습니다. 다시 로그인해 주세요.", 401)
-        val continuation = request.session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
-        request.session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName)
+        // 신규 설정을 먼저 거치는 계정은 돌아갈 곳을 남겨 두고 설정이 끝난 뒤에 쓴다.
         val redirect = if (loginService.needsSetup(request.session)) "/setup"
-        else continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") } ?: "/"
+        else loginRedirect.take(request.session) ?: "/"
         return ResponseEntity.ok(mapOf("redirect" to redirect))
     }
     @PostMapping("/api/account/login/mfa/email") fun requestExternalSecondFactorEmail(request: HttpServletRequest): ResponseEntity<Void> {

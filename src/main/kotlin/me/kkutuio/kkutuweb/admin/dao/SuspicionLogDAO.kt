@@ -18,6 +18,7 @@
 
 package me.kkutuio.kkutuweb.admin.dao
 
+import me.kkutuio.kkutuweb.admin.KstDateRange
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.domain.SuspicionLog
 import me.kkutuio.kkutuweb.admin.mapper.SuspicionLogMapper
@@ -31,9 +32,10 @@ class SuspicionLogDAO(
     @Autowired private val suspicionLogMapper: SuspicionLogMapper
 ) {
     fun getDataCount(
-        searchFilters: Map<String, String>
+        searchFilters: Map<String, String>,
+        dateRange: KstDateRange
     ): Int {
-        val filter = filterQuery(searchFilters)
+        val filter = filterQuery(searchFilters, dateRange)
         val count = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM suspicion_log ${filter.sql}",
             Long::class.java,
@@ -47,9 +49,10 @@ class SuspicionLogDAO(
         pageSize: Int,
         sortField: String,
         sortType: SortType,
-        searchFilters: Map<String, String>
+        searchFilters: Map<String, String>,
+        dateRange: KstDateRange
     ): List<SuspicionLog> {
-        val filter = filterQuery(searchFilters)
+        val filter = filterQuery(searchFilters, dateRange)
         val stableOrder = if (sortField == "case_id") "" else ", case_id ${sortType.name}"
         val sql = """
             SELECT case_id, time, action, doubt, user_name, user_id, user_ip, extra_info, reference
@@ -64,7 +67,7 @@ class SuspicionLogDAO(
         )
     }
 
-    private fun filterQuery(searchFilters: Map<String, String>): SuspicionLogFilter {
+    private fun filterQuery(searchFilters: Map<String, String>, dateRange: KstDateRange): SuspicionLogFilter {
         val clauses = mutableListOf<String>()
         val values = mutableListOf<Any>()
         searchFilters.forEach { (key, value) ->
@@ -84,6 +87,7 @@ class SuspicionLogDAO(
                 else -> throw IllegalArgumentException("검색할 수 없는 항목입니다.")
             }
         }
+        dateRange.appendConditions("time", clauses, values)
         return SuspicionLogFilter(
             if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}",
             values

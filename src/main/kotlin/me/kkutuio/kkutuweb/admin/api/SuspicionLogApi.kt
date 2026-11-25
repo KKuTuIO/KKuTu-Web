@@ -56,6 +56,8 @@ class SuspicionLogApi(
         @RequestParam(required = false, name = "user_ip", defaultValue = "") userIp: String,
         @RequestParam(required = false, name = "extra_info", defaultValue = "") extraInfo: String,
         @RequestParam(required = false, name = "reference", defaultValue = "") reference: String,
+        @RequestParam(required = false, name = "from", defaultValue = "") from: String,
+        @RequestParam(required = false, name = "to", defaultValue = "") to: String,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<SuspicionLogVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -87,7 +89,7 @@ class SuspicionLogApi(
             "reference" to reference
         )
 
-        val suspicionLogRes = suspicionLogService.getSuspicionLogRes(page, pageSize, sortData, searchFilters)
+        val suspicionLogRes = suspicionLogService.getSuspicionLogRes(page, pageSize, sortData, searchFilters, from, to)
         logger.info("[${request.getIp()}] ${sessionProfile.id}님이 정책 위반 기록 목록을 요청했습니다. 총 개수: ${suspicionLogRes.totalElements}")
 
         return suspicionLogRes

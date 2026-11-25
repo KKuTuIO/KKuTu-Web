@@ -104,11 +104,13 @@ class AdminModerationApi(
         @RequestParam(defaultValue = "72") hours: Int,
         @RequestParam(defaultValue = "10") limit: Int,
         @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "") from: String,
+        @RequestParam(defaultValue = "") to: String,
         session: HttpSession
     ): ModerationRelatedAccessPage {
         authorizer.require(session, AdminSetting.Privilege.USER_MODERATION_READ)
         authorizer.require(session, AdminSetting.Privilege.CONNECTION_LOG)
-        return service.getRelatedAccess(userId, matchType, hours, limit, offset)
+        return service.getRelatedAccess(userId, matchType, hours, limit, offset, from, to)
     }
 
     @GetMapping("/ip-subject")

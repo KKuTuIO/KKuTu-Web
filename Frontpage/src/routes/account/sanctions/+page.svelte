@@ -55,7 +55,7 @@
     async function loadSummary() {
         const response = await fetch('/api/account/summary');
         if (response.status === 401) {
-            location.href = '/login';
+            location.href = `/login?redirect=${encodeURIComponent(location.pathname)}`;
             return false;
         }
         if (!response.ok) throw new Error();

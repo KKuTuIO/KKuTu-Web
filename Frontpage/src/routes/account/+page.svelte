@@ -74,7 +74,7 @@
             await fetch('/api/account/csrf');
             const [summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes, connectedAppsRes] = await Promise.all([fetch('/api/account/summary'), fetch('/api/account/identities'), fetch('/api/account/passkeys'), fetch('/api/account/nickname-policy'), fetch('/api/account/mfa'), fetch('/api/account/profile-policy'), fetch('/api/account/connected-applications')]);
             if (summaryRes.status === 401) {
-                location.href = '/login';
+                location.href = `/login?redirect=${encodeURIComponent(location.pathname)}`;
                 return;
             }
             if (![summaryRes, identityRes, passkeyRes, nicknamePolicyRes, mfaRes, profilePolicyRes, connectedAppsRes].every(response => response.ok)) {

@@ -26,6 +26,7 @@ enum class SessionAttribute(val attributeName: String) {
     RECENT_AUTH_AT("recentAuthAt"),
     STRONG_AUTH_AT("strongAuthAt"),
     AFTER_LOGIN_URL("afterLoginUrl"),
+    AFTER_LOGIN_AT("afterLoginAt"),
     AUTHENTICATED_AT("authenticatedAt"),
     OAUTH_LINK_ACCOUNT_ID("oauthLinkAccountId"),
     OAUTH_REAUTH_ACCOUNT_ID("oauthReauthAccountId"),

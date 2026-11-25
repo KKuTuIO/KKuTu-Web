@@ -1,5 +1,7 @@
 package me.kkutuio.kkutuweb.identity
 
+import me.kkutuio.kkutuweb.analytics.EconomySource
+import me.kkutuio.kkutuweb.analytics.EconomyStatsRecorder
 import me.kkutuio.kkutuweb.setup.SetupService
 import me.kkutuio.kkutuweb.user.UserDao
 import org.springframework.stereotype.Service
@@ -20,7 +22,8 @@ class NicknameService(
     private val users: UserDao,
     private val setup: SetupService,
     private val identityDao: IdentityDao,
-    private val advancedBadWordFilter: AdvancedBadWordFilter
+    private val advancedBadWordFilter: AdvancedBadWordFilter,
+    private val economyStats: EconomyStatsRecorder
 ) {
     fun validationError(nickname: String): String? = setup.nicknameValidationError(nickname)
     fun validationMessage(code: String): String = setup.nicknameValidationMessage(code)
@@ -119,6 +122,7 @@ class NicknameService(
 
         val updatedMoney = state.money - if (fixed) FIXED_NICKNAME_COST else 0L
         users.updateNickname(state.id, nextNickname, nextMeanable, updatedMoney, now)
+        economyStats.record(EconomySource.NICK_CHANGE, updatedMoney - state.money) // 고정하지 않은 변경은 0 이라 남지 않는다
         identityDao.updateProfileNickname(account.id, profileLegacyUserId, nextNickname)
         identityDao.updateNicknameTimestamp(account.id)
         identityDao.audit(account.id, "NICKNAME_CHANGED", metadata = mapOf("fixed" to fixed, "ping_spent" to (if (fixed) FIXED_NICKNAME_COST else 0)))

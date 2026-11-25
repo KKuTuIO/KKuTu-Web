@@ -99,7 +99,9 @@ class AdditiveSchemaMigrator(
             "20261111_wiki_binding.sql",
             "20261112_item_enchant.sql",
             "20261124_achievement.sql",
-            "20261125_support_ticket.sql"
+            "20261125_support_ticket.sql",
+            "20261125_support_ticket_tools.sql",
+            "20261125_analytics_overview.sql"
         )
 
         /** Arbitrary constant: the advisory lock the instances take to run this step one at a time. */

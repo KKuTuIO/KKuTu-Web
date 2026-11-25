@@ -88,7 +88,7 @@
                 fetch('/api/account/identities')
             ]);
             if (summaryResponse.status === 401) {
-                location.href = '/login';
+                location.href = `/login?redirect=${encodeURIComponent(location.pathname)}`;
                 return;
             }
             if (!summaryResponse.ok || !appsResponse.ok || !identityResponse.ok) throw new Error('load_failed');

@@ -38,16 +38,26 @@ import jakarta.servlet.http.HttpSession
 @Controller
 @RequestMapping("/login")
 class LoginController(
-    @Autowired private val loginService: LoginService
+    @Autowired private val loginService: LoginService,
+    @Autowired private val loginRedirect: LoginRedirect
 ) {
     private val logger = LoggerFactory.getLogger(LoginController::class.java)
 
+    /**
+     * `redirect` 는 로그인한 뒤에 돌아갈 곳이다(이 사이트의 경로 또는 `*.kkutu.io`). 이미 로그인했으면 바로 보낸다.
+     * 받을 수 없는 주소는 무시하고 로그인 화면만 보여 준다.
+     */
     @GetMapping
     fun login(
-        model: Model,
-        request: HttpServletRequest
+        @RequestParam("redirect", required = false) redirect: String?,
+        session: HttpSession
     ): String {
-            return "forward:/login.html"
+        val target = loginRedirect.validate(redirect)
+        if (target != null) {
+            if (loginService.accountUuid(session) != null) return "redirect:$target"
+            loginRedirect.remember(session, target)
+        }
+        return "forward:/login.html"
     }
 
     @GetMapping("/fail")
@@ -118,16 +128,13 @@ class LoginController(
         }
 
         if (!loginSuccess) return "redirect:/login/fail"
-        val continuation = request.session.getAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName) as? String
-        request.session.removeAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName)
-        val safeContinuation = continuation?.takeIf { it.startsWith('/') && !it.startsWith("//") }
-        return if (safeContinuation != null) "redirect:$safeContinuation" else "redirect:/"
+        return "redirect:" + (loginRedirect.take(request.session) ?: "/")
     }
 
     @GetMapping("/mfa")
     fun mfa(): String = "forward:/login/mfa.html"
 
-    /** 비밀번호·패스키 로그인을 마친 화면이 오는 곳. 로그인 전에 하던 OAuth 인증 요청이 있으면 이어 간다. */
+    /** 비밀번호·패스키 로그인을 마친 화면이 오는 곳. 돌아갈 곳이 있으면 보낸다. */
     @GetMapping("/continue")
-    fun continueAfterLogin(session: HttpSession): String = "redirect:" + (loginService.takeOAuthContinuation(session) ?: "/")
+    fun continueAfterLogin(session: HttpSession): String = "redirect:" + (loginRedirect.take(session) ?: "/")
 }

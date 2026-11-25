@@ -4,6 +4,7 @@ import me.kkutuio.kkutuweb.admin.api.response.ListResponse
 import me.kkutuio.kkutuweb.identity.Account
 import me.kkutuio.kkutuweb.identity.IdpException
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import tools.jackson.databind.JsonNode
 import java.util.UUID
 import jakarta.servlet.http.HttpServletRequest
 
@@ -25,11 +25,12 @@ data class TicketCreateRequest(
     val notifyEmail: Boolean = false,
     val consentVersion: String? = null,
     val agreed: Boolean = false,
-    /** 자리만 있다. 비어 있지 않으면 거절한다. */
-    val attachments: List<JsonNode>? = null
+    val attachments: List<AttachmentUpload>? = null
 )
 
-data class TicketReplyRequest(val body: String? = null, val attachments: List<JsonNode>? = null)
+data class TicketReplyRequest(val body: String? = null, val attachments: List<AttachmentUpload>? = null)
+
+data class AttachmentEntry(val id: String, val name: String, val contentType: String, val size: Int)
 
 data class TicketSummary(
     val code: String,
@@ -50,8 +51,7 @@ data class TimelineEntry(
     val staffName: String?,
     val staffTitle: String?,
     val event: TimelineEvent?,
-    /** 자리만 있다. 지금은 항상 비어 있다. */
-    val attachments: List<String> = emptyList(),
+    val attachments: List<AttachmentEntry>,
     val createdAt: String
 )
 
@@ -87,7 +87,12 @@ class SupportApi(
             "closedDates" to switch.closedDates,
             "consent" to catalog.document["consent"],
             "groups" to catalog.document["groups"],
-            "attachments" to mapOf("enabled" to false),
+            "attachments" to mapOf(
+                "enabled" to true,
+                "maxBytes" to SupportFiles.MAX_BYTES,
+                "maxCount" to SupportFiles.MAX_PER_MESSAGE,
+                "extensions" to SupportFiles.EXTENSIONS
+            ),
             "limits" to mapOf("subjectMax" to SupportPolicy.SUBJECT_MAX, "bodyMax" to SupportPolicy.BODY_MAX)
         )
     }
@@ -136,7 +141,7 @@ class SupportApi(
             account(request), requestKey,
             CreateTicketCommand(
                 body.category, body.subject, body.body, body.details ?: emptyMap(), body.notifyEmail,
-                body.consentVersion, body.agreed, body.attachments?.size ?: 0
+                body.consentVersion, body.agreed, body.attachments
             )
         )
         return mapOf("code" to code)
@@ -148,8 +153,15 @@ class SupportApi(
     @PostMapping("/tickets/{code}/messages", consumes = ["application/json"])
     fun reply(@PathVariable code: String, @RequestBody body: TicketReplyRequest, request: HttpServletRequest): TicketDetail {
         val account = account(request)
-        service.reply(account, code, body.body, body.attachments?.size ?: 0)
+        service.reply(account, code, body.body, body.attachments)
         return detailOf(account, code)
+    }
+
+    @GetMapping("/tickets/{code}/attachments/{attachmentId}")
+    fun attachment(@PathVariable code: String, @PathVariable attachmentId: String, request: HttpServletRequest): ResponseEntity<ByteArray> {
+        val id = runCatching { UUID.fromString(attachmentId) }.getOrElse { throw IdpException("not_found", "파일을 찾을 수 없습니다.", 404) }
+        val file = service.download(account(request), code, id)
+        return SupportFiles.download(file.name, file.contentType, file.bytes)
     }
 
     @PostMapping("/tickets/{code}/resolve")
@@ -172,6 +184,7 @@ class SupportApi(
         val (ticket, messages) = service.view(account, code)
         val fields = catalog.find(ticket.category)?.fields.orEmpty()
         val replyable = runCatching { SupportPolicy.afterUserReply(ticket.status, ticket.resolvedAt, java.time.Instant.now()) }.isSuccess
+        val attachments = dao.attachments(ticket.id).groupBy { it.messageId }
         return TicketDetail(
             // 방금 열었으므로 읽은 것으로 보여 준다.
             ticket = summary(ticket).copy(unread = false),
@@ -189,6 +202,9 @@ class SupportApi(
                     staffTitle = message.staffTitle.takeIf { message.kind == "STAFF" },
                     event = message.event?.let {
                         TimelineEvent(it["type"].asString(), it["from"]?.asString(null), it["to"]?.asString(null), it["by"].asString())
+                    },
+                    attachments = attachments[message.id].orEmpty().map {
+                        AttachmentEntry(it.id.toString(), it.name, it.contentType, it.size)
                     },
                     createdAt = message.createdAt.toString()
                 )

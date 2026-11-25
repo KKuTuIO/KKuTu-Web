@@ -18,6 +18,7 @@
 
 package me.kkutuio.kkutuweb.admin.dao
 
+import me.kkutuio.kkutuweb.admin.KstDateRange
 import me.kkutuio.kkutuweb.admin.SortType
 import me.kkutuio.kkutuweb.admin.domain.ReportLog
 import me.kkutuio.kkutuweb.admin.mapper.ReportLogMapper
@@ -31,9 +32,10 @@ class ReportLogDAO(
     @Autowired private val reportLogMapper: ReportLogMapper
 ) {
     fun getDataCount(
-        searchFilters: Map<String, String>
+        searchFilters: Map<String, String>,
+        dateRange: KstDateRange
     ): Int {
-        val filter = filterQuery(searchFilters)
+        val filter = filterQuery(searchFilters, dateRange)
         val count = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM report_log ${filter.sql}",
             Long::class.java,
@@ -47,9 +49,10 @@ class ReportLogDAO(
         pageSize: Int,
         sortField: String,
         sortType: SortType,
-        searchFilters: Map<String, String>
+        searchFilters: Map<String, String>,
+        dateRange: KstDateRange
     ): List<ReportLog> {
-        val filter = filterQuery(searchFilters)
+        val filter = filterQuery(searchFilters, dateRange)
         val stableOrder = if (sortField == "report_id") "" else ", report_id ${sortType.name}"
         val sql = """
             SELECT report_log.report_id, report_log.time, report_log.reporter_id,
@@ -72,7 +75,7 @@ class ReportLogDAO(
         )
     }
 
-    private fun filterQuery(searchFilters: Map<String, String>): ReportLogFilter {
+    private fun filterQuery(searchFilters: Map<String, String>, dateRange: KstDateRange): ReportLogFilter {
         val clauses = mutableListOf<String>()
         val values = mutableListOf<Any>()
         searchFilters.forEach { (key, value) ->
@@ -97,6 +100,7 @@ class ReportLogDAO(
                 else -> throw IllegalArgumentException("검색할 수 없는 항목입니다.")
             }
         }
+        dateRange.appendConditions("time", clauses, values)
         return ReportLogFilter(
             if (clauses.isEmpty()) "" else "WHERE ${clauses.joinToString(" AND ")}",
             values

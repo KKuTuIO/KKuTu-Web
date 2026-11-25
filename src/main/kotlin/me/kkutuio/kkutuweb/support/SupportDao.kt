@@ -48,6 +48,12 @@ data class TicketMessage(
     val createdAt: Instant
 )
 
+data class AttachmentMeta(val id: UUID, val messageId: Long, val name: String, val contentType: String, val size: Int)
+
+class StoredAttachment(val name: String, val contentType: String, val bytes: ByteArray, val messageKind: String)
+
+data class ReplyTemplate(val id: UUID, val title: String, val category: String?, val body: String, val updatedBy: UUID, val updatedAt: Instant)
+
 data class StaffProfile(
     val accountUuid: String,
     val publicName: String,
@@ -77,7 +83,9 @@ data class TicketFilter(
     val statuses: Set<TicketStatus> = emptySet(),
     val category: String? = null,
     val assignee: String? = null,
-    val query: String? = null
+    val query: String? = null,
+    /** true 면 보관한 것만, false 면 보관하지 않은 것만, null 이면 모두. */
+    val archived: Boolean? = false
 )
 
 @Repository
@@ -117,6 +125,13 @@ class SupportDao(private val jdbc: JdbcTemplate, private val objectMapper: Objec
             body = rs.getString("body"),
             event = rs.getString("event")?.let(objectMapper::readTree),
             createdAt = rs.instant("created_at")!!
+        )
+    }
+
+    private val templateMapper = RowMapper { rs, _ ->
+        ReplyTemplate(
+            rs.uuid("id")!!, rs.getString("title"), rs.getString("category"), rs.getString("body"),
+            rs.uuid("updated_by")!!, rs.instant("updated_at")!!
         )
     }
 
@@ -185,6 +200,10 @@ class SupportDao(private val jdbc: JdbcTemplate, private val objectMapper: Objec
         val where = StringBuilder("TRUE")
         val parameters = mutableListOf<Any>()
         addStatuses(filter.statuses, where, parameters)
+        filter.archived?.let { archived ->
+            where.append(if (archived) " AND EXISTS " else " AND NOT EXISTS ")
+                .append("(SELECT 1 FROM support_ticket_archive archive WHERE archive.ticket_id = support_ticket.id)")
+        }
         filter.category?.takeIf { it.isNotBlank() }?.let { where.append(" AND category = ?"); parameters += it }
         when (val assignee = filter.assignee) {
             null -> Unit
@@ -222,12 +241,82 @@ class SupportDao(private val jdbc: JdbcTemplate, private val objectMapper: Objec
     fun insertMessage(
         ticketId: UUID, kind: String, actorUuid: UUID?, body: String,
         staff: StaffProfile? = null, event: Map<String, Any?>? = null
-    ) {
+    ): Long = jdbc.queryForObject(
+        "INSERT INTO support_message(ticket_id, kind, actor_uuid, staff_name, staff_title, body, event) " +
+            "VALUES (?, ?, ?, ?, ?, ?, CAST(? AS jsonb)) RETURNING id",
+        Long::class.java,
+        ticketId, kind, actorUuid, staff?.publicName, staff?.title, body, event?.let(objectMapper::writeValueAsString)
+    )!!
+
+    fun insertAttachments(messageId: Long, files: List<SupportFile>) = files.forEach { file ->
         jdbc.update(
-            "INSERT INTO support_message(ticket_id, kind, actor_uuid, staff_name, staff_title, body, event) VALUES (?, ?, ?, ?, ?, ?, CAST(? AS jsonb))",
-            ticketId, kind, actorUuid, staff?.publicName, staff?.title, body, event?.let(objectMapper::writeValueAsString)
+            "INSERT INTO support_attachment(id, message_id, file_name, content_type, byte_size, data) VALUES (?, ?, ?, ?, ?, ?)",
+            UUID.randomUUID(), messageId, file.name, file.contentType, file.bytes.size, file.bytes
         )
     }
+
+    /** 문의에 달린 첨부의 목록(내용은 읽지 않는다). */
+    fun attachments(ticketId: UUID): List<AttachmentMeta> = jdbc.query(
+        "SELECT attachment.id, attachment.message_id, attachment.file_name, attachment.content_type, attachment.byte_size " +
+            "FROM support_attachment attachment JOIN support_message message ON message.id = attachment.message_id " +
+            "WHERE message.ticket_id = ? ORDER BY attachment.message_id, attachment.created_at, attachment.file_name",
+        { rs, _ ->
+            AttachmentMeta(
+                rs.uuid("id")!!, rs.getLong("message_id"), rs.getString("file_name"), rs.getString("content_type"), rs.getInt("byte_size")
+            )
+        },
+        ticketId
+    )
+
+    /** [ticketId] 에 속한 첨부만 돌려준다. */
+    fun findAttachment(ticketId: UUID, attachmentId: UUID): StoredAttachment? = jdbc.query(
+        "SELECT attachment.file_name, attachment.content_type, attachment.data, message.kind " +
+            "FROM support_attachment attachment JOIN support_message message ON message.id = attachment.message_id " +
+            "WHERE message.ticket_id = ? AND attachment.id = ?",
+        { rs, _ -> StoredAttachment(rs.getString("file_name"), rs.getString("content_type"), rs.getBytes("data"), rs.getString("kind")) },
+        ticketId, attachmentId
+    ).firstOrNull()
+
+    fun archive(ticketId: UUID, actorUuid: UUID) {
+        jdbc.update(
+            "INSERT INTO support_ticket_archive(ticket_id, archived_by) VALUES (?, ?) ON CONFLICT (ticket_id) DO NOTHING",
+            ticketId, actorUuid
+        )
+    }
+
+    fun unarchive(ticketId: UUID) {
+        jdbc.update("DELETE FROM support_ticket_archive WHERE ticket_id = ?", ticketId)
+    }
+
+    fun archivedAmong(ticketIds: List<UUID>): Set<UUID> {
+        if (ticketIds.isEmpty()) return emptySet()
+        val marks = ticketIds.joinToString(", ") { "?" }
+        return jdbc.queryForList(
+            "SELECT ticket_id FROM support_ticket_archive WHERE ticket_id IN ($marks)", UUID::class.java, *ticketIds.toTypedArray()
+        ).filterNotNull().toSet()
+    }
+
+    /** 같은 계정이 접수한 다른 문의. 최근에 접수한 것부터. */
+    fun otherTicketsOf(accountId: UUID, excludedId: UUID, limit: Int): Pair<Int, List<Ticket>> =
+        page("account_id = ? AND id <> ?", listOf(accountId, excludedId), "created_at DESC, code", limit, 0)
+
+    fun listTemplates(): List<ReplyTemplate> = jdbc.query("SELECT * FROM support_reply_template ORDER BY title, id", templateMapper)
+
+    fun countTemplates(): Int = jdbc.queryForObject("SELECT count(*) FROM support_reply_template", Int::class.java) ?: 0
+
+    fun insertTemplate(id: UUID, title: String, category: String?, body: String, actorUuid: String) {
+        jdbc.update(
+            "INSERT INTO support_reply_template(id, title, category, body, updated_by) VALUES (?, ?, ?, ?, CAST(? AS uuid))",
+            id, title, category, body, actorUuid
+        )
+    }
+
+    fun updateTemplate(id: UUID, title: String, category: String?, body: String, actorUuid: String): Boolean = jdbc.update(
+        "UPDATE support_reply_template SET title = ?, category = ?, body = ?, updated_by = CAST(? AS uuid), updated_at = now() WHERE id = ?",
+        title, category, body, actorUuid, id
+    ) > 0
+
+    fun deleteTemplate(id: UUID): Boolean = jdbc.update("DELETE FROM support_reply_template WHERE id = ?", id) > 0
 
     fun messages(ticketId: UUID): List<TicketMessage> =
         jdbc.query("SELECT * FROM support_message WHERE ticket_id = ? ORDER BY id", messageMapper, ticketId)

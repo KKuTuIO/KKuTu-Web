@@ -56,6 +56,8 @@ class ConnectionLogApi(
         @RequestParam(required = false, name = "finger_print_2", defaultValue = "") fingerPrint2: String,
         @RequestParam(required = false, name = "pcid_cookie", defaultValue = "") pcidFromCookie: String,
         @RequestParam(required = false, name = "pcid_localstorage", defaultValue = "") pcidFromLocalStorage: String,
+        @RequestParam(required = false, name = "from", defaultValue = "") from: String,
+        @RequestParam(required = false, name = "to", defaultValue = "") to: String,
         request: HttpServletRequest, session: HttpSession
     ): ListResponse<ConnectionLogVO> {
         val sessionProfile = loginService.getSessionProfile(session)
@@ -87,7 +89,7 @@ class ConnectionLogApi(
             "pcid_localstorage" to pcidFromLocalStorage
         )
 
-        val connectionLogRes = connectionLogService.getConnectionLogRes(page, pageSize, sortData, searchFilters)
+        val connectionLogRes = connectionLogService.getConnectionLogRes(page, pageSize, sortData, searchFilters, from, to)
         logger.info("[${request.getIp()}] ${sessionProfile.id}님이 접속 기록 목록을 요청했습니다. 총 개수: ${connectionLogRes.totalElements}")
 
         return connectionLogRes

@@ -1,6 +1,5 @@
 package me.kkutuio.kkutuweb.identity.oauth
 
-import me.kkutuio.kkutuweb.SessionAttribute
 import me.kkutuio.kkutuweb.extension.getAccountId
 import me.kkutuio.kkutuweb.identity.*
 import org.springframework.http.HttpHeaders
@@ -47,7 +46,12 @@ class OidcMetadataController(private val settings: IdentityProviderSettings, pri
 }
 
 @Controller
-class OidcAuthorizeController(private val oidc: OidcService, private val accounts: AccountService, private val dao: IdentityDao) {
+class OidcAuthorizeController(
+    private val oidc: OidcService,
+    private val accounts: AccountService,
+    private val dao: IdentityDao,
+    private val loginRedirect: me.kkutuio.kkutuweb.login.LoginRedirect
+) {
     @GetMapping("/oauth/authorize")
     fun authorize(
         @RequestParam client_id: String,
@@ -69,7 +73,7 @@ class OidcAuthorizeController(private val oidc: OidcService, private val account
         val account = accounts.currentAccount(session)
         if (account == null) {
             val continuation = ServletUriComponentsBuilder.fromRequest(request).build().toUriString()
-            session.setAttribute(SessionAttribute.AFTER_LOGIN_URL.attributeName, continuation.removePrefix(request.scheme + "://" + request.serverName + if (request.serverPort in setOf(80, 443)) "" else ":${request.serverPort}"))
+            loginRedirect.remember(session, continuation.removePrefix(request.scheme + "://" + request.serverName + if (request.serverPort in setOf(80, 443)) "" else ":${request.serverPort}"))
             return "redirect:/login"
         }
         val consent = ConsentRequest(client_id, redirect_uri, scopes, state, nonce, code_challenge)

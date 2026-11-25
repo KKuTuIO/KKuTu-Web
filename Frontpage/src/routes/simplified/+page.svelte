@@ -179,7 +179,7 @@
                 <a
                     class="flex items-center justify-center gap-x-2 h-16"
                     rel="external"
-                    href="https://support.kkutu.io/"
+                    href="https://cs.kkutu.io/"
                     target="_blank"
                 >
                     <span class="material-symbols-outlined icons-header"

@@ -310,7 +310,7 @@
                         문의 시 <span class="text-xl font-bold text-white">{blockData.inquiryId}</span> 문구와 함께
                         문의를 접수해 주세요.
                     </p>
-                    <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
+                    <a href="https://cs.kkutu.io/support/new?category=sanction.appeal" target="_blank">
                         <button class="mt-4 rounded-full bg-green-600 px-5 py-2.5 text-base font-bold hover:bg-green-700">고객센터 문의하기</button>
                     </a>
                     <a href="https://kkutu.io/login" rel="external">
@@ -356,7 +356,7 @@
                     </p>
                     <div class="mt-4 flex flex-wrap justify-center gap-3">
                         <a href="/account/sanctions" class="inline-flex items-center justify-center rounded-full border border-slate-500 px-5 py-2.5 text-base font-bold text-slate-100 transition hover:border-slate-300 hover:bg-white/10">제재 내역</a>
-                        <a href="https://support.kkutu.io/plugin/support_manager/knowledgebase/view/1" target="_blank">
+                        <a href="https://cs.kkutu.io/support/new?category=sanction.appeal" target="_blank">
                             <button class="rounded-full bg-green-600 px-5 py-2.5 text-base font-bold hover:bg-green-700">고객센터 문의하기</button>
                         </a>
                     </div>

@@ -45,7 +45,7 @@
             <a target="_blank" rel="noopener" href="https://cs.kkutu.io/operation">운영정책</a>
             <a target="_blank" rel="noopener" href="https://cs.kkutu.io/privacy-policy">개인정보처리방침</a>
             <a target="_blank" rel="noopener" href="https://cs.kkutu.io/license">저작권 안내</a>
-            <a target="_blank" rel="noopener" href="https://support.kkutu.io">고객센터</a>
+            <a target="_blank" rel="noopener" href="https://cs.kkutu.io">고객센터</a>
           </div>
           <div class="text-gray-400 text-xs mt-4">
             <div class="flex flex-col lg:flex-row gap-x-[13px]">

@@ -21,13 +21,25 @@ class SupportAccess(
     private val logger = LoggerFactory.getLogger(SupportAccess::class.java)
 
     /**
-     * 마스터는 항상 MANAGER 다. 그 밖에는 관리자 권한이 살아 있으면서 문의 담당자로 등록된 계정만 역할이 있다.
+     * 관리자 권한이 살아 있으면 누구나 문의를 보고 답변한다. 마스터와, 담당자 설정에서 MANAGER 로 등록한 계정은 접수 설정도 바꾼다.
      * 관리자 권한 목록(Privilege)에는 값을 더하지 않는다: 이전 버전은 모르는 값이 하나라도 있으면 그 사람의 권한을 전부 비운다.
      */
     fun roleOf(accountUuid: String): StaffRole? {
         if (setting.isAdminMaster(accountUuid)) return StaffRole.MANAGER
         if (accountUuid !in setting.getAdminIds()) return null
-        return dao.findStaff(accountUuid)?.takeIf { it.active }?.role
+        val registered = dao.findStaff(accountUuid)?.takeIf { it.active }?.role
+        return if (registered == StaffRole.MANAGER) StaffRole.MANAGER else StaffRole.AGENT
+    }
+
+    /**
+     * 답변에 붙는 표시 이름과 직함. 등록해 두지 않았으면 팀 이름을 직함으로 쓴다.
+     * 관리자 목록의 이름은 실명일 수 있어 사용자에게 보이는 값으로 쓰지 않는다.
+     */
+    fun identityOf(accountUuid: String): StaffProfile {
+        dao.findStaff(accountUuid)?.takeIf { it.active }?.let { return it }
+        val team = setting.getAdmins().firstOrNull { it.id == accountUuid }?.team?.trim()
+        val title = team?.takeUnless { it.isEmpty() || it == SYSTEM_TEAM } ?: DEFAULT_TITLE
+        return StaffProfile(accountUuid, DEFAULT_NAME, title.take(40), roleOf(accountUuid) ?: StaffRole.AGENT, true)
     }
 
     /** 백오피스 요청의 계정 UUID. [minimum] 보다 낮은 역할이면 403. */
@@ -59,5 +71,9 @@ class SupportAccess(
 
     private companion object {
         const val SWITCH_KEY = "tickets"
+        const val DEFAULT_NAME = "운영자"
+        const val DEFAULT_TITLE = "운영팀"
+        /** 설정 파일의 마스터에게 자동으로 붙는 팀 이름. */
+        const val SYSTEM_TEAM = "시스템"
     }
 }

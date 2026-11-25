@@ -7,8 +7,8 @@ import java.time.Instant
 
 enum class TicketStatus { RECEIVED, IN_PROGRESS, ANSWERED, RESOLVED, CLOSED }
 
-/** 아래로 갈수록 할 수 있는 일이 많다. */
-enum class StaffRole { VIEWER, AGENT, MANAGER }
+/** 관리자는 모두 AGENT(조회·답변) 이상이다. MANAGER 는 접수 설정도 바꾼다. */
+enum class StaffRole { AGENT, MANAGER }
 
 object SupportPolicy {
     const val SUBJECT_MIN = 2

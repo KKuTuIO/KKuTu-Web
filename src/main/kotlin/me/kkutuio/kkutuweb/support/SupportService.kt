@@ -140,15 +140,13 @@ class SupportService(
     @Transactional
     fun staffReply(actorUuid: String, ticketId: UUID, body: String?, internal: Boolean, expectedVersion: Int) {
         val text = SupportText.body(body)
-        val profile = dao.findStaff(actorUuid)?.takeIf { it.active }
+        val profile = access.identityOf(actorUuid)
         val ticket = dao.find(ticketId, lock = true) ?: throw notFound()
         val actor = UUID.fromString(actorUuid)
         if (internal) {
             dao.insertMessage(ticket.id, "NOTE", actor, text, profile)
             return
         }
-        // 직함 없는 답변이 나가지 않게 한다.
-        if (profile == null) throw IdpException("profile_required", "답변하려면 먼저 담당자 이름과 직함을 등록해야 합니다.", 409)
         requireVersion(ticket, expectedVersion)
         if (ticket.status == TicketStatus.CLOSED) throw IdpException("ticket_closed", "종료된 문의입니다. 상태를 바꾼 뒤 답변해 주세요.", 409)
         dao.insertMessage(ticket.id, "STAFF", actor, text, profile)
@@ -172,8 +170,7 @@ class SupportService(
             assignee.isBlank() -> null
             else -> {
                 val target = runCatching { UUID.fromString(assignee) }.getOrElse { throw IdpException("invalid_assignee", "담당자 UUID 형식이 올바르지 않습니다.") }
-                val role = access.roleOf(target.toString())
-                if (role == null || role < StaffRole.AGENT) throw IdpException("invalid_assignee", "답변할 수 있는 담당자만 지정할 수 있습니다.")
+                if (access.roleOf(target.toString()) == null) throw IdpException("invalid_assignee", "관리자만 담당으로 지정할 수 있습니다.")
                 target
             }
         }

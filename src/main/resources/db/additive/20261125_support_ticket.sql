@@ -1,12 +1,12 @@
 -- 고객 문의(티켓). 새 테이블과 인덱스만 만든다. 기존 테이블은 바꾸지 않는다.
 -- 계정에는 외래 키를 걸지 않는다: 계정이 탈퇴해도 상담 기록은 보존 기간 동안 남는다.
 
--- 문의를 다루는 운영자. 사용자에게 보이는 이름과 직함, 문의 업무 역할.
+-- 운영자가 따로 등록한 표시 이름과 직함, 문의 업무 역할. 등록하지 않은 관리자도 답변할 수 있다.
 CREATE TABLE IF NOT EXISTS support_staff (
     account_uuid uuid PRIMARY KEY,
     public_name varchar(40) NOT NULL,
     title varchar(40) NOT NULL,
-    role varchar(16) NOT NULL CHECK (role IN ('VIEWER', 'AGENT', 'MANAGER')),
+    role varchar(16) NOT NULL CHECK (role IN ('AGENT', 'MANAGER')),
     active boolean NOT NULL DEFAULT TRUE,
     updated_by uuid NOT NULL,
     updated_at timestamptz NOT NULL DEFAULT now()

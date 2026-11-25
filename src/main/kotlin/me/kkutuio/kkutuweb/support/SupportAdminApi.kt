@@ -82,16 +82,18 @@ class SupportAdminApi(
 ) {
     @GetMapping("/me")
     fun me(session: HttpSession): Map<String, Any?> {
-        val (accountUuid, role) = access.require(session, StaffRole.VIEWER)
-        val staff = dao.listStaff()
+        val (accountUuid, role) = access.require(session, StaffRole.AGENT)
         return mapOf(
             "accountUuid" to accountUuid,
             "role" to role,
             "master" to setting.isAdminMaster(accountUuid),
-            "profile" to staff.firstOrNull { it.accountUuid == accountUuid && it.active },
-            // 담당으로 지정할 수 있는 사람.
-            "assignees" to staff.filter { it.active && (access.roleOf(it.accountUuid) ?: StaffRole.VIEWER) >= StaffRole.AGENT }
-                .map { mapOf("accountUuid" to it.accountUuid, "publicName" to it.publicName, "title" to it.title) },
+            // 내 답변이 작성자에게 보이는 모습.
+            "profile" to access.identityOf(accountUuid),
+            "registered" to (dao.findStaff(accountUuid)?.active == true),
+            // 담당으로 지정할 수 있는 사람(관리자 전원). `name` 은 백오피스 안에서만 보이는 관리자 이름이다.
+            "assignees" to setting.getAdmins().map { admin ->
+                mapOf("accountUuid" to admin.id, "name" to admin.name, "title" to access.identityOf(admin.id).title)
+            },
             "categories" to catalog.document["groups"].toList().flatMap { group ->
                 group["items"].toList().map { mapOf("code" to it["code"].asString(), "label" to catalog.label(it["code"].asString())) }
             }
@@ -108,7 +110,7 @@ class SupportAdminApi(
         @RequestParam(defaultValue = "15") size: Int,
         session: HttpSession
     ): ListResponse<AdminTicketRow> {
-        val (accountUuid, _) = access.require(session, StaffRole.VIEWER)
+        val (accountUuid, _) = access.require(session, StaffRole.AGENT)
         require(size in 1..150) { "페이지 크기는 1~150이어야 합니다." }
         val statuses = status.split(',').filter { it.isNotBlank() }.map(::parseStatus).toSet()
         // `me` 는 내 담당, `none` 은 담당 없음.
@@ -125,7 +127,7 @@ class SupportAdminApi(
 
     @GetMapping("/tickets/{id}")
     fun detail(@PathVariable id: String, session: HttpSession): AdminTicketDetail {
-        access.require(session, StaffRole.VIEWER)
+        access.require(session, StaffRole.AGENT)
         return detailOf(parseUuid(id))
     }
 
@@ -183,7 +185,7 @@ class SupportAdminApi(
 
     @GetMapping("/settings")
     fun settings(session: HttpSession): SupportSwitch {
-        access.require(session, StaffRole.VIEWER)
+        access.require(session, StaffRole.AGENT)
         return access.switch()
     }
 
@@ -220,7 +222,8 @@ class SupportAdminApi(
         )
     }
 
-    private fun staffNames(): Map<String, String> = dao.listStaff().associate { it.accountUuid to it.publicName }
+    /** 담당자 칸에 보이는 관리자 이름(백오피스 전용). */
+    private fun staffNames(): Map<String, String> = setting.getAdmins().associate { it.id to it.name }
 
     private fun row(ticket: Ticket, names: Map<String, String>) = AdminTicketRow(
         ticket.id.toString(), ticket.code, ticket.subject, ticket.category, catalog.label(ticket.category), ticket.status,

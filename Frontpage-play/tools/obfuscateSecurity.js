@@ -13,12 +13,13 @@
  * strings, hex identifiers, number expressions, object-key transformation. Every build gets a different result (no fixed seed), so a
  * patch written for one build does not apply to the next.
  *
- * Left out on purpose, although the legacy security script used them:
- *   debugProtection    an endless `debugger` loop that freezes DevTools for everyone, honest players and support staff included;
- *                      a bot is not slowed by it
+ * `debugProtection` is on (the legacy script's `debugger` loop): it stops no bot, and freezes DevTools for honest players and our own
+ * support staff too, but it was asked for anyway. The development bundle (identity.js §10A) must stay debuggable, so it never gets this
+ * transform - see vite.config.js. The legacy F12/right-click block is ported separately, same bundle-only gate: security/devtoolsBlock.js.
+ *
+ * Left out on purpose, although the legacy security script used it:
  *   selfDefending      breaks when the file is reformatted by a CDN/minifier step, and fails silently
  *   disableConsoleOutput  would hide our own and Sentry's diagnostics
- *   (and the legacy security.js, which blocked F12 and the right-click menu: no effect on bots, hostile to everyone else)
  */
 import JavaScriptObfuscator from 'javascript-obfuscator';
 
@@ -54,7 +55,10 @@ export const OPTIONS = {
 	// cannot see the import, the library is left out of the build and every player gets the low-confidence fallback id.
 	ignoreImports: true,
 	// see the header: not used
-	debugProtection: false,
+	// Freezes DevTools with a `debugger` loop while it is open. No effect on a socket bot; a cost for honest players and our own
+	// support staff with DevTools open. Requested anyway, kept off the development bundle (identity.js §10A / obfuscateSecurity header).
+	debugProtection: true,
+	debugProtectionInterval: 4000,
 	selfDefending: false,
 	disableConsoleOutput: false,
 	log: false

@@ -7,7 +7,7 @@
 export const i18n = $state({ messages: {}, language: 'ko', ready: false });
 
 // Only what must be readable if the locale request itself fails.
-const FALLBACK = { 'play.error.NETWORK': '서버에 연결하지 못했습니다.', 'play.gate.retry': '다시 시도', 'play.status.devBundle': '개발 번들로, 최종 결과물을 대변하지 않습니다.', 'play.status.devBundleShort': '개발 번들' };
+const FALLBACK = { 'play.error.NETWORK': '서버에 연결하지 못했습니다.', 'play.gate.retry': '다시 시도', 'play.status.devBundle': '개발 번들로, 최종 결과물과 다를 수 있습니다.', 'play.status.devBundleShort': '개발 번들' };
 
 /** @param {string} key @param {Record<string, string|number>} [params] values for `{name}` placeholders */
 export function t(key, params) {

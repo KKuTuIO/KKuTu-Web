@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { onMount, onDestroy, untrack, tick } from 'svelte';
 	import { createLobbyStore } from '$lib/game/lobbyStore.svelte.js';
+	import { blockDevtools } from '$lib/game/security/devtoolsBlock.js';
 	import { worn } from '$lib/game/theme.svelte.js';
 	import { themeOf } from '$lib/game/theme.js';
 	import GameResult from '$lib/game/lobby/GameResult.svelte';
@@ -99,6 +100,11 @@
 		const a = document.activeElement;
 		return !!a && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|range|file|color)$/.test(a.type)) || a.isContentEditable);
 	};
+	// Release bundle only: the development bundle (the game-admin switch, StatusMark's watermark) must keep devtools usable.
+	onMount(() => {
+		if (typeof __PLAY_BUNDLE__ !== 'undefined' && __PLAY_BUNDLE__ === 'release') return blockDevtools();
+	});
+
 	onMount(() => {
 		const vv = window.visualViewport;
 		if (!vv) return;

@@ -29,7 +29,7 @@
 <svelte:window onkeydown={(e) => open && e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('dialog[open]') && back()} />
 
 {#if open}
-	<section role="dialog" aria-modal="true" aria-label={title} transition:push class="fixed inset-0 z-50 flex flex-col bg-(--kk-bg) text-(color:--kk-text)">
+	<section role="dialog" aria-modal="true" aria-label={title} transition:push class="fixed inset-x-0 top-0 bottom-(--ad,0px) z-50 flex flex-col bg-(--kk-bg) text-(color:--kk-text)">
 		<header class="flex min-h-14 shrink-0 items-center gap-1 border-b border-(color:--kk-line) bg-(--kk-surface) pt-[env(safe-area-inset-top)] pr-2 pl-1">
 			<button type="button" aria-label={t('play.dialog.back')} onclick={back} class="grid size-11 place-items-center rounded-full hover:bg-(--kk-surface-2)"><Icon name="arrow_back" size={24} /></button>
 			<h2 class="min-w-0 flex-1 truncate text-lg font-extrabold">{title}</h2>

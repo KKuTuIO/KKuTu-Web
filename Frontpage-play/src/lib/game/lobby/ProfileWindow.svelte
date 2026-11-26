@@ -12,7 +12,6 @@
         fetchHistory,
         fetchModeStats,
         fetchProfile,
-        historyOutcome,
         recommendedMode,
         needsWorkMode,
         timeAgo,
@@ -870,7 +869,6 @@
                             {#if rows.length}
                                 <ul class="flex flex-col gap-1.5">
                                     {#each rows as row (row.gameId)}
-                                        {@const out = historyOutcome(row)}
                                         <li>
                                             <button
                                                 type="button"
@@ -881,7 +879,6 @@
                                                 <PlacementMedal
                                                     placement={row.placement}
                                                     won={row.won}
-                                                    outcome={out}
                                                     size={40}
                                                 />
                                                 <span class="min-w-0 flex-1">

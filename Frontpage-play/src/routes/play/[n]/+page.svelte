@@ -64,6 +64,7 @@
 	import { clearRef, pendingRef } from '$lib/invite.js';
 	import { loadGoodDetails } from '$lib/game/shop.js';
 	import AcademyScreen from '$lib/game/academy/AcademyScreen.svelte';
+	import AdBar from '$lib/game/lobby/AdBar.svelte';
 	import { cubicIn } from 'svelte/easing';
 	import { ms } from '$lib/game/motion.js';
 	import UserMenu from '$lib/game/lobby/UserMenu.svelte';
@@ -291,7 +292,6 @@
 	// 사전: in the lobby it opens the 아카데미 as a page of its own; in a waiting room it is the small dictionary window.
 	let academyOpen = $state(false);
 	let academyTab = $state('dictionary');
-	let academyGame = $state('');
 	// Chat is a button (docked sheet) instead of the inline panel wherever a screen needs the room: the 아카데미 and the shop.
 	let shopOpen = $state(false);
 	let newsOpen = $state(false); // 공지·행사: another page of the main area; it takes turns with the others
@@ -398,6 +398,8 @@
 		if (store.net.myRoom || academyOpen) newsOpen = false;
 	});
 	const ready = $derived(store.net.status === 'ready');
+	// 비로그인 이용자에게는 화면 아래를 광고에 내준다(로그인하면 없다). 누구인지 알고(welcome) 로딩 막이 걷힌 뒤에 띄운다.
+	const adOn = $derived(!!store.net.id && store.net.guest && store.net.assetsReady);
 	// A friend's link (`?ref=`) kept by the site is sent once, as soon as I am a member in the game; whatever the answer, it is let go of.
 	// What the red dot of the events menu needs to know (where each campaign and invitation stands) is asked for whenever the events arrive.
 	$effect(() => {
@@ -562,13 +564,20 @@
 		else shopOpen ? playShopBgm() : playLobbyBgm({ fromResult: true }); // (a closed result: its music crossfades into the lobby's)
 	});
 
-	// An address with ?view=academy&tab=… (a shared link) opens that tool.
+	// An address with ?view=academy&tab=… (a shared link) opens that tool. A link to the former 게임 복기 tool (&tab=replay) is
+	// rewritten to the 리플레이 page's address, which is opened below.
 	{
 		const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
 		if (q?.get('view') === 'academy') {
-			academyOpen = true;
-			academyTab = q.get('tab') || 'dictionary';
-			academyGame = q.get('game') || '';
+			if (q.get('tab') === 'replay') {
+				const url = new URL(location.href);
+				url.searchParams.set('view', 'replay');
+				url.searchParams.delete('tab');
+				history.replaceState(history.state, '', url);
+			} else {
+				academyOpen = true;
+				academyTab = q.get('tab') || 'dictionary';
+			}
 		}
 	}
 
@@ -659,8 +668,9 @@
 
 <svelte:window bind:innerWidth={winW} bind:innerHeight={winH} />
 
+<!-- With the ad under it (AdBar) the app ends above it, may be a little shorter before the window scrolls, and keeps that room free at its end. -->
 <!-- overflow-x-clip: the tab slide moves the whole page sideways; without the clip the document grows wider for a moment and the fixed chat button is pushed off its corner -->
-<div style:height={phone && vvh ? `${vvh}px` : undefined} style:--dock={dockOn && !store.ui.arcade ? 'calc(4.75rem + env(safe-area-inset-bottom))' : '0px'} class="relative flex h-dvh min-h-[600px] max-md:min-h-0 flex-col overflow-x-clip bg-(--kk-bg) text-sm text-(color:--kk-text)">
+<div style:height={phone && vvh ? (adOn && !kbd ? `calc(${vvh}px - var(--ad, 0px))` : `${vvh}px`) : undefined} style:--dock={dockOn && !store.ui.arcade ? 'calc(4.75rem + env(safe-area-inset-bottom))' : '0px'} class="relative flex {adOn ? 'mb-(--ad) h-[calc(100dvh-var(--ad,0px))] min-h-[520px]' : 'h-dvh min-h-[600px]'} max-md:min-h-0 flex-col overflow-x-clip bg-(--kk-bg) text-sm text-(color:--kk-text)">
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
@@ -709,7 +719,7 @@
 				{:else if !(store.inGame && store.ui.gameCovered)}<RoomScreen {store} onsettings={() => (settingsOpen = true)} />{/if}
 				{#if store.inGame}<GameScreen {store} />{/if}
 			{:else if academyOpen && !newLobby}
-				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} game={academyGame} /></div>
+				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} /></div>
 			{:else if newLobby}
 				<MatchHome {store} {ready} variant={phone ? 'phone' : 'desk'} oncreate={() => (createOpen = true)} ontutorial={() => (tutorialOpen = true)} page={replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : null} {screen} onpageclose={closePages} onjoin={join} />
 			{:else if phone}
@@ -736,6 +746,7 @@
 	{#if railDesk}<MobileTabBar {store} {locked} noHelp={newLobby} noPeople active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} side edge={prefs.hand === 'left' ? 'left' : 'right'} />{:else if showTabBar && !store.ui.arcade}<MobileTabBar {store} {locked} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
 	</div>
 </div>
+{#if adOn}<AdBar width={winW} height={winH} />{/if}
 
 <!-- Mobile/tablet: a button opening a docked sheet instead. -->
 <!-- Mobile/tablet: a button opening a docked sheet; in the 아카데미 and the shop the chat is that button on desktop too, so the screen gets the room. -->
@@ -771,7 +782,7 @@
 {#snippet screen(lead)}
 	{#if replayOpen}<ReplayScreen {store} start={replayStart} {lead} />
 	{:else if newsOpen}<NewsScreen {store} bare {lead} />
-	{:else if academyOpen}<div class="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-3"><AcademyScreen {store} bind:tab={academyTab} game={academyGame} {lead} /></div>{/if}
+	{:else if academyOpen}<div class="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-3"><AcademyScreen {store} bind:tab={academyTab} {lead} /></div>{/if}
 {/snippet}
 <UserMenu bind:this={userMenu} {store} />
 <RoomMenu bind:this={roomMenu} {store} />

@@ -12,20 +12,20 @@
 	import SimulatorTab from './SimulatorTab.svelte';
 	import PracticeTab from './PracticeTab.svelte';
 	import EngineTab from './EngineTab.svelte';
-	import ReplayTab from './ReplayTab.svelte';
 	import AdminTab from './AdminTab.svelte';
 
 	/**
-	 * The 아카데미: the word tools (search, 어인정, 수순 실험, 루트 대결, 전략 엔진, 게임 복기) as a page of the game,
-	 * shown in the lobby's main area like the waiting room. `tab` and `game` come from the address (?view=academy&tab=…).
+	 * The 아카데미: the word tools (search, 어인정, 수순 실험, 루트 대결, 전략 엔진) as a page of the game,
+	 * shown in the lobby's main area like the waiting room. `tab` comes from the address (?view=academy&tab=…).
+	 * Looking back at a finished game is part of the 리플레이 page (ReplayReview).
 	 */
 	// `lead` (the new lobby's back button) switches the page to the stage's layout: one compact header row (back button, then the tools as one-line tabs on
 	// a translucent pill) and translucent cards, so the blurred picture shows through; without it the page keeps its tool cards.
 	const bare = $derived(!!lead);
-	let { store, tab = $bindable('dictionary'), game = '', lead } = $props();
+	let { store, tab = $bindable('dictionary'), lead } = $props();
 
-	const ids = $derived(['dictionary', 'injeong', 'simulator', 'practice', 'engine', 'replay', ...(store.net.admin ? ['admin'] : [])]);
-	const ICONS = { dictionary: 'dictionary', injeong: 'verified', simulator: 'conversion_path', practice: 'swords', engine: 'account_tree', replay: 'movie_edit', admin: 'admin_panel_settings' };
+	const ids = $derived(['dictionary', 'injeong', 'simulator', 'practice', 'engine', ...(store.net.admin ? ['admin'] : [])]);
+	const ICONS = { dictionary: 'dictionary', injeong: 'verified', simulator: 'conversion_path', practice: 'swords', engine: 'account_tree', admin: 'admin_panel_settings' };
 	const tabs = $derived(ids.map((id) => ({ id, icon: ICONS[id], label: t(`play.academy.tab.${id}`) })));
 	let tabEls = $state([]);
 	// Arrow keys / Home / End move between the tools (a tab list works like one control).
@@ -49,7 +49,7 @@
 	});
 	// the tool cards' own look (the page without a stage)
 	const TILE = (on) => `flex min-h-16 min-w-24 flex-1 flex-col items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-bold whitespace-nowrap transition-[background-color,color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--kk-accent) ${on ? 'border-(color:--kk-line-strong) bg-(--kk-surface) text-(color:--kk-text) shadow-[0_2px_0_var(--kk-line-strong)]' : 'border-transparent text-(color:--kk-muted) hover:text-(color:--kk-text)'}`;
-	const showRules = $derived(!['replay', 'injeong', 'admin'].includes(tab));
+	const showRules = $derived(!['injeong', 'admin'].includes(tab));
 
 	// The address follows the tab (so a link opens the same tool).
 	function pick(id) {
@@ -57,7 +57,6 @@
 		const url = new URL(window.location.href);
 		url.searchParams.set('view', 'academy');
 		url.searchParams.set('tab', id);
-		if (id !== 'replay') url.searchParams.delete('game');
 		history.replaceState(null, '', url);
 	}
 	onMount(async () => {
@@ -105,7 +104,6 @@
 				{:else if tab === 'simulator'}<SimulatorTab {config} />
 				{:else if tab === 'practice'}<PracticeTab {config} />
 				{:else if tab === 'engine'}<EngineTab {config} />
-				{:else if tab === 'replay'}<ReplayTab bind:config initialGame={game} />
 				{:else if tab === 'admin'}<AdminTab />{/if}
 			</div>
 		{/key}

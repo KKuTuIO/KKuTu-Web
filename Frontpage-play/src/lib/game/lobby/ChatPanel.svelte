@@ -231,7 +231,7 @@
 		transition:sheet
 		onkeydown={(e) => !inline && e.key === 'Escape' && (openSheet = false)}
 		style:height={inline && height ? `${height}px` : undefined}
-		class="kk-card flex overflow-hidden {inline ? '' : 'flex-col'} {inline ? 'h-60 shrink-0' : `fixed bottom-(--kb,0px) z-20 h-[min(36rem,calc(100dvh-5rem-var(--kb,0px)))] rounded-b-none border-b-0 shadow-none w-full sm:w-[24rem] ${onLeft ? 'left-0 border-l-0 sm:rounded-tl-none' : 'right-0 border-r-0 sm:rounded-tr-none'}`}"
+		class="kk-card flex overflow-hidden {inline ? '' : 'flex-col'} {inline ? 'h-60 shrink-0' : `fixed bottom-[max(var(--kb,0px),var(--ad,0px))] z-20 h-[min(36rem,calc(100dvh-5rem-max(var(--kb,0px),var(--ad,0px))))] rounded-b-none border-b-0 shadow-none w-full sm:w-[24rem] ${onLeft ? 'left-0 border-l-0 sm:rounded-tl-none' : 'right-0 border-r-0 sm:rounded-tr-none'}`}"
 	>
 		{#if inline}
 			<!-- Beside the lobby the tabs run down the left edge: chat lines need the width more than the height. -->
@@ -312,7 +312,7 @@
 	</section>
 {:else if !hideFab}
 	<!-- Secondary look on purpose: the chat is never the main action. -->
-	<button type="button" data-tour="chat" aria-label={unread ? `${t('play.chat.toggle')} (${t('play.chat.unread', { count: unread })})` : t('play.chat.toggle')} aria-expanded="false" onclick={show} style:bottom={rail ? 'max(0.75rem, env(safe-area-inset-bottom))' : typeof lift === 'string' && lift !== 'top' && lift !== 'room' ? `calc(${lift} + env(safe-area-inset-bottom))` : undefined} style:left={rail === 'left' ? 'max(1rem, env(safe-area-inset-left))' : undefined} style:right={rail === 'right' ? 'max(1rem, env(safe-area-inset-right))' : undefined} class="{rail ? 'kk-glass fixed size-11 rounded-full active:scale-95' : 'kk-btn fixed'} {rail ? '' : lift === 'top' ? 'top-14 size-11' : lift === 'room' ? 'top-[5.1rem] right-5! left-auto! size-11' : typeof lift === 'string' ? 'size-14' : lift ? 'bottom-[calc(var(--dock,4.75rem)+0.5rem)] size-14' : 'bottom-4 size-14'} z-20 grid place-items-center p-0 {rail ? '' : onLeft ? 'left-4' : 'right-4'}">
+	<button type="button" data-tour="chat" aria-label={unread ? `${t('play.chat.toggle')} (${t('play.chat.unread', { count: unread })})` : t('play.chat.toggle')} aria-expanded="false" onclick={show} style:bottom={rail ? 'calc(max(0.75rem, env(safe-area-inset-bottom)) + var(--ad, 0px))' : typeof lift === 'string' && lift !== 'top' && lift !== 'room' ? `calc(${lift} + env(safe-area-inset-bottom) + var(--ad, 0px))` : undefined} style:left={rail === 'left' ? 'max(1rem, env(safe-area-inset-left))' : undefined} style:right={rail === 'right' ? 'max(1rem, env(safe-area-inset-right))' : undefined} class="{rail ? 'kk-glass fixed size-11 rounded-full active:scale-95' : 'kk-btn fixed'} {rail ? '' : lift === 'top' ? 'top-14 size-11' : lift === 'room' ? 'top-[5.1rem] right-5! left-auto! size-11' : typeof lift === 'string' ? 'size-14' : lift ? 'bottom-[calc(var(--dock,4.75rem)+0.5rem+var(--ad,0px))] size-14' : 'bottom-[calc(1rem+var(--ad,0px))] size-14'} z-20 grid place-items-center p-0 {rail ? '' : onLeft ? 'left-4' : 'right-4'}">
 		<Icon name="chat" size={rail ? 20 : 26} />
 		{#if unread}<span class="absolute -top-1.5 grid {onLeft ? '-left-1.5' : '-right-1.5'} h-5 min-w-5 place-items-center rounded-full bg-(--kk-danger) px-1 text-[11px] font-extrabold text-white">{unread > 99 ? '99+' : unread}</span>{/if}
 	</button>

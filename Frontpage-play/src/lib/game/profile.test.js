@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildModeStats, historyOutcome, timeAgo, winRate, recommendedMode, needsWorkMode } from './profile.js';
+import { buildModeStats, timeAgo,winRate, recommendedMode, needsWorkMode } from './profile.js';
 
 describe('profile numbers', () => {
 	it('merges the game record with the record service, newest effort first', () => {
@@ -16,11 +16,6 @@ describe('profile numbers', () => {
 	it('rates draws as half a win', () => {
 		expect(winRate(1, 0)).toBe(0);
 		expect(winRate(2, 4, 2)).toBe(75);
-	});
-	it('tells how a game went', () => {
-		expect(historyOutcome({ won: true, placement: 1, playerCount: 4 })).toBe('win');
-		expect(historyOutcome({ won: false, placement: 4, playerCount: 4 })).toBe('loss');
-		expect(historyOutcome({ won: false, placement: 2, playerCount: 4 })).toBe('half');
 	});
 	it('says how long ago', () => {
 		const now = 1_000_000_000_000;

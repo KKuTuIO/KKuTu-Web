@@ -7,6 +7,11 @@ export const ITEMS = [
 	{ id: 4, icon: 'add', color: '#eab308' }, // 한번 더: yellow
 	{ id: 5, icon: 'casino', color: '#8b5cf6' } // 무작위: violet
 ];
+/** The modes that can be played with items. */
+export const ITEM_FAMILIES = ['Classic', 'Mathrelay'];
+/** The locale key of an item's name or explanation. 수학 릴레이 has texts of its own (3 is 부호 변경, 5 is 숫자 변경 there). */
+export const itemKey = (family, id, kind) => (family === 'Mathrelay' ? `game.item.math.${id}.${kind}` : `game.item.${id}.${kind}`);
+
 /** The server keeps two counters per round: each item can be used twice, and all items together five times. */
 export const PER_ITEM = 2;
 export const PER_ROUND = 5;

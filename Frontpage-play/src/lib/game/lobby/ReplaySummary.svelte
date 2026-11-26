@@ -3,15 +3,19 @@
 	import { clock } from '../replayPayload.js';
 	import Icon from './Icon.svelte';
 	import PlacementMedal from './PlacementMedal.svelte';
+	import ReplayReview from './ReplayReview.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
+	import Tabs from '../ui/Tabs.svelte';
 
 	/**
 	 * A game from the server's records, as a sheet (the server keeps a summary of every game, not its packets, so there is nothing to
-	 * play on the board): the result, and every word in order with its player and time, per round.
+	 * play on the board). 기록: the result, and every word in order with its player and time, per round. 복기 (when the record keeps the
+	 * words that counted): see ReplayReview.
 	 * @type {{store:any, sheet:any, onclose:()=>void, onplay?:(()=>void)|null, onshare?:(()=>void)|null}}
 	 */
 	let { store, sheet, onclose, onplay = null, onshare = null } = $props();
 	const modeName = $derived(i18n.messages[`game.mode.${sheet.room.modeKey}.name`] ?? sheet.room.modeKey);
+	let tab = $state('record');
 	let round = $state(0); // 0 = all
 	const shown = $derived(sheet.inputs.filter((i) => !round || i.round === round));
 	const nameOf = (i) => sheet.players[i]?.name ?? '?';
@@ -28,7 +32,16 @@
 		<span class="hidden shrink-0 text-xs text-(color:--kk-muted) sm:inline">{new Date(sheet.start).toLocaleString(i18n.language)} · {clock(sheet.duration)}</span>
 	</header>
 
-	<div class="grid min-h-0 gap-3 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+	{#if sheet.review}
+		<div class="shrink-0 self-start rounded-xl bg-(--kk-surface)/80 [&_.kk-tab]:px-5">
+			<Tabs bind:value={tab} tabs={['record', 'review'].map((id) => ({ id, label: t(`play.replay.tab.${id}`) }))} idPrefix="sheet" label={modeName} />
+		</div>
+	{/if}
+
+	{#if sheet.review && tab === 'review'}
+		<div role="tabpanel" id="sheet-panel-review" aria-labelledby="sheet-tab-review" class="flex shrink-0 flex-col"><ReplayReview {sheet} /></div>
+	{:else}
+	<div role={sheet.review ? 'tabpanel' : undefined} id="sheet-panel-record" aria-labelledby={sheet.review ? 'sheet-tab-record' : undefined} class="grid min-h-0 gap-3 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
 		<div class="kk-card flex flex-col gap-1.5 p-3">
 			<h3 class="text-sm font-extrabold">{t('kkutu.dialog.replay.recordPlayers')}</h3>
 			{#each sheet.results as r (r.player)}
@@ -69,4 +82,5 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
 </section>

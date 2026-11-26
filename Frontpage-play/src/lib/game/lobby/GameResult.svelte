@@ -279,7 +279,7 @@
 	const sayKind = $derived(view?.outcome === 'win' || medalOutcome === 'win' ? 'win' : view?.outcome === 'lose' || medalOutcome === 'loss' ? 'lose' : 'mid');
 	const sayText = $derived(t(`play.result.say.${sayKind}.${sayIdx}`));
 	const modeName = $derived(store.currentRoom?.mode ?? '');
-	/** The medal of the 전적 list: gold for a win, a cracked one for the bottom half. */
+	/** How my game went, for what my moremi says: won, in the bottom half, or in between. */
 	const medalOutcome = $derived(view?.outcome === 'win' || view?.me?.rank === 1 ? 'win' : view?.me && view.me.rank - 1 >= Math.ceil(view.players.length / 2) ? 'loss' : 'half');
 	// a phone puts the chat button at the top of the screen, out of the way of the buttons at the bottom
 	let winW = $state(typeof innerWidth === 'undefined' ? 1280 : innerWidth);
@@ -301,7 +301,7 @@
 {/snippet}
 
 {#snippet cell(p, col)}
-	{#if col.key === 'rank'}{#if p.rank <= 3}<PlacementMedal placement={p.rank} won={p.rank === 1 && view.outcome === 'win'} outcome={p.rank === 1 && view.outcome === 'win' ? 'win' : 'half'} size={30} />{:else}<span class="plain-rank">{p.rank}</span>{/if}
+	{#if col.key === 'rank'}<PlacementMedal placement={p.rank} size={30} />
 	{:else if col.key === 'name'}{#if p.user}<NickName user={p.user} showCheck maskable={!p.user.robot && !p.me} />{/if}
 	{:else}{commify(p.score)}{/if}
 {/snippet}
@@ -348,7 +348,7 @@
 				<div class="cards" class:solo={!view.words.best}>
 					<div class="card-a kk-card" data-skip>
 						<div class="headline">
-							{#if view.me}<PlacementMedal placement={view.me.rank} won={view.outcome === 'win'} outcome={medalOutcome} size={52} />{/if}
+							{#if view.me}<PlacementMedal placement={view.me.rank} won={view.outcome === 'win'} size={52} />{/if}
 							<div>
 								<div class="headline-text">{view.layout === 'teams' ? t('play.result.lineTeam', { rank: view.me?.rank ?? '', team: view.myTeam?.letter ?? '', teamRank: view.myTeam?.rank ?? '' }) : view.gap ? t('play.result.gap', { n: commify(view.gap.diff) }) : t('play.result.rank', { n: view.me?.rank ?? '' })}</div>
 								
@@ -1224,11 +1224,6 @@
 	.panel-list :global(tr.tint-2) { --c: var(--kk-team-2); }
 	.panel-list :global(tr.tint-3) { --c: var(--kk-team-3); }
 	.panel-list :global(tr.tint-4) { --c: var(--kk-team-4); }
-	.plain-rank {
-		padding-left: 9px;
-		font-weight: 800;
-		color: var(--kk-muted);
-	}
 	.rewards {
 		display: flex;
 		flex-wrap: wrap;

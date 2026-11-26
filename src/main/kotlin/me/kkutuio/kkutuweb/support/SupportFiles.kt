@@ -22,7 +22,7 @@ object SupportFiles {
     private const val NAME_MAX = 120
     private const val MAX_ENCODED = (MAX_BYTES + 2) / 3 * 4
 
-    val EXTENSIONS = listOf("png", "jpg", "jpeg", "gif", "webp", "pdf", "txt", "log")
+    val EXTENSIONS = listOf("png", "jpg", "jpeg", "gif", "webp", "pdf", "txt", "kkio", "zip")
 
     private class Kind(val contentType: String, val extensions: List<String>, val matches: (ByteArray) -> Boolean)
 
@@ -31,7 +31,8 @@ object SupportFiles {
         Kind("image/jpeg", listOf("jpg", "jpeg")) { it.startsWith(0xFF, 0xD8, 0xFF) },
         Kind("image/gif", listOf("gif")) { it.ascii(0, "GIF87a") || it.ascii(0, "GIF89a") },
         Kind("image/webp", listOf("webp")) { it.ascii(0, "RIFF") && it.ascii(8, "WEBP") },
-        Kind("application/pdf", listOf("pdf")) { it.ascii(0, "%PDF-") }
+        Kind("application/pdf", listOf("pdf")) { it.ascii(0, "%PDF-") },
+        Kind("application/zip", listOf("zip")) { it.startsWith(0x50, 0x4B, 0x03, 0x04) }
     )
 
     fun read(uploads: List<AttachmentUpload>?): List<SupportFile> {

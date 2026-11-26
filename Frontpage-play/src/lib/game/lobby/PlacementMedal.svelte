@@ -3,12 +3,13 @@
 
 	/**
 	 * How a game went, as a mark: a gold, silver or bronze medal with the placement on its face for 1st to 3rd (a win counts as 1st),
-	 * the cracked medal (with its placement too) for a game lost in the bottom half, and a plain number for the middle of the pack. Art: the CDN's img/play/medal-*.svg.
-	 * @type {{placement:number, won?:boolean, outcome?:'win'|'half'|'loss', size?:number}}
+	 * and the cracked medal (with its placement too) for 4th and below. A game without a placement shows the bare value.
+	 * Art: the CDN's img/play/medal-*.svg.
+	 * @type {{placement:number, won?:boolean, size?:number}}
 	 */
-	let { placement, won = false, outcome = 'half', size = 40 } = $props();
+	let { placement, won = false, size = 40 } = $props();
 	const rank = $derived(won ? 1 : Number(placement));
-	const kind = $derived(rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : outcome === 'loss' ? 'broken' : '');
+	const kind = $derived(rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : rank >= 4 ? 'broken' : '');
 	// The numeral is filled with a gradient of its own metal (light on the gold, dark steel on the silver, dark on the bronze) and has a
 	// thin edge of the opposite tone, so it reads on the medal's face.
 	const INK = {

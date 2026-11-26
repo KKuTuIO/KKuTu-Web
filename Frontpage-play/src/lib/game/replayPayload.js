@@ -29,6 +29,60 @@ export function inputOutcome(extra) {
 }
 
 /**
+ * What a game is reviewed by: the words that counted (`a`: the game's one chain; `ap`: [[player, words]] for each player's own).
+ * @returns null when the record keeps none (a ranked game seen by someone who did not play it, or a mode without words)
+ */
+export function reviewOf(payload) {
+	const dict = Array.isArray(payload?.w) ? payload.w : [];
+	const wordsAt = (list) => (Array.isArray(list) ? list.map((i) => dict[i]).filter(Boolean) : []);
+	const chains = (Array.isArray(payload?.ap) ? payload.ap : [])
+		.map((row) => ({ player: row?.[0], words: wordsAt(row?.[1]) }))
+		.filter((c) => c.words.length);
+	const chain = wordsAt(payload?.a);
+	const accepted = chain.length ? chain : chains.flatMap((c) => c.words);
+	if (!accepted.length) return null;
+	const unique = [...new Set(accepted)];
+	return {
+		ordered: chain.length > 0, // false: no single chain was kept, the players' chains are put together
+		accepted,
+		unique,
+		longest: unique.reduce((best, w) => (w.length > best.length ? w : best), ''),
+		typed: new Set(dict).size,
+		events: Array.isArray(payload.i) ? payload.i.length : 0,
+		chains
+	};
+}
+
+/** The chain modes the academy's engine can follow (it links words by one letter, so not 영어 끄투's three). */
+const ANALYSABLE = new Set(['KSH', 'ESH', 'KAP', 'EAP', 'KKT', 'KFT']);
+
+/**
+ * The dictionary rules of a finished game, for the engine that looks for other moves.
+ * @param {{modeKey:string, lang:string, opts:string[]}} room the sheet's room (`opts`: the names of the options that were on)
+ * @returns the engine's config, or null when the mode cannot be analysed
+ */
+export function analysisConfig({ modeKey, lang, opts }) {
+	if (!ANALYSABLE.has(modeKey)) return null;
+	const on = (name) => opts.includes(name);
+	const letters = modeKey === 'KFT' || (modeKey === 'KKT' && on('four')) ? 4 : modeKey === 'KKT' ? 3 : 0; // 0: any length
+	const strict = on('strict');
+	return {
+		lang,
+		dictionary: on('injeong') ? 'COMBINED' : 'STANDARD',
+		direction: modeKey === 'KAP' || modeKey === 'EAP' ? 'REVERSE' : 'FORWARD',
+		duum: !on('antidoum'),
+		minLength: letters ? (on('sami') ? 2 : letters) : on('no2') ? 3 : 2,
+		maxLength: letters || 64,
+		includeLoanword: !on('loanword'),
+		includeSpaced: !strict,
+		includeDialect: !strict,
+		includeOld: !strict,
+		includeCultural: !strict,
+		includeKung: modeKey === 'KKT' && letters === 3
+	};
+}
+
+/**
  * @param {object} payload the decoded payload (`detailPayload`; the public one has no start/end/winners, and its ranks start at 0)
  * @param {{startedAt?:number, endedAt?:number, durationMs?:number, winnerIds?:string[], gameId?:string}} [game] the game record around it
  * @returns the game sheet, or null when it is not one
@@ -71,7 +125,8 @@ export function summarize(payload, game = {}) {
 		players,
 		results,
 		inputs,
-		rounds: [...new Set(inputs.map((i) => i.round))].sort((a, b) => a - b)
+		review: reviewOf(payload),
+		rounds:[...new Set(inputs.map((i) => i.round))].sort((a, b) => a - b)
 	};
 }
 

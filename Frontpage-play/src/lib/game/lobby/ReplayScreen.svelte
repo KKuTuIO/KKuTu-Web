@@ -9,7 +9,7 @@
 	import { t, i18n } from '../i18n.svelte.js';
 	import { ms } from '../motion.js';
 	import { toast } from '../ui/toast.svelte.js';
-	import { fetchHistory, historyOutcome, timeAgo } from '../profile.js';
+	import { fetchHistory, timeAgo } from '../profile.js';
 	import { academyApi } from '../academy/api.js';
 	import { decodeKkio, sanitizeRecording } from '../kkio.js';
 	import { summarize } from '../replayPayload.js';
@@ -247,9 +247,8 @@
 </script>
 
 {#snippet gameRow(row)}
-	{@const out = historyOutcome(row)}
 	<button type="button" onclick={() => openGame(row.gameId)} class="flex w-full items-center gap-3 rounded-xl border border-(color:--kk-line) px-3 py-2 text-left shadow-[0_2px_0_var(--kk-line)] {bare ? 'bg-(--kk-surface)/80 hover:bg-(--kk-surface)' : 'bg-(--kk-surface) hover:bg-(--kk-surface-2)'}">
-		<PlacementMedal placement={row.placement} won={row.won} outcome={out} size={40} />
+		<PlacementMedal placement={row.placement} won={row.won} size={40} />
 		<span class="min-w-0 flex-1">
 			<span class="block truncate text-sm font-extrabold">{modeName(row.modeName)}</span>
 			<span class="block truncate text-xs text-(color:--kk-muted)">{row.roomTitle || t('play.profile.noTitle')} · {row.placement}/{row.playerCount} · {timeAgo(row.startedAt)}</span>

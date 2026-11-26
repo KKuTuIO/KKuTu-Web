@@ -99,14 +99,6 @@ export function needsWorkMode(stats) {
 	return stats.filter((s) => s.games >= 10).sort((a, b) => a.winRate - b.winRate || b.games - a.games)[0] ?? null;
 }
 
-/** How a finished game went for the player: 'win', 'loss' (bottom half) or 'half'. */
-export function historyOutcome(row) {
-	if (row?.won) return 'win';
-	const place = Number(row?.placement || 0) - 1;
-	const players = Number(row?.playerCount || 0);
-	return place >= 0 && players > 0 && place >= Math.ceil(players / 2) ? 'loss' : 'half';
-}
-
 /** "3분 전", "2개월 전" ... */
 export function timeAgo(ms, now = Date.now()) {
 	if (!ms) return '-';

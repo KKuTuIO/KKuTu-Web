@@ -11,7 +11,7 @@
 	import { maskBad } from '../badwords.js';
 	import { plainText } from '../protocol.js';
 	import { prefs, setPref } from '../prefs.svelte.js';
-	import { dockAt, itemReady, ITEMS } from '../items.js';
+	import { dockAt, itemReady, itemKey, ITEMS, ITEM_FAMILIES } from '../items.js';
 	import { ms, reducedMotion } from '../motion.js';
 	import { playSound, playGameBgm } from '../audio.svelte.js';
 	import { IMAGE_CDN, IMAGE_VERSION } from '../images.js';
@@ -114,7 +114,7 @@
 	let areaH = $state(0);
 	let backdropEl = $state();
 	// 아이템전: the items are always in view; at an edge they take room from the stage (it shrinks to fit the rest)
-	const itemOn = $derived(family === 'Classic' && !!room?.opts?.item && !spectating && !!g && g.phase !== 'loading' && !g.result);
+	const itemOn = $derived(ITEM_FAMILIES.includes(family) && !!room?.opts?.item && !spectating && !!g && g.phase !== 'loading' && !g.result);
 	const dock = $derived(prefs.itemDock);
 	const EDGE_W = 84;
 	const EDGE_H = 56;
@@ -395,7 +395,7 @@
 			if (g.phase === 'ended') return { kind: 'text', text: t('kkutu.js.roundEnd') };
 			return { kind: 'list', first: listLeft[0] ?? '', rest: listLeft.slice(1, lv).join(' ') };
 		}
-		if (itemNote !== null && family === 'Classic') return { kind: 'item', text: t(`game.item.${itemNote}.name`) };
+		if (itemNote !== null && ITEM_FAMILIES.includes(family)) return { kind: 'item', text: t(itemKey(family, itemNote, 'name')) };
 		// an item the server refused (420-429: used one already this turn, first move, out of time, none left) says why, as legacy did
 		if (failing && g.fail && g.fail.code >= 420 && g.fail.code <= 429) return { kind: 'warn', text: g.fail.text };
 		// my refused word, struck out; `turnError` goes to the whole room, so a refusal of somebody else's word (not the one I typed, which may be left over from an earlier turn) strikes nothing
@@ -490,6 +490,8 @@
 	// ---- 아이템전: using an item, and moving the bar (drag the grip onto a place; it is remembered in the prefs) ----
 	function useItem(id) {
 		store.conn.send('useItem', { id });
+		// a pressed item button keeps the focus: the Enter that follows the typed answer would press it again, so the answer field takes it back
+		field?.focus();
 	}
 	let itemDrag = $state(false);
 	let hoverDock = $state(null);
@@ -552,7 +554,7 @@
 	let itemFx = $state(null); // the hack animation over the stage: {item, target, at}
 	$effect(() => {
 		const u = g?.itemUse;
-		if (!u || family !== 'Classic') return;
+		if (!u || !ITEM_FAMILIES.includes(family)) return;
 		itemNote = u.item;
 		if (!reducedMotion()) itemFx = u;
 		playSound('success');
@@ -1059,7 +1061,7 @@
 						<ItemBar {store} layout={dock === 'left' || dock === 'right' ? 'rail' : 'row'} onuse={useItem} ongrip={gripDown} onmove={(d) => setPref('itemDock', d)} dragging={itemDrag} />
 					</div>
 				{/if}
-				{#if itemFx}{#key itemFx.at}<ItemFx user={net.users[itemFx.target]} item={ITEMS[itemFx.item]} name={t(`game.item.${itemFx.item}.name`)} shop={store.shop} {parts} />{/key}{/if}
+				{#if itemFx}{#key itemFx.at}<ItemFx user={net.users[itemFx.target]} item={ITEMS[itemFx.item]} name={t(itemKey(family, itemFx.item, 'name'))} shop={store.shop} {parts} />{/key}{/if}
 				{#if itemDrag}<ItemZones hover={hoverDock} answer={answerRect} edgeW={EDGE_W} edgeH={EDGE_H} />{/if}
 				{#if phoneStage}
 				{@render phoneStage_()}

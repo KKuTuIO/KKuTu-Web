@@ -1,7 +1,8 @@
 <script>
 	import { t } from '../i18n.svelte.js';
 	import { bindings, label } from '../keys.svelte.js';
-	import { ITEMS, DOCK_KEYS, PER_ROUND, itemReady, itemLeft } from '../items.js';
+	import { ITEMS, DOCK_KEYS, PER_ROUND, itemReady, itemLeft, itemKey } from '../items.js';
+	import { familyOf } from '../gameModel.js';
 	import Tooltip from '../ui/Tooltip.svelte';
 	import Icon from './Icon.svelte';
 
@@ -17,6 +18,8 @@
 	const rail = $derived(layout === 'rail');
 	// a phone: round buttons, the icon with the uses left as a badge, nothing else (no grip, no names, no key hints)
 	const badge = $derived(layout === 'badge');
+	const family = $derived(familyOf(store.net));
+	const nameOf = (id) => t(itemKey(family, id, 'name'));
 
 	function gripKey(e) {
 		const dock = DOCK_KEYS[e.key];
@@ -36,16 +39,17 @@
 		{@const left = itemLeft(g, it.id)}
 		{@const ready = itemReady(g, it.id, mine)}
 		{#snippet tip()}
-			<b class="block">{t(`game.item.${it.id}.name`)}</b>
-			<span class="block max-w-56 text-[11px] leading-snug opacity-90">{t(`game.item.${it.id}.expl`)}</span>
+			<b class="block">{nameOf(it.id)}</b>
+			<span class="block max-w-56 text-[11px] leading-snug opacity-90">{t(itemKey(family, it.id, 'expl'))}</span>
 		{/snippet}
+		<!-- a pressed button must not keep the focus (see onmousedown): the answer field would lose it, and the Enter after an answer would press the item again -->
 		<Tooltip content={tip} placement={layout === 'row' ? 'top' : rail ? 'right' : 'bottom'}>
-			<button type="button" style:--c={it.color} class="pill {ready ? '' : 'off'} {left <= 0 ? 'none' : ''}" aria-disabled={!ready} aria-label="{t(`game.item.${it.id}.name`)} x{left}" aria-keyshortcuts={bindings[`item${it.id + 1}`]} onclick={() => ready && onuse(it.id)}>
+			<button type="button" style:--c={it.color} class="pill {ready ? '' : 'off'} {left <= 0 ? 'none' : ''}" aria-disabled={!ready} aria-label="{nameOf(it.id)} x{left}" aria-keyshortcuts={bindings[`item${it.id + 1}`]} onmousedown={(e) => e.preventDefault()} onclick={() => ready && onuse(it.id)}>
 				<span class="orb"><Icon name={it.icon} size={rail ? 20 : 18} weight={600} /></span>
 				{#if rail || badge}
 					<span class="n">{badge ? left : `x${left}`}</span>
 				{:else}
-					<span class="txt"><span class="nm">{t(`game.item.${it.id}.name`)}</span><b class="cnt">x{left}</b></span>
+					<span class="txt"><span class="nm">{nameOf(it.id)}</span><b class="cnt">x{left}</b></span>
 				{/if}
 				{#if !badge}<span class="key">{rail ? label(bindings[`item${it.id + 1}`]).replace('Shift+', '⇧') : label(bindings[`item${it.id + 1}`])}</span>{/if}
 			</button>

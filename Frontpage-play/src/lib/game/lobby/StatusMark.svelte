@@ -21,7 +21,7 @@
 </script>
 
 {#if shown || unreleased}
-	<p class="pointer-events-none fixed right-2 bottom-px flex max-md:top-px max-md:right-1/2 max-md:bottom-auto max-md:translate-x-1/2 items-center gap-1.5 whitespace-nowrap text-[11px] leading-none font-bold tabular-nums select-none {unreleased ? 'z-[200]' : 'z-10'}">
+	<p class="pointer-events-none fixed right-2 bottom-[calc(var(--ad,0px)+1px)] flex max-md:top-px max-md:right-1/2 max-md:bottom-auto max-md:translate-x-1/2 items-center gap-1.5 whitespace-nowrap text-[11px] leading-none font-bold tabular-nums select-none {unreleased ? 'z-[200]' : 'z-10'}">
 		{#if unreleased}
 			<span class="text-red-600"><span class="max-md:hidden">{t('play.status.devBundle')}</span><span class="md:hidden">{t('play.status.devBundleShort')}</span></span>
 		{/if}

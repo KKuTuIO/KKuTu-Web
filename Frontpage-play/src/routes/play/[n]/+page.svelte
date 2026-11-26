@@ -64,6 +64,8 @@
 	import { clearRef, pendingRef } from '$lib/invite.js';
 	import { loadGoodDetails } from '$lib/game/shop.js';
 	import AcademyScreen from '$lib/game/academy/AcademyScreen.svelte';
+	import MalmoiScreen from '$lib/game/malmoi/MalmoiScreen.svelte';
+	import { nav as malmoiNav } from '$lib/game/malmoi/store.svelte.js';
 	import AdBar from '$lib/game/lobby/AdBar.svelte';
 	import { cubicIn } from 'svelte/easing';
 	import { ms } from '$lib/game/motion.js';
@@ -159,12 +161,12 @@
 	const sideFolded = $derived(canFold && !layout.sideOpen);
 	// The phone's home scrolls to the edges of the page (its scrollbar too): the page's own padding would clip the cards short of the tab bar and push the scrollbar in.
 	// The home has the same padding inside its scroller.
-	const homeBleed = $derived(phone && !store.net.myRoom && !shopOpen && (!replayOpen || newLobby) && (!newsOpen || newLobby) && (!academyOpen || newLobby) && !peopleTab);
-	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen);
+	const homeBleed = $derived(phone && !store.net.myRoom && !shopOpen && (!replayOpen || newLobby) && (!newsOpen || newLobby) && (!academyOpen || newLobby) && (!malmoiOpen || newLobby) && !peopleTab);
+	const peopleShown = $derived(tabBar && peopleTab && !shopOpen && !replayOpen && !newsOpen && !academyOpen && !malmoiOpen);
 	// Moving between tabs slides the page the way the tab lies: to the right of this one, it comes in from the right.
-	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'replay'];
+	const TAB_ORDER = ['lobby', 'people', 'shop', 'news', 'rank', 'dict', 'malmoi', 'replay'];
 	let pageEl = $state();
-	const tabNow = $derived(shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : peopleShown ? 'people' : 'lobby');
+	const tabNow = $derived(shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : malmoiOpen ? 'malmoi' : peopleShown ? 'people' : 'lobby');
 	// 리그 매칭을 기다리는 동안에는 설정 밖의 메뉴로 나갈 수 없다(큐를 비운 채 다른 화면으로 가는 것을 막는다)
 	// 리그 판 안에서도 같다: 실력만 겨루는 익명 판이라 다른 메뉴로 나가거나 사전·채팅·소셜을 쓸 수 없다
 	const inLeague = $derived(!!store.currentRoom?.league);
@@ -304,8 +306,9 @@
 	function closePages() {
 		replayOpen = newsOpen = false;
 		if (academyOpen) setAcademy(false);
+		setMalmoi(false);
 	}
-	const chatFab = $derived(prefs.chatFloating || (newLobby && !store.net.myRoom) || shopOpen || replayOpen || (academyOpen && !store.net.myRoom));
+	const chatFab = $derived(prefs.chatFloating || (newLobby && !store.net.myRoom) || shopOpen || replayOpen || (academyOpen && !store.net.myRoom) || (malmoiOpen && !store.net.myRoom));
 	// Leaving: the academy sinks and fades while the lobby is already there (it is lifted out of the layout so nothing jumps).
 	function sink(node, { duration = 260 } = {}) {
 		const { offsetTop: top, offsetLeft: left, offsetWidth: width, offsetHeight: height } = node;
@@ -319,6 +322,19 @@
 		else url.searchParams.set('view', 'academy');
 		history.replaceState(history.state, '', url);
 	}
+	// 말모이: a page of its own, from the lobby. It takes turns with the others, and a room or a game puts it away.
+	let malmoiOpen = $state(false);
+	function setMalmoi(on) {
+		malmoiOpen = on;
+		const url = new URL(location.href);
+		if (on) url.searchParams.set('view', 'malmoi');
+		else if (url.searchParams.get('view') === 'malmoi') for (const k of ['view', 'id']) url.searchParams.delete(k);
+		else return;
+		history.replaceState(history.state, '', url);
+	}
+	$effect(() => {
+		if (shopOpen || replayOpen || newsOpen || academyOpen || store.net.myRoom) untrack(() => malmoiOpen && setMalmoi(false));
+	});
 	let profileOpen = $state(false);
 	/** A lesson plays over the lobby: not from a room (that has its own game), and with the lobby's own page showing. */
 	function startLesson(id) {
@@ -326,12 +342,20 @@
 		tutorialOpen = false;
 		shopOpen = replayOpen = false;
 		if (academyOpen) setAcademy(false);
+		setMalmoi(false);
 		lessonId = id;
 	}
 
 	// 상점: replaces the main area (lobby or waiting room), as the legacy shop box replaces the room box.
 	function selectMenu(id) {
 		if (lockedOut(id)) return void toast(t('play.league.queue.locked'), { kind: 'info' });
+		if (id === 'malmoi') {
+			if (store.net.myRoom) return void toast('말모이는 방에서 나간 뒤 열 수 있어요.', { kind: 'info' });
+			shopOpen = replayOpen = newsOpen = false;
+			if (academyOpen) setAcademy(false);
+			return setMalmoi(!malmoiOpen);
+		}
+		if (id === 'lobby') setMalmoi(false);
 		if (id === 'news') {
 			shopOpen = replayOpen = false;
 			if (academyOpen) setAcademy(false);
@@ -581,6 +605,15 @@
 		}
 	}
 
+	// ?view=malmoi[&id=…]: a 말모이's own link
+	{
+		const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
+		if (q?.get('view') === 'malmoi') {
+			malmoiOpen = true;
+			if (q.get('id')) Object.assign(malmoiNav, { view: 'detail', id: q.get('id'), tab: 'words' });
+		}
+	}
+
 	// An address with ?view=replay[&game=ID] opens the 리플레이 page (at that game), ?profile=ID that player's profile
 	let queryDone = false;
 	$effect(() => {
@@ -674,7 +707,7 @@
 	{#if store.inGame && store.ui.gameCovered}
 		<GameHeader {store} ondict={() => (dictOpen = true)} oncalc={() => (calcOpen = true)} />
 	{:else}
-		<TopBar {store} {phone} {locked} rail={duoRail} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} />
+		<TopBar {store} {phone} {locked} rail={duoRail} noHelp={newLobby && !store.net.myRoom} active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : malmoiOpen && !store.net.myRoom ? 'malmoi' : 'lobby'} onselect={selectMenu} />
 	{/if}
 	<div class="flex min-h-0 min-w-0 flex-1 {rail ? (prefs.hand === 'left' ? 'flex-row-reverse' : 'flex-row') : 'flex-col'}">
 	<div bind:this={pageEl} class="flex min-h-0 min-w-0 flex-1 {desk ? 'flex-row overflow-hidden' : 'flex-col overflow-y-auto'} gap-4 overflow-x-hidden p-4 max-md:gap-3 max-md:p-3 {phone && store.ui.phoneStage ? 'max-md:gap-0! max-md:p-0!' : ''} {homeBleed ? 'max-md:p-0!' : 'max-md:pb-[calc(0.75rem+var(--dock,0px))]'}">
@@ -720,8 +753,10 @@
 				{#if store.inGame}<GameScreen {store} />{/if}
 			{:else if academyOpen && !newLobby}
 				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><AcademyScreen {store} bind:tab={academyTab} /></div>
+			{:else if malmoiOpen && !newLobby}
+				<div class="flex min-h-0 flex-1 flex-col" out:sink|global><MalmoiScreen {store} /></div>
 			{:else if newLobby}
-				<MatchHome {store} {ready} variant={phone ? 'phone' : 'desk'} oncreate={() => (createOpen = true)} ontutorial={() => (tutorialOpen = true)} page={replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : null} {screen} onpageclose={closePages} onjoin={join} />
+				<MatchHome {store} {ready} variant={phone ? 'phone' : 'desk'} oncreate={() => (createOpen = true)} ontutorial={() => (tutorialOpen = true)} page={replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen ? 'dict' : malmoiOpen ? 'malmoi' : null} {screen} onpageclose={closePages} onjoin={join} />
 			{:else if phone}
 				<!-- phone: the home (the games); the room list is a screen of its own, pushed over it (below, like the mailbox and the shop) -->
 				<MobileHome {store} {ready} onselect={selectTab} onrooms={() => (roomsOpen = true)} oncreate={() => (createOpen = true)} />
@@ -743,7 +778,7 @@
 			{/if}
 		</main>
 	</div>
-	{#if railDesk}<MobileTabBar {store} {locked} noHelp={newLobby} noPeople active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : 'lobby'} onselect={selectMenu} side edge={prefs.hand === 'left' ? 'left' : 'right'} />{:else if showTabBar && !store.ui.arcade}<MobileTabBar {store} {locked} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
+	{#if railDesk}<MobileTabBar {store} {locked} noHelp={newLobby} noPeople active={shopOpen ? 'shop' : replayOpen ? 'replay' : newsOpen ? 'news' : academyOpen && !store.net.myRoom ? 'dict' : malmoiOpen && !store.net.myRoom ? 'malmoi' : 'lobby'} onselect={selectMenu} side edge={prefs.hand === 'left' ? 'left' : 'right'} />{:else if showTabBar && !store.ui.arcade}<MobileTabBar {store} {locked} noHelp={newLobby} active={tabNow} onselect={selectTab} side={rail} edge={prefs.hand === 'left' ? 'left' : 'right'} />{/if}
 	</div>
 </div>
 {#if adOn}<AdBar width={winW} height={winH} />{/if}
@@ -782,7 +817,8 @@
 {#snippet screen(lead)}
 	{#if replayOpen}<ReplayScreen {store} start={replayStart} {lead} />
 	{:else if newsOpen}<NewsScreen {store} bare {lead} />
-	{:else if academyOpen}<div class="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-3"><AcademyScreen {store} bind:tab={academyTab} {lead} /></div>{/if}
+	{:else if academyOpen}<div class="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-3"><AcademyScreen {store} bind:tab={academyTab} {lead} /></div>
+	{:else if malmoiOpen}<MalmoiScreen {store} {lead} />{/if}
 {/snippet}
 <UserMenu bind:this={userMenu} {store} />
 <RoomMenu bind:this={roomMenu} {store} />

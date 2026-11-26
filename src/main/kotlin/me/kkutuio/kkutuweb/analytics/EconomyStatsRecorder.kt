@@ -31,6 +31,7 @@ enum class EconomySource(val label: String) {
     ENCHANT("아이템 강화"),
     NICK_CHANGE("별명 변경"),
     FAMILY_CREATE("패밀리 생성"),
+    MALMOI_LICENSE("말모이 면허"),
     SANCTION_REVOKE("제재 복구"),
     SANCTION_DEDUCT("제재 회수"),
     OTHER("기타");

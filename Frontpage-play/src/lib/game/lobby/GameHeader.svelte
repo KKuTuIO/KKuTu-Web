@@ -6,6 +6,8 @@
 	import FullscreenButton from './FullscreenButton.svelte';
 	import Logo from './Logo.svelte';
 	import { Spring } from '../spring.js';
+	import MalmoiChip from '../malmoi/MalmoiChip.svelte';
+	import { booksIn } from '../malmoi/store.svelte.js';
 
 	/** The header while a game is on: which room and rules, the dictionary, and the way out. */
 	let { store, ondict, oncalc } = $props();
@@ -58,8 +60,10 @@
 		{/if}
 		<span class="kk-chip shrink-0 whitespace-nowrap max-md:hidden">{room.mode}</span>
 		<span class="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden xl:flex-initial xl:flex-wrap max-md:hidden">
-			{#each room.rules as rule (rule.key)}<span class="kk-chip shrink-0 whitespace-nowrap">{rule.label}</span>{/each}
+			{#each room.rules.filter((r) => !(r.key === 'malmoi' && booksIn(room, store.net.id).length)) as rule (rule.key)}<span class="kk-chip shrink-0 whitespace-nowrap">{rule.label}</span>{/each}
 		</span>
+		<!-- outside the rules, which a phone leaves out: it can be tapped there too -->
+		{#if !store.replay}<MalmoiChip books={booksIn(room, store.net.id)} class="shrink-0" />{/if}
 		<!-- 제시어: a notch in the middle of the bar, hanging from its top edge and kept inside it -->
 		<div use:settle class="absolute top-0 left-1/2 hidden h-full -translate-x-1/2 items-center gap-2 rounded-b-2xl bg-(--kk-accent-soft) px-4 shadow-[inset_0_-2px_0_color-mix(in_srgb,var(--kk-accent)_45%,transparent)] lg:flex" aria-label={t('play.game.roundLetters')}>
 			<div class="flex items-center gap-1">

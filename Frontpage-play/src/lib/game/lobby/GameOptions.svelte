@@ -5,6 +5,10 @@
 	import Tooltip from '../ui/Tooltip.svelte';
 	import Rich from '../ui/Rich.svelte';
 	import ThemeSection from './ThemeSection.svelte';
+	import MalmoiChip from '../malmoi/MalmoiChip.svelte';
+	import RewardMark from '../malmoi/RewardMark.svelte';
+	import { rewardShare } from '../malmoi/model.js';
+	import { loadList, registeredBooks } from '../malmoi/store.svelte.js';
 	import { needsThemes as rulePicks, ruleCodes } from '../lobbyModel.js';
 	/**
 	 * The option checkboxes a mode allows (each with its description on hover), optionally preceded by a simple
@@ -22,7 +26,7 @@
 	const optionList = $derived(
 		ruleCodes(rule)
 			.map((code) => ({ code, def: net.meta.optionDefs[code] }))
-			.filter(({ code, def }) => def && !(def.noguest && net.guest) && (withThemes || code !== 'inp'))
+			.filter(({ code, def }) => def && !(def.noguest && net.guest) && (withThemes || (code !== 'inp' && code !== 'mlm')))
 			.map(({ code, def }) => ({
 				code,
 				k: def.name.toLowerCase(),
@@ -50,9 +54,23 @@
 	}
 	const choose = (o, on) => (on ? turnOn(o.code) : turnOff(o.code));
 
+	// 말모이: one switch for all the 말모이 I registered (the game server has the option, and sends it with the room)
+	const serverMalmoi = $derived(optionList.some((o) => o.k === 'malmoi'));
+	// a guest has no 말모이 to use: the box is there but cannot be switched on
+	const malmoiOff = $derived(net.guest || !myBooks.length);
+	const malmoiTip = $derived(net.guest ? t('play.malmoi.option.membersOnly') : myBooks.length ? t('play.malmoi.option.useAll') : t('play.malmoi.option.none'));
+	const myBooks = $derived(registeredBooks());
+	let asked = false; // once: a member with none registered must not ask again and again
+	$effect(() => {
+		if (asked || !withThemes || net.guest || !serverMalmoi) return;
+		asked = true;
+		void loadList('registered').catch(() => {});
+	});
+
 	// Options the new mode doesn't offer must not be sent along.
 	$effect(() => {
 		const allowed = new Set(optionList.map((o) => o.k));
+		if (malmoiOff && 'malmoi' in opts) delete opts.malmoi; // only when it is there: a delete that changes nothing still wakes this effect
 		for (const k of Object.keys(opts)) if (!allowed.has(k)) delete opts[k];
 		for (const o of optionList) if (o.req && !opts[o.req] && opts[o.k]) opts[o.k] = false;
 	});
@@ -79,15 +97,22 @@
 		<legend class="pb-1 text-xs font-bold text-(color:--kk-muted)">{t('play.options.rules')}</legend>
 		<div class="grid grid-cols-2 gap-x-3">
 			{#each optionList as o (o.k)}
-				{@const expl = net.meta.labels[o.expl]}
+				{@const off = o.k === 'malmoi' && malmoiOff}
+				{@const expl = off ? '' : net.meta.labels[o.expl]}
 				{#snippet tip()}<Rich html={expl} />{/snippet}
-				<Tooltip content={expl ? tip : undefined} placement="top">
-					<Checkbox {dense} checked={!!opts[o.k]} onchange={(v) => choose(o, v)}>
+				<Tooltip content={expl ? tip : undefined} text={off ? malmoiTip : ''} placement="top">
+					<Checkbox {dense} disabled={off} checked={!!opts[o.k] && !off} onchange={(v) => choose(o, v)}>
 						{o.text}
 					</Checkbox>
 				</Tooltip>
 			{/each}
 		</div>
+		{#if serverMalmoi && opts.malmoi && !malmoiOff}
+			<div class="mt-2 flex flex-wrap items-center gap-2">
+				<MalmoiChip books={myBooks} label={t('play.malmoi.option.count', { n: myBooks.length })} />
+				<RewardMark share={rewardShare(myBooks)} size={30} />
+			</div>
+		{/if}
 	</fieldset>
 {/if}
 {#if needsThemes}

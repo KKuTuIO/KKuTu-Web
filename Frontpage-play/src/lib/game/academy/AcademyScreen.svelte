@@ -17,7 +17,7 @@
 	/**
 	 * The 아카데미: the word tools (search, 어인정, 수순 실험, 루트 대결, 전략 엔진) as a page of the game,
 	 * shown in the lobby's main area like the waiting room. `tab` comes from the address (?view=academy&tab=…).
-	 * Looking back at a finished game is part of the 리플레이 page (ReplayReview).
+	 * Looking back at a finished game is part of the 리플레이 page (ReplaySummary).
 	 */
 	// `lead` (the new lobby's back button) switches the page to the stage's layout: one compact header row (back button, then the tools as one-line tabs on
 	// a translucent pill) and translucent cards, so the blurred picture shows through; without it the page keeps its tool cards.

@@ -571,7 +571,7 @@
 	.glass :global(button.kk-card) {
 		min-height: 5.25rem;
 	}
-	.glass :global(.overflow-y-auto) {
+	.glass :global(.overflow-y-auto:not(dialog *)) {
 		padding-bottom: 1rem;
 		-webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
 		mask-image: linear-gradient(to bottom, #000 calc(100% - 2rem), transparent);
@@ -590,7 +590,7 @@
 		background: color-mix(in srgb, var(--kk-surface) 92%, transparent);
 	}
 	@media (max-width: 767px) {
-		.glass :global(.overflow-y-auto) {
+		.glass :global(.overflow-y-auto:not(dialog *)) {
 			padding-bottom: 4.5rem;
 		}
 	}

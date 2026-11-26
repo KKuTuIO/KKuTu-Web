@@ -18,6 +18,7 @@
       "req": "ext"
     },
     "odw": { "name": "OpenDict" },
+    "mlm": { "name": "Malmoi" },
     "mis": { "name": "Mission" },
     "rms": {
       "name": "RandMission",
@@ -91,7 +92,7 @@
     "KKT": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "k32", "beg", "rms", "tct", "rnk", "pwr", "ado", "itm", "nht", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "mlm", "k32", "beg", "rms", "tct", "rnk", "pwr", "ado", "itm", "nht", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -100,7 +101,7 @@
     "KSH": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "nht", "etq", "nob", "ado", "no2"],
+      "opts": ["man", "saf", "gnt", "ext", "inj", "mis", "loa", "str", "odw", "mlm", "beg", "rms", "tct", "rnk", "itm", "nht", "etq", "nob", "ado", "no2"],
       "time": 1,
       "ai": true,
       "big": false,
@@ -145,7 +146,7 @@
     "KAP": {
       "lang": "ko",
       "rule": "Classic",
-      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "beg", "rms", "tct", "rnk", "itm", "nht", "etq", "nob"],
+      "opts": ["man", "saf", "gnt", "ext", "mis", "loa", "str", "odw", "mlm", "beg", "rms", "tct", "rnk", "itm", "nht", "etq", "nob"],
       "time": 1,
       "ai": true,
       "big": false,

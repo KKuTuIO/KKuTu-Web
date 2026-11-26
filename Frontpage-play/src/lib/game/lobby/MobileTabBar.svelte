@@ -37,12 +37,13 @@
 		[
 			{ id: 'rank', icon: 'trophy' },
 			{ id: 'dict', icon: 'menu_book' },
+			{ id: 'malmoi', icon: 'collections_bookmark' },
 			{ id: 'replay', icon: 'replay' },
 			guest ? { id: 'progress', icon: 'cloud_upload' } : { id: 'help', icon: 'help' },
 			{ id: 'settings', icon: 'settings' }
 		].filter((m) => !(noHelp && m.id === 'help'))
 	);
-	const moreActive = $derived(['rank', 'dict', 'replay'].includes(active));
+	const moreActive = $derived(['rank', 'dict', 'malmoi', 'replay'].includes(active));
 	const count = $derived(tabs.length + 1);
 	// which slot the focus sits on: a tab, or 더보기 for the pages in its sheet (or while it is open); -1 for a place with none
 	const index = $derived(more || moreActive ? tabs.length : tabs.findIndex((m) => m.id === active));

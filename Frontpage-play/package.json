@@ -40,6 +40,7 @@
 		"qrcode": "1.5.4",
 		"svelte-chartjs": "4.0.1",
 		"svelte-fa": "4.0.4",
-		"swiper": "14.4.0"
+		"swiper": "14.4.0",
+		"three": "0.187.0"
 	}
 }

@@ -143,6 +143,8 @@
 		} catch {
 			/* no storage: nothing is remembered */
 		}
+		// a game server that does not know 말모이 (an older one) would only drop the option; it is not sent
+		if (!net.meta.optionDefs || !Object.values(net.meta.optionDefs).some((d) => d.name === 'Malmoi')) delete form.opts.malmoi;
 		if (editing) {
 			// Blank keeps the current password; the checkbox removes it; typing sets a new one.
 			store.updateRoom({ ...form, password: clearPassword ? '' : password ? password : undefined });

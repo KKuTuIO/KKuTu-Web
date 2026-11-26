@@ -34,6 +34,7 @@
 		{ id: 'rank', icon: 'trophy', color: '#FFADD3' },
 		{ id: 'shop', icon: 'storefront', color: '#B3E7B7' },
 		{ id: 'dict', icon: 'menu_book', color: '#73D07A' },
+		{ id: 'malmoi', icon: 'collections_bookmark', color: '#C9B8F5' },
 		{ id: 'replay', icon: 'replay', color: '#D9FF82' },
 		{ id: 'news', icon: 'campaign', color: '#FFC67F' }
 	];

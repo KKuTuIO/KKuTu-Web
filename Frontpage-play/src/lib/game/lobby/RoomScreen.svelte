@@ -1,4 +1,6 @@
 <script>
+	import MalmoiChip from '../malmoi/MalmoiChip.svelte';
+	import { booksIn } from '../malmoi/store.svelte.js';
 	import { onMount } from 'svelte';
 	import { t } from '../i18n.svelte.js';
 	import { seatLayout } from '../lobbyModel.js';
@@ -169,10 +171,11 @@
 			<div class="flex min-w-0 flex-wrap items-center gap-1.5">
 				{#snippet modeTip()}<Rich html={net.meta.labels[`game.mode.${room.modeKey}.x`] ?? ''} />{/snippet}
 				<Tooltip content={net.meta.labels[`game.mode.${room.modeKey}.x`] ? modeTip : undefined} placement="bottom"><span class="text-sm font-bold {blink.mode ? 'kk-blink' : ''}">{room.mode}</span></Tooltip>
-				{#each room.rules as rule (rule.key)}
+				{#each room.rules.filter((r) => !(r.key === 'malmoi' && booksIn(room, net.id).length)) as rule (rule.key)}
 					{#snippet ruleTip()}<Rich html={rule.expl} />{/snippet}
 					<Tooltip content={rule.expl ? ruleTip : undefined} placement="bottom"><span class="kk-chip {blink.mode ? 'kk-blink' : ''}">{rule.label}</span></Tooltip>
 				{/each}
+				<MalmoiChip books={booksIn(room, net.id)} />
 				{#if room.injpick?.length}
 					{@const names = room.injpick.map((c) => net.meta.labels[`word.theme.${c}`] ?? c).join(', ')}
 					<Tooltip text={names} placement="bottom"><span class="inline-flex max-w-[16rem] items-center gap-1 text-xs font-bold text-(color:--kk-muted)"><Icon name="sell" size={16} /><span class="truncate">{names}</span></span></Tooltip>

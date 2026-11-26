@@ -19,10 +19,10 @@ object MalmoiRules {
     const val OATH_VERSION = 1
 
     val OATH = listOf(
-        "단어 등재 기준을 읽고 지키겠습니다.",
-        "사실이 아닌 낱말, 남을 비방하는 내용, 개인정보를 쓰지 않겠습니다.",
-        "내가 쓴 낱말과 뜻이 공식 사전에 승계될 수 있음에 동의합니다.",
-        "어기면 면허가 취소되고 내 편집이 되돌려질 수 있으며, 낸 핑은 돌려받지 않겠습니다."
+        "끄투리오 운영정책을 준수하겠습니다.",
+        "기준에 어긋나거나 유해한 낱말을 등록하지 않겠습니다.",
+        "내가 작성한 단어와 뜻이 공식 사전에 승계될 수 있음에 동의합니다.",
+        "위반 시 면허 취소와 같은 제재에 동의하며 핑이 환불되지 않음을 이해합니다."
     )
 
     private val WORD = Regex("^[ㄱ-ㅎ가-힣0-9]+$")
@@ -45,5 +45,6 @@ object MalmoiRules {
     }
 
     /** 면허 번호: 연-월-일련번호-회차 (카드 번호 모양). */
-    fun licenseNumber(year: Int, month: Int, serial: Long) = "%02d-%02d-%06d-01".format(year % 100, month, serial % 1_000_000)
+    fun licenseNumber(year: Int, month: Int, serial: Long) =
+        "%02d-%02d-%06d-01".format(year % 100, month, serial % 1_000_000)
 }

@@ -51,8 +51,10 @@
 		</label>
 		{#if error}<p class="-mt-2 text-sm font-bold text-(color:--kk-danger)" role="alert">{error}</p>
 		{:else if !word && clean}
-			<p class="-mt-2 text-xs text-(color:--kk-muted)">
-				{#if clean !== text}{t('play.malmoi.word.saveAs')} <b>{clean}</b> · {/if}{t('play.malmoi.word.length', { n: clean.length })}{#if maybeOneShot(clean)} · <b class="text-(color:--kk-danger)">{t('play.malmoi.word.deadEnd')}</b>{/if}
+			<p class="-mt-2 flex flex-wrap items-center gap-1.5 text-xs text-(color:--kk-muted)">
+				{#if clean !== text}<span>{t('play.malmoi.word.saveAs')} <b>{clean}</b></span>{/if}
+				<span class="rounded bg-(--kk-surface-2) px-1.5 py-0.5 tabular-nums">{t('play.malmoi.word.length', { n: clean.length })}</span>
+				{#if maybeOneShot(clean)}<span class="rounded bg-(--kk-danger-soft) px-1.5 py-0.5 font-bold text-(color:--kk-danger)">{t('play.malmoi.word.deadEnd')}</span>{/if}
 			</p>
 		{/if}
 		<fieldset class="flex flex-col gap-2">

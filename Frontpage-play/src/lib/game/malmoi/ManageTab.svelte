@@ -63,7 +63,7 @@
 		<ul class="flex flex-wrap gap-2">{#each topOf(dict) as c (c)}<li class="inline-flex items-center gap-2 rounded-full bg-(--kk-surface-2) py-1 pr-3 pl-1 text-sm font-extrabold"><Person name={c} size={26} ring="var(--kk-surface-2)" />{c}</li>{:else}<li class="text-sm text-(color:--kk-muted)">{t('play.malmoi.manage.noneYet')}</li>{/each}</ul>
 		{#if blocks.length}
 			<p class="pt-1 text-xs font-bold text-(color:--kk-muted)">{t('play.malmoi.manage.blocked')}</p>
-			{#each blocks as b (b.name)}<div class={row}><span class="min-w-0 text-sm"><b>{b.name}</b> · {t('play.malmoi.manage.timeLeft', { time: remaining(b.until - now) })}<span class="block truncate text-xs text-(color:--kk-muted)">{b.reason}</span></span><button type="button" onclick={() => attempt(() => unblock(dict, b.name), toast)} class="kk-btn min-h-9 px-3 text-sm">{t('play.malmoi.manage.release')}</button></div>{/each}
+			{#each blocks as b (b.name)}<div class={row}><span class="min-w-0 text-sm"><b>{b.name}</b> <span class="text-xs text-(color:--kk-muted)">({t('play.malmoi.manage.timeLeft', { time: remaining(b.until - now) })})</span><span class="block truncate text-xs text-(color:--kk-muted)">{b.reason}</span></span><button type="button" onclick={() => attempt(() => unblock(dict, b.name), toast)} class="kk-btn min-h-9 px-3 text-sm">{t('play.malmoi.manage.release')}</button></div>{/each}
 		{/if}
 	</div>
 

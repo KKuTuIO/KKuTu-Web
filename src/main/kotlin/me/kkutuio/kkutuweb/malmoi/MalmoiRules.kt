@@ -25,6 +25,25 @@ object MalmoiRules {
         "위반 시 면허 취소와 같은 제재에 동의하며 핑이 환불되지 않음을 이해합니다."
     )
 
+    // ---- 표지: 아이콘(머티리얼 심볼이나 이모지) 하나, 아이콘 색, 단색 배경 ----
+
+    private val SYMBOL_NAME = Regex("^[a-z0-9_]{1,48}$")
+    private val COLOR = Regex("^#[0-9a-fA-F]{6}$")
+
+    /** 표지를 고르지 않은 말모이가 보이는 모습. */
+    fun defaultCover(kind: String): Map<String, String> =
+        mapOf("type" to "symbol", "icon" to if (kind == "EXT") "extension" else "menu_book", "color" to "#ffffff", "bg" to "#3553a0")
+
+    /** @return 저장할 수 있는 모습의 표지, 형식이 틀리면 null */
+    fun cleanCover(raw: Map<String, Any?>): Map<String, String>? {
+        val type = raw["type"] as? String ?: return null
+        val icon = (raw["icon"] as? String)?.trim() ?: return null
+        val color = raw["color"] as? String ?: "#ffffff"
+        val bg = raw["bg"] as? String ?: return null
+        val ok = when (type) { "symbol" -> SYMBOL_NAME.matches(icon); "emoji" -> icon.length in 1..16; else -> false }
+        return if (ok && COLOR.matches(color) && COLOR.matches(bg)) mapOf("type" to type, "icon" to icon, "color" to color, "bg" to bg) else null
+    }
+
     private val WORD = Regex("^[ㄱ-ㅎ가-힣0-9]+$")
 
     /** 표제어: 띄어쓰기는 생략해서 적는다. */

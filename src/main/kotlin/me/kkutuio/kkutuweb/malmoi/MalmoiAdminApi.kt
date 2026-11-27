@@ -3,6 +3,8 @@ package me.kkutuio.kkutuweb.malmoi
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpSession
 import me.kkutuio.kkutuweb.extension.getIp
+import me.kkutuio.kkutuweb.locale.LocalePropertyLoader
+import me.kkutuio.kkutuweb.word.WordTheme
 import me.kkutuio.kkutuweb.login.LoginService
 import me.kkutuio.kkutuweb.setting.AdminSetting
 import me.kkutuio.kkutuweb.setting.KKuTuSetting
@@ -12,6 +14,7 @@ import org.springframework.http.MediaType
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
+import java.util.Locale
 import java.util.UUID
 
 data class StateRequest(val state: String = "", val reason: String = "")
@@ -19,6 +22,7 @@ data class LockRequest(val locked: Boolean = true)
 data class DecideRequest(val approve: Boolean = false, val reason: String = "")
 data class OwnerRequest(val account: String? = null, val name: String? = null)
 data class RevokeRequest(val account: String = "", val reason: String = "", val delayDays: Long = MalmoiRules.REISSUE_DELAY_DAYS)
+data class LookRequest(val title: String = "", val desc: String = "", val cover: Map<String, Any?> = emptyMap())
 data class ExtRequest(val theme: String = "", val lang: String = "ko", val title: String = "")
 data class PromoteRequest(val approve: List<Long> = emptyList(), val reject: List<Long> = emptyList(), val reason: String = "")
 data class ResolveRequest(val dismiss: Boolean = false)
@@ -33,7 +37,8 @@ class MalmoiAdminApi(
     private val dao: MalmoiAdminDao,
     private val books: MalmoiDao,
     private val setting: KKuTuSetting,
-    private val login: LoginService
+    private val login: LoginService,
+    private val locales: LocalePropertyLoader
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -54,10 +59,29 @@ class MalmoiAdminApi(
     private fun bad(message: String): Nothing = throw ResponseStatusException(HttpStatus.BAD_REQUEST, message)
     private fun book(id: Long) = books.findBook(id) ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "없는 말모이예요.")
 
+    /**
+     * 확장팩을 둘 수 있는 주제: 게임 설정(`themes.json`)의 한국어 어인정 주제(코드 → 이름). 말모이는 한글 단어만 받으므로 한국어만이다.
+     * 웹의 [WordTheme] 목록에는 지금은 쓰지 않는 분류까지 있어 기준으로 삼지 않는다.
+     */
+    private fun injeongThemes(): Map<String, String> {
+        val labels = locales.getMessages(Locale.KOREA)
+        return setting.getKoInjeongThemes().associateWith { code -> labels["word.theme.$code"] ?: WordTheme.findByCode(code)?.themeName ?: code }
+    }
+
+    private fun requireThemes(): Map<String, String> =
+        injeongThemes().ifEmpty { throw ResponseStatusException(HttpStatus.CONFLICT, "설정(themes.json)에 한국어 어인정 주제가 없어요.") }
+
+    /** 설정의 어인정 주제가 아닌 확장팩. */
+    private fun strayExt(): List<Map<String, Any?>> {
+        val themes = requireThemes() // 설정을 읽지 못했을 때 모두 지워지는 일이 없게 먼저 확인한다
+        return dao.extBooks().filter { it["lang"] != "ko" || it["base_theme"] !in themes }
+    }
+
     @GetMapping
     fun list(@RequestParam(required = false) state: String?, @RequestParam(defaultValue = "") q: String, session: HttpSession): Map<String, Any?> {
         admin(session)
-        return mapOf("items" to dao.books(state?.uppercase()?.takeIf { it in setOf("PUBLIC", "UNLISTED", "HIDDEN") }, q.trim().take(40), 200))
+        val rows = dao.books(state?.uppercase()?.takeIf { it in setOf("PUBLIC", "UNLISTED", "HIDDEN") }, q.trim().take(40), 500)
+        return mapOf("items" to rows.map { it + ("cover" to coverOf(it["kind"] as String, it["cover"] as String?)) })
     }
 
     @GetMapping("/{id}")
@@ -80,6 +104,25 @@ class MalmoiAdminApi(
         book(id)
         books.settle(id)
         return mapOf("items" to dao.promotableWords(id, 100, page.coerceAtLeast(0) * 100))
+    }
+
+    private fun coverOf(kind: String, json: String?): Any =
+        books.tree(json).takeIf { it.has("icon") } ?: MalmoiRules.defaultCover(kind)
+
+    /** 표지, 이름, 설명을 바꾼다(확장팩은 주인장이 없어 여기에서만 바꿀 수 있고, 부적절한 표지나 이름을 고칠 때도 쓴다). */
+    @PutMapping("/{id}/look")
+    @Transactional
+    fun look(@PathVariable id: Long, @RequestBody body: LookRequest, request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
+        val who = admin(session)
+        val b = book(id)
+        val title = body.title.trim()
+        if (title.length !in 1..40) bad("이름은 1~40자로 적어 주세요.")
+        if (body.desc.trim().length > 200) bad("설명은 200자까지 적을 수 있어요.")
+        val cover = MalmoiRules.cleanCover(body.cover) ?: bad("표지의 아이콘이나 색이 올바르지 않아요.")
+        books.updateBook(id, title, body.desc.trim(), b.criteria, books.json(cover))
+        books.log(id, null, "admin-look", "", null, "운영팀")
+        note(request, who, "$id 표지·이름 수정")
+        return mapOf("id" to id, "title" to title, "cover" to cover)
     }
 
     @PutMapping("/{id}/state")
@@ -190,27 +233,58 @@ class MalmoiAdminApi(
 
     // ---- 확장팩 ----
 
-    /** 공식 주제 하나의 확장팩을 만든다(주제마다 하나). */
+    /** 어인정 주제 하나의 확장팩을 만든다(주제마다 하나). 이름을 비우면 주제의 이름을 쓴다. */
     @PostMapping("/ext")
     @Transactional
     fun createExt(@RequestBody body: ExtRequest, request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
         val who = admin(session)
         val theme = body.theme.trim().uppercase()
-        if (!Regex("^[A-Z0-9]{2,8}$").matches(theme)) bad("주제 코드가 올바르지 않아요.")
-        val title = body.title.trim().take(40).ifEmpty { bad("원 주제의 이름을 적어 주세요.") }
-        val id = dao.createExt(theme, if (body.lang == "en") "en" else "ko", title) ?: throw ResponseStatusException(HttpStatus.CONFLICT, "이미 확장팩이 있어요.")
+        val name = requireThemes()[theme] ?: bad("설정(themes.json)의 한국어 어인정 주제 코드가 아니에요.")
+        val title = body.title.trim().take(40).ifEmpty { name.take(40) }
+        val id = dao.createExt(theme, "ko", title, books.json(MalmoiRules.defaultCover("EXT"))) ?: throw ResponseStatusException(HttpStatus.CONFLICT, "이미 확장팩이 있어요.")
         note(request, who, "확장팩 $theme → $id")
         return mapOf("id" to id)
     }
 
-    /** 공식 주제마다 확장팩을 만든다(이미 있는 주제는 건너뛴다). */
+    /** 어인정 주제마다 확장팩을 만든다(이미 있는 주제는 건너뛴다). */
     @PostMapping("/ext/seed")
     @Transactional
     fun seedExt(request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
         val who = admin(session)
-        val made = me.kkutuio.kkutuweb.word.WordTheme.entries.count { dao.createExt(it.themeCode, "ko", it.themeName) != null }
+        val themes = requireThemes()
+        val cover = books.json(MalmoiRules.defaultCover("EXT"))
+        val made = themes.entries.count { dao.createExt(it.key, "ko", it.value.take(40), cover) != null }
         note(request, who, "확장팩 일괄 생성 $made")
-        return mapOf("created" to made, "themes" to me.kkutuio.kkutuweb.word.WordTheme.entries.size)
+        return mapOf("created" to made, "themes" to themes.size)
+    }
+
+    /** 어인정 주제가 아닌 확장팩 목록(정리하기 전에 무엇이 지워지는지 본다). */
+    @GetMapping("/ext/invalid")
+    fun invalidExt(session: HttpSession): Map<String, Any?> {
+        admin(session)
+        return mapOf("items" to strayExt())
+    }
+
+    /** 어인정 주제가 아닌 확장팩을 모두 지운다(단어와 등록도 함께). */
+    @PostMapping("/ext/cleanup")
+    @Transactional
+    fun cleanupExt(request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
+        val who = admin(session)
+        val rows = strayExt()
+        rows.forEach { dao.deleteBook((it["id"] as Number).toLong()) }
+        note(request, who, "어인정이 아닌 확장팩 정리 ${rows.size}")
+        return mapOf("deleted" to rows.size)
+    }
+
+    /** 말모이 하나를 지운다(낱말, 이력, 등록, 신고까지). 되돌릴 수 없다. */
+    @DeleteMapping("/{id}")
+    @Transactional
+    fun delete(@PathVariable id: Long, request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
+        val who = admin(session)
+        val b = book(id)
+        dao.deleteBook(id)
+        note(request, who, "삭제 $id ${b.title} (${b.kind})")
+        return mapOf("deleted" to id)
     }
 
     // ---- 승계 ----

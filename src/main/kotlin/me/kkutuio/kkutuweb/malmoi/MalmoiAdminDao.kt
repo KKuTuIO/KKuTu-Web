@@ -11,11 +11,11 @@ class MalmoiAdminDao(@Autowired private val jdbc: JdbcTemplate) {
     fun books(state: String?, query: String, limit: Int): List<Map<String, Any?>> {
         val like = "%${query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")}%"
         return jdbc.queryForList(
-            """SELECT m.id, m.kind, m.base_theme, m.title, m.state, m.locked, m.owner_name, m.creator_name, m.updated_at,
+            """SELECT m.id, m.kind, m.base_theme, m.title, m.description, m.cover::text AS cover, m.state, m.locked, m.owner_name, m.creator_name, m.updated_at,
                       (SELECT count(*) FROM malmoi_word w WHERE w.malmoi_id = m.id AND w.removed_at IS NULL) AS words,
                       (SELECT count(*) FROM malmoi_registration r WHERE r.malmoi_id = m.id) AS registrants,
                       (SELECT count(*) FROM malmoi_report p WHERE p.malmoi_id = m.id AND p.status = 'OPEN') AS reports
-                 FROM malmoi m WHERE (?::text IS NULL OR m.state = ?) AND (m.title ILIKE ? ESCAPE '\\' OR ? = '%%') ORDER BY m.updated_at DESC LIMIT ?""",
+                 FROM malmoi m WHERE (?::text IS NULL OR m.state = ?) AND (m.title ILIKE ? ESCAPE '\' OR ? = '%%') ORDER BY m.updated_at DESC LIMIT ?""",
             state, state, like, like, limit
         )
     }
@@ -98,6 +98,22 @@ class MalmoiAdminDao(@Autowired private val jdbc: JdbcTemplate) {
         offset
     )
 
+    // ---- 삭제 ----
+    /** 모든 확장팩(낱말과 등록 수와 함께): 어느 것이 공식 어인정 주제가 아닌지는 API가 설정과 맞춰 본다. */
+    fun extBooks(): List<Map<String, Any?>> = jdbc.queryForList(
+        """SELECT m.id, m.title, m.base_theme, m.lang,
+                  (SELECT count(*) FROM malmoi_word w WHERE w.malmoi_id = m.id AND w.removed_at IS NULL) AS words,
+                  (SELECT count(*) FROM malmoi_registration r WHERE r.malmoi_id = m.id) AS registrants
+             FROM malmoi m WHERE m.kind = 'EXT' ORDER BY m.title"""
+    )
+
+    /** 말모이 하나를 낱말, 이력, 등록, 신고까지 모두 지운다. */
+    fun deleteBook(id: Long) {
+        for (table in listOf("malmoi_word_use", "malmoi_word", "malmoi_revision", "malmoi_registration", "malmoi_editor", "malmoi_block", "malmoi_report", "malmoi_publish_review", "malmoi_promotion", "malmoi_promotion_request"))
+            jdbc.update("DELETE FROM $table WHERE malmoi_id = ?", id)
+        jdbc.update("DELETE FROM malmoi WHERE id = ?", id)
+    }
+
     // ---- 승계 신청(새 말모이) ----
     fun promotionRequests(status: String): List<Map<String, Any?>> = jdbc.queryForList(
         "SELECT r.id, r.malmoi_id, m.title, m.owner_name, r.words, r.status, r.reason, r.created_at FROM malmoi_promotion_request r JOIN malmoi m ON m.id = r.malmoi_id WHERE r.status = ? ORDER BY r.created_at",
@@ -113,11 +129,11 @@ class MalmoiAdminDao(@Autowired private val jdbc: JdbcTemplate) {
     )
 
     // ---- 확장팩 ----
-    fun createExt(theme: String, lang: String, title: String): Long? = jdbc.query(
-        """INSERT INTO malmoi(kind, base_theme, lang, title, description, state)
-           SELECT 'EXT', ?, ?, ?, '공식 사전에 아직 없는 단어를 등록해보세요!', 'PUBLIC'
+    fun createExt(theme: String, lang: String, title: String, coverJson: String): Long? = jdbc.query(
+        """INSERT INTO malmoi(kind, base_theme, lang, title, description, cover, state)
+           SELECT 'EXT', ?, ?, ?, '공식 주제에 아직 없는 단어', CAST(? AS jsonb), 'PUBLIC'
             WHERE NOT EXISTS (SELECT 1 FROM malmoi WHERE kind = 'EXT' AND base_theme = ? AND lang = ?) RETURNING id""",
-        { rs, _ -> rs.getLong(1) }, theme, lang, title, theme, lang
+        { rs, _ -> rs.getLong(1) }, theme, lang, title, coverJson, theme, lang
     ).firstOrNull()
 
     // ---- 승계 ----

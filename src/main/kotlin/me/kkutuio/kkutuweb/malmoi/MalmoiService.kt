@@ -77,7 +77,7 @@ class MalmoiService(
 
     // ---- views ----
 
-    private fun cover(b: Book) = dao.tree(b.cover)
+    private fun cover(b: Book): Any = dao.tree(b.cover).takeIf { it.has("icon") } ?: MalmoiRules.defaultCover(b.kind)
 
     private fun summary(me: Me, b: Book, registered: Set<Long>): Map<String, Any?> {
         val (total, live) = dao.wordCounts(b.id)

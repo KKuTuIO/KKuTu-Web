@@ -1,6 +1,6 @@
 <script>
 	import { t } from '../i18n.svelte.js';
-	import Tabs from '../ui/Tabs.svelte';
+	import PillTabs from './PillTabs.svelte';
 	import Checkbox from '../ui/Checkbox.svelte';
 	import RadioGroup from '../ui/RadioGroup.svelte';
 	import Icon from '../lobby/Icon.svelte';
@@ -69,8 +69,8 @@
 <!-- One header row, as on the other pages: back and tabs, then search, 정렬 및 필터, 새 말모이 and 도움말 (a second row where they don't fit, as on a phone). -->
 <div class="relative z-20 flex shrink-0 flex-wrap items-center gap-2 px-3 py-2">
 	{@render lead?.()}
-	<div class="min-w-0 overflow-x-auto rounded-xl bg-(--kk-surface)/80 [&_.kk-tab]:px-4 [&_.kk-tab]:whitespace-nowrap max-sm:[&_.kk-tab]:px-3">
-		<Tabs bind:value={nav.list} idPrefix="malmoi-list" label={t('play.malmoi.list.tabsLabel')} tabs={[{ id: 'browse', label: t('play.malmoi.list.browse') }, { id: 'registered', label: t('play.malmoi.list.registered'), count: book.registered.length }, { id: 'mine', label: t('play.malmoi.list.mine') }]} />
+	<div class="min-w-0">
+		<PillTabs bind:value={nav.list} idPrefix="malmoi-list" label={t('play.malmoi.list.tabsLabel')} tabs={[{ id: 'browse', icon: 'travel_explore', label: t('play.malmoi.list.browse') }, { id: 'registered', icon: 'bookmark', label: t('play.malmoi.list.registered'), count: book.registered.length }, { id: 'mine', icon: 'edit_note', label: t('play.malmoi.list.mine') }]} />
 	</div>
 	<div class="flex min-w-0 items-center justify-end gap-2 max-md:w-full md:min-w-[34rem] md:flex-1">
 		<label class="kk-input flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl px-3 xl:max-w-64">

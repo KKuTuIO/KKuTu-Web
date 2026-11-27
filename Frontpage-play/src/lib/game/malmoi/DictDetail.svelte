@@ -1,6 +1,6 @@
 <script>
 	import { t } from '../i18n.svelte.js';
-	import Tabs from '../ui/Tabs.svelte';
+	import PillTabs from './PillTabs.svelte';
 	import Icon from '../lobby/Icon.svelte';
 	import { toast } from '../ui/toast.svelte.js';
 	import Cover from './Cover.svelte';
@@ -32,11 +32,11 @@
 	const manages = $derived(isManager(dict));
 	const waiting = $derived(dict.changes.filter((c) => !c.reverted && (c.type === 'add' || c.type === 'edit') && c.at + LIMITS.applyMs > clock).length);
 	const tabs = $derived([
-		{ id: 'words', label: t('play.malmoi.common.word') },
-		{ id: 'changes', label: t('play.malmoi.common.recent'), count: dict.state === 'public' ? waiting : 0 },
-		{ id: 'contrib', label: t('play.malmoi.common.contrib') },
-		{ id: 'rules', label: t('play.malmoi.common.criteria') },
-		...(manages ? [{ id: 'manage', label: t('play.malmoi.common.manage') }] : [])
+		{ id: 'words', icon: 'list_alt', label: t('play.malmoi.common.word') },
+		{ id: 'changes', icon: 'history', label: t('play.malmoi.common.recent'), count: dict.state === 'public' ? waiting : 0 },
+		{ id: 'contrib', icon: 'insights', label: t('play.malmoi.common.contrib') },
+		{ id: 'rules', icon: 'rule', label: t('play.malmoi.common.criteria') },
+		...(manages ? [{ id: 'manage', icon: 'settings', label: t('play.malmoi.common.manage') }] : [])
 	]);
 	const tab = $derived(tabs.some((x) => x.id === nav.tab) ? nav.tab : 'words');
 	async function toggle() {
@@ -56,8 +56,8 @@
 
 <div class="relative z-20 flex shrink-0 items-center gap-2 px-3 py-2 max-[400px]:gap-1.5 max-[400px]:px-2">
 	{@render lead()}
-	<div class="min-w-0 overflow-x-auto rounded-xl bg-(--kk-surface)/80 [&_.kk-tab]:px-4 [&_.kk-tab]:whitespace-nowrap max-sm:[&_.kk-tab]:px-2.5 max-[400px]:[&_.kk-tab]:px-1.5 max-[400px]:[&_.kk-tab]:text-[13px]">
-		<Tabs bind:value={() => tab, (v) => (nav.tab = v)} {tabs} idPrefix="malmoi-detail" label={t('play.malmoi.common.name')} />
+	<div class="min-w-0">
+		<PillTabs bind:value={() => tab, (v) => (nav.tab = v)} {tabs} idPrefix="malmoi-detail" label={t('play.malmoi.common.name')} />
 	</div>
 	<div class="ml-auto shrink-0"><HelpButton topic="detail" /></div>
 </div>

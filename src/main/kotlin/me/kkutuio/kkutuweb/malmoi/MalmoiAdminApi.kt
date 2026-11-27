@@ -37,11 +37,16 @@ class MalmoiAdminApi(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private companion object {
+        val ALLOWED = setOf(AdminSetting.Privilege.WORD, AdminSetting.Privilege.GAME_SOURCE_MANAGE, AdminSetting.Privilege.ADMIN_MANAGE)
+    }
+
     private fun admin(session: HttpSession): String {
         val account = login.accountUuid(session) ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "통합계정 로그인이 필요합니다.")
         if (account !in setting.getAdminIds()) throw ResponseStatusException(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다.")
         val a = setting.getAdmins().find { it.id == account } ?: throw ResponseStatusException(HttpStatus.FORBIDDEN, "관리자 설정을 찾을 수 없습니다.")
-        if (AdminSetting.Privilege.WORD !in a.privileges) throw ResponseStatusException(HttpStatus.FORBIDDEN, "단어 관리 권한이 필요합니다.")
+        // 임시: 시험하는 동안 개발팀(게임 소스·관리자 관리 권한)도 쓴다. 시험이 끝나면 WORD만 남긴다.
+        if (a.privileges.none { it in ALLOWED }) throw ResponseStatusException(HttpStatus.FORBIDDEN, "단어 관리 권한이 필요합니다.")
         return account
     }
 
@@ -196,6 +201,16 @@ class MalmoiAdminApi(
         val id = dao.createExt(theme, if (body.lang == "en") "en" else "ko", title) ?: throw ResponseStatusException(HttpStatus.CONFLICT, "이미 확장팩이 있어요.")
         note(request, who, "확장팩 $theme → $id")
         return mapOf("id" to id)
+    }
+
+    /** 공식 주제마다 확장팩을 만든다(이미 있는 주제는 건너뛴다). */
+    @PostMapping("/ext/seed")
+    @Transactional
+    fun seedExt(request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
+        val who = admin(session)
+        val made = me.kkutuio.kkutuweb.word.WordTheme.entries.count { dao.createExt(it.themeCode, "ko", it.themeName) != null }
+        note(request, who, "확장팩 일괄 생성 $made")
+        return mapOf("created" to made, "themes" to me.kkutuio.kkutuweb.word.WordTheme.entries.size)
     }
 
     // ---- 승계 ----

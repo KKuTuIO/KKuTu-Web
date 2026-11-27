@@ -1,26 +1,23 @@
 <script>
 	import { t } from '../i18n.svelte.js';
 	import Icon from '../lobby/Icon.svelte';
-	import Checkbox from '../ui/Checkbox.svelte';
 	import { toast } from '../ui/toast.svelte.js';
 	import { confirm, prompt } from '../ui/confirm.svelte.js';
 	import LicenseDialog from './LicenseDialog.svelte';
 	import { LIMITS, SHEET, remaining } from './model.js';
 	import Person from './Person.svelte';
 	import RoleIcon from './RoleIcon.svelte';
-	import { attempt, delegate, invite, isOwner, licensed, me, nav, publish, reissueInvite, requestPromotion, requestReview, topOf, unblock } from './store.svelte.js';
+	import { attempt, delegate, invite, isOwner, licensed, me, nav, reissueInvite, requestReview, topOf, unblock } from './store.svelte.js';
 
 	let { dict, now } = $props();
 	const owner = $derived(isOwner(dict));
 	let license = $state(false);
-	let agreed = $state(false);
-	const accepted = $derived(dict.editors.filter((e) => e.accepted).length);
 	const live = $derived(dict.liveCount);
-	const filled = $derived(!!(dict.criteria.detail && dict.criteria.include && dict.criteria.source));
-	const checks = $derived([
-		{ ok: me.level >= LIMITS.promoteLevel, text: t('play.malmoi.manage.checkLevel', { n: LIMITS.promoteLevel }), now: t('play.malmoi.manage.nowLevel', { n: me.level }) },
-		{ ok: live >= LIMITS.promoteWords, text: t('play.malmoi.manage.checkWords', { n: LIMITS.promoteWords }), now: t('play.malmoi.manage.nowWords', { n: live }) },
-		{ ok: filled, text: t('play.malmoi.manage.checkCriteria'), now: '' }
+	// 공개 심사 신청 요건: 레벨, 단어 수, 집필 면허
+	const publicChecks = $derived([
+		{ ok: me.level >= LIMITS.publishLevel, text: t('play.malmoi.manage.checkLevel', { n: LIMITS.publishLevel }), now: t('play.malmoi.manage.nowLevel', { n: me.level }) },
+		{ ok: live >= LIMITS.publishWords, text: t('play.malmoi.manage.checkWords', { n: LIMITS.publishWords }), now: t('play.malmoi.manage.nowWords', { n: live }) },
+		{ ok: licensed(), text: t('play.malmoi.manage.checkLicense'), now: '' }
 	]);
 	const blocks = $derived(dict.blocks.filter((b) => b.until > now));
 
@@ -39,19 +36,17 @@
 		if (!(await confirm({ message: t('play.malmoi.manage.reissueAsk'), ok: t('play.malmoi.manage.reissueOk') }))) return;
 		if (await attempt(() => reissueInvite(dict), toast)) toast(t('play.malmoi.manage.reissued'), { kind: 'success' });
 	}
-	async function goPublic() {
-		if (!licensed()) return (license = true);
-		if (!(await confirm({ message: t('play.malmoi.manage.publishAsk'), ok: t('play.malmoi.common.publish') }))) return;
-		if (await attempt(() => publish(dict), toast)) toast(t('play.malmoi.manage.published'), { kind: 'success' });
-	}
 	async function askReview() {
 		if (await attempt(() => requestReview(dict), toast)) toast(t('play.malmoi.manage.reviewRequested'), { kind: 'success' });
 	}
-	async function promote() {
-		if (await attempt(() => requestPromotion(dict), toast)) toast(t('play.malmoi.manage.promotionRequested'), { kind: 'success' });
-	}
 	const row = 'flex min-h-11 flex-wrap items-center justify-between gap-2';
 </script>
+
+{#snippet checklist(list)}
+	<ul class="flex flex-col gap-1">
+		{#each list as c (c.text)}<li class="flex items-center gap-2 text-sm"><span class={c.ok ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'} role="img" aria-label={c.ok ? t('play.malmoi.manage.met') : t('play.malmoi.manage.unmet')}><Icon name={c.ok ? 'check_circle' : 'radio_button_unchecked'} size={20} fill={c.ok} /></span><span class="font-bold">{c.text}</span>{#if c.now}<span class="text-xs text-(color:--kk-muted)">{c.now}</span>{/if}</li>{/each}
+	</ul>
+{/snippet}
 
 <div class="grid min-w-0 gap-3 lg:grid-cols-2">
 	<div class="kk-card flex flex-col gap-2 p-4">
@@ -83,26 +78,12 @@
 			<ul class="flex flex-col">{#each dict.editors as e (e.name)}<li class={row}><span class="inline-flex min-w-0 items-center gap-2"><Person name={e.name} size={26} /><b class="min-w-0 truncate text-sm">{e.name}</b></span><span class="text-xs font-bold {e.accepted ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'}">{e.accepted ? t('play.malmoi.manage.accepted') : t('play.malmoi.manage.waiting')}</span></li>{:else}<li class="text-sm text-(color:--kk-muted)">{t('play.malmoi.manage.noneYet')}</li>{/each}</ul>
 		</div>
 		<div class="kk-card flex flex-col gap-2 p-4">
-			<div class={row}><h3 class="text-sm font-black">{t('play.malmoi.common.public')}</h3>{#if me.level < LIMITS.publishLevel}<span class="text-xs font-bold text-(color:--kk-muted) tabular-nums">{t('play.malmoi.manage.editorCount', { n: accepted, max: LIMITS.editors })}</span>{/if}</div>
-			{#if me.level >= LIMITS.publishLevel}
-				<button type="button" onclick={goPublic} class="kk-btn kk-btn-primary">{licensed() ? t('play.malmoi.common.publish') : t('play.malmoi.common.getLicense')}</button>
-			{:else}
-				{#if !licensed()}<button type="button" onclick={() => (license = true)} class="kk-btn">{t('play.malmoi.common.getLicense')}</button>{/if}
-				{#if dict.review === 'rejected'}<p class="text-xs font-bold text-(color:--kk-danger)">{t('play.malmoi.manage.reviewRejected')}</p>{/if}
-				<button type="button" disabled={accepted < LIMITS.editors || !licensed() || !filled || dict.review === 'pending'} onclick={askReview} class="kk-btn kk-btn-primary">{dict.review === 'pending' ? t('play.malmoi.manage.reviewWaiting') : t('play.malmoi.manage.reviewRequest')}</button>
-			{/if}
-		</div>
-	{/if}
-
-	{#if owner && dict.state === 'public' && dict.kind === 'new'}
-		<div class="kk-card flex flex-col gap-2 p-4">
-			<h3 class="text-sm font-black">{t('play.malmoi.manage.promotionTitle')}</h3>
-			<ul class="flex flex-col gap-1">
-				{#each checks as c (c.text)}<li class="flex items-center gap-2 text-sm"><span class={c.ok ? 'text-(color:--kk-accent-strong)' : 'text-(color:--kk-muted)'} role="img" aria-label={c.ok ? t('play.malmoi.manage.met') : t('play.malmoi.manage.unmet')}><Icon name={c.ok ? 'check_circle' : 'radio_button_unchecked'} size={20} fill={c.ok} /></span><span class="font-bold">{c.text}</span>{#if c.now}<span class="text-xs text-(color:--kk-muted)">{c.now}</span>{/if}</li>{/each}
-			</ul>
+			<h3 class="text-sm font-black">{t('play.malmoi.manage.reviewTitle')}</h3>
+			{@render checklist(publicChecks)}
 			<a href={SHEET.common} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1 self-start text-sm font-extrabold text-(color:--kk-accent-strong) hover:underline">{t('play.malmoi.manage.readCriteria')}<Icon name="open_in_new" size={16} /></a>
-			<Checkbox bind:checked={agreed}><span class="text-sm">{t('play.malmoi.manage.agreed')}</span></Checkbox>
-			<button type="button" disabled={!agreed || !checks.every((c) => c.ok) || dict.promotion === 'pending'} onclick={promote} class="kk-btn kk-btn-primary">{dict.promotion === 'pending' ? t('play.malmoi.manage.promotionWaiting') : t('play.malmoi.manage.promotionRequest')}</button>
+			{#if dict.review === 'rejected'}<p class="text-xs font-bold text-(color:--kk-danger)">{t('play.malmoi.manage.reviewRejected')}</p>{/if}
+			{#if !licensed() && me.level >= LIMITS.publishLevel}<button type="button" onclick={() => (license = true)} class="kk-btn">{t('play.malmoi.common.getLicense')}</button>{/if}
+			<button type="button" disabled={!publicChecks.every((c) => c.ok) || dict.review === 'pending'} onclick={askReview} class="kk-btn kk-btn-primary">{dict.review === 'pending' ? t('play.malmoi.manage.reviewWaiting') : t('play.malmoi.manage.reviewRequest')}</button>
 		</div>
 	{/if}
 </div>

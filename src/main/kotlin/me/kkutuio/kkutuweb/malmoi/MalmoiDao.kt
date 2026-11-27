@@ -161,21 +161,17 @@ class MalmoiDao(
     fun invite(id: Long, account: UUID, name: String) { jdbc.update("INSERT INTO malmoi_editor(malmoi_id, account_uuid, name) VALUES (?, ?, ?) ON CONFLICT DO NOTHING", id, account, name) }
     fun accept(id: Long, account: UUID): Int = jdbc.update("UPDATE malmoi_editor SET accepted = TRUE WHERE malmoi_id = ? AND account_uuid = ?", id, account)
     fun leaveEditor(id: Long, account: UUID): Int = jdbc.update("DELETE FROM malmoi_editor WHERE malmoi_id = ? AND account_uuid = ?", id, account)
-    fun editorCount(id: Long): Int = jdbc.queryForObject("SELECT count(*) FROM malmoi_editor WHERE malmoi_id = ? AND accepted", Int::class.java, id) ?: 0
     fun invitations(account: UUID): List<Map<String, Any?>> = jdbc.queryForList(
         "SELECT m.id, m.title, m.owner_name FROM malmoi_editor e JOIN malmoi m ON m.id = e.malmoi_id WHERE e.account_uuid = ? AND NOT e.accepted AND m.state = 'UNLISTED' ORDER BY e.created_at DESC", account
     )
     fun newToken(id: Long, token: String) { jdbc.update("UPDATE malmoi SET invite_token = ?, updated_at = now() WHERE id = ?", token, id) }
 
-    // ---- review and promotion requests ----
+    // ---- review requests ----
 
     fun pendingReview(id: Long): Boolean = (jdbc.queryForObject("SELECT count(*) FROM malmoi_publish_review WHERE malmoi_id = ? AND status = 'PENDING'", Int::class.java, id) ?: 0) > 0
     fun lastReview(id: Long): Map<String, Any?>? = jdbc.queryForList("SELECT status, reason FROM malmoi_publish_review WHERE malmoi_id = ? ORDER BY created_at DESC LIMIT 1", id).firstOrNull()
     fun requestReview(id: Long, revision: Long, by: UUID) { jdbc.update("INSERT INTO malmoi_publish_review(malmoi_id, revision, requested_by) VALUES (?, ?, ?)", id, revision, by) }
     fun revisionOf(id: Long): Long = jdbc.queryForObject("SELECT revision FROM malmoi WHERE id = ?", Long::class.java, id) ?: 0L
-    fun pendingPromotion(id: Long): Boolean = (jdbc.queryForObject("SELECT count(*) FROM malmoi_promotion_request WHERE malmoi_id = ? AND status = 'PENDING'", Int::class.java, id) ?: 0) > 0
-    fun lastPromotion(id: Long): Map<String, Any?>? = jdbc.queryForList("SELECT status, reason FROM malmoi_promotion_request WHERE malmoi_id = ? ORDER BY created_at DESC LIMIT 1", id).firstOrNull()
-    fun requestPromotion(id: Long, by: UUID, words: Int) { jdbc.update("INSERT INTO malmoi_promotion_request(malmoi_id, requested_by, words) VALUES (?, ?, ?)", id, by, words) }
 
     // ---- revert and block ----
 
@@ -221,7 +217,7 @@ class MalmoiDao(
     /** 지분의 기준: 낱말이 [MalmoiRules.TOP_DAYS]일 넘게 남은 것. 작성 계정별. */
     fun survivors(id: Long): List<Triple<UUID?, String, Int>> = jdbc.query(
         """SELECT author_uuid, COALESCE(max(author_name), '') AS who, count(*) AS n FROM malmoi_word
-           WHERE malmoi_id = ? AND removed_at IS NULL AND created_at <= now() - make_interval(days => ?) GROUP BY author_uuid ORDER BY n DESC""",
+           WHERE malmoi_id = ? AND removed_at IS NULL AND created_at <= now() - make_interval(days => ?) GROUP BY author_uuid ORDER BY n DESC, min(created_at), author_uuid""",
         { rs, _ -> Triple(uuid(rs, "author_uuid"), rs.getString("who"), rs.getInt("n")) }, id, MalmoiRules.TOP_DAYS.toInt()
     )
 

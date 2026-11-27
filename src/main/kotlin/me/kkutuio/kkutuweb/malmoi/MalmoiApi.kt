@@ -61,17 +61,11 @@ class MalmoiApi(
     @PostMapping("/{id}/review")
     fun review(@PathVariable id: Long, session: HttpSession): Map<String, Any?> { limit(session, "review", 10, 3600L); return service.requestReview(session, id) }
 
-    @PostMapping("/{id}/promotion")
-    fun promotion(@PathVariable id: Long, session: HttpSession): Map<String, Any?> { limit(session, "promotion", 10, 3600L); return service.requestPromotion(session, id) }
-
     @GetMapping("/{id}")
     fun detail(@PathVariable id: Long, session: HttpSession) = service.detail(session, id)
 
     @PutMapping("/{id}")
     fun update(@PathVariable id: Long, @RequestBody form: MalmoiService.BookForm, session: HttpSession): Map<String, Any?> { limit(session, "update", 60, 3600L); return service.update(session, id, form) }
-
-    @PostMapping("/{id}/publish")
-    fun publish(@PathVariable id: Long, session: HttpSession): Map<String, Any?> { limit(session, "publish", 10, 3600L); return service.publish(session, id) }
 
     @PutMapping("/{id}/registration")
     fun register(@PathVariable id: Long, session: HttpSession): Map<String, Any?> { limit(session, "register", 120, 3600L); return service.register(session, id, true) }

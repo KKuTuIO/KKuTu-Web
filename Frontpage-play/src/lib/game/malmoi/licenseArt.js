@@ -198,7 +198,7 @@ function face({ name, level, issued, until, no, code }, photo) {
 	const { canvas, ctx } = sheet();
 	paper(ctx);
 	// classes
-	[t('play.malmoi.card.classEdit'), level >= LIMITS.publishLevel && t('play.malmoi.card.classCreate'), level >= LIMITS.promoteLevel && t('play.malmoi.manage.promotionRequest')].filter(Boolean).forEach((line, i) => write(ctx, line, 20, 29 + i * 19, 12));
+	[t('play.malmoi.card.classEdit'), level >= LIMITS.publishLevel && t('play.malmoi.card.classCreate')].filter(Boolean).forEach((line, i) => write(ctx, line, 20, 29 + i * 19, 12));
 	const title = write(ctx, t('play.malmoi.card.title'), 190, 37, 24, { weight: 800, spacing: -0.5 });
 	write(ctx, "(Writer's License)", 196 + title, 37, 11, { weight: 400, color: '#46506e' });
 	write(ctx, no, 190, 73, 29, { weight: 800, spacing: 1 });
@@ -298,7 +298,7 @@ function holder(card) {
  */
 export async function paintLicense(data) {
 	// a canvas draws with the fonts the page has at that moment, so they are asked for first
-	const text = [t('play.malmoi.card.title'), t('play.malmoi.card.team'), t('play.malmoi.card.oathDone'), t('play.malmoi.card.issued'), t('play.malmoi.card.period'), t('play.malmoi.card.condition'), t('play.malmoi.card.stamp'), t('play.malmoi.card.classEdit'), t('play.malmoi.card.classCreate'), t('play.malmoi.manage.promotionRequest'), data.name, oath().join(' ')].join(' ');
+	const text = [t('play.malmoi.card.title'), t('play.malmoi.card.team'), t('play.malmoi.card.oathDone'), t('play.malmoi.card.issued'), t('play.malmoi.card.period'), t('play.malmoi.card.condition'), t('play.malmoi.card.stamp'), t('play.malmoi.card.classEdit'), t('play.malmoi.card.classCreate'), data.name, oath().join(' ')].join(' ');
 	await Promise.all([400, 700, 800].map((w) => document.fonts?.load(`${w} 16px ${FONT}`, text))).catch(() => {});
 	const photo = await portrait(data.equip ?? {}, data.shop ?? {}, data.parts ?? []);
 	const sides = { front: face(data, photo), back: back() };

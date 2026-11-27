@@ -24,7 +24,7 @@ data class OwnerRequest(val account: String? = null, val name: String? = null)
 data class RevokeRequest(val account: String = "", val reason: String = "", val delayDays: Long = MalmoiRules.REISSUE_DELAY_DAYS)
 data class LookRequest(val title: String = "", val desc: String = "", val cover: Map<String, Any?> = emptyMap())
 data class ExtRequest(val theme: String = "", val lang: String = "ko", val title: String = "")
-data class PromoteRequest(val approve: List<Long> = emptyList(), val reject: List<Long> = emptyList(), val reason: String = "")
+data class PromoteRequest(val words: List<Long> = emptyList())
 data class ResolveRequest(val dismiss: Boolean = false)
 
 /**
@@ -97,7 +97,7 @@ class MalmoiAdminApi(
         )
     }
 
-    /** 승계를 검토할 낱말(100개씩). */
+    /** 게임에 반영된 단어(100개씩): 공개 심사에서 보고, 확장팩은 여기서 승계할 단어를 고른다. */
     @GetMapping("/{id}/words")
     fun words(@PathVariable id: Long, @RequestParam(defaultValue = "0") page: Int, session: HttpSession): Map<String, Any?> {
         admin(session)
@@ -177,27 +177,14 @@ class MalmoiAdminApi(
     fun decide(@PathVariable reviewId: Long, @RequestBody body: DecideRequest, request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
         val who = admin(session)
         val id = dao.decideReview(reviewId, if (body.approve) "APPROVED" else "REJECTED", body.reason.trim().take(200), who) ?: throw ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 심사예요.")
+        // 신청한 뒤에 단어가 지워졌으면 승인하지 않는다(예외로 판정도 되돌아간다)
+        if (body.approve && books.wordCounts(id).second < MalmoiRules.PUBLISH_WORDS) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "단어가 ${MalmoiRules.PUBLISH_WORDS}개보다 적어 승인할 수 없습니다.")
+        }
         if (body.approve) dao.setState(id, "PUBLIC")
         books.log(id, null, "review", if (body.approve) "승인" else "반려 ${body.reason}".trim().take(80), null, "운영팀")
         note(request, who, "심사 $reviewId → ${if (body.approve) "승인" else "반려"}")
         return mapOf("id" to id, "approved" to body.approve)
-    }
-
-    // ---- 승계 신청(새 말모이) ----
-
-    @GetMapping("/promotion-requests")
-    fun promotionRequests(@RequestParam(defaultValue = "PENDING") status: String, session: HttpSession): Map<String, Any?> {
-        admin(session)
-        return mapOf("items" to dao.promotionRequests(status.uppercase()))
-    }
-
-    @PostMapping("/promotion-requests/{requestId}")
-    @Transactional
-    fun decidePromotionRequest(@PathVariable requestId: Long, @RequestBody body: DecideRequest, request: HttpServletRequest, session: HttpSession): Map<String, Any?> {
-        val who = admin(session)
-        if (dao.decidePromotionRequest(requestId, if (body.approve) "ACCEPTED" else "REJECTED", body.reason.trim().take(200), who) == 0) throw ResponseStatusException(HttpStatus.CONFLICT, "이미 처리된 신청이에요.")
-        note(request, who, "승계 신청 $requestId → ${if (body.approve) "수락" else "반려"}")
-        return mapOf("id" to requestId, "approved" to body.approve)
     }
 
     // ---- 신고 ----
@@ -290,8 +277,8 @@ class MalmoiAdminApi(
     // ---- 승계 ----
 
     /**
-     * 확장팩 낱말을 원 주제로 승계한다: 승인한 낱말은 공식 사전에 들어가거나(이미 있으면 주제 코드만 보탠다) 확장팩에서 빠지고,
-     * 반려한 낱말은 사유와 함께 기록만 하고 확장팩에 남는다. 한 번에 한 트랜잭션이다. 게임 서버의 낱말 캐시는 따로 새로 고쳐야 반영된다.
+     * 확장팩 단어를 원 주제로 승계한다. 신청은 받지 않고 단어팀이 단어를 직접 고른다. 고른 단어는 공식 사전에 들어가고(이미 있으면 주제 코드만
+     * 보탠다) 확장팩에서 삭제된다. 고르지 않은 단어는 그대로 남는다.
      */
     @PostMapping("/{id}/promote")
     @Transactional
@@ -299,10 +286,11 @@ class MalmoiAdminApi(
         val who = admin(session)
         val b = book(id)
         if (b.kind != "EXT" || b.baseTheme == null) bad("확장팩만 승계할 수 있어요.")
-        if (body.approve.size + body.reject.size > 500) bad("한 번에 500개까지 처리할 수 있어요.")
+        if (body.words.isEmpty()) bad("승계할 단어를 골라 주세요.")
+        if (body.words.size > 500) bad("한 번에 500개까지 처리할 수 있어요.")
         var done = 0
         var existing = 0
-        for (row in dao.promotable(id, body.approve)) {
+        for (row in dao.promotable(id, body.words)) {
             val word = row["word"] as String
             val had = dao.officialExists(b.lang, word)
             dao.addToOfficial(b.lang, word, (row["mean"] as String?) ?: "", b.baseTheme)
@@ -310,10 +298,9 @@ class MalmoiAdminApi(
             dao.logPromotion(id, word, b.baseTheme, if (had) "EXISTING" else "APPROVED", "", who)
             if (had) existing++ else done++
         }
-        for (row in dao.promotable(id, body.reject)) dao.logPromotion(id, row["word"] as String, b.baseTheme, "REJECTED", body.reason.trim().take(200), who)
-        books.log(id, null, "promotion", "승인 $done, 기존 $existing, 반려 ${body.reject.size}", null, "운영팀")
+        books.log(id, null, "promotion", "승계 $done, 이미 있던 단어 $existing", null, "운영팀")
         books.touch(id)
-        note(request, who, "승계 $id 승인 $done 기존 $existing 반려 ${body.reject.size}")
-        return mapOf("approved" to done, "existing" to existing, "rejected" to body.reject.size)
+        note(request, who, "승계 $id 새 단어 $done 이미 있던 단어 $existing")
+        return mapOf("approved" to done, "existing" to existing)
     }
 }

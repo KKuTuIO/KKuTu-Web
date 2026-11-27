@@ -50,12 +50,16 @@ class MalmoiService(
 
     // ---- rights ----
 
-    /** 상위 기여자(작성 계정): 남은 지 30일 넘은 낱말의 지분이 기준 이상인 사람. 새 말모이는 30일 동안 주인장과 운영팀만 관리한다. */
-    fun topContributors(id: Long): List<Pair<UUID?, String>> {
-        val rows = dao.survivors(id)
+    /**
+     * 최다 기여자(작성 계정): 남은 지 30일 넘은 낱말을 가장 많이 가진 한 사람이고, 지분이 기준 이상일 때만 있다. 그래서 목록은 0명 또는 1명이다.
+     * 새 말모이는 30일 동안 주인장과 운영팀만 관리한다.
+     */
+    fun topContributors(id: Long): List<Pair<UUID?, String>> = topOf(dao.survivors(id))
+
+    private fun topOf(rows: List<Triple<UUID?, String, Int>>): List<Pair<UUID?, String>> {
         val total = rows.sumOf { it.third }
-        if (total <= 0) return emptyList()
-        return rows.filter { it.third.toDouble() / total >= MalmoiRules.TOP_SHARE }.map { it.first to it.second }
+        val first = rows.firstOrNull { it.first != null } ?: return emptyList()
+        return if (first.third.toDouble() / total >= MalmoiRules.TOP_SHARE) listOf(first.first to first.second) else emptyList()
     }
 
     private fun manages(me: Me, b: Book): Boolean = b.owner == me.account || topContributors(b.id).any { it.first == me.account }
@@ -104,7 +108,6 @@ class MalmoiService(
             "editor" to (b.owner == me.account || dao.isEditor(me.account, id)),
             "editors" to if (b.owner == me.account) dao.editors(id).map { mapOf("name" to it["name"], "accepted" to it["accepted"]) } else emptyList<Any>(),
             "review" to dao.lastReview(id)?.let { (it["status"] as String).lowercase() }.orEmpty(),
-            "promotion" to dao.lastPromotion(id)?.let { (it["status"] as String).lowercase() }.orEmpty(),
             "blocks" to if (manages(me, b)) dao.blocks(id).map { mapOf("name" to it["name"], "reason" to it["reason"], "until" to (it["until_at"] as java.sql.Timestamp).time) } else emptyList<Any>(),
             "invite" to if (b.state == "UNLISTED" && (b.owner == me.account || dao.isEditor(me.account, id))) b.inviteToken else null,
             "locked" to b.locked, "createdAt" to b.createdAt.toEpochMilli()
@@ -135,9 +138,10 @@ class MalmoiService(
         requireVisible(me, id)
         val rows = dao.survivors(id)
         val total = rows.sumOf { it.third }
+        val top = topOf(rows).firstOrNull()?.first
         return mapOf(
             "activity" to dao.activity(id, days.coerceIn(7, 366)).map { mapOf("day" to it.first, "who" to it.second, "n" to it.third) },
-            "people" to rows.map { mapOf("name" to it.second, "count" to it.third, "share" to if (total > 0) it.third.toDouble() / total else 0.0, "top" to (total > 0 && it.third.toDouble() / total >= MalmoiRules.TOP_SHARE)) },
+            "people" to rows.map { mapOf("name" to it.second, "count" to it.third, "share" to if (total > 0) it.third.toDouble() / total else 0.0, "top" to (top != null && it.first == top)) },
             "total" to total, "topShare" to MalmoiRules.TOP_SHARE, "topDays" to MalmoiRules.TOP_DAYS
         )
     }
@@ -146,7 +150,7 @@ class MalmoiService(
 
     private fun token(): String = ByteArray(12).also(random::nextBytes).joinToString("") { "%02x".format(it) }
 
-    data class BookForm(val title: String = "", val desc: String = "", val cover: Map<String, Any?> = emptyMap(), val criteria: Map<String, Any?> = emptyMap(), val state: String = "unlisted")
+    data class BookForm(val title: String = "", val desc: String = "", val cover: Map<String, Any?> = emptyMap(), val criteria: Map<String, Any?> = emptyMap())
 
     private fun clean(form: BookForm): BookForm {
         val title = form.title.trim()
@@ -155,17 +159,14 @@ class MalmoiService(
         return form.copy(title = title, desc = form.desc.trim())
     }
 
+    /** 새 말모이는 일부 공개로 시작한다. 공개는 단어를 모은 뒤 심사를 통과해야 한다([requestReview]). */
     @Transactional
     fun create(session: HttpSession, form: BookForm): Map<String, Any?> {
         val me = me(session)
         val f = clean(form)
-        val wantsPublic = f.state.equals("public", true)
-        if (wantsPublic) {
-            if (me.level < MalmoiRules.PUBLISH_LEVEL) fail(HttpStatus.FORBIDDEN, "공개 말모이는 레벨 ${MalmoiRules.PUBLISH_LEVEL}부터 만들 수 있어요.")
-            if (dao.activeLicense(me.account) == null) fail(HttpStatus.FORBIDDEN, "공개 말모이를 만들려면 말모이 집필 면허가 필요해요.")
-        } else if (dao.unlistedCount(me.account) >= MalmoiRules.UNLISTED_LIMIT) fail(HttpStatus.CONFLICT, "일부 공개 말모이는 ${MalmoiRules.UNLISTED_LIMIT}권까지 만들 수 있어요.")
+        if (dao.unlistedCount(me.account) >= MalmoiRules.UNLISTED_LIMIT) fail(HttpStatus.CONFLICT, "일부 공개 말모이는 ${MalmoiRules.UNLISTED_LIMIT}권까지 만들 수 있어요.")
         if (dao.titleTaken(f.title)) fail(HttpStatus.CONFLICT, "같은 이름의 말모이가 있어요.")
-        val id = dao.createBook("NEW", null, f.title, f.desc, dao.json(f.criteria), dao.json(f.cover), me.account, me.name, if (wantsPublic) "PUBLIC" else "UNLISTED", token())
+        val id = dao.createBook("NEW", null, f.title, f.desc, dao.json(f.criteria), dao.json(f.cover), me.account, me.name, "UNLISTED", token())
         dao.register(me.account, id)
         dao.log(id, null, "create", "", me.account, me.name)
         return mapOf("id" to id)
@@ -182,20 +183,6 @@ class MalmoiService(
         dao.updateBook(id, f.title, f.desc, dao.json(f.criteria), dao.json(f.cover))
         dao.log(id, null, "settings", "", me.account, me.name)
         return mapOf("id" to id)
-    }
-
-    /** 일부 공개 → 공개는 레벨과 면허가 필요하고, 한 번 공개하면 일부 공개로 되돌리지 않는다. */
-    @Transactional
-    fun publish(session: HttpSession, id: Long): Map<String, Any?> {
-        val me = me(session)
-        val b = requireVisible(me, id)
-        if (b.owner != me.account) fail(HttpStatus.FORBIDDEN, "주인장만 바꿀 수 있어요.")
-        if (b.state != "UNLISTED") fail(HttpStatus.CONFLICT, "이미 공개된 말모이예요.")
-        if (me.level < MalmoiRules.PUBLISH_LEVEL) fail(HttpStatus.FORBIDDEN, "공개는 레벨 ${MalmoiRules.PUBLISH_LEVEL}부터예요.")
-        if (dao.activeLicense(me.account) == null) fail(HttpStatus.FORBIDDEN, "공개하려면 말모이 집필 면허가 필요해요.")
-        dao.setState(id, "PUBLIC")
-        dao.log(id, null, "publish", "", me.account, me.name)
-        return mapOf("id" to id, "state" to "public")
     }
 
     @Transactional
@@ -411,37 +398,18 @@ class MalmoiService(
         return mapOf("invite" to t)
     }
 
-    private fun criteriaFilled(b: Book): Boolean = dao.tree(b.criteria).let { c -> listOf("detail", "include", "source").all { !c.path(it).asString("").isBlank() } }
-
-    /** 레벨 30 미만의 공개: 편집자 3명이 수락하고 면허가 있고 기준을 적었을 때 운영팀에 심사를 신청한다. */
+    /** 공개 심사 신청: 레벨 30 이상, 집필 면허, 단어 50개 이상. 공개는 운영팀이 백오피스에서 승인해야 된다. */
     @Transactional
     fun requestReview(session: HttpSession, id: Long): Map<String, Any?> {
         val me = me(session)
         val b = requireOwner(me, id)
         if (b.state != "UNLISTED") fail(HttpStatus.CONFLICT, "일부 공개 말모이만 신청할 수 있어요.")
-        if (me.level >= MalmoiRules.PUBLISH_LEVEL) fail(HttpStatus.CONFLICT, "레벨 ${MalmoiRules.PUBLISH_LEVEL} 이상은 심사 없이 공개할 수 있어요.")
-        if (dao.activeLicense(me.account) == null) fail(HttpStatus.FORBIDDEN, "면허가 필요해요.")
-        if (dao.editorCount(id) < MalmoiRules.EDITORS) fail(HttpStatus.CONFLICT, "수락한 편집자가 ${MalmoiRules.EDITORS}명 필요해요.")
-        if (!criteriaFilled(b)) fail(HttpStatus.CONFLICT, "낱말 기준 세 칸을 적어 주세요.")
+        if (me.level < MalmoiRules.PUBLISH_LEVEL) fail(HttpStatus.FORBIDDEN, "공개 심사는 레벨 ${MalmoiRules.PUBLISH_LEVEL}부터 신청할 수 있어요.")
+        if (dao.activeLicense(me.account) == null) fail(HttpStatus.FORBIDDEN, "공개 심사를 신청하려면 말모이 집필 면허가 필요해요.")
+        if (dao.wordCounts(id).second < MalmoiRules.PUBLISH_WORDS) fail(HttpStatus.CONFLICT, "단어가 ${MalmoiRules.PUBLISH_WORDS}개 이상이어야 해요.")
         if (dao.pendingReview(id)) fail(HttpStatus.CONFLICT, "이미 심사를 기다리고 있어요.")
         dao.requestReview(id, dao.revisionOf(id), me.account)
-        dao.log(id, null, "review-request", "", me.account, me.name)
-        return mapOf("status" to "requested")
-    }
-
-    /** 승계 신청(새 말모이): 레벨 30 이상, 반영된 낱말 50개 이상, 기준 세 칸. 검토는 단어팀이 백오피스에서 한다. */
-    @Transactional
-    fun requestPromotion(session: HttpSession, id: Long): Map<String, Any?> {
-        val me = me(session)
-        val b = requireOwner(me, id)
-        if (b.kind != "NEW" || b.state != "PUBLIC") fail(HttpStatus.CONFLICT, "공개한 새 말모이만 신청할 수 있어요.")
-        if (me.level < MalmoiRules.PROMOTE_LEVEL) fail(HttpStatus.FORBIDDEN, "레벨 ${MalmoiRules.PROMOTE_LEVEL} 이상이어야 해요.")
-        val live = dao.wordCounts(id).second
-        if (live < MalmoiRules.PROMOTE_WORDS) fail(HttpStatus.CONFLICT, "반영된 낱말이 ${MalmoiRules.PROMOTE_WORDS}개 이상이어야 해요.")
-        if (!criteriaFilled(b)) fail(HttpStatus.CONFLICT, "낱말 기준 세 칸을 적어 주세요.")
-        if (dao.pendingPromotion(id)) fail(HttpStatus.CONFLICT, "이미 검토를 기다리고 있어요.")
-        dao.requestPromotion(id, me.account, live)
-        dao.log(id, null, "promotion-request", "", me.account, me.name)
+        dao.log(id, null, "review-ask", "", me.account, me.name)
         return mapOf("status" to "requested")
     }
 
@@ -463,6 +431,7 @@ class MalmoiService(
     @Transactional
     fun issueLicense(session: HttpSession, oath: List<String>): Map<String, Any?> {
         val me = me(session)
+        if (me.level < MalmoiRules.PUBLISH_LEVEL) fail(HttpStatus.FORBIDDEN, "말모이 집필 면허는 레벨 ${MalmoiRules.PUBLISH_LEVEL}부터 받을 수 있어요.")
         if (oath.size != MalmoiRules.OATH.size || oath.indices.any { !MalmoiRules.sameOath(oath[it], MalmoiRules.OATH[it]) }) fail(HttpStatus.BAD_REQUEST, "선서문을 그대로 적어 주세요.")
         if (dao.activeLicense(me.account) != null) fail(HttpStatus.CONFLICT, "이미 면허가 있어요.")
         dao.latestLicense(me.account)?.reissueAfter?.takeIf { it.isAfter(Instant.now()) }?.let { fail(HttpStatus.FORBIDDEN, "재발급은 ${it.toEpochMilli()}까지 기다려야 해요.") }

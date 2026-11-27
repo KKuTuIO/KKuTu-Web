@@ -20,7 +20,14 @@
     import { haptic } from "../haptics.js";
     import { levelUp } from "../levelUp.svelte.js";
     import { t } from "../i18n.svelte.js";
-    import { ERROR_KEYS, UNPAID_KEYS, clock, live, marks } from "../typing.js";
+    import {
+        ERROR_KEYS,
+        UNPAID_KEYS,
+        clock,
+        isInjected,
+        live,
+        marks,
+    } from "../typing.js";
 
     /**
      * 타자 연습 (the arcade): the player sets a goal (strokes a minute; the first setting of a day is free, a change after it costs 핑) and types today's
@@ -58,8 +65,9 @@
     let waitTimer;
     let countTimer;
     let endTimer;
-    /** the length of what was typed before this key (a key that takes letters away is silent) */
-    let prevLen = 0;
+    /** what was typed before this key: a key that takes letters away is silent, and text that was not typed is taken back */
+    let prevValue = "";
+    let composedData = "";
 
     const lines = $derived(session?.lines ?? []);
     const index = $derived(session?.index ?? 0);
@@ -130,7 +138,7 @@
             total += last.line.strokes;
             right += last.line.strokes - last.line.wrong;
             typed = "";
-            prevLen = 0;
+            prevValue = "";
             if (last.result) {
                 // the text is over: the whistle first, then how it went
                 phase = "over";
@@ -207,7 +215,7 @@
         typed = "";
         phase = "count";
         count = 3;
-        prevLen = 0;
+        prevValue = "";
         playSound("round_start"); // once, not a beat for each number
         clearInterval(countTimer);
         countTimer = setInterval(async () => {
@@ -261,10 +269,31 @@
         }
     }
     // a key: Al when what is typed is right so far, fail when it is not (a key that only takes letters away is silent)
-    function ontype() {
+    let warnedAt = 0;
+    function noPaste(e) {
+        e?.preventDefault();
+        if (Date.now() - warnedAt < 2000) return;
+        warnedAt = Date.now();
+        toast(t("play.typing.noPaste"), { kind: "info", icon: "keyboard" });
+        playSound("fail");
+    }
+    function onbeforeinput(e) {
+        if (isInjected(e, prevValue, prevValue, composedData)) noPaste(e);
+    }
+    function ontype(e) {
         if (phase !== "play") return;
-        const grew = typed.length >= prevLen;
-        prevLen = typed.length;
+        // what was not typed (a paste, a drop, a suggestion, several characters at once) is taken back
+        if (isInjected(e, prevValue, typed, composedData)) {
+            typed = prevValue;
+            e.currentTarget.value = prevValue;
+            composedData = "";
+            noPaste();
+            return;
+        }
+        composedData =
+            e.inputType === "insertCompositionText" ? (e.data ?? "") : "";
+        const grew = typed.length >= prevValue.length;
+        prevValue = typed;
         if (!grew || !typed.length) return;
         playSound(
             marks(lines[index] ?? "", typed, composing).some(
@@ -404,7 +433,14 @@
                       extreme: !over && elapsed > 8000 && stats.speed < goal,
                   }}
         >
-            <div class="mouth" lang="ko">
+            <!-- the text to type cannot be selected or copied (a long press on a phone would offer it) -->
+            <div
+                class="mouth"
+                lang="ko"
+                role="presentation"
+                oncopy={(e) => e.preventDefault()}
+                oncontextmenu={(e) => e.preventDefault()}
+            >
                 {#if phase === "pick"}
                     <span class="hint">{t("play.typing.today")}</span>
                     <b class="today">{summary?.today?.title ?? "…"}</b>
@@ -494,6 +530,10 @@
                     oncompositionstart={() => (composing = true)}
                     oncompositionend={() => (composing = false)}
                     oninput={ontype}
+                    {onbeforeinput}
+                    onpaste={noPaste}
+                    ondrop={noPaste}
+                    oncontextmenu={(e) => e.preventDefault()}
                     onkeydown={onkey}
                     class="entry"
                     lang="ko"
@@ -626,6 +666,9 @@
     }
     /* what the frog's mouth shows (as the 타자 대결 does): the line being typed in yellow, the wrong letters struck out in red, and the lines after it in white */
     .mouth {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
         display: flex;
         flex-direction: column;
         justify-content: center;

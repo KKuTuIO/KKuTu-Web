@@ -13,12 +13,13 @@
 	let busy = $state(false);
 	const done = $derived(oath().map((line, i) => sameOath(typed[i], line)));
 	const short = $derived(me.ping < LIMITS.fee);
+	const low = $derived(me.level < LIMITS.publishLevel);
 	$effect(() => {
 		if (open) typed = oath().map(() => '');
 	});
 	async function submit(e) {
 		e.preventDefault();
-		if (!done.every(Boolean) || busy) return;
+		if (low || !done.every(Boolean) || busy) return;
 		busy = true;
 		const r = await attempt(() => takeLicense($state.snapshot(typed)), toast);
 		busy = false;
@@ -30,6 +31,9 @@
 </script>
 
 <Dialog bind:open title={t('play.malmoi.license.title')} size="lg">
+	{#if low}
+		<p class="py-6 text-center text-sm font-extrabold break-keep">{t('play.malmoi.license.fromLevel', { n: LIMITS.publishLevel, level: me.level })}</p>
+	{:else}
 	<form onsubmit={submit} class="flex flex-col gap-4">
 		<fieldset class="flex flex-col gap-3">
 			<legend class="pb-2 text-sm font-extrabold">{t('play.malmoi.license.legend', { days: LIMITS.licenseDays })}</legend>
@@ -50,4 +54,5 @@
 			</button>
 		</div>
 	</form>
+	{/if}
 </Dialog>

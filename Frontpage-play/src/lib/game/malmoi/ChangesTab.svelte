@@ -19,9 +19,10 @@
 		revert: { icon: 'undo', label: t('play.malmoi.changes.revert') },
 		create: { icon: 'auto_awesome', label: t('play.malmoi.changes.create') },
 		settings: { icon: 'tune', label: t('play.malmoi.changes.settings') },
-		publish: { icon: 'public', label: t('play.malmoi.common.public') },
+		publish: { icon: 'public', label: t('play.malmoi.common.public') }, // 심사 전에 바로 공개한 옛 이력
 		block: { icon: 'block', label: t('play.malmoi.common.block') },
 		review: { icon: 'fact_check', label: t('play.malmoi.changes.review') },
+		'review-ask': { icon: 'fact_check', label: t('play.malmoi.manage.reviewRequest') },
 		promotion: { icon: 'workspace_premium', label: t('play.malmoi.changes.promotion') }
 	};
 	// a kind this screen does not know (the 운영팀's own actions) still gets a line

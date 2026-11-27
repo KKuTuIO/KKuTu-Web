@@ -9,9 +9,7 @@ export const LIMITS = {
 	fee: 500,
 	licenseDays: 90,
 	publishLevel: 30,
-	promoteLevel: 30,
-	promoteWords: 50,
-	editors: 3,
+	publishWords: 50,
 	topShare: 0.1,
 	topDays: 30,
 	blockDays: 7

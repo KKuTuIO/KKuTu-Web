@@ -50,6 +50,23 @@ export function live({ right, total, expected, typed, elapsed, composing = false
 	return { speed: elapsed > 0 ? Math.round((Math.max(0, r - (n - r)) * 60000) / elapsed) : 0, accuracy: n ? Math.floor((r / n) * 1000) / 10 : 100, wrong: n - r };
 }
 
+/** Input types that put text into a field without it being typed. */
+const NOT_TYPED = new Set(['insertFromPaste', 'insertFromPasteAsQuotation', 'insertFromDrop', 'insertFromYank', 'insertReplacementText', 'historyUndo', 'historyRedo']);
+
+/**
+ * Whether an input event put text in that was not typed: a paste, a drop, a suggestion, an undo, or several characters at once (a phone keyboard's clipboard or
+ * suggestion bar sends them as ordinary text). A key adds one character at most (a syllable being composed grows by one as the next begins), two are let through.
+ * `before` and `after` are the field's text around the event, `composed` what was being composed before it.
+ */
+export function isInjected({ inputType = '', data = null }, before, after, composed = '') {
+	if (NOT_TYPED.has(inputType)) return true;
+	const length = (s) => [...(s ?? '')].length;
+	if (inputType === 'insertText' && length(data) > 2) return true;
+	// (a keyboard may take a word that is already there into composition again: nothing grows then, so nothing was put in)
+	if (inputType === 'insertCompositionText' && length(data) - length(composed) > 2 && length(after) > length(before)) return true;
+	return length(after) - length(before) > 2;
+}
+
 /** "0:12": minutes and seconds. */
 export function clock(ms) {
 	const s = Math.floor(ms / 1000);

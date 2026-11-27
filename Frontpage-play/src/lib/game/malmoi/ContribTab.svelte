@@ -4,7 +4,7 @@
 	import Person from './Person.svelte';
 	import RoleIcon from './RoleIcon.svelte';
 
-	/** 기여: the days a 말모이 was worked on (a grid like GitHub's) and who holds how much of it. The ones above the share line are the 상위 기여자. */
+	/** 기여: the days a 말모이 was worked on (a grid like GitHub's) and who holds how much of it. The one holding the most, if above the share line, is the 최다 기여자. */
 	let { dict, now } = $props();
 	const WEEKS = 26;
 	const cols = $derived(grid(dict.activity ?? [], now, WEEKS));

@@ -133,7 +133,6 @@ export async function openBook(id) {
 		locked: !!detail.locked,
 		editors: detail.editors ?? [],
 		review: detail.review ?? '',
-		promotion: detail.promotion ?? '',
 		blocks: detail.blocks ?? [],
 		changes: changes.items.map((c) => ({ id: c.id, at: c.at, who: c.who ?? '', type: c.type, text: c.word ?? '', reason: c.reason ?? '', reverted: !!c.reverted })),
 		people: contrib.people,
@@ -224,13 +223,12 @@ export const block = (d, c, days, reason) => refreshing(d, () => call('POST', `/
 export const unblock = (d, name) => refreshing(d, () => call('DELETE', `/${d.id}/blocks?name=${encodeURIComponent(name)}`));
 export const report = (d, { word, reason, detail }) => call('POST', `/${d.id}/reports`, { word, reason, detail });
 
-// ---- editors, delegation, applications ----
+// ---- editors, delegation, review ----
 
 export const invite = (d, name) => refreshing(d, () => call('POST', `/${d.id}/editors`, { name }));
 export const delegate = (d, name) => refreshing(d, () => call('POST', `/${d.id}/delegate`, { name }));
 export const reissueInvite = (d) => refreshing(d, () => call('POST', `/${d.id}/invite/reissue`, {}));
 export const requestReview = (d) => refreshing(d, () => call('POST', `/${d.id}/review`, {}));
-export const requestPromotion = (d) => refreshing(d, () => call('POST', `/${d.id}/promotion`, {}));
 
 /** The editor invitations waiting for my answer. */
 export const invitations = $state({ items: [] });
@@ -267,7 +265,6 @@ export async function create(form) {
 }
 
 export const update = (d, form) => refreshing(d, () => call('PUT', `/${d.id}`, form));
-export const publish = (d) => refreshing(d, () => call('POST', `/${d.id}/publish`, {}));
 
 // ---- a room's 말모이 ----
 

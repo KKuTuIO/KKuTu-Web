@@ -5,9 +5,8 @@
 	import { toast } from '../ui/toast.svelte.js';
 	import CoverEditor from './CoverEditor.svelte';
 	import HelpButton from './HelpButton.svelte';
-	import LicenseDialog from './LicenseDialog.svelte';
 	import { LIMITS, SHEET } from './model.js';
-	import { attempt, create, find, licensed, me, nav, update } from './store.svelte.js';
+	import { attempt, create, find, nav, update } from './store.svelte.js';
 
 	/** Making a new 말모이, or changing the name, description, 기준 and cover of mine (`nav.id`). */
 	const old = find(nav.id);
@@ -15,13 +14,9 @@
 	let desc = $state(old?.desc ?? '');
 	let criteria = $state(old ? { ...old.criteria } : { detail: '', include: '', source: '' });
 	let cover = $state(old ? { ...old.cover } : { type: 'symbol', icon: 'menu_book', color: '#ffffff', bg: '#3553a0' });
-	let state_ = $state('unlisted');
 	let { lead } = $props();
-	let license = $state(false);
 	let busy = $state(false);
-	const levelOk = $derived(me.level >= LIMITS.publishLevel);
-	const canPublic = $derived(levelOk && licensed());
-	const ready = $derived(!!title.trim() && !!desc.trim() && !busy && (state_ === 'unlisted' || canPublic));
+	const ready = $derived(!!title.trim() && !!desc.trim() && !busy);
 	const back = () => Object.assign(nav, { view: old ? 'detail' : 'list' });
 	async function save(e) {
 		e.preventDefault();
@@ -35,7 +30,7 @@
 			toast(t('play.malmoi.form.saved'), { kind: 'success' });
 			return back();
 		}
-		const id = await attempt(() => create({ ...value, state: state_ }), toast);
+		const id = await attempt(() => create(value), toast);
 		busy = false;
 		if (!id) return;
 		toast(t('play.malmoi.form.created', { title: value.title }), { kind: 'success' });
@@ -83,17 +78,16 @@
 	</div>
 
 	{#if !old}
+		<!-- every new one starts unlisted: public is applied for from its 관리 tab, once the words are there -->
 		<div class="kk-card flex flex-col gap-2 p-4">
 			<h3 class="text-sm font-black">{t('play.malmoi.form.scope')}</h3>
-			<div class="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={t('play.malmoi.form.scope')}>
-				{#each [['unlisted', t('play.malmoi.common.unlisted'), t('play.malmoi.form.unlistedHint'), 0], ['public', t('play.malmoi.common.public'), t('play.malmoi.form.publicHint'), 0.75]] as [id, label, hint, pay] (id)}
-					<button type="button" role="radio" aria-checked={state_ === id} disabled={id === 'public' && !canPublic} onclick={() => (state_ = id)} class="flex flex-col gap-1 rounded-xl border-2 p-3 text-left disabled:opacity-50 {state_ === id ? 'border-(color:--kk-accent) bg-(--kk-accent-soft)' : 'border-(color:--kk-line)'}">
+			<ul class="grid gap-2 sm:grid-cols-2">
+				{#each [['unlisted', t('play.malmoi.common.unlisted'), t('play.malmoi.form.unlistedHint'), 0], ['public', t('play.malmoi.common.public'), t('play.malmoi.form.publicAfter', { n: LIMITS.publishWords }), 0.75]] as [id, label, hint, pay] (id)}
+					<li class="flex flex-col gap-1 rounded-xl border-2 p-3 {id === 'unlisted' ? 'border-(color:--kk-accent) bg-(--kk-accent-soft)' : 'border-(color:--kk-line)'}" aria-current={id === 'unlisted' ? 'true' : undefined}>
 						<b class="inline-flex items-center gap-1.5 font-extrabold">{#if id === 'unlisted'}<Icon name="lock" size={18} fill />{/if}{label}</b><span class="text-xs leading-relaxed text-(color:--kk-muted)">{hint}</span><RewardMark share={pay} size={18} />
-					</button>
+					</li>
 				{/each}
-			</div>
-			{#if !levelOk}<p class="text-xs font-bold text-(color:--kk-muted)">{t('play.malmoi.form.publicFromLevel', { n: LIMITS.publishLevel })}</p>
-			{:else if !licensed()}<button type="button" onclick={() => (license = true)} class="kk-btn self-start px-3 text-sm">{t('play.malmoi.common.getLicense')}</button>{/if}
+			</ul>
 		</div>
 	{/if}
 
@@ -103,5 +97,3 @@
 	</div>
 </form>
 </div>
-
-<LicenseDialog bind:open={license} />

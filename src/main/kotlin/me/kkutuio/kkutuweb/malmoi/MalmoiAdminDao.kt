@@ -64,7 +64,7 @@ class MalmoiAdminDao(@Autowired private val jdbc: JdbcTemplate) {
 
     // ---- publish reviews ----
     fun reviews(status: String): List<Map<String, Any?>> = jdbc.queryForList(
-        "SELECT v.id, v.malmoi_id, m.title, m.owner_name, v.revision, v.status, v.reason, v.created_at FROM malmoi_publish_review v JOIN malmoi m ON m.id = v.malmoi_id WHERE v.status = ? ORDER BY v.created_at",
+        "SELECT v.id, v.malmoi_id, m.title, m.owner_name, v.revision, v.status, v.reason, v.created_at, (SELECT count(*) FROM malmoi_word w WHERE w.malmoi_id = m.id AND w.removed_at IS NULL) AS words FROM malmoi_publish_review v JOIN malmoi m ON m.id = v.malmoi_id WHERE v.status = ? ORDER BY v.created_at",
         status
     )
 
@@ -113,20 +113,6 @@ class MalmoiAdminDao(@Autowired private val jdbc: JdbcTemplate) {
             jdbc.update("DELETE FROM $table WHERE malmoi_id = ?", id)
         jdbc.update("DELETE FROM malmoi WHERE id = ?", id)
     }
-
-    // ---- 승계 신청(새 말모이) ----
-    fun promotionRequests(status: String): List<Map<String, Any?>> = jdbc.queryForList(
-        "SELECT r.id, r.malmoi_id, m.title, m.owner_name, r.words, r.status, r.reason, r.created_at FROM malmoi_promotion_request r JOIN malmoi m ON m.id = r.malmoi_id WHERE r.status = ? ORDER BY r.created_at",
-        status
-    )
-
-    fun decidePromotionRequest(id: Long, status: String, reason: String, admin: String): Int = jdbc.update(
-        "UPDATE malmoi_promotion_request SET status = ?, reason = ?, reviewer_uuid = CAST(? AS uuid), decided_at = now() WHERE id = ? AND status = 'PENDING'",
-        status,
-        reason,
-        admin,
-        id
-    )
 
     // ---- 확장팩 ----
     fun createExt(theme: String, lang: String, title: String, coverJson: String): Long? = jdbc.query(

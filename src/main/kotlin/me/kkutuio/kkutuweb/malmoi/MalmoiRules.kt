@@ -2,7 +2,10 @@ package me.kkutuio.kkutuweb.malmoi
 
 /** 말모이의 규칙과 숫자(기획서 MALMOI_DESIGN.md). 화면 시안의 `malmoi/model.js`와 같은 값이다. */
 object MalmoiRules {
+    /** 면허 발급과 공개 심사 신청에 필요한 레벨. */
     const val PUBLISH_LEVEL = 30
+    /** 공개 심사를 신청하려면 모아야 하는 단어 수. */
+    const val PUBLISH_WORDS = 50
     const val DAILY_EDITS = 50
     const val UNLISTED_LIMIT = 5
     const val WORD_MAX = 80
@@ -13,9 +16,6 @@ object MalmoiRules {
     const val TOP_SHARE = 0.10
     const val TOP_DAYS = 30L
     const val BLOCK_MAX_DAYS = 7L
-    const val EDITORS = 3
-    const val PROMOTE_LEVEL = 30
-    const val PROMOTE_WORDS = 50
     const val OATH_VERSION = 1
 
     val OATH = listOf(
